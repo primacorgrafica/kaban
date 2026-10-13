@@ -1,0 +1,1 @@
+ALTER SEQUENCE public.om_numero_seq RESTART WITH 1;

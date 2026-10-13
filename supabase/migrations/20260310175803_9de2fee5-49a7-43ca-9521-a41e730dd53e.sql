@@ -1,0 +1,1 @@
+ALTER TABLE public.orders ADD COLUMN parent_order_id uuid REFERENCES public.orders(id) ON DELETE SET NULL DEFAULT NULL;

@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.prevent_duplicate_family_in_sector() FROM PUBLIC, anon, authenticated;

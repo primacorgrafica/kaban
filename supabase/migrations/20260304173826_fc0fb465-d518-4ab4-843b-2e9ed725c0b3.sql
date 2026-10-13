@@ -1,0 +1,1 @@
+ALTER TABLE public.orders ADD COLUMN saida_direta boolean NOT NULL DEFAULT false;

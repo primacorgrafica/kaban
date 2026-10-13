@@ -1,0 +1,187 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 25% 96%;
+    --foreground: 222 40% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 40% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 40% 10%;
+
+    --primary: 225 70% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 222 18% 92%;
+    --secondary-foreground: 222 30% 20%;
+
+    --muted: 222 18% 94%;
+    --muted-foreground: 222 12% 50%;
+
+    --accent: 225 25% 92%;
+    --accent-foreground: 225 40% 15%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 222 18% 90%;
+    --input: 222 18% 88%;
+    --ring: 225 70% 45%;
+
+    --radius: 0.75rem;
+
+    /* Glass tokens */
+    --glass-bg: 0 0% 100% / 0.6;
+    --glass-border: 0 0% 100% / 0.3;
+    --glass-blur: 16px;
+
+    /* Status colors - more vibrant */
+    --status-entrada: 340 75% 55%;
+    --status-entrada-bg: 340 75% 96%;
+    --status-novo: 215 90% 52%;
+    --status-novo-bg: 215 90% 96%;
+    --status-andamento: 32 95% 50%;
+    --status-andamento-bg: 32 95% 95%;
+    --status-rota: 220 10% 35%;
+    --status-rota-bg: 220 10% 92%;
+    --status-aguardando: 275 60% 55%;
+    --status-aguardando-bg: 275 60% 96%;
+    --status-revisao: 180 80% 40%;
+    --status-revisao-bg: 180 80% 95%;
+    --status-concluido: 150 65% 40%;
+    --status-concluido-bg: 150 65% 95%;
+    --status-arquivado: 222 12% 55%;
+    --status-arquivado-bg: 222 12% 95%;
+    --status-urgente: 0 75% 50%;
+    --status-urgente-bg: 0 75% 96%;
+
+    --sidebar-background: 225 40% 12%;
+    --sidebar-foreground: 222 18% 85%;
+    --sidebar-primary: 215 90% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 225 30% 18%;
+    --sidebar-accent-foreground: 222 18% 92%;
+    --sidebar-border: 225 25% 20%;
+    --sidebar-ring: 215 90% 60%;
+
+    /* Gradient tokens */
+    --gradient-sidebar: linear-gradient(180deg, hsl(225 45% 14%), hsl(225 35% 8%));
+    --gradient-header: linear-gradient(90deg, hsl(0 0% 100% / 0.85), hsl(0 0% 100% / 0.7));
+    --gradient-primary: linear-gradient(135deg, hsl(225 70% 45%), hsl(250 65% 55%));
+  }
+
+  .dark {
+    --background: 225 30% 7%;
+    --foreground: 222 18% 92%;
+    --card: 225 25% 11%;
+    --card-foreground: 222 18% 92%;
+    --popover: 225 25% 11%;
+    --popover-foreground: 222 18% 92%;
+    --primary: 215 90% 58%;
+    --primary-foreground: 225 40% 5%;
+    --secondary: 225 22% 16%;
+    --secondary-foreground: 222 18% 85%;
+    --muted: 225 22% 14%;
+    --muted-foreground: 222 12% 55%;
+    --accent: 225 22% 18%;
+    --accent-foreground: 222 18% 92%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 225 22% 16%;
+    --input: 225 22% 16%;
+    --ring: 215 90% 58%;
+
+    --glass-bg: 225 25% 12% / 0.7;
+    --glass-border: 225 25% 20% / 0.4;
+
+    --sidebar-background: 225 35% 6%;
+    --sidebar-foreground: 222 18% 80%;
+    --sidebar-primary: 215 90% 55%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 225 28% 12%;
+    --sidebar-accent-foreground: 222 18% 85%;
+    --sidebar-border: 225 22% 14%;
+    --sidebar-ring: 215 90% 55%;
+
+    --gradient-sidebar: linear-gradient(180deg, hsl(225 35% 8%), hsl(225 40% 4%));
+    --gradient-header: linear-gradient(90deg, hsl(225 25% 11% / 0.9), hsl(225 25% 11% / 0.7));
+    --gradient-primary: linear-gradient(135deg, hsl(215 90% 55%), hsl(250 70% 50%));
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-light {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .scrollbar-light::-webkit-scrollbar {
+    width: 6px;
+  }
+  .scrollbar-light::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-light::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border));
+    border-radius: 3px;
+  }
+  .scrollbar-light::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--muted-foreground) / 0.3);
+  }
+
+  .glass {
+    background: hsl(var(--glass-bg));
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid hsl(var(--glass-border));
+  }
+
+  .glass-card {
+    background: hsl(var(--glass-bg));
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid hsl(var(--glass-border));
+    box-shadow: 0 4px 24px -4px hsl(225 40% 20% / 0.08),
+                0 1px 3px hsl(225 40% 20% / 0.04);
+  }
+
+  .glass-card:hover {
+    box-shadow: 0 8px 32px -4px hsl(225 40% 20% / 0.12),
+                0 2px 6px hsl(225 40% 20% / 0.06);
+    border-color: hsl(var(--primary) / 0.2);
+  }
+}
+
+@layer utilities {
+  .scrollbar-none {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
+  }
+}

@@ -1,0 +1,1 @@
+ALTER TABLE public.orders ADD COLUMN prioridade text NOT NULL DEFAULT 'normal';

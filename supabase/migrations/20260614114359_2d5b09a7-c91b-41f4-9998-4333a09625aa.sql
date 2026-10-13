@@ -1,0 +1,1 @@
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS modulos_acesso text[] NOT NULL DEFAULT '{}'::text[];

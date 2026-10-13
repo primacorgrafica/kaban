@@ -1,0 +1,1 @@
+ALTER TABLE public.orders ADD COLUMN entregue_por text DEFAULT NULL;

@@ -1,0 +1,1 @@
+ALTER TABLE public.orders ADD COLUMN endereco_entrega text DEFAULT null;

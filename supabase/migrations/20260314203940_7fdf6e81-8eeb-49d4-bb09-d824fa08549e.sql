@@ -1,0 +1,1 @@
+ALTER TABLE public.orders ADD COLUMN obs_prova text DEFAULT NULL;

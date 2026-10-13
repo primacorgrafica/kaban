@@ -1,0 +1,1 @@
+ALTER TABLE public.orders ADD COLUMN causa_nc TEXT DEFAULT NULL;
