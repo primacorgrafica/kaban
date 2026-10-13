@@ -12,6 +12,7 @@ interface AuthContextType {
   role: AppRole | null;
   isAdmin: boolean;
   modulosAcesso: string[];
+  onlineUserIds: Set<string>;
   hasModule: (mod: string) => boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
@@ -26,6 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<AppRole | null>(null);
   const [modulosAcesso, setModulosAcesso] = useState<string[]>([]);
+  const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
 
 
   const fetchRole = useCallback(async (userId: string) => {
@@ -98,51 +100,96 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null };
   };
 
-  // Heartbeat & Realtime presence tracking
+  // Heartbeat & Realtime presence tracking (único canal centralizado)
   useEffect(() => {
     const userId = session?.user?.id;
-    if (!userId) return;
+    if (!userId) {
+      setOnlineUserIds(new Set());
+      return;
+    }
 
     const upsertPresence = async () => {
-      await supabase
-        .from("user_presence")
-        .upsert(
-          {
-            user_id: userId,
-            last_seen: new Date().toISOString(),
-            logged_in_at: new Date().toISOString(),
-          } as any,
-          { onConflict: "user_id" }
-        );
+      try {
+        await supabase
+          .from("user_presence")
+          .upsert(
+            {
+              user_id: userId,
+              last_seen: new Date().toISOString(),
+              logged_in_at: new Date().toISOString(),
+            } as any,
+            { onConflict: "user_id" }
+          );
+      } catch (err) {
+        console.warn("Falha ao registrar presença:", err);
+      }
     };
 
     const updateHeartbeat = async () => {
-      await supabase
-        .from("user_presence")
-        .update({ last_seen: new Date().toISOString() } as any)
-        .eq("user_id", userId);
+      try {
+        await supabase
+          .from("user_presence")
+          .update({ last_seen: new Date().toISOString() } as any)
+          .eq("user_id", userId);
+      } catch (err) {
+        console.warn("Falha no heartbeat:", err);
+      }
     };
 
-    upsertPresence();
-    const interval = setInterval(updateHeartbeat, 30_000); // every 30s
+    void upsertPresence();
+    const interval = setInterval(updateHeartbeat, 30_000); // a cada 30s
 
-    // Realtime Presence Channel (global)
+    // Realtime Presence Channel (global e único para a aplicação)
     const presenceChannel = supabase.channel("primacor_online_presence", {
       config: { presence: { key: userId } },
     });
 
-    presenceChannel.subscribe(async (status) => {
-      if (status === "SUBSCRIBED") {
-        await presenceChannel.track({
-          user_id: userId,
-          online_at: new Date().toISOString(),
-        });
-      }
-    });
+    presenceChannel
+      .on("presence", { event: "sync" }, () => {
+        try {
+          const state = presenceChannel.presenceState();
+          const ids = new Set<string>();
+          Object.keys(state).forEach((key) => {
+            if (key !== userId) {
+              ids.add(key);
+            }
+          });
+          setOnlineUserIds(ids);
+        } catch {
+          // silencioso
+        }
+      })
+      .on("presence", { event: "join" }, ({ key }) => {
+        if (key && key !== userId) {
+          setOnlineUserIds((prev) => new Set(prev).add(key));
+        }
+      })
+      .on("presence", { event: "leave" }, ({ key }) => {
+        if (key) {
+          setOnlineUserIds((prev) => {
+            const next = new Set(prev);
+            next.delete(key);
+            return next;
+          });
+        }
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          try {
+            await presenceChannel.track({
+              user_id: userId,
+              online_at: new Date().toISOString(),
+            });
+          } catch (err) {
+            console.warn("Falha ao trackear presença:", err);
+          }
+        }
+      });
 
     return () => {
       clearInterval(interval);
       void supabase.removeChannel(presenceChannel);
+      setOnlineUserIds(new Set());
     };
   }, [session?.user?.id]);
 
@@ -170,6 +217,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } as any)
         .eq("user_id", userId);
     }
+    setOnlineUserIds(new Set());
     await supabase.auth.signOut();
   };
 
@@ -181,7 +229,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ session, user: session?.user ?? null, loading, authReady: !loading, role, isAdmin, modulosAcesso, hasModule, signIn, signUp, signOut }}>
+    <AuthContext.Provider
+      value={{
+        session,
+        user: session?.user ?? null,
+        loading,
+        authReady: !loading,
+        role,
+        isAdmin,
+        modulosAcesso,
+        onlineUserIds,
+        hasModule,
+        signIn,
+        signUp,
+        signOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -201,12 +264,13 @@ export function useAuth() {
       role: null,
       isAdmin: false,
       modulosAcesso: [],
+      onlineUserIds: new Set<string>(),
       hasModule: () => true,
       signIn: async () => ({ error: new Error("Auth not ready") }),
       signUp: async () => ({ error: new Error("Auth not ready") }),
       signOut: async () => {},
-
     } as AuthContextType;
   }
   return context;
 }
+

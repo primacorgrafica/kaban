@@ -24,7 +24,7 @@ import {
 import { toast } from "sonner";
 
 export function useChat() {
-  const { user } = useAuth();
+  const { user, onlineUserIds: authRealtimeOnlineIds } = useAuth();
   const currentUserId = user?.id || null;
 
   const [conversations, setConversations] = useState<ChatConversation[]>([]);
@@ -34,19 +34,18 @@ export function useChat() {
   const [loading, setLoading] = useState(false);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [typingUsers, setTypingUsers] = useState<Record<string, string[]>>({}); // convId -> userNames
-  const [realtimeOnlineIds, setRealtimeOnlineIds] = useState<Set<string>>(new Set());
   const [dbOnlineIds, setDbOnlineIds] = useState<Set<string>>(new Set());
 
   const knownUsersMapRef = useRef<Record<string, ChatUser>>({});
   const activeConvRef = useRef<ChatConversation | null>(null);
   activeConvRef.current = activeConversation;
 
-  // União dos usuários detectados online via WebSocket e via banco de dados
+  // União dos usuários detectados online via WebSocket (gerenciado centralmente no AuthProvider) e fallback de banco
   const allOnlineUserIds = useMemo(() => {
-    const combined = new Set<string>(realtimeOnlineIds);
+    const combined = new Set<string>(authRealtimeOnlineIds || []);
     dbOnlineIds.forEach((id) => combined.add(id));
     return combined;
-  }, [realtimeOnlineIds, dbOnlineIds]);
+  }, [authRealtimeOnlineIds, dbOnlineIds]);
 
   // Carregar lista de usuários do sistema (estável per user)
   const loadUsers = useCallback(async () => {
@@ -417,46 +416,7 @@ export function useChat() {
       )
       .subscribe();
 
-    // Canal de presença em tempo real
-    const presenceChannel = supabase.channel("primacor_online_presence", {
-      config: { presence: { key: currentUserId } },
-    });
-
-    presenceChannel
-      .on("presence", { event: "sync" }, () => {
-        const state = presenceChannel.presenceState();
-        const ids = new Set<string>();
-        Object.keys(state).forEach((key) => {
-          if (key !== currentUserId) {
-            ids.add(key);
-          }
-        });
-        setRealtimeOnlineIds(ids);
-      })
-      .on("presence", { event: "join" }, ({ key }) => {
-        if (key && key !== currentUserId) {
-          setRealtimeOnlineIds((prev) => new Set(prev).add(key));
-        }
-      })
-      .on("presence", { event: "leave" }, ({ key }) => {
-        if (key) {
-          setRealtimeOnlineIds((prev) => {
-            const next = new Set(prev);
-            next.delete(key);
-            return next;
-          });
-        }
-      })
-      .subscribe(async (status) => {
-        if (status === "SUBSCRIBED") {
-          await presenceChannel.track({
-            user_id: currentUserId,
-            online_at: new Date().toISOString(),
-          });
-        }
-      });
-
-    // Polling de presença do banco a cada 15 segundos
+    // Polling de presença do banco a cada 15 segundos (fallback)
     const checkDbPresence = async () => {
       try {
         const { data } = await supabase
@@ -486,7 +446,6 @@ export function useChat() {
     return () => {
       clearInterval(presencePollInterval);
       void supabase.removeChannel(channel);
-      void supabase.removeChannel(presenceChannel);
     };
   }, [currentUserId, loadUsers, loadConversations]);
 
