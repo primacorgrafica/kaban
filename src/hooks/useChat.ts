@@ -22,6 +22,7 @@ import {
   toggleMessageReaction,
 } from "@/lib/chatService";
 import { toast } from "sonner";
+import { setActiveChatConversationId } from "@/components/chat/GlobalChatNotifier";
 
 export function useChat() {
   const { user, onlineUserIds: authRealtimeOnlineIds } = useAuth();
@@ -100,6 +101,7 @@ export function useChat() {
   const selectConversation = useCallback(
     (conv: ChatConversation | null) => {
       setActiveConversation(conv);
+      setActiveChatConversationId(conv?.id || null);
       if (conv) {
         void loadMessages(conv);
       } else {
@@ -108,6 +110,12 @@ export function useChat() {
     },
     [loadMessages]
   );
+
+  useEffect(() => {
+    return () => {
+      setActiveChatConversationId(null);
+    };
+  }, []);
 
   // Iniciar conversa com um usuário específico
   const startConversationWithUser = useCallback(
@@ -187,9 +195,18 @@ export function useChat() {
       );
 
       if (confirmed) {
-        setMessages((prev) =>
-          prev.map((m) => (m.id === tempId ? { ...confirmed, status: "sent" } : m))
-        );
+        setMessages((prev) => {
+          // Se a mensagem com o ID real já foi adicionada (ex: Realtime chegou antes)
+          const alreadyExists = prev.some((m) => m.id === confirmed.id);
+          if (alreadyExists) {
+            // Apenas remove a temporária para não duplicar
+            return prev.filter((m) => m.id !== tempId);
+          }
+          // Caso contrário, substitui a temporária pelos dados confirmados
+          return prev.map((m) =>
+            m.id === tempId ? { ...confirmed, status: "sent" } : m
+          );
+        });
       } else {
         // Marca como erro
         setMessages((prev) =>
@@ -366,10 +383,31 @@ export function useChat() {
 
           // Se a mensagem for da conversa ativa, acrescenta à lista
           if (activeConvRef.current && activeConvRef.current.id === newMsg.conversation_id) {
-            // Evita duplicata se for nossa mensagem já confirmada
             setMessages((prev) => {
+              // 1. Evita duplicata se já existir exatamente com o ID real
               if (prev.some((m) => m.id === newMsg.id)) return prev;
-              return [
+
+              // 2. Se for mensagem enviada por nós mesmos, substitui a temporária correspondente
+              if (newMsg.sender_id === currentUserId) {
+                const tempIndex = prev.findIndex(
+                  (m) =>
+                    m.id.startsWith("temp-") &&
+                    m.sender_id === currentUserId &&
+                    m.content.trim() === newMsg.content.trim()
+                );
+                if (tempIndex !== -1) {
+                  const updated = [...prev];
+                  updated[tempIndex] = {
+                    ...newMsg,
+                    status: "sent",
+                    reactions: prev[tempIndex].reactions || [],
+                  };
+                  return updated;
+                }
+              }
+
+              // 3. Caso contrário, adiciona ao final
+              const nextList = [
                 ...prev,
                 {
                   ...newMsg,
@@ -377,14 +415,28 @@ export function useChat() {
                   reactions: [],
                 },
               ];
+
+              // Deduplicação defensiva por ID
+              const seen = new Set<string>();
+              return nextList.filter((m) => {
+                if (seen.has(m.id)) return false;
+                seen.add(m.id);
+                return true;
+              });
             });
+
             // Marca como lida imediatamente
             void markConversationAsRead(newMsg.conversation_id, currentUserId);
           } else {
             // Se for de outra conversa e enviada por outro usuário, incrementa unreadCount
             if (newMsg.sender_id !== currentUserId) {
-              setConversations((prev) =>
-                prev.map((c) =>
+              setConversations((prev) => {
+                const exists = prev.some((c) => c.id === newMsg.conversation_id);
+                if (!exists) {
+                  void loadConversations(false);
+                  return prev;
+                }
+                return prev.map((c) =>
                   c.id === newMsg.conversation_id
                     ? {
                         ...c,
@@ -393,8 +445,8 @@ export function useChat() {
                         last_message_preview: newMsg.content.slice(0, 80),
                       }
                     : c
-                )
-              );
+                );
+              });
             }
           }
         }

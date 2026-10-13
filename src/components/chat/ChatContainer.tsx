@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useChat } from "@/hooks/useChat";
 import { useAuth } from "@/hooks/useAuth";
 import { ChatConversationItem } from "./ChatConversationItem";
@@ -90,6 +91,20 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const [searchParams] = useSearchParams();
+  const convParam = searchParams.get("conv");
+
+  // Se houver um parâmetro ?conv=id na URL (ex: ao clicar na notificação), seleciona automaticamente essa conversa
+  useEffect(() => {
+    if (convParam && conversations.length > 0) {
+      const target = conversations.find((c) => c.id === convParam);
+      if (target && activeConversation?.id !== target.id) {
+        selectConversation(target);
+        setMobileView("chat");
+      }
+    }
+  }, [convParam, conversations, activeConversation?.id, selectConversation]);
 
   // Auto-scroll para a última mensagem
   const scrollToBottom = () => {

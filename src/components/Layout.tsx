@@ -23,6 +23,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { CommandPalette } from "./CommandPalette";
 import { AiProductionBottlenecksModal } from "./AiProductionBottlenecksModal";
 import { ChatDialog } from "./chat/ChatDialog";
+import { useChatNotification } from "./chat/GlobalChatNotifier";
 import { Activity, Command, MessageSquare } from "lucide-react";
 import { Order } from "@/types/order";
 
@@ -52,6 +53,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
   const location = useLocation();
   const { signOut, user, isAdmin, authReady, hasModule } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { unreadChatCount } = useChatNotification();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
@@ -190,7 +192,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
   const expedicaoItems = hasModule("expedicao") ? allExpedicaoItems : [];
 
   const topItems = [
-    { to: "/chat", label: "Chat Privado", icon: MessageSquare },
+    { to: "/chat", label: "Chat Privado", icon: MessageSquare, count: unreadChatCount > 0 ? unreadChatCount : undefined },
     ...(permissions.canAccessComercial && hasModule("comercial") ? [{ to: "/comercial", label: "Comercial", icon: Briefcase }] : []),
     ...(hasModule("pcp") ? [{ to: "/pcp", label: "PCP", icon: ClipboardList }] : []),
   ];
@@ -453,6 +455,11 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
               title="Abrir Chat Privado"
             >
               <MessageSquare className="h-4 w-4" />
+              {unreadChatCount > 0 && (
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-cyan-500 text-[10px] font-bold text-white shadow-xs animate-pulse">
+                  {unreadChatCount > 9 ? "9+" : unreadChatCount}
+                </span>
+              )}
             </Button>
             <ThemeToggle />
             <NotificationBell

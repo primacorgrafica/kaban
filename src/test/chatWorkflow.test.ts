@@ -164,4 +164,138 @@ describe("Chat Privado — Regras de Negócio e Lógica de Mensageria", () => {
     const allOnlineUsers = availableUsers.filter((u) => u.online);
     expect(allOnlineUsers.map((u) => u.id)).toEqual(["u1", "u3"]);
   });
+
+  it("deve evitar duplicação de mensagens para o remetente quando o evento Realtime chegar antes da confirmação HTTP", () => {
+    const currentUserId = "user-sender";
+    const tempId = "temp-123456789";
+    const realId = "msg-real-uuid-001";
+    const content = "Testando mensagem sem duplicata";
+
+    // Estado inicial: mensagem otimista adicionada
+    let messages: ChatMessage[] = [
+      {
+        id: tempId,
+        conversation_id: "conv-1",
+        sender_id: currentUserId,
+        content,
+        is_edited: false,
+        is_deleted: false,
+        deleted_for_users: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        status: "sending",
+      },
+    ];
+
+    // Cenário: Evento Realtime INSERT chega antes da resposta HTTP
+    const realtimeMsg: ChatMessage = {
+      id: realId,
+      conversation_id: "conv-1",
+      sender_id: currentUserId,
+      content,
+      is_edited: false,
+      is_deleted: false,
+      deleted_for_users: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      status: "sent",
+    };
+
+    // Handler de Realtime (deduplicação ativa)
+    const handleRealtimeInsert = (prev: ChatMessage[], newMsg: ChatMessage) => {
+      if (prev.some((m) => m.id === newMsg.id)) return prev;
+      if (newMsg.sender_id === currentUserId) {
+        const tempIndex = prev.findIndex(
+          (m) =>
+            m.id.startsWith("temp-") &&
+            m.sender_id === currentUserId &&
+            m.content.trim() === newMsg.content.trim()
+        );
+        if (tempIndex !== -1) {
+          const updated = [...prev];
+          updated[tempIndex] = { ...newMsg, status: "sent" };
+          return updated;
+        }
+      }
+      return [...prev, newMsg];
+    };
+
+    messages = handleRealtimeInsert(messages, realtimeMsg);
+    expect(messages.length).toBe(1);
+    expect(messages[0].id).toBe(realId);
+
+    // Em seguida, a resposta HTTP resolve com o mesmo realId
+    const handleHttpConfirm = (prev: ChatMessage[], confirmed: ChatMessage) => {
+      const alreadyExists = prev.some((m) => m.id === confirmed.id);
+      if (alreadyExists) {
+        return prev.filter((m) => m.id !== tempId);
+      }
+      return prev.map((m) => (m.id === tempId ? { ...confirmed, status: "sent" } : m));
+    };
+
+    messages = handleHttpConfirm(messages, realtimeMsg);
+    // Deve conter ESTRITAMENTE 1 mensagem
+    expect(messages.length).toBe(1);
+    expect(messages[0].id).toBe(realId);
+    expect(messages[0].content).toBe(content);
+  });
+
+  it("deve evitar duplicação de mensagens para o remetente quando a resposta HTTP chegar antes do Realtime", () => {
+    const currentUserId = "user-sender";
+    const tempId = "temp-987654321";
+    const realId = "msg-real-uuid-002";
+    const content = "Testando confirmação HTTP antes do Realtime";
+
+    let messages: ChatMessage[] = [
+      {
+        id: tempId,
+        conversation_id: "conv-1",
+        sender_id: currentUserId,
+        content,
+        is_edited: false,
+        is_deleted: false,
+        deleted_for_users: [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        status: "sending",
+      },
+    ];
+
+    const confirmedMsg: ChatMessage = {
+      id: realId,
+      conversation_id: "conv-1",
+      sender_id: currentUserId,
+      content,
+      is_edited: false,
+      is_deleted: false,
+      deleted_for_users: [],
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      status: "sent",
+    };
+
+    // 1. Resposta HTTP chega primeiro
+    const handleHttpConfirm = (prev: ChatMessage[], confirmed: ChatMessage) => {
+      const alreadyExists = prev.some((m) => m.id === confirmed.id);
+      if (alreadyExists) {
+        return prev.filter((m) => m.id !== tempId);
+      }
+      return prev.map((m) => (m.id === tempId ? { ...confirmed, status: "sent" } : m));
+    };
+
+    messages = handleHttpConfirm(messages, confirmedMsg);
+    expect(messages.length).toBe(1);
+    expect(messages[0].id).toBe(realId);
+
+    // 2. Evento Realtime chega depois
+    const handleRealtimeInsert = (prev: ChatMessage[], newMsg: ChatMessage) => {
+      if (prev.some((m) => m.id === newMsg.id)) return prev;
+      return [...prev, newMsg];
+    };
+
+    messages = handleRealtimeInsert(messages, confirmedMsg);
+    // Deve conter ESTRITAMENTE 1 mensagem
+    expect(messages.length).toBe(1);
+    expect(messages[0].id).toBe(realId);
+  });
 });

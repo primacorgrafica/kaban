@@ -23,6 +23,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const ChatPage = lazy(() => import("./pages/ChatPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 
+import { GlobalChatNotifier } from "@/components/chat/GlobalChatNotifier";
 import { ThemeProvider } from "@/components/theme-provider";
 
 // Configuração de alto desempenho para o React Query: evita refetches desnecessários ao trocar de aba
@@ -73,30 +74,32 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
-            <Suspense fallback={<PageLoadingFallback />}>
-              <Routes>
-                <Route path="/login" element={<PublicRoute><AuthPage /></PublicRoute>} />
-                <Route path="/apresentacao" element={<ApresentacaoPage />} />
-                <Route path="/institucional" element={<InstitucionalPage />} />
-                <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-                <Route path="/dashboard" element={<ProtectedRoute module="dashboard"><DashboardPage /></ProtectedRoute>} />
-                <Route path="/arquivados" element={<ProtectedRoute module="trabalhos_concluidos"><Index /></ProtectedRoute>} />
-                <Route path="/producao/:departamento" element={<ProtectedRoute module="producao"><ProductionPage /></ProtectedRoute>} />
-                <Route path="/producao" element={<Navigate to="/producao/desenvolvimento" replace />} />
-                <Route path="/expedicao" element={<ProtectedRoute module="expedicao"><ExpedicaoPage /></ProtectedRoute>} />
-                <Route path="/usuarios" element={<ProtectedRoute module="cadastro"><UserManagementPage /></ProtectedRoute>} />
-                <Route path="/equipamentos" element={<ProtectedRoute module="cadastro"><EquipamentosPage /></ProtectedRoute>} />
-                <Route path="/comercial" element={<ProtectedRoute module="comercial"><ComercialPage /></ProtectedRoute>} />
-                <Route path="/pcp" element={<ProtectedRoute module="pcp"><PcpPage /></ProtectedRoute>} />
-                
-                <Route path="/compras" element={<ProtectedRoute module="compras"><ProductionPage /></ProtectedRoute>} />
-                <Route path="/manutencao" element={<ProtectedRoute module="manutencao"><ProductionPage /></ProtectedRoute>} />
-                <Route path="/entregas" element={<ProtectedRoute module="expedicao"><EntregasPage /></ProtectedRoute>} />
-                <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
+            <GlobalChatNotifier>
+              <Suspense fallback={<PageLoadingFallback />}>
+                <Routes>
+                  <Route path="/login" element={<PublicRoute><AuthPage /></PublicRoute>} />
+                  <Route path="/apresentacao" element={<ApresentacaoPage />} />
+                  <Route path="/institucional" element={<InstitucionalPage />} />
+                  <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+                  <Route path="/dashboard" element={<ProtectedRoute module="dashboard"><DashboardPage /></ProtectedRoute>} />
+                  <Route path="/arquivados" element={<ProtectedRoute module="trabalhos_concluidos"><Index /></ProtectedRoute>} />
+                  <Route path="/producao/:departamento" element={<ProtectedRoute module="producao"><ProductionPage /></ProtectedRoute>} />
+                  <Route path="/producao" element={<Navigate to="/producao/desenvolvimento" replace />} />
+                  <Route path="/expedicao" element={<ProtectedRoute module="expedicao"><ExpedicaoPage /></ProtectedRoute>} />
+                  <Route path="/usuarios" element={<ProtectedRoute module="cadastro"><UserManagementPage /></ProtectedRoute>} />
+                  <Route path="/equipamentos" element={<ProtectedRoute module="cadastro"><EquipamentosPage /></ProtectedRoute>} />
+                  <Route path="/comercial" element={<ProtectedRoute module="comercial"><ComercialPage /></ProtectedRoute>} />
+                  <Route path="/pcp" element={<ProtectedRoute module="pcp"><PcpPage /></ProtectedRoute>} />
+                  
+                  <Route path="/compras" element={<ProtectedRoute module="compras"><ProductionPage /></ProtectedRoute>} />
+                  <Route path="/manutencao" element={<ProtectedRoute module="manutencao"><ProductionPage /></ProtectedRoute>} />
+                  <Route path="/entregas" element={<ProtectedRoute module="expedicao"><EntregasPage /></ProtectedRoute>} />
+                  <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
 
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </GlobalChatNotifier>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
