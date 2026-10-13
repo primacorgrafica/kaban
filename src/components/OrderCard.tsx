@@ -229,11 +229,17 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
   return (
     <>
       <div
-        className={`group rounded-xl border shadow-sm hover:shadow-md overflow-hidden relative ${shouldBlinkCard ? "animate-pulse" : ""}`}
-        style={{
-          backgroundColor: isUrgent ? "hsl(0 84% 60% / 0.12)" : "hsl(var(--muted))",
-          borderColor: isUrgent ? "hsl(0 84% 60% / 0.4)" : isSlowAlert ? "hsl(45 93% 47% / 0.6)" : isNearDeadline ? "hsl(38 92% 50% / 0.5)" : "hsl(var(--border))",
-        }}
+        className={`group rounded-2xl border shadow-sm hover:shadow-xl transition-all duration-200 overflow-hidden relative ${
+          shouldBlinkCard ? "animate-pulse" : ""
+        } ${
+          isUrgent
+            ? "bg-rose-950/25 border-rose-500/40 hover:border-rose-500/70"
+            : isSlowAlert
+            ? "bg-amber-950/25 border-amber-500/40 hover:border-amber-500/70"
+            : isNearDeadline
+            ? "bg-amber-950/25 border-amber-500/40 hover:border-amber-500/70"
+            : "bg-slate-900/70 border-slate-800/80 hover:border-cyan-500/40 hover:shadow-[0_4px_20px_rgba(6,182,212,0.12)]"
+        }`}
       >
         {isNearDeadline && !isUrgent && (
           <div className="bg-red-600 text-white text-[10px] font-bold text-center py-0.5 tracking-wide uppercase flex items-center justify-center gap-1">
@@ -356,10 +362,12 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
         <div className="px-3.5 pb-3 cursor-pointer" onClick={() => setOpen(true)}>
           {/* Linha 1: OS + Cliente */}
           <div className="flex items-start gap-2 min-w-0">
-            {isUrgent && <span className="h-2.5 w-2.5 rounded-full shrink-0 bg-red-500" />}
-            <h4 className={`font-semibold text-sm shrink-0 ${isUrgent ? "text-red-700 dark:text-red-400" : "text-card-foreground"}`}>OS. {order.titulo}</h4>
-            <span className="flex items-start gap-1 text-sm text-muted-foreground min-w-0 font-bold break-words">
-              <Briefcase className="h-3 w-3 shrink-0 mt-[3px]" /><span className="break-words">{order.cliente}</span>
+            {isUrgent && <span className="h-2 w-2 rounded-full shrink-0 bg-rose-500 shadow-[0_0_8px_#f43f5e] mt-1" />}
+            <span className="font-mono-tech text-[11px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 shrink-0">
+              #{order.titulo}
+            </span>
+            <span className="flex items-start gap-1 text-sm text-slate-200 min-w-0 font-semibold break-words leading-tight">
+              <span className="break-words">{order.cliente}</span>
             </span>
           </div>
           {/* Linha 2: Descrição + Vendedor */}
@@ -428,10 +436,9 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
         {permissions.canSendToProduction && isLastStatus && onSendToProduction && (
           <button
             onClick={(e) => { e.stopPropagation(); setSendDialogOpen(true); }}
-            className="w-full py-2 text-xs font-bold uppercase tracking-wide flex items-center justify-center gap-1.5 transition-colors rounded-b-xl"
-            style={{ backgroundColor: "hsl(0 0% 20%)", color: "hsl(0 0% 100%)" }}
+            className="w-full py-2.5 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all rounded-b-2xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-md font-mono-tech"
           >
-            <Send className="h-3.5 w-3.5" /> Enviar → Produção →
+            <Send className="h-3.5 w-3.5" /> Enviar para Produção →
           </button>
         )}
       </div>

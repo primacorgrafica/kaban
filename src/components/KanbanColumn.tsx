@@ -49,23 +49,31 @@ export function KanbanColumn({ status, orders, onUpdate, onMove, onArchive, onDe
   const StatusIcon = PRE_PRESS_STATUS_ICONS[status];
 
   return (
-    <div className="flex-shrink-0 w-[80vw] sm:w-72 flex flex-col rounded-xl bg-muted/40 border border-border/50">
+    <div className="flex-shrink-0 w-[80vw] sm:w-72 flex flex-col rounded-2xl bg-slate-900/40 backdrop-blur-xl border border-slate-800/80 shadow-lg overflow-hidden">
       <div
         className="flex items-center gap-2.5 px-3.5 py-3 border-b flex-shrink-0"
         style={{
           backgroundColor: `hsl(var(--status-${config.colorKey}-bg))`,
-          borderColor: `hsl(var(--status-${config.colorKey}) / 0.15)`,
+          borderColor: `hsl(var(--status-${config.colorKey}) / 0.25)`,
         }}
       >
-        <StatusIcon
-          className="w-4 h-4 shrink-0"
-          style={{ color: `hsl(var(--status-${config.colorKey}))` }}
-        />
-        <h3 className="text-sm font-semibold uppercase" style={{ color: `hsl(var(--status-${config.colorKey}))` }}>{config.label}</h3>
+        <div
+          className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
+          style={{ backgroundColor: `hsl(var(--status-${config.colorKey}) / 0.15)` }}
+        >
+          <StatusIcon
+            className="w-3.5 h-3.5"
+            style={{ color: `hsl(var(--status-${config.colorKey}))` }}
+          />
+        </div>
+        <h3 className="text-xs font-bold uppercase tracking-wider font-mono-tech truncate" style={{ color: `hsl(var(--status-${config.colorKey}))` }}>
+          {config.label}
+        </h3>
         <span
-          className="text-xs ml-auto rounded-full px-2 py-0.5 font-bold"
+          className="text-[11px] ml-auto rounded-full px-2 py-0.5 font-bold font-mono-tech border"
           style={{
             backgroundColor: `hsl(var(--status-${config.colorKey}) / 0.15)`,
+            borderColor: `hsl(var(--status-${config.colorKey}) / 0.3)`,
             color: `hsl(var(--status-${config.colorKey}))`,
           }}
         >
@@ -79,7 +87,7 @@ export function KanbanColumn({ status, orders, onUpdate, onMove, onArchive, onDe
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={`flex-1 space-y-2 p-2.5 pb-6 transition-colors duration-200 ${
-              snapshot.isDraggingOver ? "bg-primary/5" : ""
+              snapshot.isDraggingOver ? "bg-cyan-500/5 ring-1 ring-cyan-500/30" : ""
             }`}
             style={{ minHeight: "120px" }}
           >

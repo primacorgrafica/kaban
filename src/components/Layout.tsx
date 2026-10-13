@@ -242,11 +242,23 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
         } ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
         style={{ background: "var(--gradient-sidebar)" }}
       >
-        <div className="px-5 py-5 flex items-center justify-between">
-          <div className="flex items-center">
-            <img src={logoImg} alt="Primacor Gráfica" className="w-28 h-auto object-contain" />
+        <div className="px-5 py-4 border-b border-sidebar-border/40 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-1.5 rounded-xl bg-slate-900 border border-cyan-500/30 shadow-[0_0_15px_-3px_rgba(6,182,212,0.3)]">
+              <img src={logoImg} alt="Primacor Gráfica" className="w-7 h-7 object-contain" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm font-bold tracking-tight text-white">PRIMACOR</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded bg-cyan-500/15 text-cyan-400 font-mono-tech border border-cyan-500/25">v2.0</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-mono-tech">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]" />
+                <span>ONLINE</span>
+              </div>
+            </div>
           </div>
-          <button className="lg:hidden text-sidebar-foreground" onClick={() => setSidebarOpen(false)}>
+          <button className="lg:hidden text-sidebar-foreground hover:text-white" onClick={() => setSidebarOpen(false)}>
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -327,50 +339,58 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
           )}
         </nav>
 
-        <div className="px-3 py-3 border-t border-sidebar-border/50">
+        <div className="px-3 py-3 border-t border-sidebar-border/40 bg-slate-950/40">
+          <div className="px-3 py-2 mb-2 rounded-xl bg-slate-900/60 border border-slate-800/80">
+            <div className="text-[11px] text-slate-300 font-medium truncate flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+              {user?.email}
+            </div>
+            <div className="text-[10px] text-cyan-400 font-mono-tech mt-0.5 uppercase tracking-wider">
+              {isAdmin ? "Administrador" : "Operador"}
+            </div>
+          </div>
           {isAdmin && (
             <Button
               variant="ghost"
               size="sm"
-              className="w-full justify-start text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 mb-1"
+              className="w-full justify-start text-slate-400 hover:text-white hover:bg-slate-800/60 mb-1 rounded-lg text-xs"
               onClick={() => setSendDialogOpen(true)}
             >
-              <Megaphone className="h-4 w-4 mr-2" /> Enviar Aviso
+              <Megaphone className="h-3.5 w-3.5 mr-2 text-amber-400" /> Enviar Aviso
             </Button>
           )}
-          <div className="text-xs text-sidebar-foreground/40 truncate mb-2 px-3">{user?.email}</div>
           <Button
             variant="ghost"
             size="sm"
-            className="w-full justify-start text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50 mb-1"
+            className="w-full justify-start text-slate-400 hover:text-white hover:bg-slate-800/60 mb-1 rounded-lg text-xs"
             onClick={() => setChangePasswordOpen(true)}
           >
-            <KeyRound className="h-4 w-4 mr-2" /> Alterar senha
+            <KeyRound className="h-3.5 w-3.5 mr-2 text-cyan-400" /> Alterar senha
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            className="w-full justify-start text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+            className="w-full justify-start text-rose-400 hover:text-rose-300 hover:bg-rose-950/30 rounded-lg text-xs"
             onClick={signOut}
           >
-            <LogOut className="h-4 w-4 mr-2" /> Sair
+            <LogOut className="h-3.5 w-3.5 mr-2 text-rose-400" /> Sair
           </Button>
           <ChangePasswordDialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen} />
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-auto min-h-[3.5rem] border-b border-border/50 flex flex-wrap items-center gap-2 px-3 py-2 sm:px-4 flex-shrink-0 glass">
-          <button className="lg:hidden" onClick={() => setSidebarOpen(true)}>
-            <Menu className="h-5 w-5 text-muted-foreground" />
+      <div className="flex-1 flex flex-col min-w-0 bg-[#080b13]">
+        <header className="h-14 border-b border-slate-800/80 bg-slate-950/60 backdrop-blur-xl flex flex-wrap items-center gap-3 px-4 flex-shrink-0 z-10">
+          <button className="lg:hidden p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white" onClick={() => setSidebarOpen(true)}>
+            <Menu className="h-4 w-4" />
           </button>
           <div className="relative flex-1 min-w-0 max-w-sm order-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
             <Input
-              placeholder="Buscar OS....."
+              placeholder="Buscar O.S., cliente ou processo..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-9 h-9 bg-background/60 border-border/50 focus:bg-background transition-colors"
+              className="pl-9 pr-10 h-9 bg-slate-900/60 border-slate-800/80 text-white placeholder:text-slate-500 text-xs focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 rounded-xl transition-all"
             />
           </div>
           {sectorName && (() => {
@@ -384,13 +404,12 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
               "Qualidade": Search,
               "Compras": ShoppingCart,
               "Manutenção": Wrench,
-              
             };
             const SectorIcon = sectorIconMap[sectorName];
             return (
-              <span className="flex items-center gap-1.5 text-lg font-semibold text-muted-foreground whitespace-nowrap order-1">
-                {SectorIcon && <SectorIcon className="h-5 w-5" />}
-                {sectorName}
+              <span className="flex items-center gap-2 text-sm font-bold text-white px-3 py-1 rounded-xl bg-slate-900/60 border border-slate-800/80 order-1 shadow-sm">
+                {SectorIcon && <SectorIcon className="h-4 w-4 text-cyan-400" />}
+                <span className="tracking-wide uppercase font-mono-tech text-xs">{sectorName}</span>
               </span>
             );
           })()}
