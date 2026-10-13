@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { ClipboardList, CalendarDays, CalendarRange, CalendarClock, AlertTriangle, List } from "lucide-react";
 import { startOfDay, startOfWeek, startOfMonth, format } from "date-fns";
 import { KanbanFiltersBar, KanbanFilters } from "@/components/KanbanFiltersBar";
+import { cn } from "@/lib/utils";
 
 const PRE_IMPRESSAO_DEPT: DepartmentConfig = {
   id: "pre_impressao" as any,
