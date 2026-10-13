@@ -238,7 +238,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
             ? "bg-amber-950/25 border-amber-500/40 hover:border-amber-500/70"
             : isNearDeadline
             ? "bg-amber-950/25 border-amber-500/40 hover:border-amber-500/70"
-            : "bg-slate-900/70 border-slate-800/80 hover:border-cyan-500/40 hover:shadow-[0_4px_20px_rgba(6,182,212,0.12)]"
+            : "bg-card dark:bg-slate-900/70 border-border dark:border-slate-800/80 text-card-foreground hover:border-cyan-500/50 hover:shadow-md dark:hover:shadow-[0_4px_20px_rgba(6,182,212,0.12)]"
         }`}
       >
         {isNearDeadline && !isUrgent && (
@@ -366,7 +366,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
             <span className="font-mono-tech text-[11px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 shrink-0">
               #{order.titulo}
             </span>
-            <span className="flex items-start gap-1 text-sm text-slate-200 min-w-0 font-semibold break-words leading-tight">
+            <span className="flex items-start gap-1 text-sm text-foreground min-w-0 font-semibold break-words leading-tight">
               <span className="break-words">{order.cliente}</span>
             </span>
           </div>
@@ -445,16 +445,16 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
 
       {/* Detail / Edit Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-4xl p-0 overflow-hidden border border-slate-800 bg-slate-950/95 text-slate-100 shadow-2xl backdrop-blur-2xl rounded-2xl flex flex-col max-h-[92vh]">
+        <DialogContent className="max-w-4xl p-0 overflow-hidden border border-border bg-card text-card-foreground shadow-2xl backdrop-blur-2xl rounded-2xl flex flex-col max-h-[92vh]">
           {/* Header Fixo */}
-          <div className="px-6 py-4 border-b border-slate-800/80 bg-slate-900/60 flex items-center justify-between shrink-0">
+          <div className="px-6 py-4 border-b border-border bg-muted/40 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+              <div className="h-9 w-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-500 dark:text-cyan-400">
                 <FileText className="h-4 w-4" />
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono-tech text-base font-bold text-white tracking-wide">
+                  <span className="font-mono-tech text-base font-bold text-foreground tracking-wide">
                     O.S. #{order.titulo}
                   </span>
                   <Badge
@@ -990,15 +990,15 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                         <p className="text-xs"><span className="text-slate-500">Data Entrega:</span> <strong className="text-cyan-300 font-mono-tech">{format(new Date(order.entrega_data_limite), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</strong></p>
                       )}
                       {order.obs_entrega && (
-                        <p className="text-xs text-slate-300 bg-slate-950/60 p-2 rounded-lg border border-slate-800">{order.obs_entrega}</p>
+                        <p className="text-xs text-foreground bg-muted p-2 rounded-lg border border-border">{order.obs_entrega}</p>
                       )}
                     </div>
                   )}
 
                   {/* Envio rápido para Operador */}
                   {!order.setor && !order.arquivado && departmentContext === "pre_impressao" && (
-                    <div className="p-3.5 rounded-xl border border-slate-800/80 bg-slate-900/50 space-y-2">
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Despachar para Operador</span>
+                    <div className="p-3.5 rounded-xl border border-border bg-muted/40 space-y-2">
+                      <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Despachar para Operador</span>
                       <div className="grid grid-cols-3 gap-2">
                         {([
                           { label: "Operador 1", status: "preparando_arquivo" },
@@ -1014,8 +1014,8 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                               disabled={isCurrent}
                               className={`h-9 text-xs rounded-xl font-semibold transition-all ${
                                 isCurrent
-                                  ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40 shadow-sm font-bold"
-                                  : "border-slate-800 bg-slate-950/40 text-slate-300 hover:text-white hover:bg-slate-800"
+                                  ? "bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border-cyan-500/40 shadow-sm font-bold"
+                                  : "border-border bg-card text-foreground hover:bg-accent"
                               }`}
                               onClick={() => {
                                 onMove(order.id, op.status);
@@ -1031,17 +1031,17 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                   )}
 
                   {/* Bloco de Auditoria */}
-                  <div className="p-3 rounded-xl border border-slate-800/60 bg-slate-950/40 space-y-1 font-mono-tech text-[11px] text-slate-400">
+                  <div className="p-3 rounded-xl border border-border/80 bg-muted/40 space-y-1 font-mono-tech text-[11px] text-muted-foreground">
                     {createdByName && (
                       <div className="flex items-center gap-2">
-                        <User className="h-3 w-3 text-cyan-400" />
-                        <span>Criado por <strong className="text-slate-200">{createdByName}</strong> em {format(new Date(order.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
+                        <User className="h-3 w-3 text-cyan-600 dark:text-cyan-400" />
+                        <span>Criado por <strong className="text-foreground">{createdByName}</strong> em {format(new Date(order.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
                       </div>
                     )}
                     {updatedByName && (
                       <div className="flex items-center gap-2">
-                        <UserCheck className="h-3 w-3 text-emerald-400" />
-                        <span>Atualizado por <strong className="text-slate-200">{updatedByName}</strong> em {format(new Date(order.updated_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
+                        <UserCheck className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                        <span>Atualizado por <strong className="text-foreground">{updatedByName}</strong> em {format(new Date(order.updated_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
                       </div>
                     )}
                   </div>

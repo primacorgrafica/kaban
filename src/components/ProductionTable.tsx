@@ -167,15 +167,15 @@ export function ProductionTable({
   };
 
   return (
-    <div className="flex flex-col h-full rounded-2xl bg-slate-900/40 backdrop-blur-xl border border-slate-800/80 shadow-xl overflow-hidden relative">
+    <div className="flex flex-col h-full rounded-2xl bg-card backdrop-blur-xl border border-border shadow-xl overflow-hidden relative">
       {/* Table Toolbar & Stats */}
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-slate-800/80 bg-slate-950/40">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-border bg-muted/40">
         <div className="flex items-center gap-2">
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-300 font-mono-tech flex items-center gap-2">
-            <Layers className="h-4 w-4 text-cyan-400" />
+          <span className="text-xs font-bold uppercase tracking-wider text-foreground font-mono-tech flex items-center gap-2">
+            <Layers className="h-4 w-4 text-cyan-500 dark:text-cyan-400" />
             Tabela de Produção
           </span>
-          <span className="text-[11px] px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 font-mono-tech font-bold">
+          <span className="text-[11px] px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-600 dark:text-cyan-400 font-mono-tech font-bold">
             {orders.length} O.S.
           </span>
         </div>
@@ -193,14 +193,14 @@ export function ProductionTable({
                   Mover Status <ChevronRight className="h-3 w-3 ml-1" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="bg-slate-900 border-slate-800 text-white">
-                <DropdownMenuLabel className="text-xs text-slate-400">Alterar Status das Selecionadas</DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-slate-800" />
+              <DropdownMenuContent align="end" className="bg-popover border-border text-popover-foreground">
+                <DropdownMenuLabel className="text-xs text-muted-foreground">Alterar Status das Selecionadas</DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-border" />
                 {STATUS_ORDER.map((st) => (
                   <DropdownMenuItem
                     key={st}
                     onClick={() => handleBatchMove(st)}
-                    className="text-xs hover:bg-slate-800 cursor-pointer"
+                    className="text-xs hover:bg-accent cursor-pointer"
                   >
                     <span className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: `hsl(var(--status-${STATUS_CONFIG[st].colorKey}))` }} />
                     {STATUS_CONFIG[st].label}
@@ -224,7 +224,7 @@ export function ProductionTable({
               size="sm"
               variant="ghost"
               onClick={() => setSelectedIds(new Set())}
-              className="h-7 text-xs text-slate-400 hover:text-white rounded-lg"
+              className="h-7 text-xs text-muted-foreground hover:text-foreground rounded-lg"
             >
               Limpar
             </Button>
@@ -235,51 +235,51 @@ export function ProductionTable({
       {/* Table Container */}
       <div className="flex-1 overflow-auto scrollbar-thin">
         <Table className="w-full text-left text-xs border-collapse">
-          <TableHeader className="sticky top-0 bg-slate-950/90 backdrop-blur-md z-10 border-b border-slate-800/80">
-            <TableRow className="border-slate-800/80 hover:bg-transparent">
+          <TableHeader className="sticky top-0 bg-card/95 backdrop-blur-md z-10 border-b border-border">
+            <TableRow className="border-border hover:bg-transparent">
               <TableHead className="w-10 px-3 text-center">
                 <Checkbox
                   checked={isAllSelected ? true : isSomeSelected ? "indeterminate" : false}
                   onCheckedChange={(c) => handleSelectAll(!!c)}
-                  className="rounded border-slate-700 data-[state=checked]:bg-cyan-500 data-[state=checked]:border-cyan-500"
+                  className="rounded border-border data-[state=checked]:bg-cyan-500 data-[state=checked]:border-cyan-500"
                 />
               </TableHead>
               <TableHead className="w-24 font-mono-tech cursor-pointer select-none" onClick={() => handleSort("titulo")}>
-                <div className="flex items-center gap-1 text-slate-300 hover:text-white font-bold">
+                <div className="flex items-center gap-1 text-foreground font-bold">
                   <span>O.S. #</span>
                   <ArrowUpDown className="h-3 w-3" />
                 </div>
               </TableHead>
               <TableHead className="min-w-[200px] cursor-pointer select-none" onClick={() => handleSort("cliente")}>
-                <div className="flex items-center gap-1 text-slate-300 hover:text-white font-bold">
+                <div className="flex items-center gap-1 text-foreground font-bold">
                   <span>Cliente</span>
                   <ArrowUpDown className="h-3 w-3" />
                 </div>
               </TableHead>
-              <TableHead className="min-w-[240px] text-slate-300 font-bold">Descrição</TableHead>
+              <TableHead className="min-w-[240px] text-foreground font-bold">Descrição</TableHead>
               <TableHead className="w-36 cursor-pointer select-none" onClick={() => handleSort("status")}>
-                <div className="flex items-center gap-1 text-slate-300 hover:text-white font-bold">
+                <div className="flex items-center gap-1 text-foreground font-bold">
                   <span>Etapa / Status</span>
                   <ArrowUpDown className="h-3 w-3" />
                 </div>
               </TableHead>
               <TableHead className="w-32 cursor-pointer select-none" onClick={() => handleSort("prazo")}>
-                <div className="flex items-center gap-1 text-slate-300 hover:text-white font-bold">
+                <div className="flex items-center gap-1 text-foreground font-bold">
                   <span>Prazo Limite</span>
                   <ArrowUpDown className="h-3 w-3" />
                 </div>
               </TableHead>
-              <TableHead className="w-28 text-slate-300 font-bold">Vendedor</TableHead>
-              <TableHead className="min-w-[140px] text-slate-300 font-bold">Processos</TableHead>
-              <TableHead className="w-16 text-right pr-4 text-slate-300 font-bold">Ações</TableHead>
+              <TableHead className="w-28 text-foreground font-bold">Vendedor</TableHead>
+              <TableHead className="min-w-[140px] text-foreground font-bold">Processos</TableHead>
+              <TableHead className="w-16 text-right pr-4 text-foreground font-bold">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {sortedOrders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="h-48 text-center text-slate-500">
+                <TableCell colSpan={9} className="h-48 text-center text-muted-foreground">
                   <div className="flex flex-col items-center justify-center gap-2">
-                    <Filter className="h-8 w-8 text-slate-600" />
+                    <Filter className="h-8 w-8 opacity-40 text-muted-foreground" />
                     <span>Nenhuma ordem de serviço encontrada com os filtros atuais.</span>
                   </div>
                 </TableCell>
@@ -295,10 +295,10 @@ export function ProductionTable({
                 return (
                   <TableRow
                     key={order.id}
-                    className={`border-b border-slate-800/40 transition-colors cursor-pointer ${
+                    className={`border-b border-border/60 transition-colors cursor-pointer ${
                       isSelected
                         ? "bg-cyan-500/10 hover:bg-cyan-500/15"
-                        : "hover:bg-slate-800/40"
+                        : "hover:bg-accent/50"
                     }`}
                     onClick={() => handleOpenSlideOver(order)}
                   >
@@ -307,7 +307,7 @@ export function ProductionTable({
                       <Checkbox
                         checked={isSelected}
                         onCheckedChange={() => toggleSelectOne(order.id)}
-                        className="rounded border-slate-700 data-[state=checked]:bg-cyan-500 data-[state=checked]:border-cyan-500"
+                        className="rounded border-border data-[state=checked]:bg-cyan-500 data-[state=checked]:border-cyan-500"
                       />
                     </TableCell>
 
@@ -317,7 +317,7 @@ export function ProductionTable({
                         {isUrgent && (
                           <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_#f43f5e] shrink-0" />
                         )}
-                        <span className="px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 text-[11px]">
+                        <span className="px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 text-[11px]">
                           #{order.titulo}
                         </span>
                       </div>
@@ -326,11 +326,11 @@ export function ProductionTable({
                     {/* Cliente */}
                     <TableCell>
                       <div className="flex flex-col">
-                        <span className="font-semibold text-slate-200 truncate max-w-[220px]">
+                        <span className="font-semibold text-foreground truncate max-w-[220px]">
                           {order.cliente}
                         </span>
                         {order.parent_order_id && (
-                          <span className="text-[10px] text-violet-400 font-mono-tech">
+                          <span className="text-[10px] text-violet-500 dark:text-violet-400 font-mono-tech">
                             ↳ Sub-ordem
                           </span>
                         )}
@@ -339,7 +339,7 @@ export function ProductionTable({
 
                     {/* Descrição */}
                     <TableCell>
-                      <span className="text-slate-400 line-clamp-1 max-w-[280px]">
+                      <span className="text-muted-foreground line-clamp-1 max-w-[280px]">
                         {order.descricao || "—"}
                       </span>
                     </TableCell>
@@ -367,20 +367,20 @@ export function ProductionTable({
                       {order.prazo ? (
                         <div
                           className={`flex items-center gap-1 font-mono-tech text-[11px] ${
-                            isNearDeadline ? "text-rose-400 font-bold" : "text-slate-400"
+                            isNearDeadline ? "text-rose-500 font-bold" : "text-muted-foreground"
                           }`}
                         >
                           <Clock className="h-3 w-3" />
                           <span>{format(new Date(order.prazo), "dd/MM HH:mm", { locale: ptBR })}</span>
                         </div>
                       ) : (
-                        <span className="text-slate-600">—</span>
+                        <span className="text-muted-foreground/50">—</span>
                       )}
                     </TableCell>
 
                     {/* Vendedor */}
                     <TableCell>
-                      <span className="text-slate-300 truncate max-w-[100px] block">
+                      <span className="text-foreground truncate max-w-[100px] block">
                         {order.vendedor || "—"}
                       </span>
                     </TableCell>
@@ -398,10 +398,10 @@ export function ProductionTable({
                             </span>
                           ))
                         ) : (
-                          <span className="text-slate-600">—</span>
+                          <span className="text-muted-foreground/50">—</span>
                         )}
                         {order.processos && order.processos.length > 3 && (
-                          <span className="text-[9px] text-slate-400 font-mono-tech">
+                          <span className="text-[9px] text-muted-foreground font-mono-tech">
                             +{order.processos.length - 3}
                           </span>
                         )}
@@ -415,22 +415,22 @@ export function ProductionTable({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg"
+                            className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg"
                           >
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-slate-900 border-slate-800 text-white">
+                        <DropdownMenuContent align="end" className="bg-popover border-border text-popover-foreground">
                           <DropdownMenuItem
                             onClick={() => handleOpenSlideOver(order)}
-                            className="text-xs hover:bg-slate-800 cursor-pointer"
+                            className="text-xs hover:bg-accent cursor-pointer"
                           >
-                            <ExternalLink className="h-3.5 w-3.5 mr-2 text-cyan-400" /> Inspecionar O.S.
+                            <ExternalLink className="h-3.5 w-3.5 mr-2 text-cyan-500" /> Inspecionar O.S.
                           </DropdownMenuItem>
                           {permissions.canArchive && (
                             <DropdownMenuItem
                               onClick={() => onArchive(order.id)}
-                              className="text-xs hover:bg-slate-800 cursor-pointer text-amber-400"
+                              className="text-xs hover:bg-accent cursor-pointer text-amber-500"
                             >
                               <Archive className="h-3.5 w-3.5 mr-2" /> Arquivar
                             </DropdownMenuItem>
@@ -438,7 +438,7 @@ export function ProductionTable({
                           {permissions.canDelete && (
                             <DropdownMenuItem
                               onClick={() => onDelete(order.id)}
-                              className="text-xs hover:bg-slate-800 cursor-pointer text-rose-400"
+                              className="text-xs hover:bg-accent cursor-pointer text-rose-500"
                             >
                               <Trash2 className="h-3.5 w-3.5 mr-2" /> Excluir
                             </DropdownMenuItem>

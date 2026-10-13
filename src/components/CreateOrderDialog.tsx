@@ -332,31 +332,31 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-4xl p-0 overflow-hidden border border-slate-800 bg-slate-950/95 text-slate-100 shadow-2xl backdrop-blur-2xl rounded-2xl flex flex-col max-h-[92vh]">
+      <DialogContent className="max-w-4xl p-0 overflow-hidden border border-border bg-card text-card-foreground shadow-2xl backdrop-blur-2xl rounded-2xl flex flex-col max-h-[92vh]">
         {/* Top Header & Modern Stepper */}
-        <div className="px-6 pt-5 pb-4 border-b border-slate-800/80 bg-slate-900/60 shrink-0">
+        <div className="px-6 pt-5 pb-4 border-b border-border bg-muted/30 shrink-0">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
-              <div className="h-9 w-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+              <div className="h-9 w-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
                 <Sparkles className="h-4 w-4" />
               </div>
               <div>
-                <DialogTitle className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                <DialogTitle className="text-base font-bold text-foreground tracking-tight flex items-center gap-2">
                   Nova Ordem de Serviço
-                  <span className="text-[10px] font-mono-tech px-2 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 font-normal">
+                  <span className="text-[10px] font-mono-tech px-2 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-600 dark:text-cyan-400 font-normal">
                     PRIMACOR OS v2.0
                   </span>
                 </DialogTitle>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-muted-foreground">
                   Preencha os dados técnicos da produção gráfica passo a passo
                 </p>
               </div>
             </div>
 
             {/* Step Counter Badge */}
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-xs font-mono-tech text-slate-300">
-              <span className="text-cyan-400 font-bold">Passo {step}</span>
-              <span className="text-slate-500">/</span>
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted border border-border text-xs font-mono-tech text-foreground">
+              <span className="text-cyan-600 dark:text-cyan-400 font-bold">Passo {step}</span>
+              <span className="text-muted-foreground">/</span>
               <span>3</span>
             </div>
           </div>
@@ -378,10 +378,10 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                   }}
                   className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all text-left ${
                     isActive
-                      ? "bg-cyan-500/10 border-cyan-500/40 text-white shadow-[0_0_15px_-3px_rgba(6,182,212,0.25)]"
+                      ? "bg-cyan-500/10 border-cyan-500/40 text-foreground shadow-[0_0_15px_-3px_rgba(6,182,212,0.25)]"
                       : isPast
-                      ? "bg-slate-900/80 border-emerald-500/30 text-slate-300 hover:bg-slate-800/80 cursor-pointer"
-                      : "bg-slate-950/40 border-slate-800/60 text-slate-500 cursor-not-allowed"
+                      ? "bg-card border-emerald-500/30 text-foreground hover:bg-accent cursor-pointer"
+                      : "bg-muted/40 border-border/60 text-muted-foreground cursor-not-allowed"
                   }`}
                 >
                   <div
@@ -389,8 +389,8 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                       isActive
                         ? "bg-cyan-500 text-slate-950 font-black shadow-[0_0_10px_#06b6d4]"
                         : isPast
-                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                        : "bg-slate-800 text-slate-400"
+                        ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                        : "bg-muted text-muted-foreground"
                     }`}
                   >
                     {isPast ? <Check className="h-3.5 w-3.5" /> : s.id}
@@ -398,12 +398,12 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                   <div className="min-w-0">
                     <p
                       className={`text-xs font-semibold truncate ${
-                        isActive ? "text-cyan-300" : isPast ? "text-slate-200" : "text-slate-400"
+                        isActive ? "text-cyan-600 dark:text-cyan-400" : isPast ? "text-foreground" : "text-muted-foreground"
                       }`}
                     >
                       {s.title}
                     </p>
-                    <p className="text-[10px] text-slate-500 truncate hidden sm:block">
+                    <p className="text-[10px] text-muted-foreground truncate hidden sm:block">
                       {s.desc}
                     </p>
                   </div>
@@ -423,11 +423,11 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                 <div className="md:col-span-4 space-y-1.5">
                   <Label
                     htmlFor="titulo"
-                    className="text-xs font-medium text-slate-300 flex items-center gap-1.5"
+                    className="text-xs font-medium text-foreground flex items-center gap-1.5"
                   >
-                    <Hash className="h-3.5 w-3.5 text-cyan-400" />
+                    <Hash className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
                     <span>Nº da O.S.</span>
-                    <span className="text-rose-400">*</span>
+                    <span className="text-rose-500">*</span>
                   </Label>
                   <Input
                     id="titulo"
@@ -435,7 +435,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                     value={form.titulo}
                     onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
                     placeholder="Ex: 71250"
-                    className="h-10 bg-slate-900/90 border-slate-800 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 rounded-xl font-mono-tech text-sm font-semibold tracking-wider"
+                    className="h-10 bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 rounded-xl font-mono-tech text-sm font-semibold tracking-wider"
                   />
                 </div>
 
@@ -443,18 +443,18 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                 <div className="md:col-span-8 space-y-1.5">
                   <Label
                     htmlFor="cliente"
-                    className="text-xs font-medium text-slate-300 flex items-center gap-1.5"
+                    className="text-xs font-medium text-foreground flex items-center gap-1.5"
                   >
-                    <Building className="h-3.5 w-3.5 text-cyan-400" />
+                    <Building className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
                     <span>Cliente / Razão Social</span>
-                    <span className="text-rose-400">*</span>
+                    <span className="text-rose-500">*</span>
                   </Label>
                   <Input
                     id="cliente"
                     value={form.cliente}
                     onChange={(e) => setForm((f) => ({ ...f, cliente: e.target.value }))}
                     placeholder="Ex: Bioclin Química Básica Ltda"
-                    className="h-10 bg-slate-900/90 border-slate-800 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 rounded-xl text-sm"
+                    className="h-10 bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 rounded-xl text-sm"
                   />
                 </div>
               </div>
@@ -463,42 +463,42 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
               <div className="space-y-1.5">
                 <Label
                   htmlFor="descricao"
-                  className="text-xs font-medium text-slate-300 flex items-center gap-1.5"
+                  className="text-xs font-medium text-foreground flex items-center gap-1.5"
                 >
-                  <FileText className="h-3.5 w-3.5 text-cyan-400" />
+                  <FileText className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
                   <span>Descrição do Serviço / Produto</span>
-                  <span className="text-rose-400">*</span>
+                  <span className="text-rose-500">*</span>
                 </Label>
                 <Input
                   id="descricao"
                   value={form.descricao}
                   onChange={(e) => setForm((f) => ({ ...f, descricao: e.target.value }))}
                   placeholder="Ex: Caixa Cartucho 350g com Laminação Fosca e Verniz UV Localizado"
-                  className="h-10 bg-slate-900/90 border-slate-800 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 rounded-xl text-sm"
+                  className="h-10 bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 rounded-xl text-sm"
                 />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                 {/* Vendedor */}
                 <div className="md:col-span-6 space-y-1.5">
-                  <Label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
-                    <User className="h-3.5 w-3.5 text-cyan-400" />
+                  <Label className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                    <User className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
                     <span>Vendedor Responsável</span>
-                    <span className="text-rose-400">*</span>
+                    <span className="text-rose-500">*</span>
                   </Label>
                   <Select
                     value={form.vendedor}
                     onValueChange={(v) => setForm((f) => ({ ...f, vendedor: v }))}
                   >
-                    <SelectTrigger className="h-10 bg-slate-900/90 border-slate-800 text-white rounded-xl focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40">
+                    <SelectTrigger className="h-10 bg-background border-input text-foreground rounded-xl focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40">
                       <SelectValue placeholder="Selecione o vendedor" />
                     </SelectTrigger>
-                    <SelectContent className="bg-slate-900 border-slate-800 text-white rounded-xl shadow-xl">
+                    <SelectContent className="bg-popover border-border text-popover-foreground rounded-xl shadow-xl">
                       {vendedores.map((v) => (
                         <SelectItem
                           key={v.id}
                           value={v.nome}
-                          className="hover:bg-cyan-500/20 hover:text-cyan-300 cursor-pointer"
+                          className="hover:bg-accent hover:text-accent-foreground cursor-pointer"
                         >
                           {v.nome}
                         </SelectItem>
@@ -509,7 +509,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
 
                 {/* Destino Inicial */}
                 <div className="md:col-span-6 space-y-1.5">
-                  <Label className="text-xs font-medium text-slate-300">
+                  <Label className="text-xs font-medium text-foreground">
                     Encaminhar Inicialmente Para
                   </Label>
                   <div className="grid grid-cols-2 gap-2 h-10">
@@ -520,8 +520,8 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                       }
                       className={`h-full rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-1.5 ${
                         form.setor_destino === ""
-                          ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-300 shadow-sm"
-                          : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-white"
+                          ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-700 dark:text-cyan-300 shadow-sm"
+                          : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                       }`}
                     >
                       <span>Pré-Impressão</span>
@@ -538,8 +538,8 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                       }
                       className={`h-full rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-1.5 ${
                         form.setor_destino === "desenvolvimento"
-                          ? "bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-sm"
-                          : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-white"
+                          ? "bg-amber-500/20 border-amber-500/50 text-amber-700 dark:text-amber-300 shadow-sm"
+                          : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                       }`}
                     >
                       <span>Embalagens</span>
@@ -553,7 +553,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
 
               {/* Observações Gerais */}
               <div className="space-y-1.5">
-                <Label htmlFor="observacao" className="text-xs font-medium text-slate-300">
+                <Label htmlFor="observacao" className="text-xs font-medium text-foreground">
                   Observações Gerais da Ordem
                 </Label>
                 <Textarea
@@ -561,7 +561,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                   value={form.observacao}
                   onChange={(e) => setForm((f) => ({ ...f, observacao: e.target.value }))}
                   placeholder="Informações adicionais, detalhes de faca, arquivos recebidos..."
-                  className="min-h-[70px] bg-slate-900/90 border-slate-800 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 rounded-xl text-xs"
+                  className="min-h-[70px] bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 rounded-xl text-xs"
                 />
               </div>
             </div>
@@ -571,12 +571,12 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
           {step === 2 && (
             <div className="space-y-5 animate-in fade-in-50 duration-200">
               {/* BLOCO DE PROVA */}
-              <div className="p-4 rounded-xl border border-slate-800/90 bg-slate-900/50 space-y-3">
+              <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]" />
-                    <Label className="text-xs font-bold text-white uppercase tracking-wider">
-                      Tipo de Prova <span className="text-rose-400">*</span>
+                    <span className="w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_8px_#22d3ee]" />
+                    <Label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                      Tipo de Prova <span className="text-rose-500">*</span>
                     </Label>
                   </div>
                   <button
@@ -584,11 +584,11 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                     onClick={() => setForm((f) => ({ ...f, urgente_prova: !f.urgente_prova }))}
                     className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
                       form.urgente_prova
-                        ? "bg-rose-500/20 border-rose-500/50 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.3)] animate-pulse"
-                        : "bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-white"
+                        ? "bg-rose-500/20 border-rose-500/50 text-rose-600 dark:text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.3)] animate-pulse"
+                        : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                     }`}
                   >
-                    <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />
+                    <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />
                     <span>Prova Urgente</span>
                   </button>
                 </div>
@@ -600,12 +600,12 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                     onClick={() => setForm((f) => ({ ...f, prova_digital: !f.prova_digital }))}
                     className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1 ${
                       form.prova_digital
-                        ? "bg-sky-500/20 border-sky-400 text-sky-300 font-bold shadow-[0_0_15px_-3px_rgba(14,165,233,0.3)]"
-                        : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700"
+                        ? "bg-sky-500/20 border-sky-400 text-sky-700 dark:text-sky-300 font-bold shadow-[0_0_15px_-3px_rgba(14,165,233,0.3)]"
+                        : "bg-card border-border text-muted-foreground hover:text-foreground hover:border-border/80"
                     }`}
                   >
                     <span className="text-xs">Prova Digital</span>
-                    <span className="text-[10px] text-slate-500">Impressão direta</span>
+                    <span className="text-[10px] text-muted-foreground">Impressão direta</span>
                   </button>
 
                   {/* E-mail */}
@@ -614,12 +614,12 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                     onClick={() => setForm((f) => ({ ...f, prova_email: !f.prova_email }))}
                     className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1 ${
                       form.prova_email
-                        ? "bg-pink-500/20 border-pink-400 text-pink-300 font-bold shadow-[0_0_15px_-3px_rgba(236,72,153,0.3)]"
-                        : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700"
+                        ? "bg-pink-500/20 border-pink-400 text-pink-700 dark:text-pink-300 font-bold shadow-[0_0_15px_-3px_rgba(236,72,153,0.3)]"
+                        : "bg-card border-border text-muted-foreground hover:text-foreground hover:border-border/80"
                     }`}
                   >
                     <span className="text-xs">Prova E-mail</span>
-                    <span className="text-[10px] text-slate-500">Envio em PDF</span>
+                    <span className="text-[10px] text-muted-foreground">Envio em PDF</span>
                   </button>
 
                   {/* Saída Direta */}
@@ -628,23 +628,23 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                     onClick={() => setForm((f) => ({ ...f, saida_direta: !f.saida_direta }))}
                     className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1 ${
                       form.saida_direta
-                        ? "bg-amber-500/20 border-amber-400 text-amber-300 font-bold shadow-[0_0_15px_-3px_rgba(245,158,11,0.3)]"
-                        : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700"
+                        ? "bg-amber-500/20 border-amber-400 text-amber-700 dark:text-amber-300 font-bold shadow-[0_0_15px_-3px_rgba(245,158,11,0.3)]"
+                        : "bg-card border-border text-muted-foreground hover:text-foreground hover:border-border/80"
                     }`}
                   >
                     <span className="text-xs">Saída Direta</span>
-                    <span className="text-[10px] text-slate-500">Sem aprovação</span>
+                    <span className="text-[10px] text-muted-foreground">Sem aprovação</span>
                   </button>
                 </div>
 
                 {/* Detalhes de entrega da prova (se Digital ou Email) */}
                 {(form.prova_digital || form.prova_email) && (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-slate-800/80">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-border">
                     <Input
                       value={form.destinatario}
                       onChange={(e) => setForm((f) => ({ ...f, destinatario: e.target.value }))}
                       placeholder="Aos Cuidados (A/C)..."
-                      className="h-8 bg-slate-950/80 border-slate-800 text-xs text-white rounded-lg"
+                      className="h-8 bg-background border-input text-xs text-foreground placeholder:text-muted-foreground rounded-lg"
                     />
                     <Input
                       value={form.endereco_entrega}
@@ -652,24 +652,24 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                         setForm((f) => ({ ...f, endereco_entrega: e.target.value }))
                       }
                       placeholder="Endereço ou E-mail para envio..."
-                      className="h-8 bg-slate-950/80 border-slate-800 text-xs text-white rounded-lg"
+                      className="h-8 bg-background border-input text-xs text-foreground placeholder:text-muted-foreground rounded-lg"
                     />
                     <Input
                       value={form.obs_prova}
                       onChange={(e) => setForm((f) => ({ ...f, obs_prova: e.target.value }))}
                       placeholder="Obs específica de prova..."
-                      className="h-8 bg-slate-950/80 border-slate-800 text-xs text-white rounded-lg"
+                      className="h-8 bg-background border-input text-xs text-foreground placeholder:text-muted-foreground rounded-lg"
                     />
                   </div>
                 )}
               </div>
 
               {/* BLOCO DE IMPRESSÃO */}
-              <div className="p-4 rounded-xl border border-slate-800/90 bg-slate-900/50 space-y-3">
+              <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_#3b82f6]" />
-                    <Label className="text-xs font-bold text-white uppercase tracking-wider">
+                    <Label className="text-xs font-bold text-foreground uppercase tracking-wider">
                       Processos de Impressão & Cores
                     </Label>
                   </div>
@@ -680,18 +680,18 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                     }
                     className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
                       form.urgente_impressao
-                        ? "bg-rose-500/20 border-rose-500/50 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.3)] animate-pulse"
-                        : "bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-white"
+                        ? "bg-rose-500/20 border-rose-500/50 text-rose-600 dark:text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.3)] animate-pulse"
+                        : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                     }`}
                   >
-                    <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />
+                    <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />
                     <span>Impressão Urgente</span>
                   </button>
                 </div>
 
                 {/* Linha 1: CTP, OFF e Cores Principais */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[11px] font-mono-tech text-slate-400 mr-1">Off-Set:</span>
+                  <span className="text-[11px] font-mono-tech text-muted-foreground mr-1">Off-Set:</span>
                   {(["CTP", "OFF"] as const).map((sigla) => {
                     const active = form.processos.includes(sigla);
                     return (
@@ -702,7 +702,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                         className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
                           active
                             ? "bg-blue-600 text-white border-blue-400 shadow-[0_0_10px_rgba(37,99,235,0.4)]"
-                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                            : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                         }`}
                       >
                         {sigla}
@@ -710,7 +710,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                     );
                   })}
 
-                  <div className="h-4 w-[1px] bg-slate-800 mx-1" />
+                  <div className="h-4 w-[1px] bg-border mx-1" />
 
                   {IMPRESSAO_TIPOS.map((p) => {
                     const active = form.processos.includes(p.sigla);
@@ -728,7 +728,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                               : p.sigla === "PANTONE"
                               ? "bg-emerald-600 text-white border-emerald-400"
                               : "bg-cyan-600 text-white border-cyan-400"
-                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                            : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                         }`}
                       >
                         {p.sigla}
@@ -738,8 +738,8 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                 </div>
 
                 {/* Linha 2: Impressão Digital & Plotter */}
-                <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-slate-800/80">
-                  <span className="text-[11px] font-mono-tech text-slate-400 mr-1">Digital:</span>
+                <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-border">
+                  <span className="text-[11px] font-mono-tech text-muted-foreground mr-1">Digital:</span>
                   {(["DIG", "PLO"] as const).map((sigla) => {
                     const active = form.processos.includes(sigla);
                     return (
@@ -750,7 +750,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                         className={`px-3 py-1 rounded-lg text-xs font-bold border transition-all ${
                           active
                             ? "bg-emerald-600 text-white border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]"
-                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                            : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                         }`}
                       >
                         {sigla}
@@ -758,7 +758,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                     );
                   })}
 
-                  <div className="h-4 w-[1px] bg-slate-800 mx-1" />
+                  <div className="h-4 w-[1px] bg-border mx-1" />
 
                   <button
                     type="button"
@@ -766,7 +766,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                     className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${
                       form.digital_color
                         ? "bg-blue-600 text-white border-blue-400 font-bold"
-                        : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                        : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                     }`}
                   >
                     Color
@@ -778,7 +778,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                     className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${
                       form.digital_pb
                         ? "bg-slate-500 text-white border-slate-300 font-bold"
-                        : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                        : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                     }`}
                   >
                     Preto & Branco (PB)
@@ -792,11 +792,11 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
           {step === 3 && (
             <div className="space-y-4 animate-in fade-in-50 duration-200">
               {/* ACABAMENTOS */}
-              <div className="p-4 rounded-xl border border-slate-800/90 bg-slate-900/50 space-y-3">
+              <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_#a855f7]" />
-                    <Label className="text-xs font-bold text-white uppercase tracking-wider">
+                    <Label className="text-xs font-bold text-foreground uppercase tracking-wider">
                       Processos de Acabamento Gráfico
                     </Label>
                   </div>
@@ -807,18 +807,18 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                     }
                     className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
                       form.urgente_acabamento
-                        ? "bg-rose-500/20 border-rose-500/50 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.3)] animate-pulse"
-                        : "bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-white"
+                        ? "bg-rose-500/20 border-rose-500/50 text-rose-600 dark:text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.3)] animate-pulse"
+                        : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                     }`}
                   >
-                    <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />
+                    <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />
                     <span>Acabamento Urgente</span>
                   </button>
                 </div>
 
                 {/* Categoria do Acabamento */}
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-mono-tech text-slate-400 mr-2">Linha:</span>
+                  <span className="text-[11px] font-mono-tech text-muted-foreground mr-2">Linha:</span>
                   {ACABAMENTO_TIPOS.map((tipo) => {
                     const isSelected = form.processos.includes(tipo);
                     return (
@@ -843,7 +843,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                               : tipo === "Editorial"
                               ? "bg-pink-600 text-white border-pink-400 shadow-sm"
                               : "bg-amber-500 text-black border-amber-300 shadow-sm font-extrabold"
-                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                            : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                         }`}
                       >
                         {tipo}
@@ -857,8 +857,8 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                   {ACABAMENTO_GROUPS.map((group, gi) => (
                     <div
                       key={gi}
-                      className={`flex flex-wrap gap-1.5 p-1.5 rounded-lg border border-slate-800/80 ${
-                        gi === 2 ? "bg-purple-950/20" : "bg-slate-950/40"
+                      className={`flex flex-wrap gap-1.5 p-1.5 rounded-lg border border-border ${
+                        gi === 2 ? "bg-purple-500/10" : "bg-muted/40"
                       }`}
                     >
                       {group.items.map((p) => {
@@ -870,8 +870,8 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                             onClick={() => toggleProcesso(p.sigla)}
                             className={`px-2 py-1 rounded text-[11px] font-mono-tech font-bold border transition-all ${
                               active
-                                ? `${p.cor} ring-2 ring-cyan-400/50 scale-105`
-                                : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                                ? `${p.cor} ring-2 ring-cyan-500/50 scale-105`
+                                : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                             }`}
                           >
                             {p.sigla}
@@ -884,11 +884,11 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
               </div>
 
               {/* EXPEDIÇÃO & LOGÍSTICA */}
-              <div className="p-4 rounded-xl border border-slate-800/90 bg-slate-900/50 space-y-3">
+              <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Truck className="h-4 w-4 text-emerald-400" />
-                    <Label className="text-xs font-bold text-white uppercase tracking-wider">
+                    <Truck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    <Label className="text-xs font-bold text-foreground uppercase tracking-wider">
                       Expedição & Entrega
                     </Label>
                   </div>
@@ -899,11 +899,11 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                     }
                     className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
                       form.urgente_expedicao
-                        ? "bg-rose-500/20 border-rose-500/50 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.3)] animate-pulse"
-                        : "bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-white"
+                        ? "bg-rose-500/20 border-rose-500/50 text-rose-600 dark:text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.3)] animate-pulse"
+                        : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                     }`}
                   >
-                    <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />
+                    <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />
                     <span>Entrega Urgente</span>
                   </button>
                 </div>
@@ -911,7 +911,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {/* Modal / Veículo */}
                   <div className="space-y-1">
-                    <span className="text-[10px] font-mono-tech text-slate-400">Transporte:</span>
+                    <span className="text-[10px] font-mono-tech text-muted-foreground">Transporte:</span>
                     <div className="flex gap-1.5">
                       {["MOTO", "CARRO", "RETIRA"].map((t) => {
                         const active = form.tipo_entrega.includes(t);
@@ -923,7 +923,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                             className={`flex-1 py-1 px-1.5 rounded-lg text-[11px] font-bold border transition-all ${
                               active
                                 ? "bg-emerald-600 text-white border-emerald-400 shadow-sm"
-                                : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                                : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                             }`}
                           >
                             {t}
@@ -935,7 +935,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
 
                   {/* Documentos */}
                   <div className="space-y-1">
-                    <span className="text-[10px] font-mono-tech text-slate-400">Documentação:</span>
+                    <span className="text-[10px] font-mono-tech text-muted-foreground">Documentação:</span>
                     <div className="flex gap-1.5">
                       <button
                         type="button"
@@ -943,7 +943,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                         className={`flex-1 py-1 px-1.5 rounded-lg text-[11px] font-bold border transition-all ${
                           form.tem_nf
                             ? "bg-cyan-600 text-white border-cyan-400 shadow-sm"
-                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                            : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                         }`}
                       >
                         NF
@@ -954,7 +954,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                         className={`flex-1 py-1 px-1.5 rounded-lg text-[11px] font-bold border transition-all ${
                           form.tem_protocolo
                             ? "bg-cyan-600 text-white border-cyan-400 shadow-sm"
-                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                            : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                         }`}
                       >
                         Protocolo
@@ -964,7 +964,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
 
                   {/* Origem */}
                   <div className="space-y-1">
-                    <span className="text-[10px] font-mono-tech text-slate-400">Origem:</span>
+                    <span className="text-[10px] font-mono-tech text-muted-foreground">Origem:</span>
                     <div className="flex gap-1">
                       {["PRIMACOR", "IMPRIMASET", "CLIENTE"].map((emp) => (
                         <button
@@ -974,7 +974,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                           className={`flex-1 py-1 px-1 rounded-lg text-[10px] font-bold border transition-all truncate ${
                             form.empresa_entrega === emp
                               ? "bg-blue-600 text-white border-blue-400 shadow-sm"
-                              : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                              : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                           }`}
                         >
                           {emp === "IMPRIMASET" ? "Imprim." : emp.charAt(0) + emp.slice(1).toLowerCase()}
@@ -990,14 +990,14 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                     value={form.entrega_endereco}
                     onChange={(e) => setForm((f) => ({ ...f, entrega_endereco: e.target.value }))}
                     placeholder="Endereço de entrega final..."
-                    className="h-8 bg-slate-950/80 border-slate-800 text-xs text-white rounded-lg"
+                    className="h-8 bg-background border-input text-xs text-foreground placeholder:text-muted-foreground rounded-lg"
                   />
                   <div className="flex gap-2">
                     <Input
                       value={form.entrega_ac}
                       onChange={(e) => setForm((f) => ({ ...f, entrega_ac: e.target.value }))}
                       placeholder="A/C..."
-                      className="h-8 flex-1 bg-slate-950/80 border-slate-800 text-xs text-white rounded-lg"
+                      className="h-8 flex-1 bg-background border-input text-xs text-foreground placeholder:text-muted-foreground rounded-lg"
                     />
                     <Input
                       type="datetime-local"
@@ -1005,7 +1005,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                       onChange={(e) =>
                         setForm((f) => ({ ...f, entrega_data_limite: e.target.value }))
                       }
-                      className="h-8 w-44 bg-slate-950/80 border-slate-800 text-xs text-white rounded-lg"
+                      className="h-8 w-44 bg-background border-input text-xs text-foreground placeholder:text-muted-foreground rounded-lg"
                     />
                   </div>
                 </div>
@@ -1015,14 +1015,14 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
         </div>
 
         {/* Bottom Navigation Footer */}
-        <div className="px-6 py-4 border-t border-slate-800/80 bg-slate-900/60 flex items-center justify-between shrink-0">
+        <div className="px-6 py-4 border-t border-border bg-muted/30 flex items-center justify-between shrink-0">
           <div>
             {step > 1 ? (
               <Button
                 type="button"
                 variant="ghost"
                 onClick={handleBack}
-                className="text-xs text-slate-300 hover:text-white hover:bg-slate-800 gap-1.5 rounded-xl h-10 px-4"
+                className="text-xs text-foreground hover:bg-accent gap-1.5 rounded-xl h-10 px-4"
               >
                 <ArrowLeft className="h-4 w-4" />
                 <span>Voltar</span>
@@ -1032,7 +1032,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                 type="button"
                 variant="ghost"
                 onClick={() => setOpen(false)}
-                className="text-xs text-slate-500 hover:text-slate-300 rounded-xl h-10 px-4"
+                className="text-xs text-muted-foreground hover:text-foreground rounded-xl h-10 px-4"
               >
                 Cancelar
               </Button>

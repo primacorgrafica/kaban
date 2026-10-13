@@ -329,9 +329,9 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-in fade-in duration-300">
       {/* Executive Telemetry Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-5 rounded-3xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-xl shadow-2xl">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-5 rounded-3xl bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800/80 backdrop-blur-xl shadow-xs dark:shadow-2xl">
         <div className="flex items-center gap-3.5">
-          <div className="relative p-3 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/30 text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
+          <div className="relative p-3 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/30 text-cyan-500 dark:text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
             <BarChart3 className="h-6 w-6" />
             <span className="absolute -top-1 -right-1 flex h-3 w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -340,12 +340,12 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold tracking-tight text-white">Dashboard de Telemetria</h1>
-              <Badge variant="outline" className="font-mono-tech text-[10px] text-emerald-400 border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5">
+              <h1 className="text-xl font-bold tracking-tight text-foreground">Dashboard de Telemetria</h1>
+              <Badge variant="outline" className="font-mono-tech text-[10px] text-emerald-600 dark:text-emerald-400 border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5">
                 SISTEMA OPERACIONAL
               </Badge>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Primacor OS v2.0 • Monitoramento em tempo real da produção e fluxo gráfico
             </p>
           </div>
@@ -355,7 +355,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
           <Button
             variant="outline"
             size="sm"
-            className="gap-2 bg-slate-950/60 border-slate-800 hover:border-slate-700 text-slate-200 text-xs h-9 rounded-xl"
+            className="gap-2 bg-card border-border hover:bg-muted text-foreground text-xs h-9 rounded-xl shadow-xs"
             onClick={() => {
               exportFullAnalyticsPDF(allTimelines, avgPerStatus, avgTotal, {
                 total,
@@ -366,18 +366,18 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
               toast.success("PDF analítico completo exportado!");
             }}
           >
-            <FileDown className="h-4 w-4 text-cyan-400" />
+            <FileDown className="h-4 w-4 text-cyan-500 dark:text-cyan-400" />
             Exportar Relatório PDF
           </Button>
 
           <Button
             variant="outline"
             size="sm"
-            className="gap-2 bg-slate-950/60 border-slate-800 hover:border-slate-700 text-slate-200 text-xs h-9 rounded-xl"
+            className="gap-2 bg-card border-border hover:bg-muted text-foreground text-xs h-9 rounded-xl shadow-xs"
             onClick={handleBackup}
             disabled={backupLoading}
           >
-            {backupLoading ? <Loader2 className="h-4 w-4 animate-spin text-cyan-400" /> : <DatabaseBackup className="h-4 w-4 text-emerald-400" />}
+            {backupLoading ? <Loader2 className="h-4 w-4 animate-spin text-cyan-500 dark:text-cyan-400" /> : <DatabaseBackup className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />}
             {backupLoading ? "Gerando Backup..." : "Backup JSON"}
           </Button>
         </div>
@@ -385,91 +385,91 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
       {/* Row 1: KPI Telemetry Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900/90 to-slate-900/40 border border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.08)] relative overflow-hidden group hover:border-cyan-500/50 transition-all">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium mb-2">
-            <span className="flex items-center gap-1.5 text-cyan-400 font-semibold tracking-wide uppercase text-[11px]">
+        <div className="p-4 rounded-2xl bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800/80 shadow-xs dark:shadow-[0_0_20px_rgba(6,182,212,0.08)] relative overflow-hidden group hover:border-cyan-500/50 transition-all">
+          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium mb-2">
+            <span className="flex items-center gap-1.5 text-cyan-600 dark:text-cyan-400 font-semibold tracking-wide uppercase text-[11px]">
               <Layers className="h-3.5 w-3.5" /> OS em Produção
             </span>
             <Activity className="h-3.5 w-3.5 text-cyan-500/50 group-hover:text-cyan-400 transition-colors" />
           </div>
-          <div className="text-3xl font-extrabold font-mono-tech text-white tracking-tight">{total}</div>
-          <p className="text-[11px] text-slate-400 mt-1">Ordens ativas na fábrica</p>
+          <div className="text-3xl font-extrabold font-mono-tech text-foreground tracking-tight">{total}</div>
+          <p className="text-[11px] text-muted-foreground mt-1">Ordens ativas na fábrica</p>
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 to-blue-500 opacity-60" />
         </div>
 
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900/90 to-slate-900/40 border border-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.08)] relative overflow-hidden group hover:border-blue-500/50 transition-all">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium mb-2">
-            <span className="flex items-center gap-1.5 text-blue-400 font-semibold tracking-wide uppercase text-[11px]">
+        <div className="p-4 rounded-2xl bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800/80 shadow-xs dark:shadow-[0_0_20px_rgba(59,130,246,0.08)] relative overflow-hidden group hover:border-blue-500/50 transition-all">
+          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium mb-2">
+            <span className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-semibold tracking-wide uppercase text-[11px]">
               <Clock className="h-3.5 w-3.5" /> Criadas Hoje
             </span>
             <Sparkles className="h-3.5 w-3.5 text-blue-500/50 group-hover:text-blue-400 transition-colors" />
           </div>
-          <div className="text-3xl font-extrabold font-mono-tech text-white tracking-tight">{todayOrders}</div>
-          <p className="text-[11px] text-slate-400 mt-1">Novas entradas no dia</p>
+          <div className="text-3xl font-extrabold font-mono-tech text-foreground tracking-tight">{todayOrders}</div>
+          <p className="text-[11px] text-muted-foreground mt-1">Novas entradas no dia</p>
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-60" />
         </div>
 
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900/90 to-slate-900/40 border border-emerald-500/30 shadow-[0_0_20px_rgba(16,185,129,0.08)] relative overflow-hidden group hover:border-emerald-500/50 transition-all">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium mb-2">
-            <span className="flex items-center gap-1.5 text-emerald-400 font-semibold tracking-wide uppercase text-[11px]">
+        <div className="p-4 rounded-2xl bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800/80 shadow-xs dark:shadow-[0_0_20px_rgba(16,185,129,0.08)] relative overflow-hidden group hover:border-emerald-500/50 transition-all">
+          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium mb-2">
+            <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold tracking-wide uppercase text-[11px]">
               <CheckCircle2 className="h-3.5 w-3.5" /> Aprovadas Hoje
             </span>
             <ShieldCheck className="h-3.5 w-3.5 text-emerald-500/50 group-hover:text-emerald-400 transition-colors" />
           </div>
-          <div className="text-3xl font-extrabold font-mono-tech text-white tracking-tight">{completedTodayOrders.length}</div>
-          <p className="text-[11px] text-slate-400 mt-1">Saídas de pré-impressão</p>
+          <div className="text-3xl font-extrabold font-mono-tech text-foreground tracking-tight">{completedTodayOrders.length}</div>
+          <p className="text-[11px] text-muted-foreground mt-1">Saídas de pré-impressão</p>
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500 opacity-60" />
         </div>
 
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900/90 to-slate-900/40 border border-violet-500/30 shadow-[0_0_20px_rgba(139,92,246,0.08)] relative overflow-hidden group hover:border-violet-500/50 transition-all">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium mb-2">
-            <span className="flex items-center gap-1.5 text-violet-400 font-semibold tracking-wide uppercase text-[11px]">
+        <div className="p-4 rounded-2xl bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800/80 shadow-xs dark:shadow-[0_0_20px_rgba(139,92,246,0.08)] relative overflow-hidden group hover:border-violet-500/50 transition-all">
+          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium mb-2">
+            <span className="flex items-center gap-1.5 text-violet-600 dark:text-violet-400 font-semibold tracking-wide uppercase text-[11px]">
               <Printer className="h-3.5 w-3.5" /> Provas Hoje
             </span>
             <PrinterCheck className="h-3.5 w-3.5 text-violet-500/50 group-hover:text-violet-400 transition-colors" />
           </div>
-          <div className="text-3xl font-extrabold font-mono-tech text-white tracking-tight">{provasTodayCount}</div>
-          <p className="text-[11px] text-slate-400 mt-1">Provas físicas e digitais</p>
+          <div className="text-3xl font-extrabold font-mono-tech text-foreground tracking-tight">{provasTodayCount}</div>
+          <p className="text-[11px] text-muted-foreground mt-1">Provas físicas e digitais</p>
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 to-purple-500 opacity-60" />
         </div>
 
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-slate-900/90 to-slate-900/40 border border-amber-500/30 shadow-[0_0_20px_rgba(245,158,11,0.08)] relative overflow-hidden group hover:border-amber-500/50 transition-all col-span-2 sm:col-span-1">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium mb-2">
-            <span className="flex items-center gap-1.5 text-amber-400 font-semibold tracking-wide uppercase text-[11px]">
+        <div className="p-4 rounded-2xl bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800/80 shadow-xs dark:shadow-[0_0_20px_rgba(245,158,11,0.08)] relative overflow-hidden group hover:border-amber-500/50 transition-all col-span-2 sm:col-span-1">
+          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium mb-2">
+            <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-semibold tracking-wide uppercase text-[11px]">
               <ArrowRight className="h-3.5 w-3.5" /> Novo Arquivo
             </span>
             <AlertTriangle className="h-3.5 w-3.5 text-amber-500/50 group-hover:text-amber-400 transition-colors" />
           </div>
-          <div className="text-3xl font-extrabold font-mono-tech text-white tracking-tight">{novoArquivoTodayCount}</div>
-          <p className="text-[11px] text-slate-400 mt-1">Ajustes liberados hoje</p>
+          <div className="text-3xl font-extrabold font-mono-tech text-foreground tracking-tight">{novoArquivoTodayCount}</div>
+          <p className="text-[11px] text-muted-foreground mt-1">Ajustes liberados hoje</p>
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-rose-500 opacity-60" />
         </div>
       </div>
 
       {/* Row 2: Sector Production Radar Bar */}
-      <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md">
+      <div className="p-4 rounded-2xl bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800/80 shadow-xs backdrop-blur-md">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Activity className="h-4 w-4 text-cyan-400" />
-            <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+            <Activity className="h-4 w-4 text-cyan-500 dark:text-cyan-400" />
+            <span className="text-xs font-semibold text-foreground uppercase tracking-wider">
               Distribuição por Setor de Fábrica
             </span>
           </div>
-          <span className="text-[11px] text-slate-400">Clique para filtrar ordens no Chão de Fábrica</span>
+          <span className="text-[11px] text-muted-foreground">Clique para filtrar ordens no Chão de Fábrica</span>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
           <button
             onClick={() => handleSelectSectorFilter("pre_impressao")}
-            className="flex flex-col p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-cyan-500/40 hover:bg-cyan-500/5 transition-all text-left group"
+            className="flex flex-col p-2.5 rounded-xl bg-muted/40 dark:bg-slate-950/60 border border-border dark:border-slate-800 hover:border-cyan-500/40 hover:bg-cyan-500/5 transition-all text-left group"
           >
-            <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1">
-              <span className="font-medium group-hover:text-cyan-400 transition-colors">Pré-Impressão</span>
-              <span className="font-mono-tech font-bold text-white text-xs">{sectorCounts.pre_impressao}</span>
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
+              <span className="font-medium group-hover:text-cyan-500 dark:group-hover:text-cyan-400 transition-colors">Pré-Impressão</span>
+              <span className="font-mono-tech font-bold text-foreground text-xs">{sectorCounts.pre_impressao}</span>
             </div>
-            <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div className="w-full h-1.5 bg-muted dark:bg-slate-800 rounded-full overflow-hidden">
               <div
-                className="h-full bg-cyan-400 rounded-full transition-all duration-500"
+                className="h-full bg-cyan-500 dark:bg-cyan-400 rounded-full transition-all duration-500"
                 style={{ width: `${total > 0 ? (sectorCounts.pre_impressao / total) * 100 : 0}%` }}
               />
             </div>
@@ -477,15 +477,15 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
           <button
             onClick={() => handleSelectSectorFilter("ctp")}
-            className="flex flex-col p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-violet-500/40 hover:bg-violet-500/5 transition-all text-left group"
+            className="flex flex-col p-2.5 rounded-xl bg-muted/40 dark:bg-slate-950/60 border border-border dark:border-slate-800 hover:border-violet-500/40 hover:bg-violet-500/5 transition-all text-left group"
           >
-            <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1">
-              <span className="font-medium group-hover:text-violet-400 transition-colors">CTP / Chapas</span>
-              <span className="font-mono-tech font-bold text-white text-xs">{sectorCounts.ctp}</span>
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
+              <span className="font-medium group-hover:text-violet-500 dark:group-hover:text-violet-400 transition-colors">CTP / Chapas</span>
+              <span className="font-mono-tech font-bold text-foreground text-xs">{sectorCounts.ctp}</span>
             </div>
-            <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div className="w-full h-1.5 bg-muted dark:bg-slate-800 rounded-full overflow-hidden">
               <div
-                className="h-full bg-violet-400 rounded-full transition-all duration-500"
+                className="h-full bg-violet-500 dark:bg-violet-400 rounded-full transition-all duration-500"
                 style={{ width: `${total > 0 ? (sectorCounts.ctp / total) * 100 : 0}%` }}
               />
             </div>
@@ -493,15 +493,15 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
           <button
             onClick={() => handleSelectSectorFilter("offset")}
-            className="flex flex-col p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-blue-500/40 hover:bg-blue-500/5 transition-all text-left group"
+            className="flex flex-col p-2.5 rounded-xl bg-muted/40 dark:bg-slate-950/60 border border-border dark:border-slate-800 hover:border-blue-500/40 hover:bg-blue-500/5 transition-all text-left group"
           >
-            <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1">
-              <span className="font-medium group-hover:text-blue-400 transition-colors">Off-Set</span>
-              <span className="font-mono-tech font-bold text-white text-xs">{sectorCounts.offset}</span>
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
+              <span className="font-medium group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">Off-Set</span>
+              <span className="font-mono-tech font-bold text-foreground text-xs">{sectorCounts.offset}</span>
             </div>
-            <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div className="w-full h-1.5 bg-muted dark:bg-slate-800 rounded-full overflow-hidden">
               <div
-                className="h-full bg-blue-400 rounded-full transition-all duration-500"
+                className="h-full bg-blue-500 dark:bg-blue-400 rounded-full transition-all duration-500"
                 style={{ width: `${total > 0 ? (sectorCounts.offset / total) * 100 : 0}%` }}
               />
             </div>
@@ -509,15 +509,15 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
           <button
             onClick={() => handleSelectSectorFilter("digital")}
-            className="flex flex-col p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-indigo-500/40 hover:bg-indigo-500/5 transition-all text-left group"
+            className="flex flex-col p-2.5 rounded-xl bg-muted/40 dark:bg-slate-950/60 border border-border dark:border-slate-800 hover:border-indigo-500/40 hover:bg-indigo-500/5 transition-all text-left group"
           >
-            <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1">
-              <span className="font-medium group-hover:text-indigo-400 transition-colors">Digital</span>
-              <span className="font-mono-tech font-bold text-white text-xs">{sectorCounts.digital}</span>
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
+              <span className="font-medium group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors">Digital</span>
+              <span className="font-mono-tech font-bold text-foreground text-xs">{sectorCounts.digital}</span>
             </div>
-            <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div className="w-full h-1.5 bg-muted dark:bg-slate-800 rounded-full overflow-hidden">
               <div
-                className="h-full bg-indigo-400 rounded-full transition-all duration-500"
+                className="h-full bg-indigo-500 dark:bg-indigo-400 rounded-full transition-all duration-500"
                 style={{ width: `${total > 0 ? (sectorCounts.digital / total) * 100 : 0}%` }}
               />
             </div>
@@ -525,15 +525,15 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
           <button
             onClick={() => handleSelectSectorFilter("acabamento")}
-            className="flex flex-col p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-amber-500/40 hover:bg-amber-500/5 transition-all text-left group"
+            className="flex flex-col p-2.5 rounded-xl bg-muted/40 dark:bg-slate-950/60 border border-border dark:border-slate-800 hover:border-amber-500/40 hover:bg-amber-500/5 transition-all text-left group"
           >
-            <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1">
-              <span className="font-medium group-hover:text-amber-400 transition-colors">Acabamento</span>
-              <span className="font-mono-tech font-bold text-white text-xs">{sectorCounts.acabamento}</span>
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
+              <span className="font-medium group-hover:text-amber-500 dark:group-hover:text-amber-400 transition-colors">Acabamento</span>
+              <span className="font-mono-tech font-bold text-foreground text-xs">{sectorCounts.acabamento}</span>
             </div>
-            <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div className="w-full h-1.5 bg-muted dark:bg-slate-800 rounded-full overflow-hidden">
               <div
-                className="h-full bg-amber-400 rounded-full transition-all duration-500"
+                className="h-full bg-amber-500 dark:bg-amber-400 rounded-full transition-all duration-500"
                 style={{ width: `${total > 0 ? (sectorCounts.acabamento / total) * 100 : 0}%` }}
               />
             </div>
@@ -541,15 +541,15 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
           <button
             onClick={() => handleSelectSectorFilter("expedicao")}
-            className="flex flex-col p-2.5 rounded-xl bg-slate-950/60 border border-slate-800 hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all text-left group"
+            className="flex flex-col p-2.5 rounded-xl bg-muted/40 dark:bg-slate-950/60 border border-border dark:border-slate-800 hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all text-left group"
           >
-            <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1">
-              <span className="font-medium group-hover:text-emerald-400 transition-colors">Expedição</span>
-              <span className="font-mono-tech font-bold text-white text-xs">{sectorCounts.expedicao}</span>
+            <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
+              <span className="font-medium group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition-colors">Expedição</span>
+              <span className="font-mono-tech font-bold text-foreground text-xs">{sectorCounts.expedicao}</span>
             </div>
-            <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div className="w-full h-1.5 bg-muted dark:bg-slate-800 rounded-full overflow-hidden">
               <div
-                className="h-full bg-emerald-400 rounded-full transition-all duration-500"
+                className="h-full bg-emerald-500 dark:bg-emerald-400 rounded-full transition-all duration-500"
                 style={{ width: `${total > 0 ? (sectorCounts.expedicao / total) * 100 : 0}%` }}
               />
             </div>
@@ -559,8 +559,8 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
       {/* Structured Executive Navigation Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
-        <div className="flex items-center justify-between overflow-x-auto pb-1 border-b border-slate-800">
-          <TabsList className="bg-slate-950/80 border border-slate-800/80 p-1 rounded-2xl h-auto gap-1">
+        <div className="flex items-center justify-between overflow-x-auto pb-1 border-b border-border">
+          <TabsList className="bg-card dark:bg-slate-950/80 border border-border dark:border-slate-800/80 p-1 rounded-2xl h-auto gap-1 shadow-xs">
             <TabsTrigger
               value="geral"
               className="text-xs py-2 px-3.5 rounded-xl data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-300 data-[state=active]:font-bold transition-all"
@@ -632,13 +632,13 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
           {/* Section: Status Breakdown & Average Stage Times */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Status Breakdown Bar Meter */}
-            <Card className="border border-slate-800/80 bg-slate-900/60 backdrop-blur-md rounded-2xl shadow-xl">
-              <CardHeader className="pb-3 border-b border-slate-800/60">
+            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl">
+              <CardHeader className="pb-3 border-b border-border">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4 text-cyan-400" /> Distribuição por Etapa (Pré-Impressão)
+                  <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4 text-cyan-500" /> Distribuição por Etapa (Pré-Impressão)
                   </CardTitle>
-                  <span className="text-xs font-mono-tech text-cyan-400 font-bold">
+                  <span className="text-xs font-mono-tech text-cyan-600 dark:text-cyan-400 font-bold">
                     {preImpressaoOrders.length} ordens
                   </span>
                 </div>
@@ -651,8 +651,8 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
                   return (
                     <div key={status} className="flex items-center gap-3">
-                      <div className="w-36 text-xs text-slate-300 truncate font-medium">{config.label}</div>
-                      <div className="flex-1 h-7 bg-slate-950/80 rounded-xl border border-slate-800/80 overflow-hidden relative p-0.5">
+                      <div className="w-36 text-xs text-foreground truncate font-medium">{config.label}</div>
+                      <div className="flex-1 h-7 bg-muted/70 rounded-xl border border-border overflow-hidden relative p-0.5">
                         <div
                           className="h-full rounded-lg transition-all duration-500 flex items-center justify-end pr-2"
                           style={{
@@ -667,7 +667,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                           )}
                         </div>
                       </div>
-                      <div className="w-8 text-right font-mono-tech text-xs font-bold text-slate-400">
+                      <div className="w-8 text-right font-mono-tech text-xs font-bold text-muted-foreground">
                         {count}
                       </div>
                     </div>
@@ -677,20 +677,20 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
             </Card>
 
             {/* Average Duration per Stage */}
-            <Card className="border border-slate-800/80 bg-slate-900/60 backdrop-blur-md rounded-2xl shadow-xl">
-              <CardHeader className="pb-3 border-b border-slate-800/60">
+            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl">
+              <CardHeader className="pb-3 border-b border-border">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                    <Timer className="h-4 w-4 text-amber-400" /> Tempo Médio por Etapa (Ordens Liberadas)
+                  <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <Timer className="h-4 w-4 text-amber-500" /> Tempo Médio por Etapa (Ordens Liberadas)
                   </CardTitle>
-                  <span className="text-xs font-mono-tech text-amber-400 font-bold">
+                  <span className="text-xs font-mono-tech text-amber-600 dark:text-amber-400 font-bold">
                     Total: {avgTotal !== null ? formatDuration(avgTotal) : "—"}
                   </span>
                 </div>
               </CardHeader>
               <CardContent className="pt-4 space-y-3">
                 {Object.keys(avgPerStatus).length === 0 ? (
-                  <div className="py-8 text-center text-xs text-slate-500">
+                  <div className="py-8 text-center text-xs text-muted-foreground">
                     Ainda não há dados suficientes de ordens finalizadas para calcular médias.
                   </div>
                 ) : (
@@ -702,8 +702,8 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
                     return (
                       <div key={status} className="flex items-center gap-3">
-                        <div className="w-36 text-xs text-slate-300 truncate font-medium">{config.label}</div>
-                        <div className="flex-1 h-7 bg-slate-950/80 rounded-xl border border-slate-800/80 overflow-hidden relative p-0.5">
+                        <div className="w-36 text-xs text-foreground truncate font-medium">{config.label}</div>
+                        <div className="flex-1 h-7 bg-muted/70 rounded-xl border border-border overflow-hidden relative p-0.5">
                           <div
                             className="h-full rounded-lg transition-all duration-500 flex items-center justify-end pr-2"
                             style={{
@@ -729,15 +729,15 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
           {/* Section: Deadlines & Multiple Proofs */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Controle de Prazos */}
-            <Card className="border border-slate-800/80 bg-slate-900/60 backdrop-blur-md rounded-2xl shadow-xl">
-              <CardHeader className="pb-3 border-b border-slate-800/60">
-                <CardTitle className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                  <CalendarClock className="h-4 w-4 text-rose-400" /> Controle de Prazos ({ordersWithDeadline.length})
+            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl">
+              <CardHeader className="pb-3 border-b border-border">
+                <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <CalendarClock className="h-4 w-4 text-rose-500" /> Controle de Prazos ({ordersWithDeadline.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
                 {ordersWithDeadline.length === 0 ? (
-                  <p className="text-xs text-slate-500 text-center py-6">Nenhuma ordem com prazo estipulado no momento.</p>
+                  <p className="text-xs text-muted-foreground text-center py-6">Nenhuma ordem com prazo estipulado no momento.</p>
                 ) : (
                   <div className="space-y-2.5">
                     {ordersWithDeadline
@@ -756,29 +756,29 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                             key={o.id}
                             className={`p-3 rounded-xl border flex items-center justify-between gap-3 transition-colors ${
                               isOverdue
-                                ? "bg-rose-500/10 border-rose-500/30 text-rose-200"
+                                ? "bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-200"
                                 : isNear
-                                ? "bg-amber-500/10 border-amber-500/30 text-amber-200"
-                                : "bg-slate-950/60 border-slate-800/80 text-slate-300"
+                                ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-200"
+                                : "bg-muted/40 border-border text-foreground"
                             }`}
                           >
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
-                                <span className="font-mono-tech font-bold text-xs text-white">{o.titulo}</span>
-                                <span className="text-[11px] text-slate-400 truncate">• {o.cliente}</span>
+                                <span className="font-mono-tech font-bold text-xs text-foreground">{o.titulo}</span>
+                                <span className="text-[11px] text-muted-foreground truncate">• {o.cliente}</span>
                                 {o.urgente && (
                                   <Badge variant="destructive" className="text-[9px] px-1 py-0">URG</Badge>
                                 )}
                               </div>
-                              <div className="text-[10px] text-slate-400 mt-0.5 truncate">
+                              <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
                                 {o.descricao}
                               </div>
                             </div>
                             <div className="text-right shrink-0">
-                              <div className="text-xs font-mono-tech font-bold">
+                              <div className="text-xs font-mono-tech font-bold text-foreground">
                                 {format(deadline, "dd/MM HH:mm")}
                               </div>
-                              <div className={`text-[10px] font-semibold ${isOverdue ? "text-rose-400" : isNear ? "text-amber-400" : "text-slate-400"}`}>
+                              <div className={`text-[10px] font-semibold ${isOverdue ? "text-rose-600 dark:text-rose-400" : isNear ? "text-amber-600 dark:text-amber-400" : "text-muted-foreground"}`}>
                                 {isOverdue ? `Atrasado ${formatDuration(Math.abs(remaining))}` : `Faltam ${formatDuration(remaining)}`}
                               </div>
                             </div>
@@ -791,15 +791,15 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
             </Card>
 
             {/* Controle de Retrabalho (Múltiplas Provas) */}
-            <Card className="border border-slate-800/80 bg-slate-900/60 backdrop-blur-md rounded-2xl shadow-xl">
-              <CardHeader className="pb-3 border-b border-slate-800/60">
-                <CardTitle className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                  <Printer className="h-4 w-4 text-violet-400" /> Controle de Provas & Retrabalho ({multiProofOrders.length})
+            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl">
+              <CardHeader className="pb-3 border-b border-border">
+                <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Printer className="h-4 w-4 text-violet-500" /> Controle de Provas & Retrabalho ({multiProofOrders.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
                 {multiProofOrders.length === 0 ? (
-                  <p className="text-xs text-slate-500 text-center py-6">Nenhuma O.S. precisou de mais de 1 prova até agora.</p>
+                  <p className="text-xs text-muted-foreground text-center py-6">Nenhuma O.S. precisou de mais de 1 prova até agora.</p>
                 ) : (
                   <div className="space-y-2.5">
                     {multiProofOrders
@@ -810,18 +810,18 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                         return (
                           <div
                             key={t.orderId}
-                            className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between gap-3"
+                            className="p-3 rounded-xl bg-muted/40 border border-border flex items-center justify-between gap-3"
                           >
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
-                                <span className="font-mono-tech font-bold text-xs text-white">{t.titulo}</span>
-                                <span className="text-[11px] text-slate-400 truncate">• {t.cliente}</span>
+                                <span className="font-mono-tech font-bold text-xs text-foreground">{t.titulo}</span>
+                                <span className="text-[11px] text-muted-foreground truncate">• {t.cliente}</span>
                               </div>
-                              <div className="text-[10px] text-slate-400 mt-0.5">
+                              <div className="text-[10px] text-muted-foreground mt-0.5">
                                 Tipo: {t.provaDigital ? "Digital" : ""}{t.provaDigital && t.provaEmail ? " + " : ""}{t.provaEmail ? "E-mail" : ""}{!t.provaDigital && !t.provaEmail ? "Física" : ""}
                               </div>
                             </div>
-                            <div className="flex items-center gap-1.5 bg-violet-500/10 border border-violet-500/30 text-violet-300 px-2.5 py-1 rounded-xl">
+                            <div className="flex items-center gap-1.5 bg-violet-500/10 border border-violet-500/30 text-violet-600 dark:text-violet-300 px-2.5 py-1 rounded-xl">
                               <Printer className="h-3.5 w-3.5" />
                               <span className="font-mono-tech font-bold text-xs">{t.provasCount}</span>
                               <span className="text-[10px]">provas</span>
@@ -839,9 +839,9 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
         {/* TAB 2: CHÃO DE FÁBRICA (OS EM PRODUÇÃO) */}
         <TabsContent value="producao" className="space-y-4 m-0">
           {/* Controls Bar: Search + Sector Pills + Urgency Toggle */}
-          <div className="p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md flex flex-col md:flex-row items-center justify-between gap-3">
+          <div className="p-4 rounded-2xl bg-card border border-border backdrop-blur-md flex flex-col md:flex-row items-center justify-between gap-3 shadow-xs">
             <div className="relative w-full md:w-80">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Buscar por O.S., cliente, descrição..."
                 value={searchTerm}
@@ -849,12 +849,12 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                   setSearchTerm(e.target.value);
                   setCurrentPage(1);
                 }}
-                className="pl-9 bg-slate-950/80 border-slate-800 h-9 text-xs rounded-xl text-white placeholder:text-slate-500"
+                className="pl-9 bg-background border-input h-9 text-xs rounded-xl text-foreground placeholder:text-muted-foreground"
               />
               {searchTerm && (
                 <button
                   onClick={() => setSearchTerm("")}
-                  className="absolute right-2.5 top-2.5 text-slate-400 hover:text-white"
+                  className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -935,23 +935,23 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
           </div>
 
           {/* Table Card */}
-          <Card className="border border-slate-800/80 bg-slate-900/60 backdrop-blur-md rounded-2xl overflow-hidden shadow-xl">
+          <Card className="border border-border bg-card backdrop-blur-md rounded-2xl overflow-hidden shadow-xl">
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader className="bg-slate-950/60">
-                  <TableRow className="border-slate-800 hover:bg-transparent">
-                    <TableHead className="w-[120px] text-xs font-semibold text-slate-400">O.S.</TableHead>
-                    <TableHead className="text-xs font-semibold text-slate-400">Cliente</TableHead>
-                    <TableHead className="text-xs font-semibold text-slate-400">Descrição</TableHead>
-                    <TableHead className="text-xs font-semibold text-slate-400">Setor & Etapa Atual</TableHead>
-                    <TableHead className="text-xs font-semibold text-slate-400">Última Atualização</TableHead>
-                    <TableHead className="text-xs font-semibold text-slate-400 text-right">Data de Entrega</TableHead>
+                <TableHeader className="bg-muted/40">
+                  <TableRow className="border-border hover:bg-transparent">
+                    <TableHead className="w-[120px] text-xs font-semibold text-muted-foreground">O.S.</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground">Cliente</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground">Descrição</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground">Setor & Etapa Atual</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground">Última Atualização</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground text-right">Data de Entrega</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedOrders.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-10 text-xs text-slate-500">
+                      <TableCell colSpan={6} className="text-center py-10 text-xs text-muted-foreground">
                         Nenhuma ordem de serviço encontrada com os filtros selecionados.
                       </TableCell>
                     </TableRow>
@@ -967,7 +967,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                       return (
                         <TableRow
                           key={o.id}
-                          className={`border-slate-800/60 hover:bg-slate-800/30 transition-colors ${
+                          className={`border-border/60 hover:bg-accent/40 transition-colors ${
                             isUrgent ? "bg-rose-500/5" : ""
                           }`}
                         >
@@ -978,31 +978,31 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                                   URG
                                 </Badge>
                               )}
-                              <span className="font-mono-tech font-bold text-xs text-white">
+                              <span className="font-mono-tech font-bold text-xs text-foreground">
                                 {o.titulo}
                               </span>
                             </div>
                           </TableCell>
-                          <TableCell className="text-xs text-slate-300 font-medium">
+                          <TableCell className="text-xs text-foreground font-medium">
                             {o.cliente || "—"}
                           </TableCell>
-                          <TableCell className="text-xs text-slate-400 max-w-[260px] truncate">
+                          <TableCell className="text-xs text-muted-foreground max-w-[260px] truncate">
                             {o.descricao || "—"}
                           </TableCell>
                           <TableCell className="text-xs">
-                            <span className="font-semibold text-cyan-400">{setorLabel}</span>
-                            <span className="text-slate-400"> / {statusLabel}</span>
+                            <span className="font-semibold text-cyan-600 dark:text-cyan-400">{setorLabel}</span>
+                            <span className="text-muted-foreground"> / {statusLabel}</span>
                           </TableCell>
-                          <TableCell className="text-xs font-mono-tech text-slate-400">
+                          <TableCell className="text-xs font-mono-tech text-muted-foreground">
                             {format(new Date(o.updated_at), "dd/MM/yyyy HH:mm")}
                           </TableCell>
-                          <TableCell className="text-xs font-mono-tech text-right text-slate-300">
+                          <TableCell className="text-xs font-mono-tech text-right text-foreground">
                             {o.entrega_data_limite ? (
-                              <span className="text-emerald-400 font-semibold">
+                              <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
                                 {format(new Date(o.entrega_data_limite), "dd/MM/yyyy")}
                               </span>
                             ) : o.prazo ? (
-                              <span className="text-amber-400">
+                              <span className="text-amber-600 dark:text-amber-400">
                                 {format(new Date(o.prazo), "dd/MM/yyyy HH:mm")}
                               </span>
                             ) : (
@@ -1019,8 +1019,8 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-              <div className="p-3 border-t border-slate-800/80 bg-slate-950/40 flex items-center justify-between">
-                <span className="text-xs text-slate-400">
+              <div className="p-3 border-t border-border bg-muted/30 flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">
                   Mostrando {(currentPage - 1) * ITEMS_PER_PAGE + 1} a{" "}
                   {Math.min(currentPage * ITEMS_PER_PAGE, filteredProductionOrders.length)} de{" "}
                   {filteredProductionOrders.length} ordens
@@ -1031,11 +1031,11 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                     size="sm"
                     disabled={currentPage === 1}
                     onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-                    className="h-8 text-xs rounded-xl bg-slate-900 border-slate-800 text-slate-200"
+                    className="h-8 text-xs rounded-xl bg-card border-border text-foreground hover:bg-accent"
                   >
                     <ChevronLeft className="h-4 w-4" /> Anterior
                   </Button>
-                  <span className="text-xs font-mono-tech text-slate-300 px-2">
+                  <span className="text-xs font-mono-tech text-muted-foreground px-2">
                     {currentPage} / {totalPages}
                   </span>
                   <Button
@@ -1043,7 +1043,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                     size="sm"
                     disabled={currentPage === totalPages}
                     onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-                    className="h-8 text-xs rounded-xl bg-slate-900 border-slate-800 text-slate-200"
+                    className="h-8 text-xs rounded-xl bg-card border-border text-foreground hover:bg-accent"
                   >
                     Próximo <ChevronRight className="h-4 w-4" />
                   </Button>
@@ -1056,39 +1056,39 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
         {/* TAB 3: LEAD TIME & PRAZOS */}
         <TabsContent value="sla" className="space-y-6 m-0">
           {/* Últimas OS Liberadas — Tempo Detalhado */}
-          <Card className="border border-slate-800/80 bg-slate-900/60 backdrop-blur-md rounded-2xl shadow-xl">
-            <CardHeader className="pb-3 border-b border-slate-800/60">
+          <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl">
+            <CardHeader className="pb-3 border-b border-border">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                  <CheckCircle2 className="h-4 w-4 text-emerald-400" /> Últimas O.S. Liberadas — Tempo Detalhado por Etapa
+                <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Últimas O.S. Liberadas — Tempo Detalhado por Etapa
                 </CardTitle>
-                <span className="text-xs text-slate-400">Top 10 ordens concluídas</span>
+                <span className="text-xs text-muted-foreground">Top 10 ordens concluídas</span>
               </div>
             </CardHeader>
             <CardContent className="pt-4">
               {recentCompleted.length === 0 ? (
-                <p className="text-xs text-slate-500 text-center py-8">Nenhuma O.S. liberada ainda para exibir timeline.</p>
+                <p className="text-xs text-muted-foreground text-center py-8">Nenhuma O.S. liberada ainda para exibir timeline.</p>
               ) : (
                 <div className="space-y-3">
                   {recentCompleted.map((t) => (
                     <div
                       key={t.orderId}
-                      className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-2.5 hover:border-slate-700 transition-colors"
+                      className="p-4 rounded-2xl bg-card border border-border space-y-2.5 hover:border-border/80 transition-colors"
                     >
                       <div className="flex items-center justify-between">
                         <div>
-                          <span className="font-mono-tech font-bold text-sm text-white">{t.titulo}</span>
-                          <span className="text-xs text-slate-400 ml-2">• {t.cliente}</span>
+                          <span className="font-mono-tech font-bold text-sm text-foreground">{t.titulo}</span>
+                          <span className="text-xs text-muted-foreground ml-2">• {t.cliente}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <div className="flex items-center gap-1.5 text-xs font-mono-tech font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-xl border border-emerald-500/20">
+                          <div className="flex items-center gap-1.5 text-xs font-mono-tech font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-xl border border-emerald-500/20">
                             <Timer className="h-3.5 w-3.5" />
                             {t.tempoTotal !== null ? formatDuration(t.tempoTotal) : "—"}
                           </div>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-slate-400 hover:text-white"
+                            className="h-8 w-8 text-muted-foreground hover:text-foreground"
                             title="Exportar PDF desta OS"
                             onClick={() => {
                               exportSingleOrderPDF(t);
@@ -1109,7 +1109,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
                           return (
                             <div key={status} className="flex items-center gap-1">
-                              {idx > 0 && <ArrowRight className="h-3 w-3 text-slate-600 mx-0.5" />}
+                              {idx > 0 && <ArrowRight className="h-3 w-3 text-muted-foreground mx-0.5" />}
                               <div
                                 className="text-[10px] px-2 py-0.5 rounded-lg font-medium border"
                                 style={{
@@ -1125,7 +1125,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                         })}
                       </div>
 
-                      <div className="text-[11px] text-slate-500 font-mono-tech">
+                      <div className="text-[11px] text-muted-foreground font-mono-tech">
                         Criada em: {format(new Date(t.criadoEm), "dd/MM/yyyy HH:mm")}
                         {t.finalizadoEm && (
                           <> • Concluída em: {format(new Date(t.finalizadoEm), "dd/MM/yyyy HH:mm")}</>
@@ -1139,18 +1139,18 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
           </Card>
 
           {/* OS em Andamento — Tempo Acumulado */}
-          <Card className="border border-slate-800/80 bg-slate-900/60 backdrop-blur-md rounded-2xl shadow-xl">
-            <CardHeader className="pb-3 border-b border-slate-800/60">
+          <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl">
+            <CardHeader className="pb-3 border-b border-border">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-cyan-400" /> O.S. Ativas em Produção — Tempo Acumulado
+                <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-cyan-500" /> O.S. Ativas em Produção — Tempo Acumulado
                 </CardTitle>
-                <span className="text-xs text-slate-400">Top 12 ordens em processamento</span>
+                <span className="text-xs text-muted-foreground">Top 12 ordens em processamento</span>
               </div>
             </CardHeader>
             <CardContent className="pt-4">
               {activeTimelines.length === 0 ? (
-                <p className="text-xs text-slate-500 text-center py-8">Nenhuma O.S. ativa no momento.</p>
+                <p className="text-xs text-muted-foreground text-center py-8">Nenhuma O.S. ativa no momento.</p>
               ) : (
                 <div className="space-y-3">
                   {activeTimelines.map((t) => {
@@ -1158,12 +1158,12 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                     return (
                       <div
                         key={t.orderId}
-                        className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-2.5 hover:border-slate-700 transition-colors"
+                        className="p-4 rounded-2xl bg-card border border-border space-y-2.5 hover:border-border/80 transition-colors"
                       >
                         <div className="flex items-center justify-between">
                           <div>
-                            <span className="font-mono-tech font-bold text-sm text-white">{t.titulo}</span>
-                            <span className="text-xs text-slate-400 ml-2">• {t.cliente}</span>
+                            <span className="font-mono-tech font-bold text-sm text-foreground">{t.titulo}</span>
+                            <span className="text-xs text-muted-foreground ml-2">• {t.cliente}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             {statusConfig && (
@@ -1186,7 +1186,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-slate-400 hover:text-white"
+                              className="h-8 w-8 text-muted-foreground hover:text-foreground"
                               title="Exportar PDF desta OS"
                               onClick={() => {
                                 exportSingleOrderPDF(t);
@@ -1207,7 +1207,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
                             return (
                               <div key={status} className="flex items-center gap-1">
-                                {idx > 0 && <ArrowRight className="h-3 w-3 text-slate-600 mx-0.5" />}
+                                {idx > 0 && <ArrowRight className="h-3 w-3 text-muted-foreground mx-0.5" />}
                                 <div
                                   className="text-[10px] px-2 py-0.5 rounded-lg font-medium border"
                                   style={{
@@ -1223,7 +1223,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                           })}
                         </div>
 
-                        <div className="text-[11px] text-slate-500 font-mono-tech">
+                        <div className="text-[11px] text-muted-foreground font-mono-tech">
                           Criada em: {format(new Date(t.criadoEm), "dd/MM/yyyy HH:mm")}
                         </div>
                       </div>
@@ -1242,28 +1242,28 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
         {/* TAB 5: AVISOS & COMUNICADOS */}
         <TabsContent value="avisos" className="space-y-4 m-0">
-          <Card className="border border-slate-800/80 bg-slate-900/60 backdrop-blur-md rounded-2xl shadow-xl">
-            <CardHeader className="pb-3 border-b border-slate-800/60">
+          <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl">
+            <CardHeader className="pb-3 border-b border-border">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                  <Bell className="h-4 w-4 text-cyan-400" /> Registro de Avisos & Comunicados ({avisos.length})
+                <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <Bell className="h-4 w-4 text-cyan-500" /> Registro de Avisos & Comunicados ({avisos.length})
                 </CardTitle>
-                <span className="text-xs text-slate-400">Histórico de comunicações enviadas</span>
+                <span className="text-xs text-muted-foreground">Histórico de comunicações enviadas</span>
               </div>
             </CardHeader>
             <CardContent className="pt-4">
               {avisosLoading ? (
-                <div className="flex items-center justify-center py-12 gap-2 text-slate-400 text-xs font-mono-tech">
-                  <Loader2 className="h-4 w-4 animate-spin text-cyan-400" /> Carregando avisos...
+                <div className="flex items-center justify-center py-12 gap-2 text-muted-foreground text-xs font-mono-tech">
+                  <Loader2 className="h-4 w-4 animate-spin text-cyan-500" /> Carregando avisos...
                 </div>
               ) : avisos.length === 0 ? (
-                <p className="text-xs text-slate-500 text-center py-10">Nenhum aviso registrado no momento.</p>
+                <p className="text-xs text-muted-foreground text-center py-10">Nenhum aviso registrado no momento.</p>
               ) : (
                 <div className="space-y-3">
                   {avisos.map((aviso) => (
                     <div
                       key={aviso.id}
-                      className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800/80 space-y-2.5 hover:border-slate-700 transition-colors"
+                      className="p-4 rounded-2xl bg-card border border-border space-y-2.5 hover:border-border/80 transition-colors"
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
@@ -1273,16 +1273,16 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                           >
                             {aviso.tipo === "urgente" ? "🔴 Urgente" : aviso.tipo === "lembrete" ? "🟡 Lembrete" : "ℹ️ Info"}
                           </Badge>
-                          <span className="font-semibold text-sm text-white">{aviso.titulo}</span>
+                          <span className="font-semibold text-sm text-foreground">{aviso.titulo}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-mono-tech text-slate-400">
+                          <span className="text-xs font-mono-tech text-muted-foreground">
                             {format(new Date(aviso.created_at), "dd/MM/yyyy HH:mm")}
                           </span>
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-7 w-7 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
+                            className="h-7 w-7 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10"
                             onClick={() => handleDeleteAviso(aviso.id)}
                             title="Excluir aviso"
                           >
@@ -1291,12 +1291,12 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                         </div>
                       </div>
 
-                      <p className="text-xs text-slate-300 leading-relaxed">{aviso.mensagem}</p>
+                      <p className="text-xs text-foreground/90 leading-relaxed">{aviso.mensagem}</p>
 
-                      <div className="flex items-center gap-3 text-[11px] text-slate-400 pt-1 border-t border-slate-800/60">
-                        <span>Para: <strong className="text-slate-300">{aviso.destinatario_id ? (profiles[aviso.destinatario_id] || "Usuário específico") : "📢 Todos"}</strong></span>
+                      <div className="flex items-center gap-3 text-[11px] text-muted-foreground pt-1 border-t border-border">
+                        <span>Para: <strong className="text-foreground">{aviso.destinatario_id ? (profiles[aviso.destinatario_id] || "Usuário específico") : "📢 Todos"}</strong></span>
                         <span>•</span>
-                        <span>Enviado por: <strong className="text-slate-300">{profiles[aviso.criado_por] || "Admin"}</strong></span>
+                        <span>Enviado por: <strong className="text-foreground">{profiles[aviso.criado_por] || "Admin"}</strong></span>
                       </div>
 
                       {/* Read Status View */}
@@ -1307,12 +1307,12 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                           return (
                             <div className="flex items-center gap-1.5 text-xs pt-1">
                               {leu ? (
-                                <span className="flex items-center gap-1 text-emerald-400 font-mono-tech text-[11px]">
+                                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400 font-mono-tech text-[11px]">
                                   <Eye className="h-3 w-3" />
                                   Visualizado em {format(new Date(leu.lido_em), "dd/MM HH:mm")}
                                 </span>
                               ) : (
-                                <span className="flex items-center gap-1 text-slate-500 text-[11px]">
+                                <span className="flex items-center gap-1 text-muted-foreground text-[11px]">
                                   <EyeOff className="h-3 w-3" />
                                   Não visualizado ainda
                                 </span>
@@ -1323,14 +1323,14 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                           const totalUsers = Object.keys(profiles).length;
                           return (
                             <div className="space-y-1 pt-1">
-                              <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                                <Eye className="h-3 w-3 text-cyan-400" />
+                              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                                <Eye className="h-3 w-3 text-cyan-500" />
                                 <span>Visualizado por {leituras.length}/{totalUsers} usuários</span>
                               </div>
                               {leituras.length > 0 && (
                                 <div className="flex flex-wrap gap-1">
                                   {leituras.map((l) => (
-                                    <Badge key={l.user_id} variant="outline" className="text-[10px] px-1.5 py-0 bg-slate-900 border-slate-800 text-slate-300">
+                                    <Badge key={l.user_id} variant="outline" className="text-[10px] px-1.5 py-0 bg-muted border-border text-foreground">
                                       {profiles[l.user_id] || "Usuário"}
                                     </Badge>
                                   ))}
@@ -1352,12 +1352,12 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
         <TabsContent value="backup" className="space-y-6 m-0">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Exportar PDFs */}
-            <Card className="border border-slate-800/80 bg-slate-900/60 backdrop-blur-md rounded-2xl shadow-xl">
-              <CardHeader className="pb-3 border-b border-slate-800/60">
-                <CardTitle className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                  <FileDown className="h-4 w-4 text-cyan-400" /> Exportação de Relatórios PDF
+            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl">
+              <CardHeader className="pb-3 border-b border-border">
+                <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <FileDown className="h-4 w-4 text-cyan-500" /> Exportação de Relatórios PDF
                 </CardTitle>
-                <CardDescription className="text-xs text-slate-400">
+                <CardDescription className="text-xs text-muted-foreground">
                   Gere relatórios impressos ou digitais do fluxo de pré-impressão.
                 </CardDescription>
               </CardHeader>
@@ -1391,7 +1391,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                       <Button
                         key={status}
                         variant="outline"
-                        className="justify-start gap-2 h-auto py-2.5 px-3 rounded-xl bg-slate-950/60 border-slate-800 hover:border-slate-700 text-left"
+                        className="justify-start gap-2 h-auto py-2.5 px-3 rounded-xl bg-card border-border hover:bg-accent text-left"
                         onClick={() => {
                           if (statusOrders.length === 0) {
                             toast.info(`Nenhuma O.S. em "${config.label}"`);
@@ -1406,8 +1406,8 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                           style={{ backgroundColor: `hsl(var(--status-${config.colorKey}))` }}
                         />
                         <div className="min-w-0">
-                          <div className="text-xs font-semibold text-slate-200 truncate">{config.label}</div>
-                          <div className="text-[10px] text-slate-400 font-mono-tech">{statusOrders.length} ordens</div>
+                          <div className="text-xs font-semibold text-foreground truncate">{config.label}</div>
+                          <div className="text-[10px] text-muted-foreground font-mono-tech">{statusOrders.length} ordens</div>
                         </div>
                       </Button>
                     );
@@ -1417,32 +1417,32 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
             </Card>
 
             {/* Backup do Banco de Dados */}
-            <Card className="border border-slate-800/80 bg-slate-900/60 backdrop-blur-md rounded-2xl shadow-xl">
-              <CardHeader className="pb-3 border-b border-slate-800/60">
-                <CardTitle className="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                  <DatabaseBackup className="h-4 w-4 text-emerald-400" /> Backup & Restauração do Sistema
+            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl">
+              <CardHeader className="pb-3 border-b border-border">
+                <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                  <DatabaseBackup className="h-4 w-4 text-emerald-500" /> Backup & Restauração do Sistema
                 </CardTitle>
-                <CardDescription className="text-xs text-slate-400">
+                <CardDescription className="text-xs text-muted-foreground">
                   Exporte cópia completa da base de dados em JSON ou restaure um backup anterior.
                 </CardDescription>
               </CardHeader>
               <CardContent className="pt-4 space-y-4">
-                <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400">
+                <div className="p-4 rounded-xl bg-muted/40 border border-border space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                     <ShieldCheck className="h-4 w-4" /> Segurança dos Dados Primacor
                   </div>
-                  <p className="text-xs text-slate-400 leading-relaxed">
+                  <p className="text-xs text-muted-foreground leading-relaxed">
                     O arquivo gerado inclui todas as Ordens de Serviço, perfis, histórico de movimentações, avisos e configurações em formato estruturado.
                   </p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-2.5">
                   <Button
-                    className="flex-1 gap-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl h-10 font-semibold"
+                    className="flex-1 gap-2 bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl h-10 font-semibold"
                     onClick={handleBackup}
                     disabled={backupLoading || restoreLoading}
                   >
-                    {backupLoading ? <Loader2 className="h-4 w-4 animate-spin text-cyan-400" /> : <Download className="h-4 w-4 text-cyan-400" />}
+                    {backupLoading ? <Loader2 className="h-4 w-4 animate-spin text-primary-foreground" /> : <Download className="h-4 w-4 text-primary-foreground" />}
                     {backupLoading ? "Gerando Backup..." : "Baixar Backup (JSON)"}
                   </Button>
 
@@ -1459,11 +1459,11 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
                   <Button
                     variant="outline"
-                    className="flex-1 gap-2 bg-slate-950/80 border-slate-800 hover:border-slate-700 text-slate-200 rounded-xl h-10 font-semibold"
+                    className="flex-1 gap-2 bg-card border-border hover:bg-accent text-foreground rounded-xl h-10 font-semibold"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={backupLoading || restoreLoading}
                   >
-                    {restoreLoading ? <Loader2 className="h-4 w-4 animate-spin text-emerald-400" /> : <Upload className="h-4 w-4 text-emerald-400" />}
+                    {restoreLoading ? <Loader2 className="h-4 w-4 animate-spin text-emerald-500" /> : <Upload className="h-4 w-4 text-emerald-500" />}
                     {restoreLoading ? "Restaurando..." : "Restaurar Backup"}
                   </Button>
                 </div>

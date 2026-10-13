@@ -46,7 +46,7 @@ export function ChatConversationItem({
       className={`group flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-all border ${
         isActive
           ? "bg-cyan-500/15 border-cyan-500/40 shadow-sm"
-          : "hover:bg-slate-900/60 border-transparent hover:border-slate-800/80"
+          : "hover:bg-accent border-transparent hover:border-border"
       }`}
     >
       <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -55,14 +55,14 @@ export function ChatConversationItem({
           <div
             className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shadow-sm transition-transform ${
               isActive
-                ? "bg-gradient-to-br from-cyan-500 to-blue-600 text-slate-950 font-black ring-1 ring-cyan-400/60"
-                : "bg-slate-800 border border-slate-700/60 text-slate-200"
+                ? "bg-gradient-to-br from-cyan-500 to-blue-600 text-white font-black ring-1 ring-cyan-400/60"
+                : "bg-muted border border-border text-foreground"
             }`}
           >
             {otherUser.nome.charAt(0).toUpperCase()}
           </div>
           {otherUser.online && (
-            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-950" />
+            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-card" />
           )}
         </div>
 
@@ -71,20 +71,20 @@ export function ChatConversationItem({
           <div className="flex items-center justify-between gap-1 mb-0.5">
             <span
               className={`text-xs font-bold truncate ${
-                isActive ? "text-cyan-300" : "text-white"
+                isActive ? "text-cyan-600 dark:text-cyan-300" : "text-foreground"
               }`}
             >
               {otherUser.nome}
             </span>
             {timeStr && (
-              <span className="text-[10px] text-slate-500 font-mono-tech shrink-0">
+              <span className="text-[10px] text-muted-foreground font-mono-tech shrink-0">
                 {timeStr}
               </span>
             )}
           </div>
 
           <div className="flex items-center justify-between gap-1">
-            <p className="text-[11px] text-slate-400 truncate max-w-[170px] leading-tight">
+            <p className="text-[11px] text-muted-foreground truncate max-w-[170px] leading-tight">
               {last_message_preview || "Conversa iniciada"}
             </p>
 
@@ -103,24 +103,24 @@ export function ChatConversationItem({
           <DropdownMenuTrigger asChild>
             <button
               type="button"
-              className="p-1 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-colors"
+              className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             >
               <MoreVertical className="h-3.5 w-3.5" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             align="end"
-            className="bg-slate-900 border-slate-800 text-white min-w-[160px] p-1.5 rounded-xl shadow-xl z-50"
+            className="bg-popover border-border text-popover-foreground min-w-[160px] p-1.5 rounded-xl shadow-xl z-50"
           >
             <DropdownMenuItem
               onClick={onClearHistory}
-              className="text-xs hover:bg-slate-800 cursor-pointer text-slate-300"
+              className="text-xs hover:bg-accent cursor-pointer text-foreground"
             >
-              <Eraser className="h-3.5 w-3.5 mr-2 text-amber-400" /> Limpar histórico
+              <Eraser className="h-3.5 w-3.5 mr-2 text-amber-500" /> Limpar histórico
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={onHide}
-              className="text-xs hover:bg-rose-950/40 text-rose-400 hover:text-rose-300 cursor-pointer"
+              className="text-xs hover:bg-rose-500/10 text-rose-500 hover:text-rose-600 cursor-pointer"
             >
               <Trash2 className="h-3.5 w-3.5 mr-2" /> Excluir para mim
             </DropdownMenuItem>

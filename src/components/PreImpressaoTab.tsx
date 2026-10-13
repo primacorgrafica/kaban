@@ -143,16 +143,16 @@ function computeMetrics(
 
 function MetricCard({ title, icon, color = "cyan", children }: { title: string; icon: React.ReactNode; color?: "cyan" | "blue" | "emerald" | "violet"; children: React.ReactNode }) {
   const colorMap = {
-    cyan: "border-cyan-500/20 bg-slate-900/60 shadow-[0_0_15px_rgba(6,182,212,0.05)]",
-    blue: "border-blue-500/20 bg-slate-900/60 shadow-[0_0_15px_rgba(59,130,246,0.05)]",
-    emerald: "border-emerald-500/20 bg-slate-900/60 shadow-[0_0_15px_rgba(16,185,129,0.05)]",
-    violet: "border-violet-500/20 bg-slate-900/60 shadow-[0_0_15px_rgba(139,92,246,0.05)]",
+    cyan: "border-cyan-500/25 bg-card dark:bg-slate-900/60 shadow-xs dark:shadow-[0_0_15px_rgba(6,182,212,0.05)]",
+    blue: "border-blue-500/25 bg-card dark:bg-slate-900/60 shadow-xs dark:shadow-[0_0_15px_rgba(59,130,246,0.05)]",
+    emerald: "border-emerald-500/25 bg-card dark:bg-slate-900/60 shadow-xs dark:shadow-[0_0_15px_rgba(16,185,129,0.05)]",
+    violet: "border-violet-500/25 bg-card dark:bg-slate-900/60 shadow-xs dark:shadow-[0_0_15px_rgba(139,92,246,0.05)]",
   };
 
   return (
-    <Card className={`border rounded-2xl backdrop-blur-md transition-all hover:border-slate-700 ${colorMap[color]}`}>
+    <Card className={`border rounded-2xl backdrop-blur-md transition-all hover:border-primary/40 ${colorMap[color]}`}>
       <CardHeader className="pb-2">
-        <CardTitle className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+        <CardTitle className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
           {icon} {title}
         </CardTitle>
       </CardHeader>
@@ -164,8 +164,8 @@ function MetricCard({ title, icon, color = "cyan", children }: { title: string; 
 function TimeDisplay({ label, value }: { label: string; value: number | null }) {
   return (
     <div className="flex items-center justify-between text-xs py-0.5">
-      <span className="text-slate-400">{label}</span>
-      <span className="font-mono-tech font-semibold text-slate-200">
+      <span className="text-muted-foreground">{label}</span>
+      <span className="font-mono-tech font-semibold text-foreground">
         {value !== null ? formatDuration(value) : "—"}
       </span>
     </div>
@@ -315,26 +315,26 @@ export function PreImpressaoTab() {
   return (
     <div className="space-y-6">
       {/* Period Selector Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-md">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800/80 shadow-xs backdrop-blur-md">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">
+          <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-500 dark:text-cyan-400">
             <Calendar className="h-4 w-4" />
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-white">Análise Temporal de Produção</h3>
-            <p className="text-xs text-slate-400">Selecione a janela temporal para visualizar métricas dos operadores</p>
+            <h3 className="text-sm font-semibold text-foreground">Análise Temporal de Produção</h3>
+            <p className="text-xs text-muted-foreground">Selecione a janela temporal para visualizar métricas dos operadores</p>
           </div>
         </div>
 
         <Tabs value={activePeriod} onValueChange={(v) => setActivePeriod(v as Period)}>
-          <TabsList className="bg-slate-950/80 border border-slate-800/80 p-1 rounded-xl">
-            <TabsTrigger value="dia" className="text-xs data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-300">
+          <TabsList className="bg-card dark:bg-slate-950/80 border border-border dark:border-slate-800/80 p-1 rounded-xl shadow-xs">
+            <TabsTrigger value="dia" className="text-xs data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-600 dark:data-[state=active]:text-cyan-300">
               Dia Anterior
             </TabsTrigger>
-            <TabsTrigger value="semana" className="text-xs data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-300">
+            <TabsTrigger value="semana" className="text-xs data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-600 dark:data-[state=active]:text-cyan-300">
               Semana Anterior
             </TabsTrigger>
-            <TabsTrigger value="mes" className="text-xs data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-300">
+            <TabsTrigger value="mes" className="text-xs data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-600 dark:data-[state=active]:text-cyan-300">
               Mês Anterior
             </TabsTrigger>
           </TabsList>
@@ -346,10 +346,10 @@ export function PreImpressaoTab() {
 
       {/* Comparison Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border border-slate-800/80 bg-slate-900/60 backdrop-blur-md rounded-2xl">
-          <CardHeader className="pb-3 border-b border-slate-800/60">
-            <CardTitle className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-cyan-400" /> Comparativo de Volume por Operador
+        <Card className="border border-border dark:border-slate-800/80 bg-card dark:bg-slate-900/60 shadow-xs backdrop-blur-md rounded-2xl">
+          <CardHeader className="pb-3 border-b border-border dark:border-slate-800/60">
+            <CardTitle className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-cyan-500 dark:text-cyan-400" /> Comparativo de Volume por Operador
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
@@ -377,10 +377,10 @@ export function PreImpressaoTab() {
           </CardContent>
         </Card>
 
-        <Card className="border border-slate-800/80 bg-slate-900/60 backdrop-blur-md rounded-2xl">
-          <CardHeader className="pb-3 border-b border-slate-800/60">
-            <CardTitle className="text-xs font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-emerald-400" /> Comparativo de Tempos Médios (minutos)
+        <Card className="border border-border dark:border-slate-800/80 bg-card dark:bg-slate-900/60 shadow-xs backdrop-blur-md rounded-2xl">
+          <CardHeader className="pb-3 border-b border-border dark:border-slate-800/60">
+            <CardTitle className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-emerald-500 dark:text-emerald-400" /> Comparativo de Tempos Médios (minutos)
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">

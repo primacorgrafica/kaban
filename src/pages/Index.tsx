@@ -108,15 +108,15 @@ const Index = () => {
         <div className="flex flex-col min-h-full gap-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <KanbanFiltersBar filters={filters} onChange={setFilters} />
-            <div className="flex items-center bg-slate-900/60 p-1 rounded-xl border border-slate-800/80 shrink-0">
+            <div className="flex items-center bg-card dark:bg-slate-900/60 p-1 rounded-xl border border-border dark:border-slate-800/80 shrink-0 shadow-xs">
               <Button
                 variant={viewMode === "kanban" ? "secondary" : "ghost"}
                 size="sm"
                 onClick={() => handleSetViewMode("kanban")}
                 className={`h-7 px-2.5 text-xs rounded-lg transition-all ${
                   viewMode === "kanban"
-                    ? "bg-cyan-500/20 text-cyan-400 font-bold border border-cyan-500/30"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-500/30"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
                 title="Visualização em Quadro Kanban"
               >
@@ -128,8 +128,8 @@ const Index = () => {
                 onClick={() => handleSetViewMode("table")}
                 className={`h-7 px-2.5 text-xs rounded-lg transition-all ${
                   viewMode === "table"
-                    ? "bg-cyan-500/20 text-cyan-400 font-bold border border-cyan-500/30"
-                    : "text-slate-400 hover:text-white"
+                    ? "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-500/30"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
                 title="Visualização em Tabela / Lista de Produção"
               >

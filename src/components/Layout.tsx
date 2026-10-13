@@ -256,23 +256,23 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
         } ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
         style={{ background: "var(--gradient-sidebar)" }}
       >
-        <div className="px-5 py-4 border-b border-sidebar-border/40 flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-sidebar-border/60 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-1.5 rounded-xl bg-slate-900 border border-cyan-500/30 shadow-[0_0_15px_-3px_rgba(6,182,212,0.3)]">
+            <div className="p-1.5 rounded-xl bg-card border border-cyan-500/30 shadow-[0_0_15px_-3px_rgba(6,182,212,0.25)]">
               <img src={logoImg} alt="Primacor Gráfica" className="w-7 h-7 object-contain" />
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-sm font-bold tracking-tight text-white">PRIMACOR</span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded bg-cyan-500/15 text-cyan-400 font-mono-tech border border-cyan-500/25">v2.0</span>
+                <span className="text-sm font-bold tracking-tight text-sidebar-foreground">PRIMACOR</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 font-mono-tech border border-cyan-500/25">v2.0</span>
               </div>
-              <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-mono-tech">
+              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono-tech">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]" />
                 <span>ONLINE</span>
               </div>
             </div>
           </div>
-          <button className="lg:hidden text-sidebar-foreground hover:text-white" onClick={() => setSidebarOpen(false)}>
+          <button className="lg:hidden text-sidebar-foreground hover:text-foreground" onClick={() => setSidebarOpen(false)}>
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -288,7 +288,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
                 className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 w-full ${
                   isProducaoActive && !producaoOpen
                     ? "bg-sidebar-primary/15 text-sidebar-primary font-medium"
-                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                    : "text-sidebar-foreground/75 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                 }`}
               >
                 <Factory className="h-4 w-4" />
@@ -311,7 +311,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
                 className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 w-full ${
                   isExpedicaoActive && !expedicaoOpen
                     ? "bg-sidebar-primary/15 text-sidebar-primary font-medium"
-                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                    : "text-sidebar-foreground/75 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                 }`}
               >
                 <Truck className="h-4 w-4" />
@@ -337,7 +337,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
                 className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 w-full ${
                   isCadastrosActive && !cadastrosOpen
                     ? "bg-sidebar-primary/15 text-sidebar-primary font-medium"
-                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                    : "text-sidebar-foreground/75 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                 }`}
               >
                 <ClipboardList className="h-4 w-4" />
@@ -353,13 +353,13 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
           )}
         </nav>
 
-        <div className="px-3 py-3 border-t border-sidebar-border/40 bg-slate-950/40">
-          <div className="px-3 py-2 mb-2 rounded-xl bg-slate-900/60 border border-slate-800/80">
-            <div className="text-[11px] text-slate-300 font-medium truncate flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+        <div className="px-3 py-3 border-t border-sidebar-border/60 bg-sidebar-background/60">
+          <div className="px-3 py-2 mb-2 rounded-xl bg-card border border-border shadow-xs">
+            <div className="text-[11px] text-foreground font-medium truncate flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_6px_#06b6d4]" />
               {user?.email}
             </div>
-            <div className="text-[10px] text-cyan-400 font-mono-tech mt-0.5 uppercase tracking-wider">
+            <div className="text-[10px] text-primary font-mono-tech mt-0.5 uppercase tracking-wider font-semibold">
               {isAdmin ? "Administrador" : "Operador"}
             </div>
           </div>
@@ -367,48 +367,48 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
             <Button
               variant="ghost"
               size="sm"
-              className="w-full justify-start text-slate-400 hover:text-white hover:bg-slate-800/60 mb-1 rounded-lg text-xs"
+              className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-sidebar-accent mb-1 rounded-lg text-xs"
               onClick={() => setSendDialogOpen(true)}
             >
-              <Megaphone className="h-3.5 w-3.5 mr-2 text-amber-400" /> Enviar Aviso
+              <Megaphone className="h-3.5 w-3.5 mr-2 text-amber-500 dark:text-amber-400" /> Enviar Aviso
             </Button>
           )}
           <Button
             variant="ghost"
             size="sm"
-            className="w-full justify-start text-slate-400 hover:text-white hover:bg-slate-800/60 mb-1 rounded-lg text-xs"
+            className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-sidebar-accent mb-1 rounded-lg text-xs"
             onClick={() => setChangePasswordOpen(true)}
           >
-            <KeyRound className="h-3.5 w-3.5 mr-2 text-cyan-400" /> Alterar senha
+            <KeyRound className="h-3.5 w-3.5 mr-2 text-primary" /> Alterar senha
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            className="w-full justify-start text-rose-400 hover:text-rose-300 hover:bg-rose-950/30 rounded-lg text-xs"
+            className="w-full justify-start text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-500/10 rounded-lg text-xs"
             onClick={signOut}
           >
-            <LogOut className="h-3.5 w-3.5 mr-2 text-rose-400" /> Sair
+            <LogOut className="h-3.5 w-3.5 mr-2 text-rose-600 dark:text-rose-400" /> Sair
           </Button>
           <ChangePasswordDialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen} />
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col min-w-0 bg-[#080b13]">
-        <header className="h-14 border-b border-slate-800/80 bg-slate-950/60 backdrop-blur-xl flex flex-wrap items-center gap-3 px-4 flex-shrink-0 z-10">
-          <button className="lg:hidden p-1.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-300 hover:text-white" onClick={() => setSidebarOpen(true)}>
+      <div className="flex-1 flex flex-col min-w-0 bg-background text-foreground">
+        <header className="h-14 border-b border-border bg-card/85 backdrop-blur-xl flex flex-wrap items-center gap-3 px-4 flex-shrink-0 z-10 shadow-xs">
+          <button className="lg:hidden p-1.5 rounded-lg bg-card border border-border text-foreground hover:bg-muted" onClick={() => setSidebarOpen(true)}>
             <Menu className="h-4 w-4" />
           </button>
           <div className="relative flex-1 min-w-0 max-w-sm order-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar O.S., cliente ou processo..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-9 pr-16 h-9 bg-slate-900/60 border-slate-800/80 text-white placeholder:text-slate-500 text-xs focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 rounded-xl transition-all"
+              className="pl-9 pr-16 h-9 bg-muted/50 border-input text-foreground placeholder:text-muted-foreground text-xs focus:border-primary focus:ring-1 focus:ring-primary/40 rounded-xl transition-all"
             />
             <button
               onClick={() => setCommandPaletteOpen(true)}
-              className="hidden sm:inline-flex items-center gap-0.5 absolute right-2 top-1/2 -translate-y-1/2 text-[10px] bg-slate-800 text-slate-400 hover:text-white px-1.5 py-0.5 rounded border border-slate-700 font-mono-tech transition-colors"
+              className="hidden sm:inline-flex items-center gap-0.5 absolute right-2 top-1/2 -translate-y-1/2 text-[10px] bg-card text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded border border-border font-mono-tech transition-colors shadow-xs"
               title="Abrir busca global rápida (Ctrl+K)"
             >
               Ctrl+K
@@ -428,8 +428,8 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
             };
             const SectorIcon = sectorIconMap[sectorName];
             return (
-              <span className="flex items-center gap-2 text-sm font-bold text-white px-3 py-1 rounded-xl bg-slate-900/60 border border-slate-800/80 order-1 shadow-sm">
-                {SectorIcon && <SectorIcon className="h-4 w-4 text-cyan-400" />}
+              <span className="flex items-center gap-2 text-sm font-bold text-foreground px-3 py-1 rounded-xl bg-card border border-border order-1 shadow-xs">
+                {SectorIcon && <SectorIcon className="h-4 w-4 text-primary" />}
                 <span className="tracking-wide uppercase font-mono-tech text-xs">{sectorName}</span>
               </span>
             );
@@ -439,17 +439,17 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
               variant="ghost"
               size="sm"
               onClick={() => setBottlenecksModalOpen(true)}
-              className="h-9 px-2.5 text-xs text-amber-400 hover:text-amber-300 hover:bg-amber-950/40 border border-amber-500/25 rounded-xl hidden md:flex items-center gap-1.5 font-mono-tech transition-all"
+              className="h-9 px-2.5 text-xs text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-500/10 border border-amber-500/25 rounded-xl hidden md:flex items-center gap-1.5 font-mono-tech transition-all"
               title="IA: Diagnóstico de Gargalos & Alertas"
             >
-              <Activity className="h-3.5 w-3.5 text-amber-400" />
+              <Activity className="h-3.5 w-3.5 text-amber-500" />
               <span>Gargalos</span>
             </Button>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setChatDialogOpen(true)}
-              className="h-9 w-9 text-slate-300 hover:text-cyan-400 hover:bg-cyan-950/40 border border-slate-800 rounded-xl relative transition-all"
+              className="h-9 w-9 text-muted-foreground hover:text-primary hover:bg-primary/10 border border-border rounded-xl relative transition-all"
               title="Abrir Chat Privado"
             >
               <MessageSquare className="h-4 w-4" />

@@ -49,7 +49,7 @@ export function KanbanColumn({ status, orders, onUpdate, onMove, onArchive, onDe
   const StatusIcon = PRE_PRESS_STATUS_ICONS[status];
 
   return (
-    <div className="flex-shrink-0 w-[80vw] sm:w-72 flex flex-col rounded-2xl bg-slate-900/40 backdrop-blur-xl border border-slate-800/80 shadow-lg min-h-full h-fit">
+    <div className="flex-shrink-0 w-[80vw] sm:w-72 flex flex-col rounded-2xl bg-slate-100/75 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800/80 shadow-xs dark:shadow-lg min-h-full h-fit">
       <div
         className="flex items-center gap-2.5 px-3.5 py-3 border-b flex-shrink-0 rounded-t-2xl"
         style={{

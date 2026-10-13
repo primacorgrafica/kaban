@@ -331,11 +331,11 @@ export default function PcpPage() {
 
   // O conteúdo principal do display de operações
   const mainContent = (
-    <div className={`flex flex-col h-full bg-[#050811] text-slate-100 ${isTvMode ? "p-3 sm:p-5 select-none" : "space-y-4"}`}>
+    <div className={`flex flex-col h-full ${isTvMode ? "bg-[#050811] text-slate-100 p-3 sm:p-5 select-none" : "space-y-4 text-foreground"}`}>
       {/* BARRA SUPERIOR: TELEMETRIA INDUSTRIAL & RELÓGIO DE ALTA PRECISÃO */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 rounded-3xl bg-slate-900/80 border border-slate-800/80 backdrop-blur-2xl shadow-2xl shrink-0">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 rounded-3xl bg-card dark:bg-slate-900/80 border border-border dark:border-slate-800/80 backdrop-blur-2xl shadow-xs dark:shadow-2xl shrink-0">
         <div className="flex items-center gap-4">
-          <div className="relative p-3 rounded-2xl bg-gradient-to-br from-blue-600/20 via-cyan-500/20 to-emerald-500/20 border border-cyan-500/40 text-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.25)]">
+          <div className="relative p-3 rounded-2xl bg-gradient-to-br from-blue-600/20 via-cyan-500/20 to-emerald-500/20 border border-cyan-500/40 text-cyan-600 dark:text-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.25)]">
             <Tv className="h-6 w-6" />
             <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -344,11 +344,11 @@ export default function PcpPage() {
           </div>
           <div>
             <div className="flex items-center gap-2.5">
-              <h1 className="text-xl md:text-2xl font-black tracking-tight text-white font-mono-tech">
+              <h1 className="text-xl md:text-2xl font-black tracking-tight text-foreground dark:text-white font-mono-tech">
                 PCP
               </h1>
             </div>
-            <p className="text-xs text-slate-400 font-medium mt-0.5">
+            <p className="text-xs text-muted-foreground dark:text-slate-400 font-medium mt-0.5">
               Primacor Gráfica • Monitoramento de Emissões e Liberações em Tempo Real
             </p>
           </div>
@@ -357,11 +357,11 @@ export default function PcpPage() {
         {/* RELÓGIO DIGITAL GIGANTE & DATA */}
         <div className="flex items-center gap-4 sm:gap-6">
           <div className="text-center sm:text-right">
-            <div className="text-2xl sm:text-3xl font-black font-mono-tech text-white tracking-wider flex items-center justify-center sm:justify-end gap-1 drop-shadow-[0_0_12px_rgba(255,255,255,0.2)]">
-              <Clock className="h-5 w-5 text-cyan-400 hidden sm:inline" />
+            <div className="text-2xl sm:text-3xl font-black font-mono-tech text-foreground dark:text-white tracking-wider flex items-center justify-center sm:justify-end gap-1 drop-shadow-[0_0_12px_rgba(255,255,255,0.2)]">
+              <Clock className="h-5 w-5 text-cyan-500 dark:text-cyan-400 hidden sm:inline" />
               <span>{format(currentTime, "HH:mm:ss")}</span>
             </div>
-            <div className="text-[11px] sm:text-xs font-medium text-slate-400 uppercase tracking-wide">
+            <div className="text-[11px] sm:text-xs font-medium text-muted-foreground dark:text-slate-400 uppercase tracking-wide">
               {format(currentTime, "EEEE, dd 'de' MMMM", { locale: ptBR })}
             </div>
           </div>
@@ -379,7 +379,7 @@ export default function PcpPage() {
               className={`h-9 px-2.5 rounded-xl border text-xs gap-1.5 transition-all ${
                 soundEnabled
                   ? "bg-cyan-500/20 border-cyan-500/40 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.2)]"
-                  : "bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white"
+                  : "bg-muted/60 dark:bg-slate-950/60 border-border dark:border-slate-800 text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
               }`}
               title={soundEnabled ? "Som de nova OS ativado" : "Ativar som de nova OS na TV"}
             >
@@ -394,7 +394,7 @@ export default function PcpPage() {
               className={`h-9 px-2.5 rounded-xl border text-xs gap-1.5 transition-all ${
                 autoScroll
                   ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
-                  : "bg-slate-950/60 border-slate-800 text-slate-400 hover:text-white"
+                  : "bg-muted/60 dark:bg-slate-950/60 border-border dark:border-slate-800 text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
               }`}
               title="Rolagem automática da lista de ordens na TV"
             >
@@ -424,7 +424,7 @@ export default function PcpPage() {
               {lastEventAlert.text}
             </span>
           </div>
-          <span className="text-[10px] font-mono-tech bg-slate-950/80 px-2 py-0.5 rounded-lg border border-slate-800 text-slate-400">
+          <span className="text-[10px] font-mono-tech bg-card dark:bg-slate-950/80 px-2 py-0.5 rounded-lg border border-border dark:border-slate-800 text-muted-foreground dark:text-slate-400">
             {lastEventAlert.time}
           </span>
         </div>
@@ -433,55 +433,55 @@ export default function PcpPage() {
       {/* METRIC HUD TELEMETRY CARDS (GIGANTES PARA ENXERGAR DE LONGE) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 shrink-0 mt-2">
         {/* Card 1: Emitidas Hoje */}
-        <div className="p-4 rounded-3xl bg-slate-900/90 border border-blue-500/30 shadow-[0_0_25px_rgba(59,130,246,0.1)] relative overflow-hidden group">
-          <div className="flex items-center justify-between text-xs font-semibold text-blue-400 uppercase tracking-wider mb-1">
+        <div className="p-4 rounded-3xl bg-card dark:bg-slate-900/90 border border-border dark:border-blue-500/30 shadow-xs dark:shadow-[0_0_25px_rgba(59,130,246,0.1)] relative overflow-hidden group">
+          <div className="flex items-center justify-between text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">
             <span className="flex items-center gap-1.5">
               <Layers className="h-4 w-4" /> O.S. Emitidas Hoje
             </span>
             <Activity className="h-4 w-4 text-blue-500/50" />
           </div>
-          <div className="text-4xl md:text-5xl font-black font-mono-tech text-white tracking-tight drop-shadow">
+          <div className="text-4xl md:text-5xl font-black font-mono-tech text-foreground dark:text-white tracking-tight drop-shadow">
             {totalEmitidasHoje}
           </div>
-          <div className="flex items-center justify-between text-[11px] text-slate-400 mt-2">
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground dark:text-slate-400 mt-2">
             <span>Entradas no PCP</span>
-            <span className="font-mono-tech font-bold text-blue-400">Semana: {emitidas.length}</span>
+            <span className="font-mono-tech font-bold text-blue-600 dark:text-blue-400">Semana: {emitidas.length}</span>
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 to-cyan-500" />
         </div>
 
         {/* Card 2: Liberadas Hoje */}
-        <div className="p-4 rounded-3xl bg-slate-900/90 border border-emerald-500/30 shadow-[0_0_25px_rgba(16,185,129,0.1)] relative overflow-hidden group">
-          <div className="flex items-center justify-between text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-1">
+        <div className="p-4 rounded-3xl bg-card dark:bg-slate-900/90 border border-border dark:border-emerald-500/30 shadow-xs dark:shadow-[0_0_25px_rgba(16,185,129,0.1)] relative overflow-hidden group">
+          <div className="flex items-center justify-between text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">
             <span className="flex items-center gap-1.5">
               <CheckCircle2 className="h-4 w-4" /> O.S. Liberadas Hoje
             </span>
-            <Flame className="h-4 w-4 text-emerald-400 animate-pulse" />
+            <Flame className="h-4 w-4 text-emerald-500 animate-pulse" />
           </div>
-          <div className="text-4xl md:text-5xl font-black font-mono-tech text-white tracking-tight drop-shadow">
+          <div className="text-4xl md:text-5xl font-black font-mono-tech text-foreground dark:text-white tracking-tight drop-shadow">
             {totalLiberadasHoje}
           </div>
-          <div className="flex items-center justify-between text-[11px] text-slate-400 mt-2">
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground dark:text-slate-400 mt-2">
             <span>Para Chão de Fábrica</span>
-            <span className="font-mono-tech font-bold text-emerald-400">Semana: {liberadas.length}</span>
+            <span className="font-mono-tech font-bold text-emerald-600 dark:text-emerald-400">Semana: {liberadas.length}</span>
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-400" />
         </div>
 
         {/* Card 3: Fluxo Líquido / Vazão */}
-        <div className="p-4 rounded-3xl bg-slate-900/90 border border-cyan-500/30 shadow-[0_0_25px_rgba(6,182,212,0.1)] relative overflow-hidden group">
-          <div className="flex items-center justify-between text-xs font-semibold text-cyan-400 uppercase tracking-wider mb-1">
+        <div className="p-4 rounded-3xl bg-card dark:bg-slate-900/90 border border-border dark:border-cyan-500/30 shadow-xs dark:shadow-[0_0_25px_rgba(6,182,212,0.1)] relative overflow-hidden group">
+          <div className="flex items-center justify-between text-xs font-semibold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider mb-1">
             <span className="flex items-center gap-1.5">
               <TrendingUp className="h-4 w-4" /> Ritmo de Liberação
             </span>
-            <Radio className="h-4 w-4 text-cyan-400" />
+            <Radio className="h-4 w-4 text-cyan-500" />
           </div>
-          <div className="text-4xl md:text-5xl font-black font-mono-tech text-white tracking-tight drop-shadow">
+          <div className="text-4xl md:text-5xl font-black font-mono-tech text-foreground dark:text-white tracking-tight drop-shadow">
             {totalEmitidasHoje > 0 ? `${Math.round((totalLiberadasHoje / totalEmitidasHoje) * 100)}%` : "100%"}
           </div>
-          <div className="flex items-center justify-between text-[11px] text-slate-400 mt-2">
+          <div className="flex items-center justify-between text-[11px] text-muted-foreground dark:text-slate-400 mt-2">
             <span>Vazão Liberadas / Emitidas</span>
-            <span className="font-mono-tech font-bold text-cyan-400">
+            <span className="font-mono-tech font-bold text-cyan-600 dark:text-cyan-400">
               {totalLiberadasHoje - totalEmitidasHoje >= 0 ? `+${totalLiberadasHoje - totalEmitidasHoje}` : `${totalLiberadasHoje - totalEmitidasHoje}`} saldo
             </span>
           </div>
@@ -489,67 +489,67 @@ export default function PcpPage() {
         </div>
 
         {/* Card 4: Alerta de Urgências ou Última Liberação */}
-        <div className={`p-4 rounded-3xl bg-slate-900/90 border relative overflow-hidden group ${
+        <div className={`p-4 rounded-3xl bg-card dark:bg-slate-900/90 border relative overflow-hidden group shadow-xs ${
           urgentesHoje > 0
             ? "border-rose-500/50 shadow-[0_0_25px_rgba(244,63,94,0.2)]"
-            : "border-slate-800 shadow-[0_0_25px_rgba(255,255,255,0.03)]"
+            : "border-border dark:border-slate-800"
         }`}>
           <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider mb-1">
-            <span className={`flex items-center gap-1.5 ${urgentesHoje > 0 ? "text-rose-400 font-bold" : "text-slate-400"}`}>
-              {urgentesHoje > 0 ? <AlertTriangle className="h-4 w-4 text-rose-400 animate-bounce" /> : <Clock className="h-4 w-4" />}
+            <span className={`flex items-center gap-1.5 ${urgentesHoje > 0 ? "text-rose-600 dark:text-rose-400 font-bold" : "text-muted-foreground dark:text-slate-400"}`}>
+              {urgentesHoje > 0 ? <AlertTriangle className="h-4 w-4 text-rose-500 animate-bounce" /> : <Clock className="h-4 w-4" />}
               {urgentesHoje > 0 ? "Urgências Hoje" : "Última Liberação"}
             </span>
-            <ShieldCheck className="h-4 w-4 text-slate-500" />
+            <ShieldCheck className="h-4 w-4 text-muted-foreground dark:text-slate-500" />
           </div>
           {urgentesHoje > 0 ? (
             <>
-              <div className="text-4xl md:text-5xl font-black font-mono-tech text-rose-300 tracking-tight drop-shadow">
+              <div className="text-4xl md:text-5xl font-black font-mono-tech text-rose-600 dark:text-rose-300 tracking-tight drop-shadow">
                 {urgentesHoje} O.S.
               </div>
-              <p className="text-[11px] text-rose-400/80 mt-2 font-medium">Prioridade total de entrega</p>
+              <p className="text-[11px] text-rose-600 dark:text-rose-400/80 mt-2 font-medium">Prioridade total de entrega</p>
             </>
           ) : lastLiberada ? (
             <>
-              <div className="text-xl md:text-2xl font-black font-mono-tech text-white truncate drop-shadow">
+              <div className="text-xl md:text-2xl font-black font-mono-tech text-foreground dark:text-white truncate drop-shadow">
                 {lastLiberada.titulo}
               </div>
-              <p className="text-[11px] text-slate-400 truncate mt-1">
+              <p className="text-[11px] text-muted-foreground dark:text-slate-400 truncate mt-1">
                 {lastLiberada.cliente} • {format(parseISO(lastLiberada.chegou_em), "HH:mm")}
               </p>
             </>
           ) : (
-            <div className="text-2xl font-bold text-slate-400 mt-2">—</div>
+            <div className="text-2xl font-bold text-muted-foreground dark:text-slate-400 mt-2">—</div>
           )}
-          <div className={`absolute bottom-0 left-0 right-0 h-1.5 ${urgentesHoje > 0 ? "bg-rose-500" : "bg-slate-700"}`} />
+          <div className={`absolute bottom-0 left-0 right-0 h-1.5 ${urgentesHoje > 0 ? "bg-rose-500" : "bg-slate-300 dark:bg-slate-700"}`} />
         </div>
       </div>
 
       {/* DUAL COMMAND DECK: EMITIDAS (ESQUERDA) vs LIBERADAS (DIREITA) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0 mt-3">
         {/* COLUNA ESQUERDA: O.S. EMITIDAS */}
-        <div className="flex flex-col rounded-3xl bg-slate-900/70 border border-blue-500/30 overflow-hidden shadow-2xl backdrop-blur-xl">
+        <div className="flex flex-col rounded-3xl bg-card/90 dark:bg-slate-900/70 border border-border dark:border-blue-500/30 overflow-hidden shadow-xs dark:shadow-2xl backdrop-blur-xl">
           {/* Header da Coluna */}
-          <div className="p-3.5 sm:p-4 border-b border-blue-500/20 bg-blue-950/40 flex items-center justify-between shrink-0">
+          <div className="p-3.5 sm:p-4 border-b border-border dark:border-blue-500/20 bg-muted/60 dark:bg-blue-950/40 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-blue-500/20 text-blue-400 border border-blue-500/30 shadow-[0_0_12px_rgba(59,130,246,0.3)]">
+              <div className="p-2 rounded-xl bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 shadow-[0_0_12px_rgba(59,130,246,0.3)]">
                 <Layers className="h-4 w-4" />
               </div>
               <div>
-                <h2 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-2">
-                  OS EMITIDAS <span className="text-blue-400 font-mono-tech text-xs font-normal">(ENTRADAS)</span>
+                <h2 className="text-base sm:text-lg font-black tracking-tight text-foreground dark:text-white flex items-center gap-2">
+                  OS EMITIDAS <span className="text-blue-600 dark:text-blue-400 font-mono-tech text-xs font-normal">(ENTRADAS)</span>
                 </h2>
-                <span className="text-[11px] text-slate-400 font-medium">Cadastradas no sistema</span>
+                <span className="text-[11px] text-muted-foreground dark:text-slate-400 font-medium">Cadastradas no sistema</span>
               </div>
             </div>
 
             {/* Alternador Hoje / Anteriores */}
-            <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+            <div className="flex items-center gap-1 bg-background dark:bg-slate-950/80 p-1 rounded-xl border border-border dark:border-slate-800">
               <button
                 onClick={() => setActiveTabLeft("hoje")}
                 className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                   activeTabLeft === "hoje"
                     ? "bg-blue-600 text-white shadow-md shadow-blue-600/40"
-                    : "text-slate-400 hover:text-white"
+                    : "text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
                 }`}
               >
                 Hoje ({emitidasGrouped.hoje.length})
@@ -559,7 +559,7 @@ export default function PcpPage() {
                 className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                   activeTabLeft === "anteriores"
                     ? "bg-blue-600 text-white shadow-md shadow-blue-600/40"
-                    : "text-slate-400 hover:text-white"
+                    : "text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
                 }`}
               >
                 Anteriores ({emitidasGrouped.anteriores.length})
@@ -593,12 +593,12 @@ export default function PcpPage() {
                         ? "bg-rose-500/10 border-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.15)]"
                         : isNew
                         ? "bg-blue-500/10 border-blue-400/50 shadow-[0_0_20px_rgba(59,130,246,0.15)]"
-                        : "bg-slate-950/70 border-slate-800/90 hover:border-blue-500/40"
+                        : "bg-card dark:bg-slate-950/70 border-border dark:border-slate-800/90 hover:border-blue-500/40"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2 mb-1.5">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono-tech font-black text-lg sm:text-xl text-blue-300 tracking-wide drop-shadow">
+                        <span className="font-mono-tech font-black text-lg sm:text-xl text-blue-600 dark:text-blue-300 tracking-wide drop-shadow">
                           {e.titulo}
                         </span>
                         {isNew && (
@@ -613,23 +613,23 @@ export default function PcpPage() {
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono-tech text-xs sm:text-sm font-bold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-lg">
+                        <span className="font-mono-tech text-xs sm:text-sm font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-lg">
                           {format(parseISO(e.created_at), activeTabLeft === "hoje" ? "HH:mm" : "dd/MM HH:mm")}
                         </span>
                       </div>
                     </div>
 
-                    <div className="text-sm sm:text-base font-bold text-white tracking-wide truncate">
+                    <div className="text-sm sm:text-base font-bold text-foreground dark:text-white tracking-wide truncate">
                       {e.cliente}
                     </div>
 
-                    <div className="text-xs sm:text-sm text-slate-300 line-clamp-2 mt-1 leading-snug">
+                    <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-300 line-clamp-2 mt-1 leading-snug">
                       {e.descricao || "—"}
                     </div>
 
-                    <div className="flex items-center justify-between text-[11px] text-slate-400 mt-2.5 pt-2 border-t border-slate-800/60 font-medium">
-                      <span>Vendedor: <strong className="text-slate-300 font-semibold">{e.vendedor || "Não informado"}</strong></span>
-                      <span className="font-mono-tech text-slate-500">{format(parseISO(e.created_at), "dd/MM/yyyy")}</span>
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground dark:text-slate-400 mt-2.5 pt-2 border-t border-border dark:border-slate-800/60 font-medium">
+                      <span>Vendedor: <strong className="text-foreground dark:text-slate-300 font-semibold">{e.vendedor || "Não informado"}</strong></span>
+                      <span className="font-mono-tech text-muted-foreground">{format(parseISO(e.created_at), "dd/MM/yyyy")}</span>
                     </div>
                   </div>
                 );
@@ -639,29 +639,29 @@ export default function PcpPage() {
         </div>
 
         {/* COLUNA DIREITA: O.S. LIBERADAS */}
-        <div className="flex flex-col rounded-3xl bg-slate-900/70 border border-emerald-500/30 overflow-hidden shadow-2xl backdrop-blur-xl">
+        <div className="flex flex-col rounded-3xl bg-card/90 dark:bg-slate-900/70 border border-border dark:border-emerald-500/30 overflow-hidden shadow-xs dark:shadow-2xl backdrop-blur-xl">
           {/* Header da Coluna */}
-          <div className="p-3.5 sm:p-4 border-b border-emerald-500/20 bg-emerald-950/40 flex items-center justify-between shrink-0">
+          <div className="p-3.5 sm:p-4 border-b border-border dark:border-emerald-500/20 bg-muted/60 dark:bg-emerald-950/40 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.3)]">
+              <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.3)]">
                 <CheckCircle2 className="h-4 w-4" />
               </div>
               <div>
-                <h2 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-2">
-                  OS LIBERADAS <span className="text-emerald-400 font-mono-tech text-xs font-normal">(SAÍDA P/ FÁBRICA)</span>
+                <h2 className="text-base sm:text-lg font-black tracking-tight text-foreground dark:text-white flex items-center gap-2">
+                  OS LIBERADAS <span className="text-emerald-600 dark:text-emerald-400 font-mono-tech text-xs font-normal">(SAÍDA P/ FÁBRICA)</span>
                 </h2>
-                <span className="text-[11px] text-slate-400 font-medium">Prontas para produção</span>
+                <span className="text-[11px] text-muted-foreground dark:text-slate-400 font-medium">Prontas para produção</span>
               </div>
             </div>
 
             {/* Alternador Hoje / Anteriores */}
-            <div className="flex items-center gap-1 bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+            <div className="flex items-center gap-1 bg-background dark:bg-slate-950/80 p-1 rounded-xl border border-border dark:border-slate-800">
               <button
                 onClick={() => setActiveTabRight("hoje")}
                 className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                   activeTabRight === "hoje"
                     ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/40"
-                    : "text-slate-400 hover:text-white"
+                    : "text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
                 }`}
               >
                 Hoje ({liberadasGrouped.hoje.length})
@@ -671,7 +671,7 @@ export default function PcpPage() {
                 className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
                   activeTabRight === "anteriores"
                     ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/40"
-                    : "text-slate-400 hover:text-white"
+                    : "text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
                 }`}
               >
                 Anteriores ({liberadasGrouped.anteriores.length})
@@ -705,12 +705,12 @@ export default function PcpPage() {
                         ? "bg-rose-500/10 border-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.15)]"
                         : isRecent
                         ? "bg-emerald-500/15 border-emerald-400/60 shadow-[0_0_25px_rgba(16,185,129,0.25)] ring-1 ring-emerald-400/50"
-                        : "bg-slate-950/70 border-slate-800/90 hover:border-emerald-500/40"
+                        : "bg-card dark:bg-slate-950/70 border-border dark:border-slate-800/90 hover:border-emerald-500/40"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2 mb-1.5">
                       <div className="flex items-center gap-2">
-                        <span className="font-mono-tech font-black text-lg sm:text-xl text-emerald-300 tracking-wide drop-shadow">
+                        <span className="font-mono-tech font-black text-lg sm:text-xl text-emerald-600 dark:text-emerald-300 tracking-wide drop-shadow">
                           {e.titulo}
                         </span>
                         {isRecent && (
@@ -725,23 +725,23 @@ export default function PcpPage() {
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="font-mono-tech text-xs sm:text-sm font-bold text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-lg shadow-sm">
+                        <span className="font-mono-tech text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-lg shadow-sm">
                           {format(parseISO(e.chegou_em), activeTabRight === "hoje" ? "HH:mm" : "dd/MM HH:mm")}
                         </span>
                       </div>
                     </div>
 
-                    <div className="text-sm sm:text-base font-bold text-white tracking-wide truncate">
+                    <div className="text-sm sm:text-base font-bold text-foreground dark:text-white tracking-wide truncate">
                       {e.cliente}
                     </div>
 
-                    <div className="text-xs sm:text-sm text-slate-300 line-clamp-2 mt-1 leading-snug">
+                    <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-300 line-clamp-2 mt-1 leading-snug">
                       {e.descricao || "—"}
                     </div>
 
-                    <div className="flex items-center justify-between text-[11px] text-slate-400 mt-2.5 pt-2 border-t border-slate-800/60 font-medium">
-                      <span>Vendedor: <strong className="text-slate-300 font-semibold">{e.vendedor || "Não informado"}</strong></span>
-                      <span className="font-mono-tech text-slate-500">{format(parseISO(e.chegou_em), "dd/MM/yyyy")}</span>
+                    <div className="flex items-center justify-between text-[11px] text-muted-foreground dark:text-slate-400 mt-2.5 pt-2 border-t border-border dark:border-slate-800/60 font-medium">
+                      <span>Vendedor: <strong className="text-foreground dark:text-slate-300 font-semibold">{e.vendedor || "Não informado"}</strong></span>
+                      <span className="font-mono-tech text-muted-foreground">{format(parseISO(e.chegou_em), "dd/MM/yyyy")}</span>
                     </div>
                   </div>
                 );
@@ -752,13 +752,13 @@ export default function PcpPage() {
       </div>
 
       {/* RODAPÉ: TELEMETRY TICKER ESTILO BLOOMBERG / TV NOTÍCIAS */}
-      <div className="mt-3 p-2.5 rounded-2xl bg-slate-950/90 border border-slate-800/80 flex items-center justify-between gap-4 overflow-hidden shrink-0 text-xs font-mono-tech">
-        <div className="flex items-center gap-2 text-cyan-400 font-bold uppercase tracking-wider shrink-0 bg-slate-900 px-3 py-1 rounded-xl border border-slate-800">
-          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+      <div className="mt-3 p-2.5 rounded-2xl bg-card dark:bg-slate-950/90 border border-border dark:border-slate-800/80 flex items-center justify-between gap-4 overflow-hidden shrink-0 text-xs font-mono-tech shadow-xs">
+        <div className="flex items-center gap-2 text-cyan-600 dark:text-cyan-400 font-bold uppercase tracking-wider shrink-0 bg-muted/60 dark:bg-slate-900 px-3 py-1 rounded-xl border border-border dark:border-slate-800">
+          <span className="w-2 h-2 rounded-full bg-cyan-500 animate-ping" />
           RADAR PCP
         </div>
 
-        <div className="flex-1 overflow-hidden whitespace-nowrap text-slate-300 text-[11px] sm:text-xs">
+        <div className="flex-1 overflow-hidden whitespace-nowrap text-foreground dark:text-slate-300 text-[11px] sm:text-xs">
           <span className="inline-block animate-marquee">
             📢 <strong>PRIMACOR GRÁFICA</strong> • TRANSMISSÃO AO VIVO EM TEMPO REAL • HOJE: {totalEmitidasHoje} EMITIDAS / {totalLiberadasHoje} LIBERADAS •
             {lastLiberada ? ` ÚLTIMA LIBERAÇÃO: ${lastLiberada.titulo} (${lastLiberada.cliente}) •` : ""}
@@ -767,7 +767,7 @@ export default function PcpPage() {
           </span>
         </div>
 
-        <div className="hidden sm:flex items-center gap-3 text-slate-500 text-[11px] shrink-0 font-medium">
+        <div className="hidden sm:flex items-center gap-3 text-muted-foreground dark:text-slate-500 text-[11px] shrink-0 font-medium">
           <span>Pressione <strong>F11</strong> para Tela Cheia</span>
         </div>
       </div>

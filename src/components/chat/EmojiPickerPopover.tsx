@@ -203,23 +203,23 @@ export function EmojiPickerPopover({ onSelectEmoji, trigger }: EmojiPickerPopove
       <PopoverContent
         side="top"
         align="start"
-        className="w-72 sm:w-80 p-3 bg-slate-900/95 backdrop-blur-xl border border-slate-800 rounded-2xl shadow-2xl z-50 animate-in fade-in zoom-in-95"
+        className="w-72 sm:w-80 p-3 bg-popover backdrop-blur-xl border border-border text-popover-foreground rounded-2xl shadow-2xl z-50 animate-in fade-in zoom-in-95"
       >
         {/* Search */}
         <div className="relative mb-2.5">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             placeholder="Buscar emoji..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-8 h-8 text-xs bg-slate-950/60 border-slate-800 text-white placeholder:text-slate-500 rounded-xl"
+            className="pl-8 h-8 text-xs bg-muted/50 border-input text-foreground placeholder:text-muted-foreground rounded-xl"
             autoFocus
           />
         </div>
 
         {/* Categories Bar */}
         {!searchTerm && (
-          <div className="flex items-center gap-1 border-b border-slate-800/80 pb-2 mb-2 overflow-x-auto scrollbar-none">
+          <div className="flex items-center gap-1 border-b border-border pb-2 mb-2 overflow-x-auto scrollbar-none">
             {EMOJI_CATEGORIES.map((cat) => (
               <button
                 key={cat.id}
@@ -228,7 +228,7 @@ export function EmojiPickerPopover({ onSelectEmoji, trigger }: EmojiPickerPopove
                 className={`p-1.5 text-base rounded-lg transition-all ${
                   selectedCategory === cat.id
                     ? "bg-cyan-500/20 ring-1 ring-cyan-500/40 scale-110"
-                    : "opacity-60 hover:opacity-100 hover:bg-slate-800"
+                    : "opacity-60 hover:opacity-100 hover:bg-accent"
                 }`}
                 title={cat.label}
               >
