@@ -661,7 +661,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                           }}
                         >
                           {count > 0 && (
-                            <span className="text-[10px] font-bold font-mono-tech text-white drop-shadow">
+                            <span className="text-[10px] font-bold font-mono-tech text-white drop-shadow whitespace-nowrap">
                               {count}
                             </span>
                           )}
@@ -699,24 +699,38 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                     const avg = avgPerStatus[status] || 0;
                     const maxAvg = Math.max(...Object.values(avgPerStatus), 1);
                     const pct = (avg / maxAvg) * 100;
+                    const isWide = pct >= 18;
 
                     return (
-                      <div key={status} className="flex items-center gap-3">
+                      <div key={status} className="flex items-center gap-3" title={`${config.label}: ${avg > 0 ? formatDuration(avg) : "Sem dados"}`}>
                         <div className="w-36 text-xs text-foreground truncate font-medium">{config.label}</div>
-                        <div className="flex-1 h-7 bg-muted/70 rounded-xl border border-border overflow-hidden relative p-0.5">
+                        <div className="flex-1 h-7 bg-muted/70 rounded-xl border border-border overflow-hidden relative p-0.5 flex items-center">
                           <div
-                            className="h-full rounded-lg transition-all duration-500 flex items-center justify-end pr-2"
+                            className={`h-full rounded-lg transition-all duration-500 flex items-center shrink-0 ${
+                              isWide ? "justify-end pr-2" : ""
+                            }`}
                             style={{
-                              width: `${Math.max(pct, avg > 0 ? 12 : 0)}%`,
+                              width: `${Math.max(pct, avg > 0 ? 3.5 : 0)}%`,
+                              minWidth: isWide ? "72px" : undefined,
                               backgroundColor: `hsl(var(--status-${config.colorKey}))`,
                             }}
                           >
-                            {avg > 0 && (
-                              <span className="text-[10px] font-bold font-mono-tech text-white drop-shadow">
+                            {isWide && avg > 0 && (
+                              <span className="text-[10px] font-bold font-mono-tech text-white drop-shadow whitespace-nowrap">
                                 {formatDuration(avg)}
                               </span>
                             )}
                           </div>
+                          {!isWide && avg > 0 && (
+                            <span className="ml-2 text-[10px] sm:text-[11px] font-bold font-mono-tech text-foreground whitespace-nowrap">
+                              {formatDuration(avg)}
+                            </span>
+                          )}
+                          {avg === 0 && (
+                            <span className="ml-2 text-[10px] font-mono-tech text-muted-foreground/50 whitespace-nowrap">
+                              —
+                            </span>
+                          )}
                         </div>
                       </div>
                     );
