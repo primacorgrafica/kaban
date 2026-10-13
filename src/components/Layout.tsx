@@ -19,6 +19,12 @@ import { AvisoPopup } from "./AvisoPopup";
 import { SendAvisoDialog } from "./SendAvisoDialog";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeOrders } from "@/lib/realtimeManager";
+import { ThemeToggle } from "./ThemeToggle";
+import { CommandPalette } from "./CommandPalette";
+import { AiProductionBottlenecksModal } from "./AiProductionBottlenecksModal";
+import { ChatDialog } from "./chat/ChatDialog";
+import { Activity, Command, MessageSquare } from "lucide-react";
+import { Order } from "@/types/order";
 
 interface LayoutProps {
   children: ReactNode;
@@ -39,6 +45,9 @@ interface LayoutProps {
   };
 }
 
+// Cache em memória para transição instantânea de rotas (zero delay nos badges)
+let cachedDeptCounts: Record<string, number> | null = null;
+
 export function Layout({ children, searchQuery, onSearchChange, onAddOrder, activeCount, archivedCount, sectorName, countsLoading = false, permissions }: LayoutProps) {
   const location = useLocation();
   const { signOut, user, isAdmin, authReady, hasModule } = useAuth();
@@ -47,11 +56,14 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
   const [viewingAviso, setViewingAviso] = useState<Aviso | null>(null);
-  const [deptCounts, setDeptCounts] = useState<Record<string, number>>({});
-  const [deptCountsLoaded, setDeptCountsLoaded] = useState(false);
+  const [deptCounts, setDeptCounts] = useState<Record<string, number>>(() => cachedDeptCounts || {});
+  const [deptCountsLoaded, setDeptCountsLoaded] = useState(() => !!cachedDeptCounts);
   const [producaoOpen, setProducaoOpen] = useState(false);
   const [expedicaoOpen, setExpedicaoOpen] = useState(false);
   const [cadastrosOpen, setCadastrosOpen] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [bottlenecksModalOpen, setBottlenecksModalOpen] = useState(false);
+  const [chatDialogOpen, setChatDialogOpen] = useState(false);
   const avisoSessionStartedAt = useRef(Date.now());
 
   const fetchDeptCounts = useCallback(async () => {
@@ -101,6 +113,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
     } else {
       counts["pre_impressao"] = 0;
     }
+    cachedDeptCounts = counts;
     setDeptCounts(counts);
     setDeptCountsLoaded(true);
   }, [authReady, user]);
@@ -177,6 +190,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
   const expedicaoItems = hasModule("expedicao") ? allExpedicaoItems : [];
 
   const topItems = [
+    { to: "/chat", label: "Chat Privado", icon: MessageSquare },
     ...(permissions.canAccessComercial && hasModule("comercial") ? [{ to: "/comercial", label: "Comercial", icon: Briefcase }] : []),
     ...(hasModule("pcp") ? [{ to: "/pcp", label: "PCP", icon: ClipboardList }] : []),
   ];
@@ -390,8 +404,15 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
               placeholder="Buscar O.S., cliente ou processo..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-9 pr-10 h-9 bg-slate-900/60 border-slate-800/80 text-white placeholder:text-slate-500 text-xs focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 rounded-xl transition-all"
+              className="pl-9 pr-16 h-9 bg-slate-900/60 border-slate-800/80 text-white placeholder:text-slate-500 text-xs focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/50 rounded-xl transition-all"
             />
+            <button
+              onClick={() => setCommandPaletteOpen(true)}
+              className="hidden sm:inline-flex items-center gap-0.5 absolute right-2 top-1/2 -translate-y-1/2 text-[10px] bg-slate-800 text-slate-400 hover:text-white px-1.5 py-0.5 rounded border border-slate-700 font-mono-tech transition-colors"
+              title="Abrir busca global rápida (Ctrl+K)"
+            >
+              Ctrl+K
+            </button>
           </div>
           {sectorName && (() => {
             const sectorIconMap: Record<string, LucideIcon> = {
@@ -414,6 +435,26 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
             );
           })()}
           <div className="flex items-center gap-2 ml-auto order-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setBottlenecksModalOpen(true)}
+              className="h-9 px-2.5 text-xs text-amber-400 hover:text-amber-300 hover:bg-amber-950/40 border border-amber-500/25 rounded-xl hidden md:flex items-center gap-1.5 font-mono-tech transition-all"
+              title="IA: Diagnóstico de Gargalos & Alertas"
+            >
+              <Activity className="h-3.5 w-3.5 text-amber-400" />
+              <span>Gargalos</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setChatDialogOpen(true)}
+              className="h-9 w-9 text-slate-300 hover:text-cyan-400 hover:bg-cyan-950/40 border border-slate-800 rounded-xl relative transition-all"
+              title="Abrir Chat Privado"
+            >
+              <MessageSquare className="h-4 w-4" />
+            </Button>
+            <ThemeToggle />
             <NotificationBell
               avisos={avisos}
               naoLidos={naoLidos}
@@ -449,6 +490,25 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
 
       {/* Send aviso dialog (admin only) */}
       <SendAvisoDialog open={sendDialogOpen} onOpenChange={setSendDialogOpen} onSend={enviarAviso} />
+
+      {/* Global Command Palette (Ctrl+K) */}
+      <CommandPalette
+        open={commandPaletteOpen}
+        onOpenChange={setCommandPaletteOpen}
+        onSelectOrder={() => {}}
+      />
+
+      {/* AI Production Bottlenecks Diagnostic Modal */}
+      <AiProductionBottlenecksModal
+        open={bottlenecksModalOpen}
+        onOpenChange={setBottlenecksModalOpen}
+      />
+
+      {/* Chat Privado Modal */}
+      <ChatDialog
+        open={chatDialogOpen}
+        onOpenChange={setChatDialogOpen}
+      />
     </div>
   );
 }

@@ -18,12 +18,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
-import { RadioGroup as RadioGroupBase, RadioGroupItem } from "@/components/ui/radio-group";
-import { Plus, AlertTriangle, X } from "lucide-react";
+import {
+  Plus,
+  AlertTriangle,
+  ArrowRight,
+  ArrowLeft,
+  Check,
+  FileText,
+  Printer,
+  PackageCheck,
+  Building,
+  User,
+  Hash,
+  Sparkles,
+  Calendar,
+  Truck,
+  ShieldAlert,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
-import { IMPRESSAO_TIPOS, IMPRESSAO_PROCESSOS, ACABAMENTO_TIPOS, ACABAMENTO_GROUPS } from "@/lib/processos";
+import {
+  IMPRESSAO_TIPOS,
+  IMPRESSAO_PROCESSOS,
+  ACABAMENTO_TIPOS,
+  ACABAMENTO_GROUPS,
+} from "@/lib/processos";
 
 interface CreateOrderDialogProps {
   onAdd: (data: {
@@ -63,6 +82,10 @@ interface CreateOrderDialogProps {
 
 export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
   const [open, setOpen] = useState(false);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [isChecking, setIsChecking] = useState(false);
+  const [vendedores, setVendedores] = useState<{ id: string; nome: string }[]>([]);
+
   const [form, setForm] = useState({
     titulo: "",
     descricao: "",
@@ -74,32 +97,38 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
     prova_email: false,
     endereco_entrega: "",
     destinatario: "",
-    urgente: false, urgente_prova: false, urgente_impressao: false, urgente_acabamento: false, urgente_expedicao: false,
-    digital_color: false, digital_pb: false,
+    urgente: false,
+    urgente_prova: false,
+    urgente_impressao: false,
+    urgente_acabamento: false,
+    urgente_expedicao: false,
+    digital_color: false,
+    digital_pb: false,
     prazo: "",
     vendedor: "",
     processos: [] as string[],
     tem_nf: false,
     tem_protocolo: false,
-    empresa_entrega: "",
+    empresa_entrega: "PRIMACOR",
     obs_entrega: "",
     tipo_entrega: [] as string[],
     entrega_para: "",
     entrega_endereco: "",
     entrega_ac: "",
     entrega_data_limite: "",
-    status_destino: "" as string,
-    setor_destino: "" as string,
+    status_destino: "",
+    setor_destino: "",
   });
-
-  const [isChecking, setIsChecking] = useState(false);
-  const [vendedores, setVendedores] = useState<{ id: string; nome: string }[]>([]);
 
   useEffect(() => {
     if (open) {
-      supabase.from("vendedores").select("id, nome").order("nome").then(({ data }) => {
-        if (data) setVendedores(data);
-      });
+      supabase
+        .from("vendedores")
+        .select("id, nome")
+        .order("nome")
+        .then(({ data }) => {
+          if (data) setVendedores(data);
+        });
     }
   }, [open]);
 
@@ -109,7 +138,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
         ? f.processos.filter((p) => p !== sigla)
         : [...f.processos, sigla];
 
-      // CTP e OFF são vinculados
+      // CTP e OFF são vinculados na lógica gráfica
       if (sigla === "CTP" && !f.processos.includes("CTP") && !newProcessos.includes("OFF")) {
         newProcessos.push("OFF");
       }
@@ -131,33 +160,86 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
   };
 
   const resetForm = () => {
+    setStep(1);
     setForm({
-      titulo: "", descricao: "", cliente: "", observacao: "", obs_prova: "",
-      saida_direta: false, prova_digital: false, prova_email: false,
-      endereco_entrega: "", destinatario: "",
-      urgente: false, urgente_prova: false, urgente_impressao: false, urgente_acabamento: false, urgente_expedicao: false, digital_color: false, digital_pb: false, prazo: "", vendedor: "",
+      titulo: "",
+      descricao: "",
+      cliente: "",
+      observacao: "",
+      obs_prova: "",
+      saida_direta: false,
+      prova_digital: false,
+      prova_email: false,
+      endereco_entrega: "",
+      destinatario: "",
+      urgente: false,
+      urgente_prova: false,
+      urgente_impressao: false,
+      urgente_acabamento: false,
+      urgente_expedicao: false,
+      digital_color: false,
+      digital_pb: false,
+      prazo: "",
+      vendedor: "",
       processos: [],
-      tem_nf: false, tem_protocolo: false, empresa_entrega: "", obs_entrega: "",
-      tipo_entrega: [], entrega_para: "", entrega_endereco: "", entrega_ac: "", entrega_data_limite: "",
+      tem_nf: false,
+      tem_protocolo: false,
+      empresa_entrega: "PRIMACOR",
+      obs_entrega: "",
+      tipo_entrega: [],
+      entrega_para: "",
+      entrega_endereco: "",
+      entrega_ac: "",
+      entrega_data_limite: "",
       status_destino: "",
       setor_destino: "",
     });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.titulo.trim() || !form.cliente.trim() || !form.vendedor) {
-      toast.error("Preencha o Nº OS., Cliente e Vendedor");
-      return;
+  const validateStep1 = () => {
+    if (!form.titulo.trim()) {
+      toast.error("Informe o Nº da O.S.");
+      return false;
+    }
+    if (!form.cliente.trim()) {
+      toast.error("Informe o Nome do Cliente");
+      return false;
     }
     if (!form.descricao.trim()) {
-      toast.error("Preencha a Descrição do Serviço");
-      return;
+      toast.error("Informe a Descrição do Serviço");
+      return false;
     }
+    if (!form.vendedor) {
+      toast.error("Selecione o Vendedor responsável");
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep2 = () => {
     if (!form.prova_email && !form.prova_digital && !form.saida_direta) {
-      toast.error("Selecione pelo menos uma opção de prova (E-mail, Digital ou Saída Direta)");
-      return;
+      toast.error("Selecione ao menos uma opção de Prova (Digital, E-mail ou Saída Direta)");
+      return false;
     }
+    return true;
+  };
+
+  const handleNext = () => {
+    if (step === 1) {
+      if (validateStep1()) setStep(2);
+    } else if (step === 2) {
+      if (validateStep2()) setStep(3);
+    }
+  };
+
+  const handleBack = () => {
+    if (step === 3) setStep(2);
+    else if (step === 2) setStep(1);
+  };
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!validateStep1() || !validateStep2()) return;
 
     setIsChecking(true);
     const { data: existing } = await supabase
@@ -168,7 +250,8 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
     setIsChecking(false);
 
     if (existing && existing.length > 0) {
-      toast.error("OS. já criada! Já existe uma ordem com o número " + form.titulo.trim());
+      toast.error("Número de O.S. já existente: " + form.titulo.trim());
+      setStep(1);
       return;
     }
 
@@ -183,9 +266,19 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
       saida_direta: form.saida_direta,
       prova_digital: form.prova_digital,
       prova_email: form.prova_email,
-      endereco_entrega: (form.prova_digital || form.prova_email) ? (form.endereco_entrega.trim() || undefined) : undefined,
-      destinatario: (form.prova_digital || form.prova_email) ? (form.destinatario.trim() || undefined) : undefined,
-      urgente: form.urgente_prova || form.urgente_impressao || form.urgente_acabamento || form.urgente_expedicao,
+      endereco_entrega:
+        form.prova_digital || form.prova_email
+          ? form.endereco_entrega.trim() || undefined
+          : undefined,
+      destinatario:
+        form.prova_digital || form.prova_email
+          ? form.destinatario.trim() || undefined
+          : undefined,
+      urgente:
+        form.urgente_prova ||
+        form.urgente_impressao ||
+        form.urgente_acabamento ||
+        form.urgente_expedicao,
       urgente_prova: form.urgente_prova,
       urgente_impressao: form.urgente_impressao,
       urgente_acabamento: form.urgente_acabamento,
@@ -203,387 +296,772 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
       entrega_para: form.entrega_para.trim() || undefined,
       entrega_endereco: form.entrega_endereco.trim() || undefined,
       entrega_ac: form.entrega_ac.trim() || undefined,
-      entrega_data_limite: form.entrega_data_limite ? new Date(form.entrega_data_limite).toISOString() : undefined,
+      entrega_data_limite: form.entrega_data_limite
+        ? new Date(form.entrega_data_limite).toISOString()
+        : undefined,
       status_destino: form.status_destino || undefined,
       setor_destino: form.setor_destino || undefined,
     });
+
     resetForm();
     setOpen(false);
-    toast.success("OS. criada com sucesso");
+    toast.success("O.S. criada com sucesso!");
   };
 
+  const stepsConfig = [
+    { id: 1, title: "Identificação", desc: "Nº O.S., Cliente & Serviço", icon: FileText },
+    { id: 2, title: "Especificações", desc: "Prova & Impressão", icon: Printer },
+    { id: 3, title: "Acabamento & Logística", desc: "Processos & Entrega", icon: PackageCheck },
+  ];
+
   return (
-    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) resetForm(); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        if (!v) resetForm();
+      }}
+    >
       <DialogTrigger asChild>
-        <Button size="sm" className="gap-1.5">
+        <Button
+          size="sm"
+          className="gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium shadow-md shadow-cyan-500/20 border border-cyan-400/30 rounded-xl transition-all"
+        >
           <Plus className="h-4 w-4" />
-          Nova OS.
+          <span>Nova O.S.</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Nova Ordem de Serviço</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* ═══ CABEÇALHO ═══ */}
-          <div className="border rounded-lg p-3 space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label htmlFor="titulo" className="text-xs uppercase text-muted-foreground">Nº OS. *</Label>
-                <Input id="titulo" value={form.titulo} onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))} placeholder="Ex: 12345" className="h-9" />
+
+      <DialogContent className="max-w-4xl p-0 overflow-hidden border border-slate-800 bg-slate-950/95 text-slate-100 shadow-2xl backdrop-blur-2xl rounded-2xl flex flex-col max-h-[92vh]">
+        {/* Top Header & Modern Stepper */}
+        <div className="px-6 pt-5 pb-4 border-b border-slate-800/80 bg-slate-900/60 shrink-0">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2.5">
+              <div className="h-9 w-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                <Sparkles className="h-4 w-4" />
               </div>
               <div>
-                <Label htmlFor="cliente" className="text-xs uppercase text-muted-foreground">Cliente *</Label>
-                <Input id="cliente" value={form.cliente} onChange={(e) => setForm((f) => ({ ...f, cliente: e.target.value }))} placeholder="Nome do cliente" className="h-9" />
+                <DialogTitle className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                  Nova Ordem de Serviço
+                  <span className="text-[10px] font-mono-tech px-2 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 font-normal">
+                    PRIMACOR OS v2.0
+                  </span>
+                </DialogTitle>
+                <p className="text-xs text-slate-400">
+                  Preencha os dados técnicos da produção gráfica passo a passo
+                </p>
               </div>
             </div>
-            <div>
-              <Label htmlFor="descricao" className="text-xs uppercase text-muted-foreground">Descrição do Serviço</Label>
-              <Input id="descricao" value={form.descricao} onChange={(e) => setForm((f) => ({ ...f, descricao: e.target.value }))} placeholder="Ex: 5000 folders 4×4" className="h-9" />
-            </div>
-            <div>
-              <Label className="text-xs uppercase text-muted-foreground">Vendedor *</Label>
-              <Select value={form.vendedor} onValueChange={(v) => setForm((f) => ({ ...f, vendedor: v }))}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="Nome" />
-                </SelectTrigger>
-                <SelectContent>
-                  {vendedores.map((v) => (
-                    <SelectItem key={v.id} value={v.nome}>{v.nome}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="observacao" className="text-xs uppercase text-muted-foreground">OBS</Label>
-              <Textarea id="observacao" value={form.observacao} onChange={(e) => setForm((f) => ({ ...f, observacao: e.target.value }))} placeholder="Observações gerais..." className="min-h-[50px]" />
+
+            {/* Step Counter Badge */}
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 border border-slate-700/80 text-xs font-mono-tech text-slate-300">
+              <span className="text-cyan-400 font-bold">Passo {step}</span>
+              <span className="text-slate-500">/</span>
+              <span>3</span>
             </div>
           </div>
 
-          {/* ═══ PROVA ═══ */}
-          <div className="border rounded-lg p-3 space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Prova *</Label>
-              <div className="flex items-center gap-2">
-                <Checkbox id="urgente-prova" checked={form.urgente_prova} onCheckedChange={(checked) => setForm((f) => ({ ...f, urgente_prova: checked === true }))} />
-                <Label htmlFor="urgente-prova" className={`text-sm font-medium cursor-pointer flex items-center gap-1.5 rounded px-1.5 py-0.5 transition-colors ${form.urgente_prova ? "bg-red-600 text-white animate-pulse" : "text-red-600 dark:text-red-400"}`}>
-                  <AlertTriangle className="h-4 w-4" /> Urgente
-                </Label>
-              </div>
-            </div>
-            <div className="flex items-center gap-4 flex-wrap">
-              <div className="flex items-center gap-2">
-                <Checkbox id="prova_digital" checked={form.prova_digital} onCheckedChange={(checked) => setForm((f) => ({ ...f, prova_digital: checked === true }))} />
-                <Label htmlFor="prova_digital" className={`text-sm cursor-pointer px-2 py-0.5 rounded text-xs font-semibold ${form.prova_digital ? "bg-sky-600 text-white" : "bg-muted text-foreground"}`}>Digital</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox id="prova_email" checked={form.prova_email} onCheckedChange={(checked) => setForm((f) => ({ ...f, prova_email: checked === true }))} />
-                <Label htmlFor="prova_email" className={`text-sm cursor-pointer px-2 py-0.5 rounded text-xs font-semibold ${form.prova_email ? "bg-pink-600 text-white" : "bg-muted text-foreground"}`}>E-mail</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox id="saida_direta" checked={form.saida_direta} onCheckedChange={(checked) => setForm((f) => ({ ...f, saida_direta: checked === true }))} />
-                <Label htmlFor="saida_direta" className={`text-sm cursor-pointer px-2 py-0.5 rounded text-xs font-semibold ${form.saida_direta ? "bg-yellow-500 text-black" : "bg-muted text-foreground"}`}>Saída Direta</Label>
-              </div>
-            </div>
-            {(form.prova_digital || form.prova_email) && (
-              <div className="space-y-2 pl-2 border-l-2 border-sky-200">
-                <Input value={form.destinatario} onChange={(e) => setForm((f) => ({ ...f, destinatario: e.target.value }))} placeholder="A/C:" className="h-8 text-sm" />
-                <Input value={form.endereco_entrega} onChange={(e) => setForm((f) => ({ ...f, endereco_entrega: e.target.value }))} placeholder="Endereço:" className="h-8 text-sm" />
-                <Textarea value={form.obs_prova} onChange={(e) => setForm((f) => ({ ...f, obs_prova: e.target.value }))} placeholder="OBS prova..." className="text-sm min-h-[40px]" rows={2} />
-              </div>
-            )}
-
-          </div>
-
-          {/* ═══ IMPRESSÃO ═══ */}
-          <div className="border rounded-lg p-3 space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Impressão</Label>
-              <div className="flex items-center gap-2">
-                <Checkbox id="urgente-impressao" checked={form.urgente_impressao} onCheckedChange={(checked) => setForm((f) => ({ ...f, urgente_impressao: checked === true }))} />
-                <Label htmlFor="urgente-impressao" className={`text-sm font-medium cursor-pointer flex items-center gap-1.5 rounded px-1.5 py-0.5 transition-colors ${form.urgente_impressao ? "bg-red-600 text-white animate-pulse" : "text-red-600 dark:text-red-400"}`}>
-                  <AlertTriangle className="h-4 w-4" /> Urgente
-                </Label>
-              </div>
-            </div>
-            {/* Linha 1: CTP - OFF - CMYK - CMYK+IR - CMYK+VM - PANTONE */}
-            <div className="flex items-center gap-1 flex-nowrap">
-              {(["CTP", "OFF"] as const).map((sigla) => {
-                const p = IMPRESSAO_PROCESSOS.find((ip) => ip.sigla === sigla)!;
-                return (
-                  <Badge
-                    key={p.sigla}
-                    variant="outline"
-                    className={`cursor-pointer text-xs px-1.5 py-0.5 select-none transition-all font-bold border ${
-                      form.processos.includes(p.sigla)
-                        ? `${p.cor} ring-2 ring-offset-1 ring-primary/40`
-                        : "bg-background text-muted-foreground border-border hover:bg-muted"
-                    }`}
-                    onClick={() => toggleProcesso(p.sigla)}
-                  >
-                    {p.sigla}
-                  </Badge>
-                );
-              })}
-              {IMPRESSAO_TIPOS.map((p) => (
-                <div key={p.sigla} className="flex items-center gap-0.5">
-                  <Checkbox
-                    id={`imp-${p.sigla}`}
-                    checked={form.processos.includes(p.sigla)}
-                    onCheckedChange={() => toggleProcesso(p.sigla)}
-                    className="h-3.5 w-3.5"
-                  />
-                  <Label
-                    htmlFor={`imp-${p.sigla}`}
-                    className={`cursor-pointer px-1.5 py-0.5 rounded text-xs font-semibold ${
-                      form.processos.includes(p.sigla)
-                        ? (p.sigla === "CMYK+IR" ? "bg-pink-600 text-white" :
-                           p.sigla === "CMYK+VM" ? "bg-yellow-500 text-black" :
-                           p.sigla === "PANTONE" ? "bg-green-600 text-white" :
-                           "bg-blue-600 text-white")
-                        : "bg-muted text-foreground"
+          {/* Stepper Wizard Bar */}
+          <div className="grid grid-cols-3 gap-3">
+            {stepsConfig.map((s) => {
+              const Icon = s.icon;
+              const isActive = step === s.id;
+              const isPast = step > s.id;
+              return (
+                <button
+                  type="button"
+                  key={s.id}
+                  onClick={() => {
+                    if (s.id < step) setStep(s.id as 1 | 2 | 3);
+                    else if (s.id === 2 && step === 1 && validateStep1()) setStep(2);
+                    else if (s.id === 3 && step === 2 && validateStep2()) setStep(3);
+                  }}
+                  className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all text-left ${
+                    isActive
+                      ? "bg-cyan-500/10 border-cyan-500/40 text-white shadow-[0_0_15px_-3px_rgba(6,182,212,0.25)]"
+                      : isPast
+                      ? "bg-slate-900/80 border-emerald-500/30 text-slate-300 hover:bg-slate-800/80 cursor-pointer"
+                      : "bg-slate-950/40 border-slate-800/60 text-slate-500 cursor-not-allowed"
+                  }`}
+                >
+                  <div
+                    className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold transition-all ${
+                      isActive
+                        ? "bg-cyan-500 text-slate-950 font-black shadow-[0_0_10px_#06b6d4]"
+                        : isPast
+                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                        : "bg-slate-800 text-slate-400"
                     }`}
                   >
-                    {p.sigla}
-                  </Label>
-                </div>
-              ))}
-            </div>
-            {/* Linha 2: DIG - PLO - Color - PB */}
-            <div className="flex items-center gap-1 flex-nowrap">
-              {(["DIG", "PLO"] as const).map((sigla) => {
-                const p = IMPRESSAO_PROCESSOS.find((ip) => ip.sigla === sigla)!;
-                return (
-                  <Badge
-                    key={p.sigla}
-                    variant="outline"
-                    className={`cursor-pointer text-xs px-1.5 py-0.5 select-none transition-all font-bold border ${
-                      form.processos.includes(p.sigla)
-                        ? `${p.cor} ring-2 ring-offset-1 ring-primary/40`
-                        : "bg-background text-muted-foreground border-border hover:bg-muted"
-                    }`}
-                    onClick={() => toggleProcesso(p.sigla)}
-                  >
-                    {p.sigla}
-                  </Badge>
-                );
-              })}
-              <div className="flex items-center gap-2">
-                <Checkbox id="digital-color" checked={form.digital_color} onCheckedChange={(checked) => setForm((f) => ({ ...f, digital_color: checked === true }))} />
-                <Label htmlFor="digital-color" className={`text-sm cursor-pointer px-2 py-0.5 rounded text-xs font-semibold ${form.digital_color ? "bg-blue-600 text-white" : "bg-muted text-foreground"}`}>Color</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <Checkbox id="digital-pb" checked={form.digital_pb} onCheckedChange={(checked) => setForm((f) => ({ ...f, digital_pb: checked === true }))} />
-                <Label htmlFor="digital-pb" className={`text-sm cursor-pointer px-2 py-0.5 rounded text-xs font-semibold ${form.digital_pb ? "bg-gray-500 text-white" : "bg-muted text-foreground"}`}>PB</Label>
-              </div>
-            </div>
-          </div>
-
-          {/* ═══ ACABAMENTO ═══ */}
-          <div className="border rounded-lg p-3 space-y-2">
-            <div className="flex items-center justify-between gap-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Acabamento</Label>
-              <div className="flex items-center gap-2">
-                <Checkbox id="urgente-acabamento" checked={form.urgente_acabamento} onCheckedChange={(checked) => setForm((f) => ({ ...f, urgente_acabamento: checked === true }))} />
-                <Label htmlFor="urgente-acabamento" className={`text-sm font-medium cursor-pointer flex items-center gap-1.5 rounded px-1.5 py-0.5 transition-colors ${form.urgente_acabamento ? "bg-red-600 text-white animate-pulse" : "text-red-600 dark:text-red-400"}`}>
-                  <AlertTriangle className="h-4 w-4" /> Urgente
-                </Label>
-              </div>
-            </div>
-            <RadioGroupBase
-              value={form.processos.find((p) => (ACABAMENTO_TIPOS as readonly string[]).includes(p)) || ""}
-              onValueChange={(v) => {
-                setForm((f) => ({
-                  ...f,
-                  processos: [
-                    ...f.processos.filter((p) => !(ACABAMENTO_TIPOS as readonly string[]).includes(p)),
-                    v,
-                  ],
-                }));
-              }}
-              className="flex items-center gap-4"
-            >
-              {ACABAMENTO_TIPOS.map((tipo) => {
-                const selected = form.processos.includes(tipo);
-                const colorClass = tipo === "Promocional" ? "bg-blue-600 text-white" :
-                  tipo === "Editorial" ? "bg-pink-600 text-white" :
-                  "bg-yellow-500 text-black";
-                return (
-                  <div key={tipo} className="flex items-center gap-2">
-                    <RadioGroupItem value={tipo} id={`acab-${tipo}`} />
-                    <Label htmlFor={`acab-${tipo}`} className={`text-sm cursor-pointer font-semibold px-2 py-0.5 rounded text-xs ${selected ? colorClass : ""}`}>{tipo}</Label>
+                    {isPast ? <Check className="h-3.5 w-3.5" /> : s.id}
                   </div>
-                );
-              })}
-            </RadioGroupBase>
-            {ACABAMENTO_GROUPS.map((group, gi) => (
-              <div key={gi}>
-                
-                <div className={`flex flex-nowrap justify-between mt-0.5 ${gi === 2 ? "bg-purple-100 dark:bg-purple-900/40 rounded-md p-2 -mx-0.5" : ""}`}>
-                  {group.items.map((p) => (
-                    <Badge
-                      key={p.sigla}
-                      variant="outline"
-                      className={`cursor-pointer text-[11px] px-1.5 py-0.5 select-none transition-all font-bold border ${
-                        form.processos.includes(p.sigla)
-                          ? `${p.cor} ring-2 ring-offset-1 ring-primary/40`
-                          : "bg-background text-muted-foreground border-border hover:bg-muted"
+                  <div className="min-w-0">
+                    <p
+                      className={`text-xs font-semibold truncate ${
+                        isActive ? "text-cyan-300" : isPast ? "text-slate-200" : "text-slate-400"
                       }`}
-                      onClick={() => toggleProcesso(p.sigla)}
                     >
-                      {p.sigla}
-                    </Badge>
+                      {s.title}
+                    </p>
+                    <p className="text-[10px] text-slate-500 truncate hidden sm:block">
+                      {s.desc}
+                    </p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Step Content Container (Centralized, No Ugly Scrollbar) */}
+        <div className="p-6 flex-1 overflow-y-auto max-h-[58vh]">
+          {/* ════════════ ETAPA 1: IDENTIFICAÇÃO & CLIENTE ════════════ */}
+          {step === 1 && (
+            <div className="space-y-4 animate-in fade-in-50 duration-200">
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                {/* Nº OS */}
+                <div className="md:col-span-4 space-y-1.5">
+                  <Label
+                    htmlFor="titulo"
+                    className="text-xs font-medium text-slate-300 flex items-center gap-1.5"
+                  >
+                    <Hash className="h-3.5 w-3.5 text-cyan-400" />
+                    <span>Nº da O.S.</span>
+                    <span className="text-rose-400">*</span>
+                  </Label>
+                  <Input
+                    id="titulo"
+                    autoFocus
+                    value={form.titulo}
+                    onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
+                    placeholder="Ex: 71250"
+                    className="h-10 bg-slate-900/90 border-slate-800 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 rounded-xl font-mono-tech text-sm font-semibold tracking-wider"
+                  />
+                </div>
+
+                {/* Cliente */}
+                <div className="md:col-span-8 space-y-1.5">
+                  <Label
+                    htmlFor="cliente"
+                    className="text-xs font-medium text-slate-300 flex items-center gap-1.5"
+                  >
+                    <Building className="h-3.5 w-3.5 text-cyan-400" />
+                    <span>Cliente / Razão Social</span>
+                    <span className="text-rose-400">*</span>
+                  </Label>
+                  <Input
+                    id="cliente"
+                    value={form.cliente}
+                    onChange={(e) => setForm((f) => ({ ...f, cliente: e.target.value }))}
+                    placeholder="Ex: Bioclin Química Básica Ltda"
+                    className="h-10 bg-slate-900/90 border-slate-800 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 rounded-xl text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* Descrição do Serviço */}
+              <div className="space-y-1.5">
+                <Label
+                  htmlFor="descricao"
+                  className="text-xs font-medium text-slate-300 flex items-center gap-1.5"
+                >
+                  <FileText className="h-3.5 w-3.5 text-cyan-400" />
+                  <span>Descrição do Serviço / Produto</span>
+                  <span className="text-rose-400">*</span>
+                </Label>
+                <Input
+                  id="descricao"
+                  value={form.descricao}
+                  onChange={(e) => setForm((f) => ({ ...f, descricao: e.target.value }))}
+                  placeholder="Ex: Caixa Cartucho 350g com Laminação Fosca e Verniz UV Localizado"
+                  className="h-10 bg-slate-900/90 border-slate-800 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 rounded-xl text-sm"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
+                {/* Vendedor */}
+                <div className="md:col-span-6 space-y-1.5">
+                  <Label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                    <User className="h-3.5 w-3.5 text-cyan-400" />
+                    <span>Vendedor Responsável</span>
+                    <span className="text-rose-400">*</span>
+                  </Label>
+                  <Select
+                    value={form.vendedor}
+                    onValueChange={(v) => setForm((f) => ({ ...f, vendedor: v }))}
+                  >
+                    <SelectTrigger className="h-10 bg-slate-900/90 border-slate-800 text-white rounded-xl focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40">
+                      <SelectValue placeholder="Selecione o vendedor" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-900 border-slate-800 text-white rounded-xl shadow-xl">
+                      {vendedores.map((v) => (
+                        <SelectItem
+                          key={v.id}
+                          value={v.nome}
+                          className="hover:bg-cyan-500/20 hover:text-cyan-300 cursor-pointer"
+                        >
+                          {v.nome}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Destino Inicial */}
+                <div className="md:col-span-6 space-y-1.5">
+                  <Label className="text-xs font-medium text-slate-300">
+                    Encaminhar Inicialmente Para
+                  </Label>
+                  <div className="grid grid-cols-2 gap-2 h-10">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm((f) => ({ ...f, setor_destino: "", status_destino: "" }))
+                      }
+                      className={`h-full rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-1.5 ${
+                        form.setor_destino === ""
+                          ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-300 shadow-sm"
+                          : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      <span>Pré-Impressão</span>
+                      {form.setor_destino === "" && <Check className="h-3.5 w-3.5" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm((f) => ({
+                          ...f,
+                          setor_destino: "desenvolvimento",
+                          status_destino: "",
+                        }))
+                      }
+                      className={`h-full rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-1.5 ${
+                        form.setor_destino === "desenvolvimento"
+                          ? "bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-sm"
+                          : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      <span>Embalagens</span>
+                      {form.setor_destino === "desenvolvimento" && (
+                        <Check className="h-3.5 w-3.5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Observações Gerais */}
+              <div className="space-y-1.5">
+                <Label htmlFor="observacao" className="text-xs font-medium text-slate-300">
+                  Observações Gerais da Ordem
+                </Label>
+                <Textarea
+                  id="observacao"
+                  value={form.observacao}
+                  onChange={(e) => setForm((f) => ({ ...f, observacao: e.target.value }))}
+                  placeholder="Informações adicionais, detalhes de faca, arquivos recebidos..."
+                  className="min-h-[70px] bg-slate-900/90 border-slate-800 text-white placeholder:text-slate-500 focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 rounded-xl text-xs"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ════════════ ETAPA 2: PROVA & IMPRESSÃO ════════════ */}
+          {step === 2 && (
+            <div className="space-y-5 animate-in fade-in-50 duration-200">
+              {/* BLOCO DE PROVA */}
+              <div className="p-4 rounded-xl border border-slate-800/90 bg-slate-900/50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]" />
+                    <Label className="text-xs font-bold text-white uppercase tracking-wider">
+                      Tipo de Prova <span className="text-rose-400">*</span>
+                    </Label>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, urgente_prova: !f.urgente_prova }))}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
+                      form.urgente_prova
+                        ? "bg-rose-500/20 border-rose-500/50 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.3)] animate-pulse"
+                        : "bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />
+                    <span>Prova Urgente</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  {/* Digital */}
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, prova_digital: !f.prova_digital }))}
+                    className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1 ${
+                      form.prova_digital
+                        ? "bg-sky-500/20 border-sky-400 text-sky-300 font-bold shadow-[0_0_15px_-3px_rgba(14,165,233,0.3)]"
+                        : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700"
+                    }`}
+                  >
+                    <span className="text-xs">Prova Digital</span>
+                    <span className="text-[10px] text-slate-500">Impressão direta</span>
+                  </button>
+
+                  {/* E-mail */}
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, prova_email: !f.prova_email }))}
+                    className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1 ${
+                      form.prova_email
+                        ? "bg-pink-500/20 border-pink-400 text-pink-300 font-bold shadow-[0_0_15px_-3px_rgba(236,72,153,0.3)]"
+                        : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700"
+                    }`}
+                  >
+                    <span className="text-xs">Prova E-mail</span>
+                    <span className="text-[10px] text-slate-500">Envio em PDF</span>
+                  </button>
+
+                  {/* Saída Direta */}
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, saida_direta: !f.saida_direta }))}
+                    className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1 ${
+                      form.saida_direta
+                        ? "bg-amber-500/20 border-amber-400 text-amber-300 font-bold shadow-[0_0_15px_-3px_rgba(245,158,11,0.3)]"
+                        : "bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700"
+                    }`}
+                  >
+                    <span className="text-xs">Saída Direta</span>
+                    <span className="text-[10px] text-slate-500">Sem aprovação</span>
+                  </button>
+                </div>
+
+                {/* Detalhes de entrega da prova (se Digital ou Email) */}
+                {(form.prova_digital || form.prova_email) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-slate-800/80">
+                    <Input
+                      value={form.destinatario}
+                      onChange={(e) => setForm((f) => ({ ...f, destinatario: e.target.value }))}
+                      placeholder="Aos Cuidados (A/C)..."
+                      className="h-8 bg-slate-950/80 border-slate-800 text-xs text-white rounded-lg"
+                    />
+                    <Input
+                      value={form.endereco_entrega}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, endereco_entrega: e.target.value }))
+                      }
+                      placeholder="Endereço ou E-mail para envio..."
+                      className="h-8 bg-slate-950/80 border-slate-800 text-xs text-white rounded-lg"
+                    />
+                    <Input
+                      value={form.obs_prova}
+                      onChange={(e) => setForm((f) => ({ ...f, obs_prova: e.target.value }))}
+                      placeholder="Obs específica de prova..."
+                      className="h-8 bg-slate-950/80 border-slate-800 text-xs text-white rounded-lg"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* BLOCO DE IMPRESSÃO */}
+              <div className="p-4 rounded-xl border border-slate-800/90 bg-slate-900/50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_#3b82f6]" />
+                    <Label className="text-xs font-bold text-white uppercase tracking-wider">
+                      Processos de Impressão & Cores
+                    </Label>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm((f) => ({ ...f, urgente_impressao: !f.urgente_impressao }))
+                    }
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
+                      form.urgente_impressao
+                        ? "bg-rose-500/20 border-rose-500/50 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.3)] animate-pulse"
+                        : "bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />
+                    <span>Impressão Urgente</span>
+                  </button>
+                </div>
+
+                {/* Linha 1: CTP, OFF e Cores Principais */}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-[11px] font-mono-tech text-slate-400 mr-1">Off-Set:</span>
+                  {(["CTP", "OFF"] as const).map((sigla) => {
+                    const active = form.processos.includes(sigla);
+                    return (
+                      <button
+                        type="button"
+                        key={sigla}
+                        onClick={() => toggleProcesso(sigla)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                          active
+                            ? "bg-blue-600 text-white border-blue-400 shadow-[0_0_10px_rgba(37,99,235,0.4)]"
+                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        {sigla}
+                      </button>
+                    );
+                  })}
+
+                  <div className="h-4 w-[1px] bg-slate-800 mx-1" />
+
+                  {IMPRESSAO_TIPOS.map((p) => {
+                    const active = form.processos.includes(p.sigla);
+                    return (
+                      <button
+                        type="button"
+                        key={p.sigla}
+                        onClick={() => toggleProcesso(p.sigla)}
+                        className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all ${
+                          active
+                            ? p.sigla === "CMYK+IR"
+                              ? "bg-pink-600 text-white border-pink-400"
+                              : p.sigla === "CMYK+VM"
+                              ? "bg-amber-500 text-black border-amber-300 font-extrabold"
+                              : p.sigla === "PANTONE"
+                              ? "bg-emerald-600 text-white border-emerald-400"
+                              : "bg-cyan-600 text-white border-cyan-400"
+                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        {p.sigla}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Linha 2: Impressão Digital & Plotter */}
+                <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-slate-800/80">
+                  <span className="text-[11px] font-mono-tech text-slate-400 mr-1">Digital:</span>
+                  {(["DIG", "PLO"] as const).map((sigla) => {
+                    const active = form.processos.includes(sigla);
+                    return (
+                      <button
+                        type="button"
+                        key={sigla}
+                        onClick={() => toggleProcesso(sigla)}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold border transition-all ${
+                          active
+                            ? "bg-emerald-600 text-white border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]"
+                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        {sigla}
+                      </button>
+                    );
+                  })}
+
+                  <div className="h-4 w-[1px] bg-slate-800 mx-1" />
+
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, digital_color: !f.digital_color }))}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                      form.digital_color
+                        ? "bg-blue-600 text-white border-blue-400 font-bold"
+                        : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    Color
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, digital_pb: !f.digital_pb }))}
+                    className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                      form.digital_pb
+                        ? "bg-slate-500 text-white border-slate-300 font-bold"
+                        : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    Preto & Branco (PB)
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ════════════ ETAPA 3: ACABAMENTO & LOGÍSTICA ════════════ */}
+          {step === 3 && (
+            <div className="space-y-4 animate-in fade-in-50 duration-200">
+              {/* ACABAMENTOS */}
+              <div className="p-4 rounded-xl border border-slate-800/90 bg-slate-900/50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_#a855f7]" />
+                    <Label className="text-xs font-bold text-white uppercase tracking-wider">
+                      Processos de Acabamento Gráfico
+                    </Label>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm((f) => ({ ...f, urgente_acabamento: !f.urgente_acabamento }))
+                    }
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
+                      form.urgente_acabamento
+                        ? "bg-rose-500/20 border-rose-500/50 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.3)] animate-pulse"
+                        : "bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />
+                    <span>Acabamento Urgente</span>
+                  </button>
+                </div>
+
+                {/* Categoria do Acabamento */}
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-mono-tech text-slate-400 mr-2">Linha:</span>
+                  {ACABAMENTO_TIPOS.map((tipo) => {
+                    const isSelected = form.processos.includes(tipo);
+                    return (
+                      <button
+                        type="button"
+                        key={tipo}
+                        onClick={() => {
+                          setForm((f) => ({
+                            ...f,
+                            processos: [
+                              ...f.processos.filter(
+                                (p) => !(ACABAMENTO_TIPOS as readonly string[]).includes(p)
+                              ),
+                              tipo,
+                            ],
+                          }));
+                        }}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold border transition-all ${
+                          isSelected
+                            ? tipo === "Promocional"
+                              ? "bg-blue-600 text-white border-blue-400 shadow-sm"
+                              : tipo === "Editorial"
+                              ? "bg-pink-600 text-white border-pink-400 shadow-sm"
+                              : "bg-amber-500 text-black border-amber-300 shadow-sm font-extrabold"
+                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        {tipo}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Grid de Siglas de Acabamento Organizadas */}
+                <div className="space-y-1.5 pt-1">
+                  {ACABAMENTO_GROUPS.map((group, gi) => (
+                    <div
+                      key={gi}
+                      className={`flex flex-wrap gap-1.5 p-1.5 rounded-lg border border-slate-800/80 ${
+                        gi === 2 ? "bg-purple-950/20" : "bg-slate-950/40"
+                      }`}
+                    >
+                      {group.items.map((p) => {
+                        const active = form.processos.includes(p.sigla);
+                        return (
+                          <button
+                            type="button"
+                            key={p.sigla}
+                            onClick={() => toggleProcesso(p.sigla)}
+                            className={`px-2 py-1 rounded text-[11px] font-mono-tech font-bold border transition-all ${
+                              active
+                                ? `${p.cor} ring-2 ring-cyan-400/50 scale-105`
+                                : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                            }`}
+                          >
+                            {p.sigla}
+                          </button>
+                        );
+                      })}
+                    </div>
                   ))}
                 </div>
               </div>
-            ))}
-          </div>
 
-          {/* ═══ ENTREGA ═══ */}
-          <div className="border rounded-lg p-3 space-y-1.5">
-            <div className="flex items-center justify-between gap-2">
-              <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Expedição</Label>
-              <div className="flex items-center gap-2">
-                <Checkbox id="urgente-expedicao" checked={form.urgente_expedicao} onCheckedChange={(checked) => setForm((f) => ({ ...f, urgente_expedicao: checked === true }))} />
-                <Label htmlFor="urgente-expedicao" className={`text-sm font-medium cursor-pointer flex items-center gap-1.5 rounded px-1.5 py-0.5 transition-colors ${form.urgente_expedicao ? "bg-red-600 text-white animate-pulse" : "text-red-600 dark:text-red-400"}`}>
-                  <AlertTriangle className="h-4 w-4" /> Urgente
-                </Label>
-              </div>
-            </div>
-            
-            {/* Tipo Entrega: CARRO / MOTO / RETIRA (multiple selection) */}
-            <div className="flex items-center gap-4 flex-wrap">
-              {["MOTO", "CARRO", "RETIRA"].map((tipo) => (
-                <div key={tipo} className="flex items-center gap-2">
-                  <Checkbox
-                    id={`entrega-${tipo}`}
-                    checked={form.tipo_entrega.includes(tipo)}
-                    onCheckedChange={() => toggleTipoEntrega(tipo)}
-                  />
-                  <Label htmlFor={`entrega-${tipo}`} className={`text-sm cursor-pointer font-semibold px-2 py-0.5 rounded text-xs ${
-                    form.tipo_entrega.includes(tipo) 
-                      ? tipo === "CARRO" ? "bg-pink-600 text-white" 
-                        : tipo === "MOTO" ? "bg-blue-600 text-white"
-                        : "bg-yellow-500 text-black"
-                      : ""
-                  }`}>
-                    {tipo.charAt(0) + tipo.slice(1).toLowerCase()}
-                  </Label>
-                </div>
-              ))}
-            </div>
-
-            {/* ENTREGAR COM: NF / PROTOCOLO - Checkboxes */}
-            <div className="space-y-2">
-              <Label className="text-xs uppercase text-muted-foreground">Entregar com</Label>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="tem-nf"
-                    checked={form.tem_nf}
-                    onCheckedChange={(checked) => setForm((f) => ({ ...f, tem_nf: checked === true }))}
-                  />
-                  <Label htmlFor="tem-nf" className="text-sm cursor-pointer font-semibold">NF</Label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="tem-protocolo"
-                    checked={form.tem_protocolo}
-                    onCheckedChange={(checked) => setForm((f) => ({ ...f, tem_protocolo: checked === true }))}
-                  />
-                  <Label htmlFor="tem-protocolo" className="text-sm cursor-pointer font-semibold">Protocolo</Label>
-                </div>
-              </div>
-            </div>
-
-            {/* DA: PRIMACOR / IMPRIMASET / CLIENTE */}
-            <div>
-              <Label className="text-xs uppercase text-muted-foreground">Da</Label>
-              <RadioGroupBase
-                value={form.empresa_entrega}
-                onValueChange={(v) => setForm((f) => ({ ...f, empresa_entrega: v }))}
-                className="flex items-center gap-4 mt-1"
-              >
-                {["PRIMACOR", "IMPRIMASET", "CLIENTE"].map((emp) => (
-                  <div key={emp} className="flex items-center gap-2">
-                    <RadioGroupItem value={emp} id={`empresa-${emp}`} />
-                    <Label htmlFor={`empresa-${emp}`} className={`text-sm cursor-pointer font-semibold px-2 py-0.5 rounded text-xs ${
-                      form.empresa_entrega === emp
-                        ? emp === "PRIMACOR" ? "bg-blue-600 text-white"
-                          : emp === "IMPRIMASET" ? "bg-pink-600 text-white"
-                          : emp === "CLIENTE" ? "bg-yellow-500 text-black"
-                          : ""
-                        : ""
-                    }`}>{emp === "IMPRIMASET" ? "Imprimaset" : emp.charAt(0) + emp.slice(1).toLowerCase()}</Label>
+              {/* EXPEDIÇÃO & LOGÍSTICA */}
+              <div className="p-4 rounded-xl border border-slate-800/90 bg-slate-900/50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Truck className="h-4 w-4 text-emerald-400" />
+                    <Label className="text-xs font-bold text-white uppercase tracking-wider">
+                      Expedição & Entrega
+                    </Label>
                   </div>
-                ))}
-              </RadioGroupBase>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setForm((f) => ({ ...f, urgente_expedicao: !f.urgente_expedicao }))
+                    }
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
+                      form.urgente_expedicao
+                        ? "bg-rose-500/20 border-rose-500/50 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.3)] animate-pulse"
+                        : "bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />
+                    <span>Entrega Urgente</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* Modal / Veículo */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-mono-tech text-slate-400">Transporte:</span>
+                    <div className="flex gap-1.5">
+                      {["MOTO", "CARRO", "RETIRA"].map((t) => {
+                        const active = form.tipo_entrega.includes(t);
+                        return (
+                          <button
+                            type="button"
+                            key={t}
+                            onClick={() => toggleTipoEntrega(t)}
+                            className={`flex-1 py-1 px-1.5 rounded-lg text-[11px] font-bold border transition-all ${
+                              active
+                                ? "bg-emerald-600 text-white border-emerald-400 shadow-sm"
+                                : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                            }`}
+                          >
+                            {t}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Documentos */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-mono-tech text-slate-400">Documentação:</span>
+                    <div className="flex gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => setForm((f) => ({ ...f, tem_nf: !f.tem_nf }))}
+                        className={`flex-1 py-1 px-1.5 rounded-lg text-[11px] font-bold border transition-all ${
+                          form.tem_nf
+                            ? "bg-cyan-600 text-white border-cyan-400 shadow-sm"
+                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        NF
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setForm((f) => ({ ...f, tem_protocolo: !f.tem_protocolo }))}
+                        className={`flex-1 py-1 px-1.5 rounded-lg text-[11px] font-bold border transition-all ${
+                          form.tem_protocolo
+                            ? "bg-cyan-600 text-white border-cyan-400 shadow-sm"
+                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        Protocolo
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Origem */}
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-mono-tech text-slate-400">Origem:</span>
+                    <div className="flex gap-1">
+                      {["PRIMACOR", "IMPRIMASET", "CLIENTE"].map((emp) => (
+                        <button
+                          type="button"
+                          key={emp}
+                          onClick={() => setForm((f) => ({ ...f, empresa_entrega: emp }))}
+                          className={`flex-1 py-1 px-1 rounded-lg text-[10px] font-bold border transition-all truncate ${
+                            form.empresa_entrega === emp
+                              ? "bg-blue-600 text-white border-blue-400 shadow-sm"
+                              : "bg-slate-900 border-slate-800 text-slate-400 hover:text-white"
+                          }`}
+                        >
+                          {emp === "IMPRIMASET" ? "Imprim." : emp.charAt(0) + emp.slice(1).toLowerCase()}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Endereço & Data Limite */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                  <Input
+                    value={form.entrega_endereco}
+                    onChange={(e) => setForm((f) => ({ ...f, entrega_endereco: e.target.value }))}
+                    placeholder="Endereço de entrega final..."
+                    className="h-8 bg-slate-950/80 border-slate-800 text-xs text-white rounded-lg"
+                  />
+                  <div className="flex gap-2">
+                    <Input
+                      value={form.entrega_ac}
+                      onChange={(e) => setForm((f) => ({ ...f, entrega_ac: e.target.value }))}
+                      placeholder="A/C..."
+                      className="h-8 flex-1 bg-slate-950/80 border-slate-800 text-xs text-white rounded-lg"
+                    />
+                    <Input
+                      type="datetime-local"
+                      value={form.entrega_data_limite}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, entrega_data_limite: e.target.value }))
+                      }
+                      className="h-8 w-44 bg-slate-950/80 border-slate-800 text-xs text-white rounded-lg"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
+          )}
+        </div>
 
-
-            {/* ENDEREÇO */}
-            <div>
-              <Label className="text-xs uppercase text-muted-foreground">Endereço</Label>
-              <Input value={form.entrega_endereco} onChange={(e) => setForm((f) => ({ ...f, entrega_endereco: e.target.value }))} placeholder="Endereço de entrega" className="h-9" />
-            </div>
-
-            {/* A/C */}
-            <div>
-              <Label className="text-xs uppercase text-muted-foreground">A/C</Label>
-              <Input value={form.entrega_ac} onChange={(e) => setForm((f) => ({ ...f, entrega_ac: e.target.value }))} placeholder="Aos cuidados de..." className="h-9" />
-            </div>
-
-            {/* DATA LIMITE */}
-            <div>
-              <Label className="text-xs uppercase text-muted-foreground">Data Entrega</Label>
-              <Input type="datetime-local" value={form.entrega_data_limite} onChange={(e) => setForm((f) => ({ ...f, entrega_data_limite: e.target.value }))} className="h-9" />
-            </div>
-
-            {/* OBS */}
-            <div>
-              <Label htmlFor="obs_entrega" className="text-xs uppercase text-muted-foreground">OBS</Label>
-              <Textarea id="obs_entrega" value={form.obs_entrega} onChange={(e) => setForm((f) => ({ ...f, obs_entrega: e.target.value }))} placeholder="Observações da entrega..." className="min-h-[40px]" />
-            </div>
-
-          </div>
-
-          {/* ═══ ENVIAR PARA SETOR ═══ */}
-          <div className="border rounded-lg p-3 space-y-2">
-            <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Enviar para (opcional)</Label>
-            <div className="flex gap-2">
+        {/* Bottom Navigation Footer */}
+        <div className="px-6 py-4 border-t border-slate-800/80 bg-slate-900/60 flex items-center justify-between shrink-0">
+          <div>
+            {step > 1 ? (
               <Button
                 type="button"
-                variant={form.setor_destino === "desenvolvimento" ? "default" : "outline"}
-                size="sm"
-                className="flex-1"
-                onClick={() => setForm((f) => ({ ...f, setor_destino: f.setor_destino === "desenvolvimento" ? "" : "desenvolvimento", status_destino: "" }))}
+                variant="ghost"
+                onClick={handleBack}
+                className="text-xs text-slate-300 hover:text-white hover:bg-slate-800 gap-1.5 rounded-xl h-10 px-4"
               >
-                Embalagens
+                <ArrowLeft className="h-4 w-4" />
+                <span>Voltar</span>
               </Button>
+            ) : (
               <Button
                 type="button"
-                variant={form.setor_destino === "" && form.status_destino === "" ? "default" : "outline"}
-                size="sm"
-                className="flex-1"
-                onClick={() => setForm((f) => ({ ...f, setor_destino: "", status_destino: "" }))}
+                variant="ghost"
+                onClick={() => setOpen(false)}
+                className="text-xs text-slate-500 hover:text-slate-300 rounded-xl h-10 px-4"
               >
-                Pré-Impressão
+                Cancelar
               </Button>
-            </div>
-            <p className="text-xs text-muted-foreground">Se não selecionar, a OS vai para a ENTRADA da Pré-Impressão.</p>
+            )}
           </div>
 
-
-          {/* Footer */}
-          <div className="flex items-center gap-2 pt-1">
-            <Button type="submit" disabled={isChecking} className="flex-1">
-              {isChecking ? "Verificando..." : "Criar OS"}
-            </Button>
-            <Button type="button" variant="ghost" size="icon" onClick={() => setOpen(false)}>
-              <X className="h-4 w-4" />
-            </Button>
+          <div className="flex items-center gap-2.5">
+            {step < 3 ? (
+              <Button
+                type="button"
+                onClick={handleNext}
+                className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-xl h-10 px-5 gap-1.5 shadow-md shadow-cyan-600/20"
+              >
+                <span>Avançar para {step === 1 ? "Especificações" : "Acabamento"}</span>
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                type="button"
+                disabled={isChecking}
+                onClick={() => handleSubmit()}
+                className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-xs font-bold rounded-xl h-10 px-6 gap-2 shadow-lg shadow-emerald-500/25"
+              >
+                <Check className="h-4 w-4" />
+                <span>{isChecking ? "Verificando O.S...." : "Criar Ordem de Serviço"}</span>
+              </Button>
+            )}
           </div>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

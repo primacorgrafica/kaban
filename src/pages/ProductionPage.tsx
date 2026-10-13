@@ -143,11 +143,11 @@ export default function ProductionPage() {
       {isLoading ? (
         <div className="flex items-center justify-center h-full text-muted-foreground">Carregando dados...</div>
       ) : isFaturamento ? (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col min-h-full">
           <div className="px-4 pt-2 flex items-center gap-4">
             <KanbanFiltersBar filters={fatFilters} onChange={setFatFilters} showOnly={["vendedores"]} />
           </div>
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 min-h-0">
             <ProductionKanbanBoard
               department={currentDept}
               orders={fatFilteredOrders}
@@ -164,11 +164,11 @@ export default function ProductionPage() {
           </div>
         </div>
       ) : isManutencao ? (
-        <div className="flex flex-col h-full">
+        <div className="flex flex-col min-h-full">
           <div className="px-4 pt-2 flex items-center gap-4">
             <KanbanFiltersBar filters={fatFilters} onChange={setFatFilters} showOnly={["setoresManut", "categoriasManut"]} />
           </div>
-          <div className="flex-1 overflow-hidden">
+          <div className="flex-1 min-h-0">
             <ProductionKanbanBoard
               department={currentDept}
               orders={manutFilteredOrders}

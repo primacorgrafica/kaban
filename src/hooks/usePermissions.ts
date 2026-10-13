@@ -14,7 +14,7 @@ const ROLE_LEVEL: Record<AppRole, number> = {
 };
 
 export function usePermissions() {
-  const { role, user } = useAuth();
+  const { role, user, hasModule } = useAuth();
   const currentRole = (role as AppRole) || "user";
   const level = ROLE_LEVEL[currentRole] ?? 0;
 
@@ -22,8 +22,8 @@ export function usePermissions() {
     role: currentRole,
     level,
 
-    // Admin (4): tudo
-    canAccessDashboard: level >= 4,
+    // Admin (4), Coordenador (3) ou quem tem módulo dashboard
+    canAccessDashboard: level >= 3 || hasModule("dashboard"),
     canAccessComercial: currentRole === "admin" || currentRole === "coordenador" || currentRole === "vendedor" || currentRole === "orcamentista",
     canManageUsers: level >= 4,
     canManageProcesses: level >= 4,

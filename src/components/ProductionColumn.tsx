@@ -78,9 +78,9 @@ export function ProductionColumn({
   const StatusIcon = STATUS_ICONS[statusConfig.id] || Inbox;
 
   return (
-    <div className="flex-shrink-0 w-[80vw] sm:w-72 flex flex-col rounded-xl bg-muted/40 border border-border/50">
+    <div className="flex-shrink-0 w-[80vw] sm:w-72 flex flex-col rounded-2xl bg-slate-900/40 backdrop-blur-xl border border-slate-800/80 shadow-lg min-h-full h-fit">
       <div
-        className="flex items-center gap-2.5 px-3.5 py-3 border-b flex-shrink-0"
+        className="flex items-center gap-2.5 px-3.5 py-3 border-b flex-shrink-0 rounded-t-2xl"
         style={{
           backgroundColor: `hsl(var(--status-${statusConfig.colorKey}-bg))`,
           borderColor: `hsl(var(--status-${statusConfig.colorKey}) / 0.15)`,

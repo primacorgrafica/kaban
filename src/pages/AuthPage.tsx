@@ -44,9 +44,9 @@ export default function AuthPage() {
 
       <div className="relative w-full max-w-[440px] z-10 flex flex-col items-center">
         {/* Brand Header */}
-        <div className="mb-8 flex flex-col items-center text-center">
-          <div className="relative mb-4 p-3 rounded-2xl bg-slate-900/80 border border-cyan-500/30 shadow-[0_0_30px_-5px_rgba(6,182,212,0.3)] backdrop-blur-xl">
-            <img src={logoImg} alt="Primacor Gráfica" className="w-20 h-20 object-contain drop-shadow" />
+        <div className="mb-7 flex flex-col items-center text-center">
+          <div className="relative mb-4 p-4 rounded-3xl bg-slate-900/80 border border-cyan-500/30 shadow-[0_0_40px_-5px_rgba(6,182,212,0.35)] backdrop-blur-xl">
+            <img src={logoImg} alt="Primacor Gráfica" className="w-36 h-36 md:w-40 md:h-40 object-contain drop-shadow-xl" />
             <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-slate-950 flex items-center justify-center shadow-[0_0_10px_#10b981]">
               <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping" />
             </div>
@@ -56,14 +56,6 @@ export default function AuthPage() {
             PRIMACOR <span className="text-xs px-2 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 font-mono-tech uppercase font-medium">OS v2.0</span>
           </h1>
           <p className="text-xs text-slate-400 mt-1">Sistema Integrado de Pré-Impressão & PCP</p>
-
-          {/* System Telemetry Badge */}
-          <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/70 border border-slate-800 text-[11px] text-slate-300 font-mono-tech">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]" />
-            <span>Supabase Cloud Active</span>
-            <span className="text-slate-600">•</span>
-            <span className="text-cyan-400">Pronto para operação</span>
-          </div>
         </div>
 
         {/* Login Card */}

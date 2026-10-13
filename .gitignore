@@ -28,3 +28,11 @@ dist-ssr
 *.sw?
 supabase/.temp/
 .temp/
+
+# Local database backups and restore scripts
+backup_*.json
+generate_restore_*.py
+generate_restore_*.js
+inspect_backup.py
+restauracao_os/
+restaurar_ordens_*.sql

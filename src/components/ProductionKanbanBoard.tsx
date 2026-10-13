@@ -213,7 +213,7 @@ export function ProductionKanbanBoard({
 
   return (
     <DragDropContext onDragStart={() => setIsDndActive(true)} onDragEnd={handleDragEnd}>
-      <div className="relative h-full">
+      <div className="relative min-h-full">
         <div className={`absolute left-0 top-0 bottom-4 w-8 z-10 pointer-events-none transition-opacity duration-300 ${canScrollLeft ? "opacity-100" : "opacity-0"}`} style={{ background: "linear-gradient(to right, hsl(var(--background)), transparent)" }} />
         {canScrollLeft && (
           <button onClick={() => scrollTo("left")} className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-7 h-7 rounded-full bg-card border border-border shadow-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
@@ -227,7 +227,7 @@ export function ProductionKanbanBoard({
           </button>
         )}
 
-        <div ref={containerRef} className="flex gap-7 h-full overflow-auto pb-4 px-1 scrollbar-hide select-none" style={{ WebkitOverflowScrolling: "touch" }}>
+        <div ref={containerRef} className="flex gap-7 min-h-full items-stretch overflow-x-auto pb-8 px-1 scrollbar-hide select-none" style={{ WebkitOverflowScrolling: "touch" }}>
           {department.statuses.map((statusConfig) => (
             <ProductionColumn
               key={statusConfig.id}

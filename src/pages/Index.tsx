@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useOrders } from "@/hooks/useOrders";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Layout } from "@/components/Layout";
 import { KanbanBoard } from "@/components/KanbanBoard";
+import { ProductionTable } from "@/components/ProductionTable";
 import { useLocation } from "react-router-dom";
 import { ArchivedOrders } from "@/components/ArchivedOrders";
 import { Dashboard } from "@/components/Dashboard";
@@ -10,6 +11,8 @@ import { KanbanFiltersBar, KanbanFilters } from "@/components/KanbanFiltersBar";
 import { Order } from "@/types/order";
 import { startOfDay, endOfDay } from "date-fns";
 import { useSlowOrderAlerts } from "@/hooks/useSlowOrderAlerts";
+import { LayoutGrid, TableProperties } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Index = () => {
   const perms = usePermissions();
@@ -36,6 +39,15 @@ const Index = () => {
   const location = useLocation();
   const isDashboard = location.pathname === "/dashboard";
   const isArchived = location.pathname === "/arquivados";
+
+  const [viewMode, setViewMode] = useState<"kanban" | "table">(() => {
+    return (localStorage.getItem("primacor_view_mode") as "kanban" | "table") || "kanban";
+  });
+
+  const handleSetViewMode = (mode: "kanban" | "table") => {
+    setViewMode(mode);
+    localStorage.setItem("primacor_view_mode", mode);
+  };
 
   const [filters, setFilters] = useState<KanbanFilters>({
     statuses: [],
@@ -74,7 +86,12 @@ const Index = () => {
       permissions={perms}
     >
       {loading ? (
-        <div className="flex items-center justify-center h-full text-muted-foreground">Carregando dados...</div>
+        <div className="flex items-center justify-center h-full text-muted-foreground font-mono-tech">
+          <div className="flex flex-col items-center gap-2">
+            <span className="w-6 h-6 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+            <span>Carregando O.S. Primacor...</span>
+          </div>
+        </div>
       ) : isDashboard && perms.canAccessDashboard ? (
         <Dashboard orders={orders} archivedCount={archivedOrders.length} />
       ) : isDashboard ? (
@@ -88,24 +105,72 @@ const Index = () => {
       ) : isArchived ? (
         <div className="flex items-center justify-center h-full text-muted-foreground">Sem permissão para acessar os Trabalhos Concluídos.</div>
       ) : (
-        <div className="flex flex-col h-full gap-3">
-          <KanbanFiltersBar filters={filters} onChange={setFilters} />
+        <div className="flex flex-col min-h-full gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <KanbanFiltersBar filters={filters} onChange={setFilters} />
+            <div className="flex items-center bg-slate-900/60 p-1 rounded-xl border border-slate-800/80 shrink-0">
+              <Button
+                variant={viewMode === "kanban" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => handleSetViewMode("kanban")}
+                className={`h-7 px-2.5 text-xs rounded-lg transition-all ${
+                  viewMode === "kanban"
+                    ? "bg-cyan-500/20 text-cyan-400 font-bold border border-cyan-500/30"
+                    : "text-slate-400 hover:text-white"
+                }`}
+                title="Visualização em Quadro Kanban"
+              >
+                <LayoutGrid className="h-3.5 w-3.5 mr-1.5" /> Quadro
+              </Button>
+              <Button
+                variant={viewMode === "table" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => handleSetViewMode("table")}
+                className={`h-7 px-2.5 text-xs rounded-lg transition-all ${
+                  viewMode === "table"
+                    ? "bg-cyan-500/20 text-cyan-400 font-bold border border-cyan-500/30"
+                    : "text-slate-400 hover:text-white"
+                }`}
+                title="Visualização em Tabela / Lista de Produção"
+              >
+                <TableProperties className="h-3.5 w-3.5 mr-1.5" /> Tabela
+              </Button>
+            </div>
+          </div>
+
           <div className="flex-1 overflow-hidden">
-            <KanbanBoard
-              orders={filteredActive}
-              onUpdate={updateOrder}
-              onMove={moveOrder}
-              onArchive={archiveOrder}
-              onDelete={deleteOrder}
-              onDuplicate={duplicateOrder}
-              onSendToProduction={sendToProduction}
-              onSendToMultipleProduction={sendToMultipleProduction}
-              onSendToExpedicao={sendToExpedicao}
-              getProfileName={getProfileName}
-               permissions={perms}
-               departmentContext="pre_impressao"
-               slowAlertIds={slowAlertIds}
-            />
+            {viewMode === "kanban" ? (
+              <KanbanBoard
+                orders={filteredActive}
+                onUpdate={updateOrder}
+                onMove={moveOrder}
+                onArchive={archiveOrder}
+                onDelete={deleteOrder}
+                onDuplicate={duplicateOrder}
+                onSendToProduction={sendToProduction}
+                onSendToMultipleProduction={sendToMultipleProduction}
+                onSendToExpedicao={sendToExpedicao}
+                getProfileName={getProfileName}
+                permissions={perms}
+                departmentContext="pre_impressao"
+                slowAlertIds={slowAlertIds}
+              />
+            ) : (
+              <ProductionTable
+                orders={filteredActive}
+                onUpdate={updateOrder}
+                onMove={moveOrder}
+                onArchive={archiveOrder}
+                onDelete={deleteOrder}
+                onDuplicate={duplicateOrder}
+                onSendToProduction={sendToProduction}
+                onSendToExpedicao={sendToExpedicao}
+                getProfileName={getProfileName}
+                permissions={perms}
+                departmentContext="pre_impressao"
+                slowAlertIds={slowAlertIds}
+              />
+            )}
           </div>
         </div>
       )}

@@ -445,13 +445,57 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
 
       {/* Detail / Edit Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
-              {editing ? "Editar OS." : "Detalhes da OS."}
-            </DialogTitle>
-          </DialogHeader>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden border border-slate-800 bg-slate-950/95 text-slate-100 shadow-2xl backdrop-blur-2xl rounded-2xl flex flex-col max-h-[92vh]">
+          {/* Header Fixo */}
+          <div className="px-6 py-4 border-b border-slate-800/80 bg-slate-900/60 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-3">
+              <div className="h-9 w-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                <FileText className="h-4 w-4" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono-tech text-base font-bold text-white tracking-wide">
+                    O.S. #{order.titulo}
+                  </span>
+                  <Badge
+                    style={{
+                      backgroundColor: `hsl(var(--status-${config.colorKey}-bg))`,
+                      color: `hsl(var(--status-${config.colorKey}))`,
+                      border: `1px solid hsl(var(--status-${config.colorKey}) / 0.3)`,
+                    }}
+                    className="font-medium text-[11px]"
+                  >
+                    {config.label}
+                  </Badge>
+                  {order.urgente && (
+                    <Badge className="bg-rose-500/20 text-rose-300 border-rose-500/40 text-[10px] animate-pulse flex items-center gap-1 font-bold">
+                      <AlertTriangle className="h-3 w-3" /> URGENTE
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-slate-300 font-medium truncate max-w-md mt-0.5">
+                  {order.cliente}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {order.prazo && (
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-800/80 border border-slate-700/80 text-xs font-mono-tech text-slate-300">
+                  <Clock className="h-3.5 w-3.5 text-cyan-400" />
+                  <span className={isNearDeadline ? "text-rose-400 font-bold" : ""}>
+                    {format(new Date(order.prazo), "dd/MM/yyyy HH:mm", { locale: ptBR })}
+                  </span>
+                </div>
+              )}
+              {order.vendedor && (
+                <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-400">
+                  <User className="h-3 w-3 text-cyan-400" />
+                  <span>{order.vendedor}</span>
+                </div>
+              )}
+            </div>
+          </div>
 
           {editing ? (
             <div className="space-y-4">
@@ -810,207 +854,269 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
               </div>
             </div>
           ) : (
-            /* ═══ VIEW MODE ═══ */
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm text-muted-foreground">Status</p>
-                <Badge
-                  className="mt-1"
-                  style={{
-                    backgroundColor: `hsl(var(--status-${config.colorKey}-bg))`,
-                    color: `hsl(var(--status-${config.colorKey}))`,
-                    border: `1px solid hsl(var(--status-${config.colorKey}) / 0.3)`,
-                  }}
-                >
-                  {config.label}
-                </Badge>
-              </div>
-              {order.urgente && (
-                <div className="flex items-center gap-2 text-red-600 dark:text-red-400 font-semibold text-sm">
-                  <AlertTriangle className="h-4 w-4" /> Urgente
-                </div>
-              )}
-              {order.prazo && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Prazo</p>
-                  <p className={`text-sm font-semibold ${isNearDeadline ? "text-red-600 dark:text-red-400" : ""}`}>
-                    {format(new Date(order.prazo), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}
-                  </p>
-                </div>
-              )}
-              <div>
-                <p className="text-sm text-muted-foreground">Número OS.</p>
-                <p className="font-medium">{order.titulo}</p>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Nome Cliente</p>
-                <p>{order.cliente}</p>
-              </div>
-              {order.vendedor && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Vendedor</p>
-                  <p className="text-sm">{order.vendedor}</p>
-                </div>
-              )}
-              {order.observacao && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Observação</p>
-                  <p className="text-sm">{order.observacao}</p>
-                </div>
-              )}
-
-              {/* PROVA section */}
-              {(order.prova_digital || order.prova_email || order.saida_direta) && (
-                <div className="border rounded-lg p-3 space-y-2">
-                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Prova</p>
-                  <div className="flex gap-2 flex-wrap">
-                    {order.prova_email && <Badge className="bg-pink-100 text-pink-800 border-pink-300">E-mail</Badge>}
-                    {order.prova_digital && <Badge className="bg-sky-100 text-sky-800 border-sky-300">Digital</Badge>}
-                    {order.saida_direta && <Badge className="bg-amber-100 text-amber-800 border-amber-300">Saída Direta</Badge>}
-                    {(order as any).digital_color && <Badge className="bg-blue-100 text-blue-800 border-blue-300">Color</Badge>}
-                    {(order as any).digital_pb && <Badge className="bg-gray-200 text-gray-800 border-gray-400">PB</Badge>}
+            /* ═══ VIEW MODE (DUAL COLUMN SPLIT, NO VERTICAL SCROLLBAR) ═══ */
+            <div className="flex flex-col flex-1 overflow-hidden">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 overflow-y-auto px-6 py-4 max-h-[68vh] scrollbar-none">
+                {/* ─── COLUNA 1: ESPECIFICAÇÕES, PROVA & PROCESSOS ─── */}
+                <div className="space-y-3">
+                  {/* Bloco Comercial & Descrição */}
+                  <div className="p-3.5 rounded-xl border border-slate-800/80 bg-slate-900/50 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                      <FileText className="h-3.5 w-3.5 text-cyan-400" />
+                      <span>Dados do Serviço</span>
+                    </div>
+                    {order.descricao && (
+                      <div>
+                        <p className="text-[10px] text-slate-500 uppercase font-medium">Descrição</p>
+                        <p className="text-xs text-white font-medium">{order.descricao}</p>
+                      </div>
+                    )}
+                    {order.vendedor && (
+                      <div>
+                        <p className="text-[10px] text-slate-500 uppercase font-medium">Vendedor</p>
+                        <p className="text-xs text-slate-200 flex items-center gap-1.5 font-medium">
+                          <User className="h-3 w-3 text-cyan-400" />
+                          {order.vendedor}
+                        </p>
+                      </div>
+                    )}
+                    {order.observacao && (
+                      <div className="pt-1.5 border-t border-slate-800/80">
+                        <p className="text-[10px] text-slate-500 uppercase font-medium">Observações</p>
+                        <p className="text-xs text-slate-300 whitespace-pre-wrap">{order.observacao}</p>
+                      </div>
+                    )}
                   </div>
-                  {order.prova_digital && order.destinatario && (
-                    <p className="text-sm"><span className="text-muted-foreground">A/C:</span> <strong>{order.destinatario}</strong></p>
-                  )}
-                  {order.prova_digital && order.endereco_entrega && (
-                    <p className="text-sm"><span className="text-muted-foreground">Endereço:</span> <strong>{order.endereco_entrega}</strong></p>
-                  )}
-                  {order.prova_digital && order.entregue_para && (
-                    <p className="text-sm"><span className="text-muted-foreground">Entregue para:</span> <strong>{order.entregue_para}</strong></p>
-                  )}
-                  {order.prova_digital && order.entregue_em && (
-                    <p className="text-sm"><span className="text-muted-foreground">Em:</span> <strong>{format(new Date(order.entregue_em), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</strong></p>
-                  )}
-                </div>
-              )}
 
-              {/* Processos */}
-              {order.processos && order.processos.length > 0 && (
-                <div className="border rounded-lg p-3 space-y-2">
-                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Processos</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {sortAndFilterProcessos(order.processos).map((p) => (
-                      <span key={p} className={`text-xs font-bold px-2 py-0.5 rounded border ${getProcessoCor(p)}`}>{p}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Entrega info */}
-              {hasEntregaInfo && (
-                <div className="border rounded-lg p-3 space-y-2">
-                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Expedição</p>
-                  {order.tipo_entrega && order.tipo_entrega.length > 0 && (
-                    <div className="flex gap-1.5 flex-wrap">
-                      {order.tipo_entrega.map((t) => (
-                        <Badge key={t} className={
-                          t === "CARRO" ? "bg-green-100 text-green-800 border-green-300" :
-                          t === "MOTO" ? "bg-blue-100 text-blue-800 border-blue-300" :
-                          "bg-gray-100 text-gray-800 border-gray-300"
-                        }>{t}</Badge>
-                      ))}
+                  {/* Bloco Prova */}
+                  {(order.prova_digital || order.prova_email || order.saida_direta) && (
+                    <div className="p-3.5 rounded-xl border border-slate-800/80 bg-slate-900/50 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                          <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]" />
+                          <span>Prova Técnica</span>
+                        </div>
+                        {order.urgente_prova && (
+                          <Badge className="bg-rose-500/20 text-rose-300 border-rose-500/40 text-[10px] animate-pulse">
+                            Urgente
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex gap-1.5 flex-wrap">
+                        {order.prova_email && <Badge className="bg-pink-500/20 text-pink-300 border-pink-500/40 font-semibold text-xs">E-mail</Badge>}
+                        {order.prova_digital && <Badge className="bg-sky-500/20 text-sky-300 border-sky-500/40 font-semibold text-xs">Digital</Badge>}
+                        {order.saida_direta && <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/40 font-semibold text-xs">Saída Direta</Badge>}
+                        {(order as any).digital_color && <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/40 font-semibold text-xs">Color</Badge>}
+                        {(order as any).digital_pb && <Badge className="bg-slate-500/20 text-slate-300 border-slate-500/40 font-semibold text-xs">PB</Badge>}
+                      </div>
+                      {order.prova_digital && order.destinatario && (
+                        <p className="text-xs text-slate-300"><span className="text-slate-500">A/C:</span> <strong className="text-white">{order.destinatario}</strong></p>
+                      )}
+                      {order.prova_digital && order.endereco_entrega && (
+                        <p className="text-xs text-slate-300"><span className="text-slate-500">Endereço:</span> <strong className="text-white">{order.endereco_entrega}</strong></p>
+                      )}
+                      {order.prova_digital && order.entregue_para && (
+                        <p className="text-xs text-slate-300"><span className="text-slate-500">Entregue para:</span> <strong className="text-white">{order.entregue_para}</strong></p>
+                      )}
+                      {order.prova_digital && order.entregue_em && (
+                        <p className="text-xs text-slate-300"><span className="text-slate-500">Em:</span> <strong className="text-white">{format(new Date(order.entregue_em), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</strong></p>
+                      )}
                     </div>
                   )}
-                  {order.nf && <p className="text-sm"><span className="text-muted-foreground">NF:</span> {order.nf}</p>}
-                  {order.protocolo && <p className="text-sm"><span className="text-muted-foreground">Protocolo:</span> {order.protocolo}</p>}
-                  {order.empresa_entrega && <p className="text-sm"><span className="text-muted-foreground">Da:</span> {order.empresa_entrega}</p>}
-                  {order.entrega_para && <p className="text-sm"><span className="text-muted-foreground">Para:</span> {order.entrega_para}</p>}
-                  {order.entrega_endereco && <p className="text-sm"><span className="text-muted-foreground">Endereço:</span> {order.entrega_endereco}</p>}
-                  {order.entrega_ac && <p className="text-sm"><span className="text-muted-foreground">A/C:</span> {order.entrega_ac}</p>}
-                  {order.entrega_data_limite && (
-                    <p className="text-sm"><span className="text-muted-foreground">Data Entrega:</span> {format(new Date(order.entrega_data_limite), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>
-                  )}
-                  {order.obs_entrega && <p className="text-sm"><span className="text-muted-foreground">OBS:</span> {order.obs_entrega}</p>}
-                </div>
-              )}
 
-              <div className="bg-muted/50 rounded-lg p-3 space-y-1.5">
-                {createdByName && (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <User className="h-3 w-3" />
-                    <span>Criado por <strong className="text-foreground">{createdByName}</strong></span>
-                    <span>em {format(new Date(order.created_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
+                  {/* Bloco Processos */}
+                  {order.processos && order.processos.length > 0 && (
+                    <div className="p-3.5 rounded-xl border border-slate-800/80 bg-slate-900/50 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                          <span className="w-2 h-2 rounded-full bg-purple-400 shadow-[0_0_8px_#c084fc]" />
+                          <span>Processos & Acabamentos</span>
+                        </div>
+                        {order.urgente_acabamento && (
+                          <Badge className="bg-rose-500/20 text-rose-300 border-rose-500/40 text-[10px] animate-pulse">
+                            Urgente
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {sortAndFilterProcessos(order.processos).map((p) => (
+                          <span key={p} className={`text-xs font-bold px-2 py-0.5 rounded border ${getProcessoCor(p)}`}>{p}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* ─── COLUNA 2: LOGÍSTICA, DESPACHO & AUDITORIA ─── */}
+                <div className="space-y-3">
+                  {/* Bloco Expedição */}
+                  {hasEntregaInfo && (
+                    <div className="p-3.5 rounded-xl border border-slate-800/80 bg-slate-900/50 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                          <Truck className="h-3.5 w-3.5 text-emerald-400" />
+                          <span>Expedição & Logística</span>
+                        </div>
+                        {order.urgente_expedicao && (
+                          <Badge className="bg-rose-500/20 text-rose-300 border-rose-500/40 text-[10px] animate-pulse">
+                            Urgente
+                          </Badge>
+                        )}
+                      </div>
+                      {order.tipo_entrega && order.tipo_entrega.length > 0 && (
+                        <div className="flex gap-1.5 flex-wrap">
+                          {order.tipo_entrega.map((t) => (
+                            <Badge key={t} className={
+                              t === "CARRO" ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-bold" :
+                              t === "MOTO" ? "bg-blue-500/20 text-blue-300 border-blue-500/40 font-bold" :
+                              "bg-slate-700/40 text-slate-300 border-slate-600 font-bold"
+                            }>{t}</Badge>
+                          ))}
+                        </div>
+                      )}
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        {order.nf && <p><span className="text-slate-500">NF:</span> <strong className="text-white">{order.nf}</strong></p>}
+                        {order.protocolo && <p><span className="text-slate-500">Protocolo:</span> <strong className="text-white">{order.protocolo}</strong></p>}
+                        {order.empresa_entrega && <p><span className="text-slate-500">Da:</span> <strong className="text-white">{order.empresa_entrega}</strong></p>}
+                        {order.entrega_para && <p><span className="text-slate-500">Para:</span> <strong className="text-white">{order.entrega_para}</strong></p>}
+                      </div>
+                      {order.entrega_endereco && (
+                        <p className="text-xs"><span className="text-slate-500">Endereço:</span> <span className="text-slate-200">{order.entrega_endereco}</span></p>
+                      )}
+                      {order.entrega_ac && (
+                        <p className="text-xs"><span className="text-slate-500">A/C:</span> <span className="text-slate-200">{order.entrega_ac}</span></p>
+                      )}
+                      {order.entrega_data_limite && (
+                        <p className="text-xs"><span className="text-slate-500">Data Entrega:</span> <strong className="text-cyan-300 font-mono-tech">{format(new Date(order.entrega_data_limite), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</strong></p>
+                      )}
+                      {order.obs_entrega && (
+                        <p className="text-xs text-slate-300 bg-slate-950/60 p-2 rounded-lg border border-slate-800">{order.obs_entrega}</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Envio rápido para Operador */}
+                  {!order.setor && !order.arquivado && departmentContext === "pre_impressao" && (
+                    <div className="p-3.5 rounded-xl border border-slate-800/80 bg-slate-900/50 space-y-2">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Despachar para Operador</span>
+                      <div className="grid grid-cols-3 gap-2">
+                        {([
+                          { label: "Operador 1", status: "preparando_arquivo" },
+                          { label: "Operador 2", status: "operador_2" },
+                          { label: "Operador 3", status: "operador_3" },
+                        ] as { label: string; status: OrderStatus }[]).map((op) => {
+                          const isCurrent = order.status === op.status;
+                          return (
+                            <Button
+                              key={op.status}
+                              size="sm"
+                              variant={isCurrent ? "default" : "outline"}
+                              disabled={isCurrent}
+                              className={`h-9 text-xs rounded-xl font-semibold transition-all ${
+                                isCurrent
+                                  ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40 shadow-sm font-bold"
+                                  : "border-slate-800 bg-slate-950/40 text-slate-300 hover:text-white hover:bg-slate-800"
+                              }`}
+                              onClick={() => {
+                                onMove(order.id, op.status);
+                                setOpen(false);
+                              }}
+                            >
+                              {op.label}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Bloco de Auditoria */}
+                  <div className="p-3 rounded-xl border border-slate-800/60 bg-slate-950/40 space-y-1 font-mono-tech text-[11px] text-slate-400">
+                    {createdByName && (
+                      <div className="flex items-center gap-2">
+                        <User className="h-3 w-3 text-cyan-400" />
+                        <span>Criado por <strong className="text-slate-200">{createdByName}</strong> em {format(new Date(order.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
+                      </div>
+                    )}
+                    {updatedByName && (
+                      <div className="flex items-center gap-2">
+                        <UserCheck className="h-3 w-3 text-emerald-400" />
+                        <span>Atualizado por <strong className="text-slate-200">{updatedByName}</strong> em {format(new Date(order.updated_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
+                      </div>
+                    )}
                   </div>
-                )}
-                {updatedByName && (
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <UserCheck className="h-3 w-3" />
-                    <span>Atualizado por <strong className="text-foreground">{updatedByName}</strong></span>
-                    <span>em {format(new Date(order.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
-                  </div>
-                )}
+                </div>
               </div>
 
-              {/* Botões de envio rápido para Operador */}
-              {!order.setor && !order.arquivado && departmentContext === "pre_impressao" && (
-                <div className="flex flex-col gap-2 pt-2 border-t">
-                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Enviar para Operador</span>
-                  <div className="flex gap-2">
-                    {([
-                      { label: "Operador 1", status: "preparando_arquivo" },
-                      { label: "Operador 2", status: "operador_2" },
-                      { label: "Operador 3", status: "operador_3" },
-                    ] as { label: string; status: OrderStatus }[]).map((op) => (
-                      <Button
-                        key={op.status}
-                        size="sm"
-                        variant={order.status === op.status ? "default" : "outline"}
-                        disabled={order.status === op.status}
-                        className="flex-1"
-                        onClick={() => {
-                          onMove(order.id, op.status);
-                          setOpen(false);
-                        }}
-                      >
-                        {op.label}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {!permissions.isViewOnly && (
-                <div className="flex flex-wrap items-center gap-2 pt-2 border-t">
-                  <div className="flex-1" />
-                   {permissions.canEditCard && onDuplicate && (
-                    <Button size="sm" variant="outline" onClick={() => { onDuplicate(order); setOpen(false); }}>
-                      <Copy className="h-4 w-4 mr-1" /> Duplicar
-                    </Button>
-                  )}
-                  {permissions.canEditCard && (
-                    <Button size="sm" variant="outline" onClick={() => setEditing(true)}>Editar</Button>
-                  )}
-                  {permissions.canArchive && (
-                    <Button size="sm" variant="outline" onClick={() => { onArchive(order.id); setOpen(false); }}>
-                      <Archive className="h-4 w-4 mr-1" /> Arquivar
-                    </Button>
-                  )}
-                  {permissions.canDelete && (
-                    <Button size="sm" variant="destructive" onClick={() => { onDelete(order.id); setOpen(false); }}>
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
+              {/* Rodapé Fixo de Ações */}
+              <div className="px-6 py-3.5 border-t border-slate-800/80 bg-slate-900/60 flex flex-wrap items-center justify-between gap-3 shrink-0">
+                <div className="flex items-center gap-2">
                   {permissions.canSendToProduction && onSendToProduction && (
                     <Button
-                      className="w-full mt-2"
+                      size="sm"
                       onClick={() => setSendDialogOpen(true)}
-                      style={{ backgroundColor: "hsl(var(--primary))" }}
+                      className="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs rounded-xl h-9 px-4 gap-1.5 shadow-md shadow-cyan-600/20"
                     >
-                      <Send className="h-4 w-4 mr-2" /> {isLastStatus ? "Enviar → Produção" : "Mover para outro setor"}
+                      <Send className="h-3.5 w-3.5" /> {isLastStatus ? "Enviar → Produção" : "Mover de Setor"}
                     </Button>
                   )}
                   {order.status === "aguardando_prova" && !order.setor && onSendToExpedicao && (
                     <Button
-                      className="w-full mt-2"
+                      size="sm"
                       variant="outline"
+                      className="border-slate-700 hover:bg-slate-800 text-xs text-slate-200 rounded-xl h-9 px-3 gap-1.5"
                       onClick={() => { onSendToExpedicao(order.id); setOpen(false); }}
                     >
-                      <Truck className="h-4 w-4 mr-2" /> Enviar → Expedição (Entrada)
+                      <Truck className="h-3.5 w-3.5" /> Enviar → Expedição
                     </Button>
                   )}
                 </div>
-              )}
+
+                {!permissions.isViewOnly && (
+                  <div className="flex items-center gap-1.5 ml-auto">
+                    {permissions.canEditCard && onDuplicate && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-300 text-xs rounded-xl h-9 px-3 gap-1.5"
+                        onClick={() => { onDuplicate(order); setOpen(false); }}
+                      >
+                        <Copy className="h-3.5 w-3.5" /> Duplicar
+                      </Button>
+                    )}
+                    {permissions.canEditCard && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-300 text-xs rounded-xl h-9 px-3"
+                        onClick={() => setEditing(true)}
+                      >
+                        Editar
+                      </Button>
+                    )}
+                    {permissions.canArchive && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-300 text-xs rounded-xl h-9 px-3 gap-1.5"
+                        onClick={() => { onArchive(order.id); setOpen(false); }}
+                      >
+                        <Archive className="h-3.5 w-3.5" /> Arquivar
+                      </Button>
+                    )}
+                    {permissions.canDelete && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs rounded-xl h-9 px-3"
+                        onClick={() => { onDelete(order.id); setOpen(false); }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </DialogContent>

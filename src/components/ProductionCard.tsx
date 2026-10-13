@@ -771,7 +771,7 @@ function ProductionCardImpl({
 
       {/* Details Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="max-w-2xl md:max-w-3xl max-h-[90vh] overflow-y-auto scrollbar-none border border-slate-800 bg-slate-950/95 text-slate-100 shadow-2xl backdrop-blur-2xl rounded-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5 text-primary" />

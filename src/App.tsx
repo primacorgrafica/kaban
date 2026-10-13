@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,19 +7,48 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import AuthPage from "./pages/AuthPage";
-import ProductionPage from "./pages/ProductionPage";
-import ExpedicaoPage from "./pages/ExpedicaoPage";
-import UserManagementPage from "./pages/UserManagementPage";
-import EquipamentosPage from "./pages/EquipamentosPage";
-import ApresentacaoPage from "./pages/ApresentacaoPage";
-import InstitucionalPage from "./pages/InstitucionalPage";
-import EmConstrucaoPage from "./pages/EmConstrucaoPage";
-import EntregasPage from "./pages/EntregasPage";
-import ComercialPage from "./pages/ComercialPage";
-import PcpPage from "./pages/PcpPage";
-import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient();
+// Code-splitting em rotas pesadas para carregamento ultra rápido do bundle inicial
+const ProductionPage = lazy(() => import("./pages/ProductionPage"));
+const ExpedicaoPage = lazy(() => import("./pages/ExpedicaoPage"));
+const UserManagementPage = lazy(() => import("./pages/UserManagementPage"));
+const EquipamentosPage = lazy(() => import("./pages/EquipamentosPage"));
+const ApresentacaoPage = lazy(() => import("./pages/ApresentacaoPage"));
+const InstitucionalPage = lazy(() => import("./pages/InstitucionalPage"));
+const EmConstrucaoPage = lazy(() => import("./pages/EmConstrucaoPage"));
+const EntregasPage = lazy(() => import("./pages/EntregasPage"));
+const ComercialPage = lazy(() => import("./pages/ComercialPage"));
+const PcpPage = lazy(() => import("./pages/PcpPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const ChatPage = lazy(() => import("./pages/ChatPage"));
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+
+import { ThemeProvider } from "@/components/theme-provider";
+
+// Configuração de alto desempenho para o React Query: evita refetches desnecessários ao trocar de aba
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 2, // 2 minutos de cache ativo
+      gcTime: 1000 * 60 * 10,   // 10 minutos de retenção em memória
+      refetchOnWindowFocus: false, // Evita travamentos por refetch ao alternar janelas
+      retry: 1,
+    },
+  },
+});
+
+function PageLoadingFallback() {
+  return (
+    <div className="flex min-h-[60vh] w-full items-center justify-center bg-transparent">
+      <div className="flex flex-col items-center gap-3">
+        <div className="h-7 w-7 rounded-full border-2 border-cyan-500/20 border-t-cyan-400 animate-spin" />
+        <span className="text-[11px] font-mono-tech text-slate-400 tracking-wider uppercase">
+          Carregando...
+        </span>
+      </div>
+    </div>
+  );
+}
 
 function ProtectedRoute({ children, module }: { children: React.ReactNode; module?: string }) {
   const { session, loading, hasModule } = useAuth();
@@ -28,7 +58,6 @@ function ProtectedRoute({ children, module }: { children: React.ReactNode; modul
   return <>{children}</>;
 }
 
-
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { session, loading } = useAuth();
   if (loading) return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Carregando...</div>;
@@ -37,38 +66,42 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <Routes>
-            <Route path="/login" element={<PublicRoute><AuthPage /></PublicRoute>} />
-            <Route path="/apresentacao" element={<ApresentacaoPage />} />
-            <Route path="/institucional" element={<InstitucionalPage />} />
-            <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/dashboard" element={<ProtectedRoute module="dashboard"><Index /></ProtectedRoute>} />
-            <Route path="/arquivados" element={<ProtectedRoute module="trabalhos_concluidos"><Index /></ProtectedRoute>} />
-            <Route path="/producao/:departamento" element={<ProtectedRoute module="producao"><ProductionPage /></ProtectedRoute>} />
-            <Route path="/producao" element={<Navigate to="/producao/desenvolvimento" replace />} />
-            <Route path="/expedicao" element={<ProtectedRoute module="expedicao"><ExpedicaoPage /></ProtectedRoute>} />
-            <Route path="/usuarios" element={<ProtectedRoute module="cadastro"><UserManagementPage /></ProtectedRoute>} />
-            <Route path="/equipamentos" element={<ProtectedRoute module="cadastro"><EquipamentosPage /></ProtectedRoute>} />
-            <Route path="/comercial" element={<ProtectedRoute module="comercial"><ComercialPage /></ProtectedRoute>} />
-            <Route path="/pcp" element={<ProtectedRoute module="pcp"><PcpPage /></ProtectedRoute>} />
-            
-            
-            <Route path="/compras" element={<ProtectedRoute module="compras"><ProductionPage /></ProtectedRoute>} />
-            <Route path="/manutencao" element={<ProtectedRoute module="manutencao"><ProductionPage /></ProtectedRoute>} />
-            <Route path="/entregas" element={<ProtectedRoute module="expedicao"><EntregasPage /></ProtectedRoute>} />
+  <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="primacor-theme">
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <Suspense fallback={<PageLoadingFallback />}>
+              <Routes>
+                <Route path="/login" element={<PublicRoute><AuthPage /></PublicRoute>} />
+                <Route path="/apresentacao" element={<ApresentacaoPage />} />
+                <Route path="/institucional" element={<InstitucionalPage />} />
+                <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+                <Route path="/dashboard" element={<ProtectedRoute module="dashboard"><DashboardPage /></ProtectedRoute>} />
+                <Route path="/arquivados" element={<ProtectedRoute module="trabalhos_concluidos"><Index /></ProtectedRoute>} />
+                <Route path="/producao/:departamento" element={<ProtectedRoute module="producao"><ProductionPage /></ProtectedRoute>} />
+                <Route path="/producao" element={<Navigate to="/producao/desenvolvimento" replace />} />
+                <Route path="/expedicao" element={<ProtectedRoute module="expedicao"><ExpedicaoPage /></ProtectedRoute>} />
+                <Route path="/usuarios" element={<ProtectedRoute module="cadastro"><UserManagementPage /></ProtectedRoute>} />
+                <Route path="/equipamentos" element={<ProtectedRoute module="cadastro"><EquipamentosPage /></ProtectedRoute>} />
+                <Route path="/comercial" element={<ProtectedRoute module="comercial"><ComercialPage /></ProtectedRoute>} />
+                <Route path="/pcp" element={<ProtectedRoute module="pcp"><PcpPage /></ProtectedRoute>} />
+                
+                <Route path="/compras" element={<ProtectedRoute module="compras"><ProductionPage /></ProtectedRoute>} />
+                <Route path="/manutencao" element={<ProtectedRoute module="manutencao"><ProductionPage /></ProtectedRoute>} />
+                <Route path="/entregas" element={<ProtectedRoute module="expedicao"><EntregasPage /></ProtectedRoute>} />
+                <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ThemeProvider>
 );
 
 export default App;

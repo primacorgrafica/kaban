@@ -98,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: error as Error | null };
   };
 
-  // Heartbeat for presence tracking
+  // Heartbeat & Realtime presence tracking
   useEffect(() => {
     const userId = session?.user?.id;
     if (!userId) return;
@@ -106,7 +106,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const upsertPresence = async () => {
       await supabase
         .from("user_presence")
-        .upsert({ user_id: userId, last_seen: new Date().toISOString(), logged_in_at: new Date().toISOString() } as any, { onConflict: "user_id" });
+        .upsert(
+          {
+            user_id: userId,
+            last_seen: new Date().toISOString(),
+            logged_in_at: new Date().toISOString(),
+          } as any,
+          { onConflict: "user_id" }
+        );
     };
 
     const updateHeartbeat = async () => {
@@ -117,9 +124,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     upsertPresence();
-    const interval = setInterval(updateHeartbeat, 60_000); // every 60s
+    const interval = setInterval(updateHeartbeat, 30_000); // every 30s
 
-    return () => clearInterval(interval);
+    // Realtime Presence Channel (global)
+    const presenceChannel = supabase.channel("primacor_online_presence", {
+      config: { presence: { key: userId } },
+    });
+
+    presenceChannel.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        await presenceChannel.track({
+          user_id: userId,
+          online_at: new Date().toISOString(),
+        });
+      }
+    });
+
+    return () => {
+      clearInterval(interval);
+      void supabase.removeChannel(presenceChannel);
+    };
   }, [session?.user?.id]);
 
   const signOut = async () => {
@@ -139,7 +163,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       await supabase
         .from("user_presence")
-        .update({ last_seen: now, last_logout_at: now, last_session_duration_ms: durationMs } as any)
+        .update({
+          last_seen: "1970-01-01T00:00:00Z",
+          last_logout_at: now,
+          last_session_duration_ms: durationMs,
+        } as any)
         .eq("user_id", userId);
     }
     await supabase.auth.signOut();

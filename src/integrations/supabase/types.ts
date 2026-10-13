@@ -14,6 +14,132 @@ export type Database = {
   }
   public: {
     Tables: {
+      chat_conversations: {
+        Row: {
+          id: string
+          user1_id: string
+          user2_id: string
+          last_message_at: string
+          last_message_preview: string | null
+          last_message_sender_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user1_id: string
+          user2_id: string
+          last_message_at?: string
+          last_message_preview?: string | null
+          last_message_sender_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user1_id?: string
+          user2_id?: string
+          last_message_at?: string
+          last_message_preview?: string | null
+          last_message_sender_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      chat_conversation_settings: {
+        Row: {
+          conversation_id: string
+          user_id: string
+          is_hidden: boolean
+          cleared_until: string | null
+          last_read_at: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          conversation_id: string
+          user_id: string
+          is_hidden?: boolean
+          cleared_until?: string | null
+          last_read_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          conversation_id?: string
+          user_id?: string
+          is_hidden?: boolean
+          cleared_until?: string | null
+          last_read_at?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      chat_messages: {
+        Row: {
+          id: string
+          conversation_id: string
+          sender_id: string
+          content: string
+          is_edited: boolean
+          is_deleted: boolean
+          deleted_for_users: string[]
+          reply_to_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          conversation_id: string
+          sender_id: string
+          content: string
+          is_edited?: boolean
+          is_deleted?: boolean
+          deleted_for_users?: string[]
+          reply_to_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          conversation_id?: string
+          sender_id?: string
+          content?: string
+          is_edited?: boolean
+          is_deleted?: boolean
+          deleted_for_users?: string[]
+          reply_to_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      chat_message_reactions: {
+        Row: {
+          id: string
+          message_id: string
+          user_id: string
+          emoji: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          message_id: string
+          user_id: string
+          emoji: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          message_id?: string
+          user_id?: string
+          emoji?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       avisos: {
         Row: {
           created_at: string
