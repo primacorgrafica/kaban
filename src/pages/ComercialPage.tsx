@@ -140,10 +140,38 @@ export default function ComercialPage() {
   }, [filteredProd]);
 
   const kpis = [
-    { label: "OS em Produção", value: osEmProducao, icon: ClipboardList, color: "text-blue-500" },
-    { label: "OS Emitidas Hoje", value: osHoje, icon: CalendarDays, color: "text-green-500" },
-    { label: "OS Emitidas na Semana", value: osSemana, icon: CalendarRange, color: "text-amber-500" },
-    { label: "OS Emitidas no Mês", value: osMes, icon: CalendarClock, color: "text-purple-500" },
+    {
+      label: "OS em Produção",
+      value: osEmProducao,
+      icon: ClipboardList,
+      color: "text-blue-600 dark:text-blue-400",
+      bgBadge: "bg-blue-50 dark:bg-blue-500/10 border-blue-200/60 dark:border-blue-500/20",
+      accentBar: "bg-blue-500",
+    },
+    {
+      label: "OS Emitidas Hoje",
+      value: osHoje,
+      icon: CalendarDays,
+      color: "text-emerald-600 dark:text-emerald-400",
+      bgBadge: "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200/60 dark:border-emerald-500/20",
+      accentBar: "bg-emerald-500",
+    },
+    {
+      label: "OS Emitidas na Semana",
+      value: osSemana,
+      icon: CalendarRange,
+      color: "text-amber-600 dark:text-amber-400",
+      bgBadge: "bg-amber-50 dark:bg-amber-500/10 border-amber-200/60 dark:border-amber-500/20",
+      accentBar: "bg-amber-500",
+    },
+    {
+      label: "OS Emitidas no Mês",
+      value: osMes,
+      icon: CalendarClock,
+      color: "text-purple-600 dark:text-purple-400",
+      bgBadge: "bg-purple-50 dark:bg-purple-500/10 border-purple-200/60 dark:border-purple-500/20",
+      accentBar: "bg-purple-500",
+    },
   ];
 
   const SECTOR_ORDER = ["desenvolvimento", "ctp", "offset", "digital", "acabamento", "terceiros", "expedicao"];
@@ -205,45 +233,46 @@ export default function ComercialPage() {
         {/* KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {kpis.map(kpi => (
-            <Card key={kpi.label} className="border-border/50">
-              <CardContent className="flex items-center gap-4 p-4">
-                <div className={`p-3 rounded-xl bg-muted ${kpi.color}`}>
+            <Card key={kpi.label} className="border-border bg-card shadow-xs relative overflow-hidden group hover:border-primary/40 transition-all">
+              <CardContent className="flex items-center gap-4 p-4.5">
+                <div className={cn("p-3 rounded-2xl border flex items-center justify-center shrink-0", kpi.bgBadge, kpi.color)}>
                   <kpi.icon className="h-6 w-6" />
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{kpi.label}</p>
-                  <p className="text-2xl font-bold text-foreground">{kpi.value}</p>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider truncate">{kpi.label}</p>
+                  <p className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono-tech mt-0.5">{kpi.value}</p>
                 </div>
               </CardContent>
+              <div className={cn("absolute bottom-0 left-0 right-0 h-1 opacity-70", kpi.accentBar)} />
             </Card>
           ))}
         </div>
 
         {/* Pendências Faturamento */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-destructive" />
-              Pendências — Faturamento
-              <Badge variant="destructive" className="ml-1">{pendencias.length}</Badge>
+        <Card className="border-border bg-card shadow-xs">
+          <CardHeader className="pb-3 border-b border-border/50">
+            <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2 text-foreground">
+              <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+              <span>Pendências — Faturamento</span>
+              <Badge variant="destructive" className="ml-1 text-[11px] font-mono-tech font-bold">{pendencias.length}</Badge>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="pt-4">
             {pendencias.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Nenhuma OS com pendência no momento.</p>
+              <p className="text-sm text-muted-foreground py-2">Nenhuma OS com pendência no momento.</p>
             ) : (
-              <div className="max-h-[300px] overflow-auto">
+              <div className="max-h-[300px] overflow-auto rounded-xl border border-border">
                 <table className="w-full text-sm">
-                  <thead className="sticky top-0 bg-background">
+                  <thead className="sticky top-0 bg-muted/90 backdrop-blur-md z-10">
                     <tr className="border-b border-border text-left">
-                      <th className="py-2 px-2 font-medium text-muted-foreground">OS</th>
-                      <th className="py-2 px-2 font-medium text-muted-foreground">Cliente</th>
-                      <th className="py-2 px-2 font-medium text-muted-foreground">Descrição</th>
-                      <th className="py-2 px-2 font-medium text-muted-foreground">Entrega</th>
-                      <th className="py-2 px-2 font-medium text-muted-foreground text-right">Pendências</th>
+                      <th className="py-2.5 px-3 font-semibold text-xs text-foreground uppercase tracking-wider">OS</th>
+                      <th className="py-2.5 px-3 font-semibold text-xs text-foreground uppercase tracking-wider">Cliente</th>
+                      <th className="py-2.5 px-3 font-semibold text-xs text-foreground uppercase tracking-wider">Descrição</th>
+                      <th className="py-2.5 px-3 font-semibold text-xs text-foreground uppercase tracking-wider">Entrega</th>
+                      <th className="py-2.5 px-3 font-semibold text-xs text-foreground uppercase tracking-wider text-right">Pendências</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-border/60 bg-card">
                     {pendencias.map(o => {
                       const items: string[] = [];
                       if (o.fat_cnpj_pendente) items.push("CNPJ");
@@ -255,17 +284,17 @@ export default function ComercialPage() {
                       if (o.fat_restricao_credito_pendente) items.push("Crédito");
 
                       return (
-                        <tr key={o.id} className="border-b border-border/50 hover:bg-muted/50">
-                          <td className="py-1.5 px-2 font-medium text-foreground whitespace-nowrap">{o.titulo}</td>
-                          <td className="py-1.5 px-2 text-muted-foreground whitespace-nowrap">{o.cliente}</td>
-                          <td className="py-1.5 px-2 text-muted-foreground truncate max-w-[200px]">{o.descricao}</td>
-                          <td className="py-1.5 px-2 text-muted-foreground whitespace-nowrap">
+                        <tr key={o.id} className="hover:bg-muted/40 transition-colors">
+                          <td className="py-2 px-3 font-bold text-foreground whitespace-nowrap font-mono-tech text-xs">{o.titulo}</td>
+                          <td className="py-2 px-3 text-foreground font-medium whitespace-nowrap">{o.cliente}</td>
+                          <td className="py-2 px-3 text-muted-foreground truncate max-w-[200px]">{o.descricao}</td>
+                          <td className="py-2 px-3 text-muted-foreground whitespace-nowrap font-mono-tech text-xs">
                             {o.entrega_data_limite ? format(new Date(o.entrega_data_limite), "dd/MM/yyyy") : "—"}
                           </td>
-                          <td className="py-1.5 px-2 text-right">
+                          <td className="py-2 px-3 text-right">
                             <div className="flex gap-1 flex-wrap justify-end">
                               {items.map(it => (
-                                <Badge key={it} variant="destructive" className="text-[10px] px-1.5 py-0">{it}</Badge>
+                                <Badge key={it} variant="destructive" className="text-[10px] px-1.5 py-0 font-bold">{it}</Badge>
                               ))}
                             </div>
                           </td>
@@ -280,12 +309,12 @@ export default function ComercialPage() {
         </Card>
 
         {/* OS por Setor — em colunas */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">OS por Setor</CardTitle>
+        <Card className="border-border bg-card shadow-xs">
+          <CardHeader className="pb-3 border-b border-border/50">
+            <CardTitle className="text-base font-semibold text-foreground">OS por Setor</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <CardContent className="pt-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
               {displayDepts.map(({ dept, orders: deptOrders, statusField }) => {
                 const statusCounts: Record<string, number> = {};
                 deptOrders.forEach(o => {
@@ -294,84 +323,88 @@ export default function ComercialPage() {
                 });
 
                 return (
-                  <div key={dept.id} className="border border-border rounded-lg p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-sm text-foreground">{dept.label}</span>
-                      <Badge variant="secondary" className="text-xs">{deptOrders.length}</Badge>
+                  <div
+                    key={dept.id}
+                    className="border border-border/80 bg-slate-50/80 dark:bg-slate-900/50 rounded-xl p-3.5 space-y-2.5 shadow-2xs hover:border-primary/40 transition-all"
+                  >
+                    <div className="flex items-center justify-between pb-2 border-b border-border/60">
+                      <span className="font-bold text-sm text-foreground">{dept.label}</span>
+                      <Badge variant="secondary" className="text-xs font-mono-tech font-bold">{deptOrders.length}</Badge>
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       {dept.statuses.map(st => {
                         const count = statusCounts[st.id] || 0;
                         if (count === 0) return null;
                         return (
-                          <div key={st.id} className="flex items-center justify-between text-xs">
-                            <span className="text-muted-foreground">{st.label}</span>
-                            <span className="font-medium text-foreground">{count}</span>
+                          <div key={st.id} className="flex items-center justify-between text-xs py-0.5">
+                            <span className="text-muted-foreground font-medium">{st.label}</span>
+                            <span className="font-bold text-foreground font-mono-tech">{count}</span>
                           </div>
                         );
                       })}
                       {deptOrders.length === 0 && (
-                        <p className="text-xs text-muted-foreground">Nenhuma OS</p>
+                        <p className="text-xs text-muted-foreground/75 italic py-1">Nenhuma OS</p>
                       )}
                     </div>
                   </div>
                 );
               })}
-
             </div>
           </CardContent>
         </Card>
 
         {/* Lista Geral de OS */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <List className="h-4 w-4" />
-              Lista Geral de OS
-              <Badge variant="secondary" className="ml-1">{generalOsList.length}</Badge>
-              <span className="flex items-center gap-1.5 text-xs font-normal text-muted-foreground ml-2">
-                <span className="inline-block w-3 h-3 rounded-sm bg-yellow-400" />
+        <Card className="border-border bg-card shadow-xs">
+          <CardHeader className="pb-3 border-b border-border/50">
+            <CardTitle className="text-base font-semibold flex items-center gap-2 text-foreground flex-wrap">
+              <div className="flex items-center gap-2">
+                <List className="h-4 w-4 text-primary" />
+                <span>Lista Geral de OS</span>
+                <Badge variant="secondary" className="ml-1 font-mono-tech font-bold">{generalOsList.length}</Badge>
+              </div>
+              <span className="flex items-center gap-1.5 text-xs font-normal text-muted-foreground ml-auto bg-muted/60 px-2.5 py-1 rounded-lg border border-border/60">
+                <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-400 shadow-2xs" />
                 + de 1 dia aguardando aprovação
               </span>
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="max-h-[400px] overflow-auto">
+          <CardContent className="pt-4">
+            <div className="max-h-[420px] overflow-auto rounded-xl border border-border">
               <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-background">
+                <thead className="sticky top-0 bg-muted/90 backdrop-blur-md z-10">
                   <tr className="border-b border-border text-left">
-                    <th className="py-2 px-2 font-medium text-muted-foreground">OS</th>
-                    <th className="py-2 px-2 font-medium text-muted-foreground">Cliente</th>
-                    <th className="py-2 px-2 font-medium text-muted-foreground">Descrição</th>
-                    <th className="py-2 px-2 font-medium text-muted-foreground">Setor</th>
-                    <th className="py-2 px-2 font-medium text-muted-foreground">Etapa</th>
-                    <th className="py-2 px-2 font-medium text-muted-foreground">Atualização</th>
+                    <th className="py-2.5 px-3 font-semibold text-xs text-foreground uppercase tracking-wider">OS</th>
+                    <th className="py-2.5 px-3 font-semibold text-xs text-foreground uppercase tracking-wider">Cliente</th>
+                    <th className="py-2.5 px-3 font-semibold text-xs text-foreground uppercase tracking-wider">Descrição</th>
+                    <th className="py-2.5 px-3 font-semibold text-xs text-foreground uppercase tracking-wider">Setor</th>
+                    <th className="py-2.5 px-3 font-semibold text-xs text-foreground uppercase tracking-wider">Etapa</th>
+                    <th className="py-2.5 px-3 font-semibold text-xs text-foreground uppercase tracking-wider">Atualização</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-border/60 bg-card">
                   {generalOsList.map(o => (
-                    <tr key={o.id} className="border-b border-border/50 hover:bg-muted/50">
-                      <td className="py-1.5 px-2 font-medium text-foreground">{o.titulo}</td>
-                      <td className="py-1.5 px-2 text-muted-foreground">{o.cliente}</td>
-                      <td className="py-1.5 px-2 text-muted-foreground truncate max-w-[200px]">{o.descricao}</td>
-                      <td className="py-1.5 px-2">
-                        <Badge variant="outline" className="text-xs">{getSetorLabel(o)}</Badge>
+                    <tr key={o.id} className="hover:bg-muted/40 transition-colors">
+                      <td className="py-2 px-3 font-bold text-foreground font-mono-tech text-xs">{o.titulo}</td>
+                      <td className="py-2 px-3 text-foreground font-medium">{o.cliente}</td>
+                      <td className="py-2 px-3 text-muted-foreground truncate max-w-[240px]">{o.descricao || "—"}</td>
+                      <td className="py-2 px-3">
+                        <Badge variant="outline" className="text-xs font-medium border-border/80 bg-muted/40 text-foreground">{getSetorLabel(o)}</Badge>
                       </td>
-                      <td className="py-1.5 px-2">
+                      <td className="py-2 px-3">
                         {(() => {
                           const isAguardandoAprovacao = (!o.setor && o.status === "aguardando_aprovacao");
                           const over1Day = isAguardandoAprovacao && (Date.now() - new Date(o.updated_at).getTime() > 24 * 60 * 60 * 1000);
                           return (
                             <Badge
                               variant="secondary"
-                              className={`text-xs ${over1Day ? "bg-yellow-400 text-yellow-900 hover:bg-yellow-400" : ""}`}
+                              className={`text-xs font-medium ${over1Day ? "bg-amber-100 text-amber-900 border border-amber-300 dark:bg-yellow-400 dark:text-yellow-900" : ""}`}
                             >
                               {getEtapaLabel(o)}
                             </Badge>
                           );
                         })()}
                       </td>
-                      <td className="py-1.5 px-2 text-xs text-muted-foreground whitespace-nowrap">
+                      <td className="py-2 px-3 text-xs text-muted-foreground font-mono-tech whitespace-nowrap">
                         {format(new Date(o.updated_at), "dd/MM/yyyy HH:mm")}
                       </td>
                     </tr>

@@ -233,11 +233,11 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
           shouldBlinkCard ? "animate-pulse" : ""
         } ${
           isUrgent
-            ? "bg-rose-950/25 border-rose-500/40 hover:border-rose-500/70"
+            ? "bg-rose-50 dark:bg-rose-950/25 border-rose-300 dark:border-rose-500/40 hover:border-rose-500/70 text-rose-950 dark:text-rose-100"
             : isSlowAlert
-            ? "bg-amber-950/25 border-amber-500/40 hover:border-amber-500/70"
+            ? "bg-amber-50 dark:bg-amber-950/25 border-amber-300 dark:border-amber-500/40 hover:border-amber-500/70 text-amber-950 dark:text-amber-100"
             : isNearDeadline
-            ? "bg-amber-950/25 border-amber-500/40 hover:border-amber-500/70"
+            ? "bg-amber-50 dark:bg-amber-950/25 border-amber-300 dark:border-amber-500/40 hover:border-amber-500/70 text-amber-950 dark:text-amber-100"
             : "bg-card dark:bg-slate-900/70 border-border dark:border-slate-800/80 text-card-foreground hover:border-cyan-500/50 hover:shadow-md dark:hover:shadow-[0_4px_20px_rgba(6,182,212,0.12)]"
         }`}
       >
@@ -489,8 +489,8 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                 </div>
               )}
               {order.vendedor && (
-                <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-400">
-                  <User className="h-3 w-3 text-cyan-400" />
+                <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-xl bg-muted border border-border text-xs text-foreground font-medium">
+                  <User className="h-3 w-3 text-primary" />
                   <span>{order.vendedor}</span>
                 </div>
               )}
@@ -860,80 +860,80 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                 {/* ─── COLUNA 1: ESPECIFICAÇÕES, PROVA & PROCESSOS ─── */}
                 <div className="space-y-3">
                   {/* Bloco Comercial & Descrição */}
-                  <div className="p-3.5 rounded-xl border border-slate-800/80 bg-slate-900/50 space-y-2">
-                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
-                      <FileText className="h-3.5 w-3.5 text-cyan-400" />
+                  <div className="p-3.5 rounded-xl border border-border bg-slate-50/70 dark:bg-slate-900/50 space-y-2">
+                    <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      <FileText className="h-3.5 w-3.5 text-primary" />
                       <span>Dados do Serviço</span>
                     </div>
                     {order.descricao && (
                       <div>
-                        <p className="text-[10px] text-slate-500 uppercase font-medium">Descrição</p>
-                        <p className="text-xs text-white font-medium">{order.descricao}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase font-medium">Descrição</p>
+                        <p className="text-xs text-foreground font-medium">{order.descricao}</p>
                       </div>
                     )}
                     {order.vendedor && (
                       <div>
-                        <p className="text-[10px] text-slate-500 uppercase font-medium">Vendedor</p>
-                        <p className="text-xs text-slate-200 flex items-center gap-1.5 font-medium">
-                          <User className="h-3 w-3 text-cyan-400" />
+                        <p className="text-[10px] text-muted-foreground uppercase font-medium">Vendedor</p>
+                        <p className="text-xs text-foreground flex items-center gap-1.5 font-medium">
+                          <User className="h-3 w-3 text-primary" />
                           {order.vendedor}
                         </p>
                       </div>
                     )}
                     {order.observacao && (
-                      <div className="pt-1.5 border-t border-slate-800/80">
-                        <p className="text-[10px] text-slate-500 uppercase font-medium">Observações</p>
-                        <p className="text-xs text-slate-300 whitespace-pre-wrap">{order.observacao}</p>
+                      <div className="pt-1.5 border-t border-border/60">
+                        <p className="text-[10px] text-muted-foreground uppercase font-medium">Observações</p>
+                        <p className="text-xs text-foreground whitespace-pre-wrap">{order.observacao}</p>
                       </div>
                     )}
                   </div>
 
                   {/* Bloco Prova */}
                   {(order.prova_digital || order.prova_email || order.saida_direta) && (
-                    <div className="p-3.5 rounded-xl border border-slate-800/80 bg-slate-900/50 space-y-2">
+                    <div className="p-3.5 rounded-xl border border-border bg-slate-50/70 dark:bg-slate-900/50 space-y-2">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                           <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]" />
                           <span>Prova Técnica</span>
                         </div>
                         {order.urgente_prova && (
-                          <Badge className="bg-rose-500/20 text-rose-300 border-rose-500/40 text-[10px] animate-pulse">
+                          <Badge className="bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40 text-[10px] animate-pulse">
                             Urgente
                           </Badge>
                         )}
                       </div>
                       <div className="flex gap-1.5 flex-wrap">
-                        {order.prova_email && <Badge className="bg-pink-500/20 text-pink-300 border-pink-500/40 font-semibold text-xs">E-mail</Badge>}
-                        {order.prova_digital && <Badge className="bg-sky-500/20 text-sky-300 border-sky-500/40 font-semibold text-xs">Digital</Badge>}
-                        {order.saida_direta && <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/40 font-semibold text-xs">Saída Direta</Badge>}
-                        {(order as any).digital_color && <Badge className="bg-blue-500/20 text-blue-300 border-blue-500/40 font-semibold text-xs">Color</Badge>}
-                        {(order as any).digital_pb && <Badge className="bg-slate-500/20 text-slate-300 border-slate-500/40 font-semibold text-xs">PB</Badge>}
+                        {order.prova_email && <Badge className="bg-pink-500/20 text-pink-700 dark:text-pink-300 border-pink-500/40 font-semibold text-xs">E-mail</Badge>}
+                        {order.prova_digital && <Badge className="bg-sky-500/20 text-sky-700 dark:text-sky-300 border-sky-500/40 font-semibold text-xs">Digital</Badge>}
+                        {order.saida_direta && <Badge className="bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/40 font-semibold text-xs">Saída Direta</Badge>}
+                        {(order as any).digital_color && <Badge className="bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/40 font-semibold text-xs">Color</Badge>}
+                        {(order as any).digital_pb && <Badge className="bg-slate-500/20 text-slate-700 dark:text-slate-300 border-slate-500/40 font-semibold text-xs">PB</Badge>}
                       </div>
                       {order.prova_digital && order.destinatario && (
-                        <p className="text-xs text-slate-300"><span className="text-slate-500">A/C:</span> <strong className="text-white">{order.destinatario}</strong></p>
+                        <p className="text-xs text-foreground"><span className="text-muted-foreground">A/C:</span> <strong className="text-foreground">{order.destinatario}</strong></p>
                       )}
                       {order.prova_digital && order.endereco_entrega && (
-                        <p className="text-xs text-slate-300"><span className="text-slate-500">Endereço:</span> <strong className="text-white">{order.endereco_entrega}</strong></p>
+                        <p className="text-xs text-foreground"><span className="text-muted-foreground">Endereço:</span> <strong className="text-foreground">{order.endereco_entrega}</strong></p>
                       )}
                       {order.prova_digital && order.entregue_para && (
-                        <p className="text-xs text-slate-300"><span className="text-slate-500">Entregue para:</span> <strong className="text-white">{order.entregue_para}</strong></p>
+                        <p className="text-xs text-foreground"><span className="text-muted-foreground">Entregue para:</span> <strong className="text-foreground">{order.entregue_para}</strong></p>
                       )}
                       {order.prova_digital && order.entregue_em && (
-                        <p className="text-xs text-slate-300"><span className="text-slate-500">Em:</span> <strong className="text-white">{format(new Date(order.entregue_em), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</strong></p>
+                        <p className="text-xs text-foreground"><span className="text-muted-foreground">Em:</span> <strong className="text-foreground">{format(new Date(order.entregue_em), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</strong></p>
                       )}
                     </div>
                   )}
 
                   {/* Bloco Processos */}
                   {order.processos && order.processos.length > 0 && (
-                    <div className="p-3.5 rounded-xl border border-slate-800/80 bg-slate-900/50 space-y-2">
+                    <div className="p-3.5 rounded-xl border border-border bg-slate-50/70 dark:bg-slate-900/50 space-y-2">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                           <span className="w-2 h-2 rounded-full bg-purple-400 shadow-[0_0_8px_#c084fc]" />
                           <span>Processos & Acabamentos</span>
                         </div>
                         {order.urgente_acabamento && (
-                          <Badge className="bg-rose-500/20 text-rose-300 border-rose-500/40 text-[10px] animate-pulse">
+                          <Badge className="bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40 text-[10px] animate-pulse">
                             Urgente
                           </Badge>
                         )}
@@ -951,14 +951,14 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                 <div className="space-y-3">
                   {/* Bloco Expedição */}
                   {hasEntregaInfo && (
-                    <div className="p-3.5 rounded-xl border border-slate-800/80 bg-slate-900/50 space-y-2">
+                    <div className="p-3.5 rounded-xl border border-border bg-slate-50/70 dark:bg-slate-900/50 space-y-2">
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
-                          <Truck className="h-3.5 w-3.5 text-emerald-400" />
+                        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                          <Truck className="h-3.5 w-3.5 text-emerald-500" />
                           <span>Expedição & Logística</span>
                         </div>
                         {order.urgente_expedicao && (
-                          <Badge className="bg-rose-500/20 text-rose-300 border-rose-500/40 text-[10px] animate-pulse">
+                          <Badge className="bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40 text-[10px] animate-pulse">
                             Urgente
                           </Badge>
                         )}
@@ -975,19 +975,19 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                         </div>
                       )}
                       <div className="grid grid-cols-2 gap-2 text-xs">
-                        {order.nf && <p><span className="text-slate-500">NF:</span> <strong className="text-white">{order.nf}</strong></p>}
-                        {order.protocolo && <p><span className="text-slate-500">Protocolo:</span> <strong className="text-white">{order.protocolo}</strong></p>}
-                        {order.empresa_entrega && <p><span className="text-slate-500">Da:</span> <strong className="text-white">{order.empresa_entrega}</strong></p>}
-                        {order.entrega_para && <p><span className="text-slate-500">Para:</span> <strong className="text-white">{order.entrega_para}</strong></p>}
+                        {order.nf && <p><span className="text-muted-foreground">NF:</span> <strong className="text-foreground">{order.nf}</strong></p>}
+                        {order.protocolo && <p><span className="text-muted-foreground">Protocolo:</span> <strong className="text-foreground">{order.protocolo}</strong></p>}
+                        {order.empresa_entrega && <p><span className="text-muted-foreground">Da:</span> <strong className="text-foreground">{order.empresa_entrega}</strong></p>}
+                        {order.entrega_para && <p><span className="text-muted-foreground">Para:</span> <strong className="text-foreground">{order.entrega_para}</strong></p>}
                       </div>
                       {order.entrega_endereco && (
-                        <p className="text-xs"><span className="text-slate-500">Endereço:</span> <span className="text-slate-200">{order.entrega_endereco}</span></p>
+                        <p className="text-xs"><span className="text-muted-foreground">Endereço:</span> <span className="text-foreground">{order.entrega_endereco}</span></p>
                       )}
                       {order.entrega_ac && (
-                        <p className="text-xs"><span className="text-slate-500">A/C:</span> <span className="text-slate-200">{order.entrega_ac}</span></p>
+                        <p className="text-xs"><span className="text-muted-foreground">A/C:</span> <span className="text-foreground">{order.entrega_ac}</span></p>
                       )}
                       {order.entrega_data_limite && (
-                        <p className="text-xs"><span className="text-slate-500">Data Entrega:</span> <strong className="text-cyan-300 font-mono-tech">{format(new Date(order.entrega_data_limite), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</strong></p>
+                        <p className="text-xs"><span className="text-muted-foreground">Data Entrega:</span> <strong className="text-primary font-mono-tech">{format(new Date(order.entrega_data_limite), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</strong></p>
                       )}
                       {order.obs_entrega && (
                         <p className="text-xs text-foreground bg-muted p-2 rounded-lg border border-border">{order.obs_entrega}</p>
@@ -1049,13 +1049,13 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
               </div>
 
               {/* Rodapé Fixo de Ações */}
-              <div className="px-6 py-3.5 border-t border-slate-800/80 bg-slate-900/60 flex flex-wrap items-center justify-between gap-3 shrink-0">
+              <div className="px-6 py-3.5 border-t border-border bg-card/90 dark:border-slate-800/80 dark:bg-slate-900/60 flex flex-wrap items-center justify-between gap-3 shrink-0">
                 <div className="flex items-center gap-2">
                   {permissions.canSendToProduction && onSendToProduction && (
                     <Button
                       size="sm"
                       onClick={() => setSendDialogOpen(true)}
-                      className="bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs rounded-xl h-9 px-4 gap-1.5 shadow-md shadow-cyan-600/20"
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs rounded-xl h-9 px-4 gap-1.5 shadow-sm"
                     >
                       <Send className="h-3.5 w-3.5" /> {isLastStatus ? "Enviar → Produção" : "Mover de Setor"}
                     </Button>
@@ -1064,7 +1064,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                     <Button
                       size="sm"
                       variant="outline"
-                      className="border-slate-700 hover:bg-slate-800 text-xs text-slate-200 rounded-xl h-9 px-3 gap-1.5"
+                      className="text-xs text-foreground rounded-xl h-9 px-3 gap-1.5"
                       onClick={() => { onSendToExpedicao(order.id); setOpen(false); }}
                     >
                       <Truck className="h-3.5 w-3.5" /> Enviar → Expedição
@@ -1078,7 +1078,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-300 text-xs rounded-xl h-9 px-3 gap-1.5"
+                        className="text-foreground text-xs rounded-xl h-9 px-3 gap-1.5"
                         onClick={() => { onDuplicate(order); setOpen(false); }}
                       >
                         <Copy className="h-3.5 w-3.5" /> Duplicar
@@ -1088,7 +1088,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-300 text-xs rounded-xl h-9 px-3"
+                        className="text-foreground text-xs rounded-xl h-9 px-3"
                         onClick={() => setEditing(true)}
                       >
                         Editar
@@ -1098,7 +1098,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                       <Button
                         size="sm"
                         variant="outline"
-                        className="border-slate-800 bg-slate-900/60 hover:bg-slate-800 text-slate-300 text-xs rounded-xl h-9 px-3 gap-1.5"
+                        className="text-foreground text-xs rounded-xl h-9 px-3 gap-1.5"
                         onClick={() => { onArchive(order.id); setOpen(false); }}
                       >
                         <Archive className="h-3.5 w-3.5" /> Arquivar
@@ -1108,7 +1108,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                       <Button
                         size="sm"
                         variant="destructive"
-                        className="bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 text-xs rounded-xl h-9 px-3"
+                        className="text-xs rounded-xl h-9 px-3"
                         onClick={() => { onDelete(order.id); setOpen(false); }}
                       >
                         <Trash2 className="h-3.5 w-3.5" />

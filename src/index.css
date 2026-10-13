@@ -80,9 +80,9 @@
     --gradient-glow: radial-gradient(circle at 50% 0%, hsl(191 95% 48% / 0.15), transparent 70%);
   }
 
-  .light, [data-theme="light"] {
+  .light, [data-theme="light"], html.light {
     /* Modern Industrial Clean Light - High Contrast & Crisp */
-    --background: 210 25% 97%;
+    --background: 210 20% 98%;
     --foreground: 222 47% 11%;
 
     --card: 0 0% 100%;
@@ -91,65 +91,65 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 199 89% 42%;
+    --primary: 201 96% 36%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 20% 93%;
-    --secondary-foreground: 222 47% 14%;
+    --secondary: 210 20% 94%;
+    --secondary-foreground: 222 47% 12%;
 
     --muted: 210 20% 94%;
-    --muted-foreground: 215 16% 40%;
+    --muted-foreground: 215 22% 38%;
 
-    --accent: 210 25% 91%;
-    --accent-foreground: 199 89% 42%;
+    --accent: 210 25% 92%;
+    --accent-foreground: 201 96% 36%;
 
-    --destructive: 0 84% 55%;
+    --destructive: 0 84% 50%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 25% 86%;
-    --input: 214 25% 86%;
-    --ring: 199 89% 42%;
+    --border: 214 24% 88%;
+    --input: 214 24% 88%;
+    --ring: 201 96% 36%;
 
     --radius: 0.75rem;
 
-    --glass-bg: 0 0% 100% / 0.88;
-    --glass-border: 214 25% 82% / 0.8;
+    --glass-bg: 0 0% 100% / 0.94;
+    --glass-border: 214 24% 86% / 0.85;
     --glass-blur: 14px;
 
     /* Status Colors for Light Mode (Alta Legibilidade e Contraste) */
-    --status-entrada: 338 85% 45%;
-    --status-entrada-bg: 338 85% 95%;
-    --status-novo: 199 90% 40%;
-    --status-novo-bg: 199 90% 94%;
-    --status-andamento: 38 95% 40%;
-    --status-andamento-bg: 38 95% 94%;
-    --status-rota: 215 25% 42%;
-    --status-rota-bg: 215 25% 94%;
-    --status-aguardando: 270 75% 50%;
-    --status-aguardando-bg: 270 75% 95%;
-    --status-revisao: 175 85% 36%;
-    --status-revisao-bg: 175 85% 94%;
-    --status-concluido: 152 75% 36%;
-    --status-concluido-bg: 152 75% 94%;
-    --status-arquivado: 215 20% 42%;
-    --status-arquivado-bg: 215 20% 94%;
-    --status-urgente: 0 85% 52%;
-    --status-urgente-bg: 0 85% 95%;
+    --status-entrada: 338 85% 40%;
+    --status-entrada-bg: 338 85% 96%;
+    --status-novo: 199 90% 36%;
+    --status-novo-bg: 199 90% 95%;
+    --status-andamento: 36 95% 36%;
+    --status-andamento-bg: 38 95% 95%;
+    --status-rota: 215 25% 38%;
+    --status-rota-bg: 215 25% 95%;
+    --status-aguardando: 270 75% 44%;
+    --status-aguardando-bg: 270 75% 96%;
+    --status-revisao: 175 85% 30%;
+    --status-revisao-bg: 175 85% 95%;
+    --status-concluido: 152 75% 30%;
+    --status-concluido-bg: 152 75% 95%;
+    --status-arquivado: 215 20% 38%;
+    --status-arquivado-bg: 215 20% 95%;
+    --status-urgente: 0 85% 48%;
+    --status-urgente-bg: 0 85% 96%;
 
     /* Sidebar Light */
     --sidebar-background: 210 25% 98%;
-    --sidebar-foreground: 222 47% 16%;
-    --sidebar-primary: 199 89% 42%;
+    --sidebar-foreground: 222 47% 14%;
+    --sidebar-primary: 201 96% 36%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 210 25% 92%;
-    --sidebar-accent-foreground: 199 89% 42%;
-    --sidebar-border: 214 25% 87%;
-    --sidebar-ring: 199 89% 42%;
+    --sidebar-accent-foreground: 201 96% 36%;
+    --sidebar-border: 214 24% 88%;
+    --sidebar-ring: 201 96% 36%;
 
     --gradient-sidebar: linear-gradient(180deg, hsl(210 25% 99%), hsl(210 25% 96%));
-    --gradient-header: linear-gradient(90deg, hsl(0 0% 100% / 0.95), hsl(210 25% 98% / 0.85));
-    --gradient-primary: linear-gradient(135deg, hsl(199 89% 44%), hsl(215 85% 48%));
-    --gradient-glow: radial-gradient(circle at 50% 0%, hsl(199 89% 44% / 0.08), transparent 70%);
+    --gradient-header: linear-gradient(90deg, hsl(0 0% 100% / 0.98), hsl(210 25% 98% / 0.9));
+    --gradient-primary: linear-gradient(135deg, hsl(201 96% 38%), hsl(215 85% 45%));
+    --gradient-glow: radial-gradient(circle at 50% 0%, hsl(201 96% 38% / 0.08), transparent 70%);
   }
 }
 

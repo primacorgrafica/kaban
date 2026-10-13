@@ -9,12 +9,12 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-semibold shadow-[0_0_20px_-3px_rgba(6,182,212,0.35)] hover:shadow-[0_0_25px_rgba(6,182,212,0.55)] border-none",
-        destructive: "bg-rose-600 text-white hover:bg-rose-500 shadow-[0_0_15px_-3px_rgba(244,63,94,0.4)] border-none",
-        outline: "border border-slate-800 bg-slate-900/60 text-slate-200 hover:bg-slate-800/80 hover:text-white hover:border-slate-700",
-        secondary: "bg-slate-800/80 text-slate-200 hover:bg-slate-700 hover:text-white border border-slate-700/50",
-        ghost: "hover:bg-slate-800/60 hover:text-white text-slate-300",
-        link: "text-cyan-400 underline-offset-4 hover:underline",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-xs dark:bg-gradient-to-r dark:from-cyan-500 dark:to-blue-600 dark:hover:from-cyan-400 dark:hover:to-blue-500 dark:text-slate-950 dark:shadow-[0_0_20px_-3px_rgba(6,182,212,0.35)] dark:hover:shadow-[0_0_25px_rgba(6,182,212,0.55)] border-none",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-xs dark:bg-rose-600 dark:text-white dark:hover:bg-rose-500 dark:shadow-[0_0_15px_-3px_rgba(244,63,94,0.4)] border-none",
+        outline: "border border-border bg-card hover:bg-muted text-foreground dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:bg-slate-800/80 dark:hover:text-white dark:hover:border-slate-700 shadow-2xs",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border dark:bg-slate-800/80 dark:text-slate-200 dark:hover:bg-slate-700 dark:hover:text-white dark:border-slate-700/50",
+        ghost: "hover:bg-muted hover:text-foreground text-muted-foreground dark:hover:bg-slate-800/60 dark:hover:text-white dark:text-slate-300",
+        link: "text-primary underline-offset-4 hover:underline dark:text-cyan-400",
       },
       size: {
         default: "h-10 px-4 py-2",
