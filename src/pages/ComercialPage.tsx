@@ -25,10 +25,16 @@ const PRE_IMPRESSAO_DEPT: DepartmentConfig = {
 
 export default function ComercialPage() {
   const permissions = usePermissions();
-  const { activeOrders, archivedOrders, addOrder } = useOrders();
+  const { orders, addOrder } = useOrders();
 
-  const [prodOrders, setProdOrders] = useState<Order[]>([]);
-  const [allOrders, setAllOrders] = useState<Order[]>([]);
+  const allOrders = useMemo(() => {
+    return orders.filter(o => !o.arquivado);
+  }, [orders]);
+
+  const prodOrders = useMemo(() => {
+    return orders.filter(o => !o.arquivado && Boolean(o.setor));
+  }, [orders]);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<KanbanFilters>({
     statuses: [],
@@ -37,39 +43,6 @@ export default function ComercialPage() {
     dateFrom: undefined,
     dateTo: undefined,
   });
-
-  useEffect(() => {
-    const fetchProd = async () => {
-      const { data } = await supabase
-        .from("orders")
-        .select("*")
-        .not("setor", "is", null)
-        .eq("arquivado", false);
-      if (data) setProdOrders(data as Order[]);
-    };
-    fetchProd();
-    const ch = supabase
-      .channel("comercial-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => fetchProd())
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, []);
-
-  useEffect(() => {
-    const fetchAll = async () => {
-      const { data } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("arquivado", false);
-      if (data) setAllOrders(data as Order[]);
-    };
-    fetchAll();
-    const ch = supabase
-      .channel("comercial-all-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => fetchAll())
-      .subscribe();
-    return () => { supabase.removeChannel(ch); };
-  }, []);
 
   const applyFiltersOnly = (list: Order[]) => {
     return list.filter(o => {

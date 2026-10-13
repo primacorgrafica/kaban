@@ -2,7 +2,16 @@ import { Order, OrderStatus, STATUS_CONFIG } from "@/types/order";
 import { Department } from "@/types/production";
 import { OrderCard } from "./OrderCard";
 import { Droppable, Draggable } from "@hello-pangea/dnd";
-import { LucideIcon, Inbox, FileEdit, Printer, Clock, FileQuestion, CheckCircle2, ArrowRight } from "lucide-react";
+import {
+  LucideIcon,
+  FileEdit,
+  Printer,
+  Clock,
+  FileQuestion,
+  CheckCircle2,
+  ArrowRight,
+} from "lucide-react";
+import { createPortal } from "react-dom";
 
 const PRE_PRESS_STATUS_ICONS: Record<OrderStatus, LucideIcon> = {
   fila_de_entrada: ArrowRight,
@@ -34,8 +43,15 @@ interface KanbanColumnProps {
   onArchive: (id: string) => void;
   onDelete: (id: string) => void;
   onDuplicate?: (order: Order) => void;
-  onSendToProduction?: (id: string, department: Department, machine?: string) => void;
-  onSendToMultipleProduction?: (id: string, departments: { department: Department; machine?: string }[]) => void;
+  onSendToProduction?: (
+    id: string,
+    department: Department,
+    machine?: string
+  ) => void;
+  onSendToMultipleProduction?: (
+    id: string,
+    departments: { department: Department; machine?: string }[]
+  ) => void;
   onSendToExpedicao?: (id: string) => void;
   getProfileName: (userId: string | null) => string | null;
   permissions: Permissions;
@@ -43,9 +59,48 @@ interface KanbanColumnProps {
   slowAlertIds?: Set<string>;
 }
 
-export function KanbanColumn({ status, orders, onUpdate, onMove, onArchive, onDelete, onDuplicate, onSendToProduction, onSendToMultipleProduction, onSendToExpedicao, getProfileName, permissions, departmentContext, slowAlertIds }: KanbanColumnProps) {
+/**
+ * Quando isDragging=true, teletransporta o nó filho (incluindo o innerRef)
+ * para document.body. Isso remove a influência do backdrop-filter das colunas,
+ * que criava um novo "containing block" para position:fixed e deslocava o card.
+ * A classe drag-portal-item garante fundo sólido (sem transparência).
+ */
+function PortalDrag({
+  isDragging,
+  children,
+}: {
+  isDragging: boolean;
+  children: React.ReactNode;
+}) {
+  if (isDragging) {
+    return createPortal(
+      <div className="drag-portal-item">{children}</div>,
+      document.body
+    );
+  }
+  return <>{children}</>;
+}
+
+export function KanbanColumn({
+  status,
+  orders,
+  onUpdate,
+  onMove,
+  onArchive,
+  onDelete,
+  onDuplicate,
+  onSendToProduction,
+  onSendToMultipleProduction,
+  onSendToExpedicao,
+  getProfileName,
+  permissions,
+  departmentContext,
+  slowAlertIds,
+}: KanbanColumnProps) {
   const config = STATUS_CONFIG[status];
-  const canDrag = !permissions.isViewOnly && (permissions.canReorderEntry || permissions.canAdvanceCards);
+  const canDrag =
+    !permissions.isViewOnly &&
+    (permissions.canReorderEntry || permissions.canAdvanceCards);
   const StatusIcon = PRE_PRESS_STATUS_ICONS[status];
 
   return (
@@ -59,14 +114,19 @@ export function KanbanColumn({ status, orders, onUpdate, onMove, onArchive, onDe
       >
         <div
           className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
-          style={{ backgroundColor: `hsl(var(--status-${config.colorKey}) / 0.15)` }}
+          style={{
+            backgroundColor: `hsl(var(--status-${config.colorKey}) / 0.15)`,
+          }}
         >
           <StatusIcon
             className="w-3.5 h-3.5"
             style={{ color: `hsl(var(--status-${config.colorKey}))` }}
           />
         </div>
-        <h3 className="text-xs font-bold uppercase tracking-wider font-mono-tech truncate" style={{ color: `hsl(var(--status-${config.colorKey}))` }}>
+        <h3
+          className="text-xs font-bold uppercase tracking-wider font-mono-tech truncate"
+          style={{ color: `hsl(var(--status-${config.colorKey}))` }}
+        >
           {config.label}
         </h3>
         <span
@@ -87,36 +147,52 @@ export function KanbanColumn({ status, orders, onUpdate, onMove, onArchive, onDe
             ref={provided.innerRef}
             {...provided.droppableProps}
             className={`flex-1 space-y-2 p-2.5 pb-6 transition-colors duration-200 ${
-              snapshot.isDraggingOver ? "bg-cyan-500/5 ring-1 ring-cyan-500/30" : ""
+              snapshot.isDraggingOver
+                ? "bg-cyan-500/5 ring-1 ring-cyan-500/30"
+                : ""
             }`}
             style={{ minHeight: "120px" }}
           >
             {orders.map((order, index) => (
-              <Draggable key={order.id} draggableId={order.id} index={index} isDragDisabled={!canDrag}>
-                {(provided) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.draggableProps}
-                    style={provided.draggableProps.style}
-                  >
-                    <OrderCard
-                      order={order}
-                      onUpdate={onUpdate}
-                      onMove={onMove}
-                      onArchive={onArchive}
-                      onDelete={onDelete}
-                      onDuplicate={onDuplicate}
-                      onSendToProduction={onSendToProduction}
-                      onSendToMultipleProduction={onSendToMultipleProduction}
-                      onSendToExpedicao={onSendToExpedicao}
-                      dragHandleProps={canDrag ? (provided.dragHandleProps as unknown as Record<string, unknown>) : undefined}
-                      updatedByName={getProfileName(order.atualizado_por)}
-                      createdByName={getProfileName(order.criado_por)}
-                       permissions={permissions}
-                       departmentContext={departmentContext}
-                       isSlowAlert={slowAlertIds?.has(order.id)}
-                     />
-                  </div>
+              <Draggable
+                key={order.id}
+                draggableId={order.id}
+                index={index}
+                isDragDisabled={!canDrag}
+              >
+                {(provided, snapshot) => (
+                  <PortalDrag isDragging={snapshot.isDragging}>
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      style={provided.draggableProps.style}
+                    >
+                      <OrderCard
+                        order={order}
+                        onUpdate={onUpdate}
+                        onMove={onMove}
+                        onArchive={onArchive}
+                        onDelete={onDelete}
+                        onDuplicate={onDuplicate}
+                        onSendToProduction={onSendToProduction}
+                        onSendToMultipleProduction={onSendToMultipleProduction}
+                        onSendToExpedicao={onSendToExpedicao}
+                        dragHandleProps={
+                          canDrag
+                            ? (provided.dragHandleProps as unknown as Record<
+                                string,
+                                unknown
+                              >)
+                            : undefined
+                        }
+                        updatedByName={getProfileName(order.atualizado_por)}
+                        createdByName={getProfileName(order.criado_por)}
+                        permissions={permissions}
+                        departmentContext={departmentContext}
+                        isSlowAlert={slowAlertIds?.has(order.id)}
+                      />
+                    </div>
+                  </PortalDrag>
                 )}
               </Draggable>
             ))}

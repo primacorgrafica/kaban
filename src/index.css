@@ -291,4 +291,34 @@
   .animate-marquee:hover {
     animation-play-state: paused;
   }
+
+  /* ==========================================================================
+     DRAG PORTAL — card arrastado via createPortal para document.body.
+     Garante fundo sólido (sem transparência) e z-index elevado.
+     O wrapper usa display:contents para não interferir no position:fixed.
+     O estilo é aplicado ao primeiro filho direto (o card).
+     ========================================================================== */
+  .drag-portal-item {
+    /* Não interfere no layout nem no position:fixed do filho */
+    display: contents;
+  }
+
+  /* Card filho direto do portal — recebe fundo sólido */
+  .drag-portal-item > * {
+    /* Força fundo sólido: remove transparência do glassmorphism */
+    background: hsl(var(--card)) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.55),
+                0 0 0 1px hsl(var(--primary) / 0.3) !important;
+    cursor: grabbing !important;
+    z-index: 9999;
+  }
+
+  /* Qualquer card aninhado dentro do item arrastado também recebe fundo sólido */
+  .drag-portal-item > * .rounded-2xl,
+  .drag-portal-item > * [class*="bg-slate-"] {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
 }

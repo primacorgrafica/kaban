@@ -224,8 +224,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAdmin = role === "admin";
   const hasModule = (mod: string) => {
     if (isAdmin) return true;
-    if (!modulosAcesso || modulosAcesso.length === 0) return true; // sem restrição configurada
-    return modulosAcesso.includes(mod);
+    if (modulosAcesso && modulosAcesso.length > 0) {
+      return modulosAcesso.includes(mod);
+    }
+    // Fallback seguro: default-deny baseado na role caso não haja módulos explicitamente configurados
+    if (role === "coordenador") {
+      return ["producao", "expedicao", "pcp", "trabalhos_concluidos", "compras", "manutencao"].includes(mod);
+    }
+    if (role === "vendedor") {
+      return ["comercial"].includes(mod);
+    }
+    if (role === "orcamentista") {
+      return ["comercial", "producao"].includes(mod);
+    }
+    if (role === "operador" || role === "impressor") {
+      return ["producao"].includes(mod);
+    }
+    return false;
   };
 
   return (
@@ -265,7 +280,7 @@ export function useAuth() {
       isAdmin: false,
       modulosAcesso: [],
       onlineUserIds: new Set<string>(),
-      hasModule: () => true,
+      hasModule: () => false,
       signIn: async () => ({ error: new Error("Auth not ready") }),
       signUp: async () => ({ error: new Error("Auth not ready") }),
       signOut: async () => {},

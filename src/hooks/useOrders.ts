@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { subscribeOrdersIncremental, subscribeProfilesIncremental, type OrderPayload } from "@/lib/realtimeManager";
 import { invalidateApprovalEntry } from "@/lib/approvalEntryCache";
 import { toast } from "sonner";
-import { Order, OrderStatus, Profile } from "@/types/order";
+import { Order, OrderStatus, Profile, STATUS_CONFIG } from "@/types/order";
 import { Department } from "@/types/production";
 
 export function useOrders() {
@@ -133,19 +133,23 @@ export function useOrders() {
       const sendToSetor = data.setor_destino || null;
 
       if (!sendToSetor && isUrgente) {
-        const { data: existingOrders } = await supabase
-          .from("orders")
-          .select("id, posicao")
-          .eq("status", "fila_de_entrada")
-          .eq("arquivado", false)
-          .order("posicao", { ascending: true });
+        // Tenta acionar RPC de deslocamento atômico no PostgreSQL
+        const { error: rpcErr } = await supabase.rpc("shift_orders_for_urgent", { p_status: "fila_de_entrada" });
+        if (rpcErr) {
+          const { data: existingOrders } = await supabase
+            .from("orders")
+            .select("id, posicao")
+            .eq("status", "fila_de_entrada")
+            .eq("arquivado", false)
+            .order("posicao", { ascending: true });
 
-        if (existingOrders && existingOrders.length > 0) {
-          await Promise.all(
-            existingOrders.map((o: any) =>
-              supabase.from("orders").update({ posicao: o.posicao + 1 }).eq("id", o.id)
-            )
-          );
+          if (existingOrders && existingOrders.length > 0) {
+            await Promise.all(
+              existingOrders.map((o: any) =>
+                supabase.from("orders").update({ posicao: o.posicao + 1 }).eq("id", o.id)
+              )
+            );
+          }
         }
       }
 
@@ -283,34 +287,62 @@ export function useOrders() {
   );
 
   const moveOrder = useCallback(async (id: string, newStatus: OrderStatus, newIndex?: number) => {
+    const currentOrder = orders.find(o => o.id === id);
+    const oldStatus = currentOrder?.status;
+    const oldPos = currentOrder?.posicao;
+
     const destOrders = orders
       .filter(o => o.status === newStatus && !o.arquivado && o.id !== id)
       .sort((a, b) => a.posicao - b.posicao);
 
     const idx = newIndex !== undefined ? newIndex : destOrders.length;
-    const updates: PromiseLike<{ error: any }>[] = [];
     destOrders.splice(idx, 0, { id } as Order);
-    
-    for (let i = 0; i < destOrders.length; i++) {
-      if (destOrders[i].id === id) {
-        updates.push(
-          supabase.from("orders").update({ status: newStatus as string, posicao: i, atualizado_por: user?.id || null }).eq("id", id)
-        );
-      } else if (destOrders[i].posicao !== i) {
-        updates.push(
-          supabase.from("orders").update({ posicao: i }).eq("id", destOrders[i].id)
-        );
+
+    const orderIds = destOrders.map(o => o.id);
+
+    // 1. Tentar reordenação atômica via RPC no PostgreSQL
+    const { error: rpcErr } = await (supabase.rpc as any)("reorder_orders_atomic", {
+      p_order_ids: orderIds,
+      p_status: newStatus as string,
+    });
+
+    if (rpcErr) {
+      // Fallback gracioso para updates diretos caso a RPC ainda não esteja disponível
+      const updates: PromiseLike<{ error: any }>[] = [];
+      for (let i = 0; i < destOrders.length; i++) {
+        if (destOrders[i].id === id) {
+          updates.push(
+            supabase.from("orders").update({ status: newStatus as string, posicao: i, atualizado_por: user?.id || null }).eq("id", id)
+          );
+        } else if (destOrders[i].posicao !== i) {
+          updates.push(
+            supabase.from("orders").update({ posicao: i }).eq("id", destOrders[i].id)
+          );
+        }
+      }
+      
+      const results = await Promise.all(updates);
+      const failed = results.find(r => r.error);
+      if (failed) {
+        toast.error("Erro ao mover OS.");
+        console.error("Move error:", failed.error);
+        return;
       }
     }
-    
-    const results = await Promise.all(updates);
-    const failed = results.find(r => r.error);
-    if (failed) {
-      toast.error("Erro ao mover OS.");
-      console.error("Move error:", failed.error);
-    }
 
-  }, [user]);
+    // Feedback com ação rápida de Desfazer (Undo)
+    if (oldStatus && oldStatus !== newStatus) {
+      const targetLabel = STATUS_CONFIG[newStatus]?.label || newStatus;
+      toast.success(`OS movida para ${targetLabel}`, {
+        action: {
+          label: "Desfazer",
+          onClick: () => {
+            moveOrder(id, oldStatus, oldPos);
+          },
+        },
+      });
+    }
+  }, [orders, user]);
 
   const archiveOrder = useCallback(async (id: string) => {
     const { error } = await supabase.from("orders").update({ arquivado: true, atualizado_por: user?.id || null }).eq("id", id);
@@ -332,8 +364,19 @@ export function useOrders() {
   }, [user]);
 
   const deleteOrder = useCallback(async (id: string) => {
+    // Excluir proativamente sub-ordens vinculadas à OS pai para garantir que não restem órfãos
+    const { error: childError } = await supabase
+      .from("orders")
+      .delete()
+      .eq("parent_order_id", id);
+    if (childError) console.error("Erro ao excluir sub-ordens vinculadas:", childError);
+
     const { error } = await supabase.from("orders").delete().eq("id", id);
-    if (error) toast.error("Erro ao excluir");
+    if (error) {
+      toast.error("Erro ao excluir OS: " + (error.message || "Acesso negado"));
+    } else {
+      toast.success("OS excluída com sucesso");
+    }
   }, []);
 
   const copyOrderFields = (o: Order) => ({

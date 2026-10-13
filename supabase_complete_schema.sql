@@ -1698,36 +1698,43 @@ CREATE TRIGGER trg_prevent_self_module_escalation
   BEFORE UPDATE ON public.profiles
   FOR EACH ROW EXECUTE FUNCTION public.prevent_self_module_escalation();
 
--- 4. Tighten "always true" policies (still authenticated-only, but non-trivial expression)
+-- 4. Tighten policies: deletion and management restricted to admins/coordinators
 DROP POLICY IF EXISTS "Authenticated users can create orders" ON public.orders;
 DROP POLICY IF EXISTS "Authenticated users can delete orders" ON public.orders;
+DROP POLICY IF EXISTS "Admins and coordinators can delete orders" ON public.orders;
 DROP POLICY IF EXISTS "Authenticated users can update orders" ON public.orders;
 CREATE POLICY "Authenticated users can create orders" ON public.orders
   FOR INSERT TO authenticated WITH CHECK (auth.uid() IS NOT NULL);
-CREATE POLICY "Authenticated users can delete orders" ON public.orders
-  FOR DELETE TO authenticated USING (auth.uid() IS NOT NULL);
+CREATE POLICY "Admins and coordinators can delete orders" ON public.orders
+  FOR DELETE TO authenticated USING (public.get_user_role(auth.uid()) IN ('admin', 'coordenador'));
 CREATE POLICY "Authenticated users can update orders" ON public.orders
   FOR UPDATE TO authenticated USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
 
 DROP POLICY IF EXISTS "Authenticated can delete equipamentos" ON public.equipamentos;
 DROP POLICY IF EXISTS "Authenticated can insert equipamentos" ON public.equipamentos;
 DROP POLICY IF EXISTS "Authenticated can update equipamentos" ON public.equipamentos;
-CREATE POLICY "Authenticated can delete equipamentos" ON public.equipamentos
-  FOR DELETE TO authenticated USING (auth.uid() IS NOT NULL);
-CREATE POLICY "Authenticated can insert equipamentos" ON public.equipamentos
-  FOR INSERT TO authenticated WITH CHECK (auth.uid() IS NOT NULL);
-CREATE POLICY "Authenticated can update equipamentos" ON public.equipamentos
-  FOR UPDATE TO authenticated USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "Admins can delete equipamentos" ON public.equipamentos;
+DROP POLICY IF EXISTS "Admins can insert equipamentos" ON public.equipamentos;
+DROP POLICY IF EXISTS "Admins can update equipamentos" ON public.equipamentos;
+CREATE POLICY "Admins can delete equipamentos" ON public.equipamentos
+  FOR DELETE TO authenticated USING (public.get_user_role(auth.uid()) = 'admin');
+CREATE POLICY "Admins can insert equipamentos" ON public.equipamentos
+  FOR INSERT TO authenticated WITH CHECK (public.get_user_role(auth.uid()) = 'admin');
+CREATE POLICY "Admins can update equipamentos" ON public.equipamentos
+  FOR UPDATE TO authenticated USING (public.get_user_role(auth.uid()) = 'admin') WITH CHECK (public.get_user_role(auth.uid()) = 'admin');
 
 DROP POLICY IF EXISTS "Authenticated can delete vendedores" ON public.vendedores;
 DROP POLICY IF EXISTS "Authenticated can insert vendedores" ON public.vendedores;
 DROP POLICY IF EXISTS "Authenticated can update vendedores" ON public.vendedores;
-CREATE POLICY "Authenticated can delete vendedores" ON public.vendedores
-  FOR DELETE TO authenticated USING (auth.uid() IS NOT NULL);
-CREATE POLICY "Authenticated can insert vendedores" ON public.vendedores
-  FOR INSERT TO authenticated WITH CHECK (auth.uid() IS NOT NULL);
-CREATE POLICY "Authenticated can update vendedores" ON public.vendedores
-  FOR UPDATE TO authenticated USING (auth.uid() IS NOT NULL) WITH CHECK (auth.uid() IS NOT NULL);
+DROP POLICY IF EXISTS "Admins can delete vendedores" ON public.vendedores;
+DROP POLICY IF EXISTS "Admins can insert vendedores" ON public.vendedores;
+DROP POLICY IF EXISTS "Admins can update vendedores" ON public.vendedores;
+CREATE POLICY "Admins can delete vendedores" ON public.vendedores
+  FOR DELETE TO authenticated USING (public.get_user_role(auth.uid()) = 'admin');
+CREATE POLICY "Admins can insert vendedores" ON public.vendedores
+  FOR INSERT TO authenticated WITH CHECK (public.get_user_role(auth.uid()) = 'admin');
+CREATE POLICY "Admins can update vendedores" ON public.vendedores
+  FOR UPDATE TO authenticated USING (public.get_user_role(auth.uid()) = 'admin') WITH CHECK (public.get_user_role(auth.uid()) = 'admin');
 
 DROP POLICY IF EXISTS "Authenticated users can insert sector history" ON public.sector_history;
 CREATE POLICY "Authenticated users can insert sector history" ON public.sector_history

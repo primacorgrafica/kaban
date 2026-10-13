@@ -252,8 +252,19 @@ export function useProductionOrders() {
   }, [user]);
 
   const deleteOrder = useCallback(async (id: string) => {
+    // Excluir proativamente sub-ordens vinculadas à OS pai para garantir integridade
+    const { error: childError } = await supabase
+      .from("orders")
+      .delete()
+      .eq("parent_order_id", id);
+    if (childError) console.error("Erro ao excluir sub-ordens filhas:", childError);
+
     const { error } = await supabase.from("orders").delete().eq("id", id);
-    if (error) toast.error("Erro ao excluir");
+    if (error) {
+      toast.error("Erro ao excluir OS: " + (error.message || "Acesso negado"));
+    } else {
+      toast.success("OS excluída com sucesso");
+    }
   }, []);
 
   const updateOrder = useCallback(

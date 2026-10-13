@@ -1,12 +1,45 @@
 import { Order } from "@/types/order";
-import { DepartmentStatusConfig, DepartmentConfig, DEPARTMENTS, Department } from "@/types/production";
+import {
+  DepartmentStatusConfig,
+  DepartmentConfig,
+  Department,
+} from "@/types/production";
 import { ProductionCard } from "./ProductionCard";
 import { ManutencaoCard } from "./ManutencaoCard";
 import { ComprasCard } from "./ComprasCard";
 
 import { Droppable, Draggable } from "@hello-pangea/dnd";
-import { LucideIcon, Inbox, Layers, Search, CircleDot, Film, LogOut, Lightbulb, Hammer, CheckCircle, Settings, Monitor, Type, Printer as PrinterIcon, Scissors, FoldVertical, BookOpen, Ruler, Hand, Droplets, Flame, Grid3X3, Users, Star, Box, Wrench, Sun, Sunset, ArrowRight } from "lucide-react";
+import {
+  LucideIcon,
+  Inbox,
+  Layers,
+  Search,
+  CircleDot,
+  Film,
+  LogOut,
+  Lightbulb,
+  Hammer,
+  CheckCircle,
+  Printer as PrinterIcon,
+  Scissors,
+  FoldVertical,
+  BookOpen,
+  Ruler,
+  Hand,
+  Droplets,
+  Flame,
+  Grid3X3,
+  Users,
+  Star,
+  Box,
+  Wrench,
+  Sun,
+  Sunset,
+  ArrowRight,
+} from "lucide-react";
 import { OffsetIcon } from "./icons/OffsetIcon";
+import { createPortal } from "react-dom";
+
 const STATUS_ICONS: Record<string, LucideIcon> = {
   entrada: ArrowRight,
   imposicao: Layers,
@@ -59,6 +92,28 @@ interface ProductionColumnProps {
   parentSectorMap?: Record<string, string | null>;
 }
 
+/**
+ * Quando isDragging=true, teletransporta o nó filho (incluindo o innerRef)
+ * para document.body. Isso remove a influência do backdrop-filter das colunas,
+ * que criava um novo "containing block" para position:fixed e deslocava o card.
+ * A classe drag-portal-item garante fundo sólido (sem transparência).
+ */
+function PortalDrag({
+  isDragging,
+  children,
+}: {
+  isDragging: boolean;
+  children: React.ReactNode;
+}) {
+  if (isDragging) {
+    return createPortal(
+      <div className="drag-portal-item">{children}</div>,
+      document.body
+    );
+  }
+  return <>{children}</>;
+}
+
 export function ProductionColumn({
   statusConfig,
   orders,
@@ -90,7 +145,10 @@ export function ProductionColumn({
           className="w-4 h-4 shrink-0"
           style={{ color: `hsl(var(--status-${statusConfig.colorKey}))` }}
         />
-        <h3 className="text-sm font-semibold uppercase" style={{ color: `hsl(var(--status-${statusConfig.colorKey}))` }}>
+        <h3
+          className="text-sm font-semibold uppercase"
+          style={{ color: `hsl(var(--status-${statusConfig.colorKey}))` }}
+        >
           {statusConfig.label}
         </h3>
         <span
@@ -115,65 +173,99 @@ export function ProductionColumn({
             style={{ minHeight: "120px" }}
           >
             {orders.map((order, index) => (
-              <Draggable key={order.id} draggableId={order.id} index={index} isDragDisabled={readOnly}>
-                {(provided) => (
-                  <div
-                    ref={provided.innerRef}
-                    {...provided.draggableProps}
-                    style={provided.draggableProps.style}
-                  >
-                    {department.id === "compras" ? (
-                      <ComprasCard
-                        order={order}
-                        department={department}
-                        currentStatus={statusConfig}
-                        onUpdate={onUpdate}
-                        onMove={onMove}
-                        onSendToDepartment={onSendToDepartment}
-                        onSendBackToPrePress={onSendBackToPrePress}
-                        onArchive={onArchive}
-                        onDelete={onDelete}
-                        dragHandleProps={readOnly ? undefined : (provided.dragHandleProps as unknown as Record<string, unknown>)}
-                        updatedByName={getProfileName(order.atualizado_por)}
-                        createdByName={getProfileName(order.criado_por)}
-                        readOnly={readOnly}
-                      />
-                    ) : department.id === "manutencao" ? (
-                      <ManutencaoCard
-                        order={order}
-                        department={department}
-                        currentStatus={statusConfig}
-                        onUpdate={onUpdate}
-                        onMove={onMove}
-                        onSendToDepartment={onSendToDepartment}
-                        onSendBackToPrePress={onSendBackToPrePress}
-                        onArchive={onArchive}
-                        onDelete={onDelete}
-                        dragHandleProps={readOnly ? undefined : (provided.dragHandleProps as unknown as Record<string, unknown>)}
-                        updatedByName={getProfileName(order.atualizado_por)}
-                        createdByName={getProfileName(order.criado_por)}
-                        readOnly={readOnly}
-                      />
-                    ) : (
-                      <ProductionCard
-                        order={order}
-                        department={department}
-                        currentStatus={statusConfig}
-                        onUpdate={onUpdate}
-                        onMove={onMove}
-                        onSendToDepartment={onSendToDepartment}
-                        onSendBackToPrePress={onSendBackToPrePress}
-                        onArchive={onArchive}
-                        onDelete={onDelete}
-                        dragHandleProps={readOnly ? undefined : (provided.dragHandleProps as unknown as Record<string, unknown>)}
-                        updatedByName={getProfileName(order.atualizado_por)}
-                        createdByName={getProfileName(order.criado_por)}
-                        readOnly={readOnly}
-                        hasFaturamentoPendencia={!!faturamentoPendenciaIds?.has(order.id)}
-                        parentSector={parentSectorMap && order.parent_order_id ? parentSectorMap[order.parent_order_id] : undefined}
-                      />
-                    )}
-                  </div>
+              <Draggable
+                key={order.id}
+                draggableId={order.id}
+                index={index}
+                isDragDisabled={readOnly}
+              >
+                {(provided, snapshot) => (
+                  <PortalDrag isDragging={snapshot.isDragging}>
+                    <div
+                      ref={provided.innerRef}
+                      {...provided.draggableProps}
+                      style={provided.draggableProps.style}
+                    >
+                      {department.id === "compras" ? (
+                        <ComprasCard
+                          order={order}
+                          department={department}
+                          currentStatus={statusConfig}
+                          onUpdate={onUpdate}
+                          onMove={onMove}
+                          onSendToDepartment={onSendToDepartment}
+                          onSendBackToPrePress={onSendBackToPrePress}
+                          onArchive={onArchive}
+                          onDelete={onDelete}
+                          dragHandleProps={
+                            readOnly
+                              ? undefined
+                              : (provided.dragHandleProps as unknown as Record<
+                                  string,
+                                  unknown
+                                >)
+                          }
+                          updatedByName={getProfileName(order.atualizado_por)}
+                          createdByName={getProfileName(order.criado_por)}
+                          readOnly={readOnly}
+                        />
+                      ) : department.id === "manutencao" ? (
+                        <ManutencaoCard
+                          order={order}
+                          department={department}
+                          currentStatus={statusConfig}
+                          onUpdate={onUpdate}
+                          onMove={onMove}
+                          onSendToDepartment={onSendToDepartment}
+                          onSendBackToPrePress={onSendBackToPrePress}
+                          onArchive={onArchive}
+                          onDelete={onDelete}
+                          dragHandleProps={
+                            readOnly
+                              ? undefined
+                              : (provided.dragHandleProps as unknown as Record<
+                                  string,
+                                  unknown
+                                >)
+                          }
+                          updatedByName={getProfileName(order.atualizado_por)}
+                          createdByName={getProfileName(order.criado_por)}
+                          readOnly={readOnly}
+                        />
+                      ) : (
+                        <ProductionCard
+                          order={order}
+                          department={department}
+                          currentStatus={statusConfig}
+                          onUpdate={onUpdate}
+                          onMove={onMove}
+                          onSendToDepartment={onSendToDepartment}
+                          onSendBackToPrePress={onSendBackToPrePress}
+                          onArchive={onArchive}
+                          onDelete={onDelete}
+                          dragHandleProps={
+                            readOnly
+                              ? undefined
+                              : (provided.dragHandleProps as unknown as Record<
+                                  string,
+                                  unknown
+                                >)
+                          }
+                          updatedByName={getProfileName(order.atualizado_por)}
+                          createdByName={getProfileName(order.criado_por)}
+                          readOnly={readOnly}
+                          hasFaturamentoPendencia={
+                            !!faturamentoPendenciaIds?.has(order.id)
+                          }
+                          parentSector={
+                            parentSectorMap && order.parent_order_id
+                              ? parentSectorMap[order.parent_order_id]
+                              : undefined
+                          }
+                        />
+                      )}
+                    </div>
+                  </PortalDrag>
                 )}
               </Draggable>
             ))}

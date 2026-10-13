@@ -51,29 +51,64 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Export all tables
-    const { data: orders } = await adminClient.from("orders").select("*");
-    const { data: profiles } = await adminClient.from("profiles").select("*");
-    const { data: orderStatusHistory } = await adminClient.from("order_status_history").select("*");
-    const { data: userRoles } = await adminClient.from("user_roles").select("*");
+    // Export all system tables
+    const [
+      { data: orders },
+      { data: profiles },
+      { data: orderStatusHistory },
+      { data: sectorHistory },
+      { data: orderTimeSummary },
+      { data: userRoles },
+      { data: equipamentos },
+      { data: vendedores },
+      { data: avisos },
+      { data: chatConversations },
+      { data: chatMessages },
+    ] = await Promise.all([
+      adminClient.from("orders").select("*"),
+      adminClient.from("profiles").select("*"),
+      adminClient.from("order_status_history").select("*"),
+      adminClient.from("sector_history").select("*"),
+      adminClient.from("order_time_summary").select("*"),
+      adminClient.from("user_roles").select("*"),
+      adminClient.from("equipamentos").select("*"),
+      adminClient.from("vendedores").select("*"),
+      adminClient.from("avisos").select("*"),
+      adminClient.from("chat_conversations").select("*"),
+      adminClient.from("chat_messages").select("*"),
+    ]);
 
     const backup = {
       metadata: {
         created_at: new Date().toISOString(),
         created_by: user.email,
-        version: "1.0",
+        version: "2.0",
       },
       tables: {
         orders: orders || [],
         profiles: profiles || [],
         order_status_history: orderStatusHistory || [],
+        sector_history: sectorHistory || [],
+        order_time_summary: orderTimeSummary || [],
         user_roles: userRoles || [],
+        equipamentos: equipamentos || [],
+        vendedores: vendedores || [],
+        avisos: avisos || [],
+        chat_conversations: chatConversations || [],
+        chat_messages: chatMessages || [],
       },
       summary: {
         orders: orders?.length || 0,
         profiles: profiles?.length || 0,
         order_status_history: orderStatusHistory?.length || 0,
+        sector_history: sectorHistory?.length || 0,
+        order_time_summary: orderTimeSummary?.length || 0,
         user_roles: userRoles?.length || 0,
+        equipamentos: equipamentos?.length || 0,
+        vendedores: vendedores?.length || 0,
+        avisos: avisos?.length || 0,
+        chat_conversations: chatConversations?.length || 0,
+        chat_messages: chatMessages?.length || 0,
       },
     };
 
