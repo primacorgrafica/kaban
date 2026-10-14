@@ -41,8 +41,7 @@ import {
   Filter,
 } from "lucide-react";
 import { toast } from "sonner";
-import { getProcessoCor } from "@/lib/processos";
-import { OrderSlideOver } from "./OrderSlideOver";
+import { OrderDetailDialog } from "./OrderDetailDialog";
 
 interface Permissions {
   canEditCard: boolean;
@@ -496,20 +495,20 @@ export function ProductionTable({
         </Table>
       </div>
 
-      {/* Slide-over inspector */}
-      <OrderSlideOver
+      {/* Modal Centralizado de Detalhes da O.S. (idêntico ao de abrir na coluna) */}
+      <OrderDetailDialog
         order={inspectOrder}
         open={slideOverOpen}
         onOpenChange={setSlideOverOpen}
         onUpdate={onUpdate}
-        onMove={onMove}
         onArchive={onArchive}
         onDelete={onDelete}
         onDuplicate={onDuplicate}
         onSendToProduction={onSendToProduction}
         onSendToExpedicao={onSendToExpedicao}
-        updatedByName={inspectOrder ? getProfileName(inspectOrder.atualizado_por) : null}
-        createdByName={inspectOrder ? getProfileName(inspectOrder.criado_por) : null}
+        permissions={permissions}
+        departmentContext={department}
+        getProfileName={getProfileName}
       />
     </div>
   );

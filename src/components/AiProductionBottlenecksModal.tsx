@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { format, isPast, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { OrderSlideOver } from "./OrderSlideOver";
+import { OrderDetailDialog } from "./OrderDetailDialog";
 
 import { useState, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -317,9 +317,9 @@ export function AiProductionBottlenecksModal({
         </DialogContent>
       </Dialog>
 
-      {/* Fallback OrderSlideOver quando não houver manipulador externo */}
+      {/* Fallback OrderDetailDialog quando não houver manipulador externo */}
       {fallbackOrder && (
-        <OrderSlideOver
+        <OrderDetailDialog
           order={fallbackOrder}
           open={!!fallbackOrder}
           onOpenChange={(open) => !open && setFallbackOrder(null)}

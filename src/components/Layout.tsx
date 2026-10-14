@@ -28,7 +28,7 @@ import { RealtimeStatusIndicator } from "./RealtimeStatusIndicator";
 import { Activity, Command, MessageSquare, ExternalLink, Compass } from "lucide-react";
 import { Order, OrderStatus } from "@/types/order";
 import { UTILITIES_CONFIG } from "@/config/utilities";
-import { OrderSlideOver } from "./OrderSlideOver";
+import { OrderDetailDialog } from "./OrderDetailDialog";
 import { toast } from "sonner";
 
 interface LayoutProps {
@@ -599,13 +599,55 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
         onSelectOrder={(order) => setInspectOrder(order)}
       />
 
-      {/* Slide-over de Inspeção e Resolução de O.S. a partir de Gargalos ou Busca */}
-      <OrderSlideOver
+      {/* Modal Centralizado de Detalhes da O.S. (idêntico ao de abrir na coluna) */}
+      <OrderDetailDialog
         order={inspectOrder}
         open={!!inspectOrder}
         onOpenChange={(open) => !open && setInspectOrder(null)}
         onUpdate={handleUpdateInspectOrder}
-        onMove={handleMoveInspectOrder}
+        onDuplicate={async (order) => {
+          const { id, created_at, updated_at, ...rest } = order;
+          const { data, error } = await supabase.from("orders").insert({
+            ...rest,
+            titulo: `${order.titulo}-COPIA`,
+            criado_por: user?.id || null,
+          }).select().single();
+          if (error) {
+            toast.error("Erro ao duplicar O.S.");
+          } else {
+            toast.success("O.S. duplicada com sucesso!");
+            if (data) setInspectOrder(data as Order);
+          }
+        }}
+        onArchive={async (id) => {
+          await supabase.from("orders").update({ arquivado: true, atualizado_por: user?.id || null }).eq("id", id);
+          toast.success("O.S. arquivada com sucesso.");
+          setInspectOrder(null);
+        }}
+        onDelete={async (id) => {
+          await supabase.from("orders").delete().eq("id", id);
+          toast.success("O.S. excluída.");
+          setInspectOrder(null);
+        }}
+        onSendToProduction={async (id, dept, machine) => {
+          await supabase.from("orders").update({
+            setor: dept,
+            setor_status: "entrada",
+            maquina: machine || null,
+            atualizado_por: user?.id || null,
+          }).eq("id", id);
+          toast.success("O.S. enviada para produção!");
+          setInspectOrder(null);
+        }}
+        onSendToExpedicao={async (id) => {
+          await supabase.from("orders").update({
+            setor: "expedicao",
+            setor_status: "entrada",
+            atualizado_por: user?.id || null,
+          }).eq("id", id);
+          toast.success("O.S. enviada para expedição!");
+          setInspectOrder(null);
+        }}
       />
 
       {/* Chat Privado Modal */}
