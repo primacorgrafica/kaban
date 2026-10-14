@@ -32,6 +32,11 @@ export const UTILITIES_CONFIG: UtilitySubMenu[] = [
         label: "ESTAMPARIA",
         url: "https://estamparia.vercel.app",
       },
+      {
+        id: "aprovacao-cliente",
+        label: "APROVAÇÃO CLIENTE",
+        url: "https://embalagensprimacor.lovable.app/admin",
+      },
     ],
   },
 ];
