@@ -37,6 +37,11 @@ export const UTILITIES_CONFIG: UtilitySubMenu[] = [
         label: "APROVAÇÃO CLIENTE",
         url: "https://embalagensprimacor.lovable.app/admin",
       },
+      {
+        id: "calcular-lombada",
+        label: "CALCULAR LOMBADA",
+        url: "https://calcularlombada.vercel.app/",
+      },
     ],
   },
 ];
