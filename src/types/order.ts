@@ -133,7 +133,7 @@ export const STATUS_CONFIG: Record<OrderStatus, { label: string; colorKey: strin
 export const STATUS_ORDER: OrderStatus[] = [
   "fila_de_entrada",
   "preparando_arquivo",
-  "paralisado",
+  "aguardando_novo_arquivo",
   "aguardando_prova",
   "aguardando_aprovacao",
   "arquivo_liberado",
