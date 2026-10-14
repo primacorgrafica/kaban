@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, ClipboardList, Clock, Timer, ArrowRight, Calendar, BarChart3, TrendingUp } from "lucide-react";
+import { Loader2, ClipboardList, Clock, Timer, ArrowRight, Calendar, BarChart3, TrendingUp, Send, CheckCircle2 } from "lucide-react";
 import { businessHoursMs } from "@/lib/businessHours";
 import { formatDuration } from "@/hooks/useOrderAnalytics";
 import { Badge } from "@/components/ui/badge";
@@ -112,17 +112,43 @@ function computeMetrics(
     temposTotal.push(Math.max(totalMs - subtractMs, 0));
   });
 
-  // Operador 1/2/3: count of orders that left each stage to aguardando_prova or aguardando_aprovacao
-  const operadorCounts = { op1: 0, op2: 0, op3: 0 };
-  const targetStatuses = ["aguardando_prova", "aguardando_aprovacao"];
+  // Métricas de movimentação e finalização por etapa do fluxo no período
+  const stageCounts = {
+    preparadas: 0,
+    provas: 0,
+    liberadas: 0,
+    paralisadas: 0,
+  };
 
   history.forEach((h) => {
     const d = new Date(h.created_at);
     if (d < start || d > end) return;
-    if (!targetStatuses.includes(h.status_novo)) return;
-    if (h.status_anterior === "preparando_arquivo") operadorCounts.op1++;
-    else if (h.status_anterior === "operador_2") operadorCounts.op2++;
-    else if (h.status_anterior === "operador_3") operadorCounts.op3++;
+
+    // Conclusão de preparação (saiu de preparando_arquivo avançando)
+    if (
+      h.status_anterior === "preparando_arquivo" &&
+      (h.status_novo === "aguardando_prova" || h.status_novo === "aguardando_aprovacao" || h.status_novo === "arquivo_liberado")
+    ) {
+      stageCounts.preparadas++;
+    }
+
+    // Conclusão de prova técnica (saiu de aguardando_prova para aprovação ou saída)
+    if (
+      h.status_anterior === "aguardando_prova" &&
+      (h.status_novo === "aguardando_aprovacao" || h.status_novo === "arquivo_liberado")
+    ) {
+      stageCounts.provas++;
+    }
+
+    // Saída liberada / concluída
+    if (h.status_novo === "arquivo_liberado") {
+      stageCounts.liberadas++;
+    }
+
+    // Paralisadas no período
+    if (h.status_novo === "aguardando_novo_arquivo" || h.status_novo === "paralisado") {
+      stageCounts.paralisadas++;
+    }
   });
 
   const avg = (arr: number[]) => (arr.length > 0 ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
@@ -137,7 +163,7 @@ function computeMetrics(
     tempoTotalMedio: avg(temposTotal),
     tempoTotalMin: min(temposTotal),
     tempoTotalMax: max(temposTotal),
-    operadorCounts,
+    stageCounts,
   };
 }
 
@@ -203,24 +229,30 @@ function PeriodView({
         <p className="text-[10px] text-slate-500 mt-2 truncate">Desconta tempo aguardando cliente</p>
       </MetricCard>
 
-      <MetricCard title="Saídas por Operador" icon={<ArrowRight className="h-4 w-4 text-violet-400" />} color="violet">
-        <div className="space-y-2 mt-1">
+      <MetricCard title="Entregas & Finalizações" icon={<Send className="h-4 w-4 text-violet-400" />} color="violet">
+        <div className="space-y-1.5 mt-0.5">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-300">Operador 1</span>
+            <span className="text-xs text-slate-300">Preparadas</span>
             <Badge variant="outline" className="font-mono-tech font-bold text-cyan-400 border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5">
-              {metrics.operadorCounts.op1} O.S.
+              {metrics.stageCounts.preparadas} O.S.
             </Badge>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-300">Operador 2</span>
+            <span className="text-xs text-slate-300">Provas Concluídas</span>
             <Badge variant="outline" className="font-mono-tech font-bold text-violet-400 border-violet-500/30 bg-violet-500/10 px-2 py-0.5">
-              {metrics.operadorCounts.op2} O.S.
+              {metrics.stageCounts.provas} O.S.
             </Badge>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-300">Operador 3</span>
+            <span className="text-xs text-slate-300">Saídas Liberadas</span>
             <Badge variant="outline" className="font-mono-tech font-bold text-emerald-400 border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5">
-              {metrics.operadorCounts.op3} O.S.
+              {metrics.stageCounts.liberadas} O.S.
+            </Badge>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-slate-300">Paralisadas</span>
+            <Badge variant="outline" className="font-mono-tech font-bold text-amber-400 border-amber-500/30 bg-amber-500/10 px-2 py-0.5">
+              {metrics.stageCounts.paralisadas} O.S.
             </Badge>
           </div>
         </div>
@@ -261,24 +293,24 @@ export function PreImpressaoTab() {
   const chartData = useMemo(() => [
     {
       name: "Dia Anterior",
-      "Nº OS": metricsDia.numOS,
-      "Op. 1": metricsDia.operadorCounts.op1,
-      "Op. 2": metricsDia.operadorCounts.op2,
-      "Op. 3": metricsDia.operadorCounts.op3,
+      "O.S. Criadas": metricsDia.numOS,
+      "Preparadas": metricsDia.stageCounts.preparadas,
+      "Provas": metricsDia.stageCounts.provas,
+      "Liberadas": metricsDia.stageCounts.liberadas,
     },
     {
       name: "Semana Anterior",
-      "Nº OS": metricsSemana.numOS,
-      "Op. 1": metricsSemana.operadorCounts.op1,
-      "Op. 2": metricsSemana.operadorCounts.op2,
-      "Op. 3": metricsSemana.operadorCounts.op3,
+      "O.S. Criadas": metricsSemana.numOS,
+      "Preparadas": metricsSemana.stageCounts.preparadas,
+      "Provas": metricsSemana.stageCounts.provas,
+      "Liberadas": metricsSemana.stageCounts.liberadas,
     },
     {
       name: "Mês Anterior",
-      "Nº OS": metricsMes.numOS,
-      "Op. 1": metricsMes.operadorCounts.op1,
-      "Op. 2": metricsMes.operadorCounts.op2,
-      "Op. 3": metricsMes.operadorCounts.op3,
+      "O.S. Criadas": metricsMes.numOS,
+      "Preparadas": metricsMes.stageCounts.preparadas,
+      "Provas": metricsMes.stageCounts.provas,
+      "Liberadas": metricsMes.stageCounts.liberadas,
     },
   ], [metricsDia, metricsSemana, metricsMes]);
 
@@ -322,7 +354,7 @@ export function PreImpressaoTab() {
           </div>
           <div>
             <h3 className="text-sm font-semibold text-foreground">Análise Temporal de Produção</h3>
-            <p className="text-xs text-muted-foreground">Selecione a janela temporal para visualizar métricas dos operadores</p>
+            <p className="text-xs text-muted-foreground">Selecione a janela temporal para visualizar métricas de fluxo, prazos e entregas</p>
           </div>
         </div>
 
@@ -349,7 +381,7 @@ export function PreImpressaoTab() {
         <Card className="border border-border dark:border-slate-800/80 bg-card dark:bg-slate-900/60 shadow-xs backdrop-blur-md rounded-2xl">
           <CardHeader className="pb-3 border-b border-border dark:border-slate-800/60">
             <CardTitle className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-cyan-500 dark:text-cyan-400" /> Comparativo de Volume por Operador
+              <BarChart3 className="h-4 w-4 text-cyan-500 dark:text-cyan-400" /> Comparativo de Volume e Entregas
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
@@ -368,10 +400,10 @@ export function PreImpressaoTab() {
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
-                <Bar dataKey="Nº OS" fill="#06b6d4" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Op. 1" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Op. 2" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Op. 3" fill="#10b981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="O.S. Criadas" fill="#06b6d4" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Preparadas" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Provas" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Liberadas" fill="#10b981" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

@@ -127,7 +127,7 @@ export function AiProductionBottlenecksModal({
                   </Badge>
                 </DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground">
-                  Análise em tempo real de prazos, gargalos de operadores e riscos de atraso no parque gráfico.
+                  Análise em tempo real de prazos, gargalos de etapas e riscos de atraso no parque gráfico.
                 </DialogDescription>
               </div>
             </div>

@@ -5,7 +5,7 @@ describe("Kanban Workflow & State Transitions", () => {
   it("should enforce valid sequential status progression in Pré-Impressão", () => {
     expect(STATUS_ORDER[0]).toBe("fila_de_entrada");
     expect(STATUS_ORDER[STATUS_ORDER.length - 1]).toBe("arquivo_liberado");
-    expect(STATUS_ORDER.length).toBe(8);
+    expect(STATUS_ORDER.length).toBe(6);
 
     // Each status must have a corresponding configuration
     STATUS_ORDER.forEach((status) => {
