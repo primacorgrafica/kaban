@@ -12,11 +12,12 @@ import {
   isFollowUpToday,
 } from "@/types/crm";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -254,14 +255,13 @@ export function OpportunitySlideOver({
 
   return (
     <>
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent
-          side="right"
-          className="w-full sm:max-w-2xl lg:max-w-3xl p-0 flex flex-col h-full bg-card border-l border-border text-card-foreground shadow-2xl overflow-hidden"
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent
+          className="w-[96vw] max-w-5xl p-0 flex flex-col h-[88vh] max-h-[88vh] bg-card border border-border text-card-foreground shadow-2xl rounded-2xl gap-0 overflow-hidden"
         >
           {/* Header da Oportunidade */}
           <div className="p-5 border-b border-border bg-muted/30 shrink-0">
-            <div className="flex items-center justify-between gap-3 mb-2">
+            <div className="flex items-center justify-between gap-3 mb-2 pr-8">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-mono-tech font-bold text-muted-foreground bg-muted/80 px-2 py-0.5 rounded border border-border/60">
                   {opportunity.codigo_identificador || `OPT-${opportunity.numero_sequencial}`}
@@ -282,9 +282,12 @@ export function OpportunitySlideOver({
               </div>
             </div>
 
-            <SheetTitle className="text-lg font-bold text-foreground line-clamp-1">
+            <DialogTitle className="text-lg font-bold text-foreground line-clamp-1">
               {opportunity.titulo}
-            </SheetTitle>
+            </DialogTitle>
+            <DialogDescription className="sr-only">
+              Detalhes da oportunidade {opportunity.titulo}
+            </DialogDescription>
 
             <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground flex-wrap">
               <div className="flex items-center gap-1.5 font-medium text-foreground">
@@ -400,7 +403,7 @@ export function OpportunitySlideOver({
             </div>
 
             {/* ABA 1: DADOS GERAIS */}
-            <TabsContent value="detalhes" className="flex-1 overflow-y-auto p-6 space-y-5 m-0">
+            <TabsContent value="detalhes" className="flex-1 overflow-y-auto p-6 space-y-5 m-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               <div className="space-y-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-medium text-foreground">Título da Oportunidade</Label>
@@ -587,7 +590,7 @@ export function OpportunitySlideOver({
             </TabsContent>
 
             {/* ABA 2: ORÇAMENTOS / PROPOSTAS */}
-            <TabsContent value="propostas" className="flex-1 overflow-y-auto p-6 space-y-4 m-0">
+            <TabsContent value="propostas" className="flex-1 overflow-y-auto p-6 space-y-4 m-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               <div className="flex items-center justify-between">
                 <div>
                   <h4 className="text-sm font-bold text-foreground">Propostas e Versões</h4>
@@ -738,7 +741,7 @@ export function OpportunitySlideOver({
             </TabsContent>
 
             {/* ABA 3: FOLLOW-UPS E ATIVIDADES */}
-            <TabsContent value="followups" className="flex-1 overflow-y-auto p-6 space-y-5 m-0">
+            <TabsContent value="followups" className="flex-1 overflow-y-auto p-6 space-y-5 m-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               {/* Formulário de Agendamento Rápido */}
               <form
                 onSubmit={handleScheduleQuickActivity}
@@ -931,7 +934,7 @@ export function OpportunitySlideOver({
             </TabsContent>
 
             {/* ABA 4: HISTÓRICO DE AUDITORIA */}
-            <TabsContent value="historico" className="flex-1 overflow-y-auto p-6 space-y-3 m-0">
+            <TabsContent value="historico" className="flex-1 overflow-y-auto p-6 space-y-3 m-0 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
               <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                 Trilha de Auditoria e Movimentações
               </h4>
@@ -956,8 +959,8 @@ export function OpportunitySlideOver({
               )}
             </TabsContent>
           </Tabs>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
 
       {/* Modais Vinculados */}
       <CreateProposalDialog
