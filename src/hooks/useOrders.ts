@@ -298,26 +298,42 @@ export function useOrders() {
 
   const moveOrder = useCallback(async (id: string, newStatus: OrderStatus, newIndex?: number) => {
     const currentOrder = orders.find(o => o.id === id);
-    const oldStatus = currentOrder?.status;
-    const oldPos = currentOrder?.posicao;
+    if (!currentOrder) return;
+    const oldStatus = currentOrder.status;
+    const oldPos = currentOrder.posicao;
+    const previousSnapshot = [...orders];
 
     const destOrders = orders
       .filter(o => o.status === newStatus && !o.arquivado && o.id !== id)
       .sort((a, b) => a.posicao - b.posicao);
 
     const idx = newIndex !== undefined ? newIndex : destOrders.length;
-    destOrders.splice(idx, 0, { id } as Order);
+    destOrders.splice(idx, 0, { ...currentOrder, status: newStatus, posicao: idx });
 
     const orderIds = destOrders.map(o => o.id);
 
-    // 1. Tentar reordenação atômica via RPC no PostgreSQL
+    // 1. Atualização otimista imediata na interface
+    setOrders(prev =>
+      prev.map(o => {
+        if (o.id === id) {
+          return { ...o, status: newStatus, posicao: idx };
+        }
+        const foundIdx = destOrders.findIndex(d => d.id === o.id);
+        if (foundIdx !== -1) {
+          return { ...o, posicao: foundIdx };
+        }
+        return o;
+      })
+    );
+
+    // 2. Persistência atômica no servidor
     const { error: rpcErr } = await (supabase.rpc as any)("reorder_orders_atomic", {
       p_order_ids: orderIds,
       p_status: newStatus as string,
     });
 
     if (rpcErr) {
-      // Fallback gracioso para updates diretos caso a RPC ainda não esteja disponível
+      // Fallback para updates diretos
       const updates: PromiseLike<{ error: any }>[] = [];
       for (let i = 0; i < destOrders.length; i++) {
         if (destOrders[i].id === id) {
@@ -334,8 +350,10 @@ export function useOrders() {
       const results = await Promise.all(updates);
       const failed = results.find(r => r.error);
       if (failed) {
-        toast.error("Erro ao mover OS.");
-        console.error("Move error:", failed.error);
+        // Rollback transacional para restaurar estado exato e evitar divergência
+        console.error("Falha ao mover OS. Revertendo estado local:", failed.error);
+        setOrders(previousSnapshot);
+        toast.error("Conflito ou falha ao salvar movimentação. Posição restaurada.");
         return;
       }
     }

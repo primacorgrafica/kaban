@@ -162,6 +162,22 @@ export function useProductionOrders() {
     const idx = newIndex !== undefined ? newIndex : destOrders.length;
     destOrders.splice(idx, 0, { id: orderId } as Order);
 
+    const previousSnapshot = [...orders];
+
+    // 1. Atualização otimista
+    setOrders(prev =>
+      prev.map(o => {
+        if (o.id === orderId) {
+          return { ...o, setor_status: newStatus, posicao: idx };
+        }
+        const foundIdx = destOrders.findIndex(d => d.id === o.id);
+        if (foundIdx !== -1) {
+          return { ...o, posicao: foundIdx };
+        }
+        return o;
+      })
+    );
+
     const updates: PromiseLike<{ error: any }>[] = [];
     for (let i = 0; i < destOrders.length; i++) {
       if (destOrders[i].id === orderId) {
@@ -182,8 +198,9 @@ export function useProductionOrders() {
     const results = await Promise.all(updates);
     const failed = results.find(r => r.error);
     if (failed) {
-      toast.error("Erro ao mover OS.");
-      console.error("Move error:", failed.error);
+      console.error("Falha ao mover OS no setor. Revertendo:", failed.error);
+      setOrders(previousSnapshot);
+      toast.error("Erro ao mover OS. Posição restaurada.");
     }
   }, [user, orders]);
 
