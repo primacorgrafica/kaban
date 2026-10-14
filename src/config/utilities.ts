@@ -19,13 +19,18 @@ export interface UtilitySubMenu {
 export const UTILITIES_CONFIG: UtilitySubMenu[] = [
   {
     id: "utilidades-primacor",
-    title: "", // Deixando direto ou com categoria caso deseje agrupar
+    title: "", // Exibe direto os botões
     links: [
       {
         id: "packaging-cad-pro",
         label: "PACKAGING CAD PRO",
         url: "https://primacorembalagens.vercel.app/",
         badge: "CAD",
+      },
+      {
+        id: "estamparia",
+        label: "ESTAMPARIA",
+        url: "https://estamparia.vercel.app",
       },
     ],
   },
