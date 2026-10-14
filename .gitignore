@@ -36,3 +36,5 @@ generate_restore_*.js
 inspect_backup.py
 restauracao_os/
 restaurar_ordens_*.sql
+scratch/
+cards_antigo_sistema.json

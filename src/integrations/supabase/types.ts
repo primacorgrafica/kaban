@@ -741,6 +741,459 @@ export type Database = {
         }
         Relationships: []
       }
+      crm_etapas_funil: {
+        Row: {
+          id: string
+          nome: string
+          ordem: number
+          cor: string
+          tipo_sistema: "padrao" | "ganha" | "perdida" | "cancelada"
+          ativo: boolean
+          regras: Json | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          nome: string
+          ordem: number
+          cor?: string
+          tipo_sistema?: "padrao" | "ganha" | "perdida" | "cancelada"
+          ativo?: boolean
+          regras?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          nome?: string
+          ordem?: number
+          cor?: string
+          tipo_sistema?: "padrao" | "ganha" | "perdida" | "cancelada"
+          ativo?: boolean
+          regras?: Json | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crm_clientes: {
+        Row: {
+          id: string
+          nome_fantasia: string
+          razao_social: string | null
+          cnpj_cpf: string | null
+          contato_principal: string | null
+          cargo: string | null
+          telefone: string | null
+          whatsapp: string | null
+          email: string | null
+          cidade: string | null
+          uf: string | null
+          endereco: string | null
+          observacoes: string | null
+          criado_por: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          nome_fantasia: string
+          razao_social?: string | null
+          cnpj_cpf?: string | null
+          contato_principal?: string | null
+          cargo?: string | null
+          telefone?: string | null
+          whatsapp?: string | null
+          email?: string | null
+          cidade?: string | null
+          uf?: string | null
+          endereco?: string | null
+          observacoes?: string | null
+          criado_por?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          nome_fantasia?: string
+          razao_social?: string | null
+          cnpj_cpf?: string | null
+          contato_principal?: string | null
+          cargo?: string | null
+          telefone?: string | null
+          whatsapp?: string | null
+          email?: string | null
+          cidade?: string | null
+          uf?: string | null
+          endereco?: string | null
+          observacoes?: string | null
+          criado_por?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      crm_oportunidades: {
+        Row: {
+          id: string
+          numero_sequencial: number
+          codigo_identificador: string | null
+          titulo: string
+          cliente_id: string | null
+          cliente_nome: string
+          contato_nome: string | null
+          contato_telefone: string | null
+          contato_email: string | null
+          origem_lead: string
+          servico_solicitado: string
+          descricao_necessidade: string | null
+          valor_estimado: number
+          vendedor_id: string | null
+          vendedor_nome: string | null
+          prioridade: "baixa" | "media" | "alta" | "urgente"
+          etapa_id: string
+          posicao: number
+          status: "aberta" | "fechada_ganha" | "fechada_perdida" | "cancelada" | "pausada"
+          motivo_perda: string | null
+          detalhes_motivo_perda: string | null
+          prazo_fechamento_previsto: string | null
+          proxima_acao_descricao: string | null
+          proxima_acao_data: string | null
+          data_ultimo_contato: string | null
+          anexos: Json | null
+          tags: string[] | null
+          convertida_os_id: string | null
+          convertida_em: string | null
+          criado_por: string | null
+          atualizado_por: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          numero_sequencial?: number
+          codigo_identificador?: string | null
+          titulo: string
+          cliente_id?: string | null
+          cliente_nome: string
+          contato_nome?: string | null
+          contato_telefone?: string | null
+          contato_email?: string | null
+          origem_lead?: string
+          servico_solicitado: string
+          descricao_necessidade?: string | null
+          valor_estimado?: number
+          vendedor_id?: string | null
+          vendedor_nome?: string | null
+          prioridade?: "baixa" | "media" | "alta" | "urgente"
+          etapa_id: string
+          posicao?: number
+          status?: "aberta" | "fechada_ganha" | "fechada_perdida" | "cancelada" | "pausada"
+          motivo_perda?: string | null
+          detalhes_motivo_perda?: string | null
+          prazo_fechamento_previsto?: string | null
+          proxima_acao_descricao?: string | null
+          proxima_acao_data?: string | null
+          data_ultimo_contato?: string | null
+          anexos?: Json | null
+          tags?: string[] | null
+          convertida_os_id?: string | null
+          convertida_em?: string | null
+          criado_por?: string | null
+          atualizado_por?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          numero_sequencial?: number
+          codigo_identificador?: string | null
+          titulo?: string
+          cliente_id?: string | null
+          cliente_nome?: string
+          contato_nome?: string | null
+          contato_telefone?: string | null
+          contato_email?: string | null
+          origem_lead?: string
+          servico_solicitado?: string
+          descricao_necessidade?: string | null
+          valor_estimado?: number
+          vendedor_id?: string | null
+          vendedor_nome?: string | null
+          prioridade?: "baixa" | "media" | "alta" | "urgente"
+          etapa_id?: string
+          posicao?: number
+          status?: "aberta" | "fechada_ganha" | "fechada_perdida" | "cancelada" | "pausada"
+          motivo_perda?: string | null
+          detalhes_motivo_perda?: string | null
+          prazo_fechamento_previsto?: string | null
+          proxima_acao_descricao?: string | null
+          proxima_acao_data?: string | null
+          data_ultimo_contato?: string | null
+          anexos?: Json | null
+          tags?: string[] | null
+          convertida_os_id?: string | null
+          convertida_em?: string | null
+          criado_por?: string | null
+          atualizado_por?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_oportunidades_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "crm_clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_oportunidades_etapa_id_fkey"
+            columns: ["etapa_id"]
+            isOneToOne: false
+            referencedRelation: "crm_etapas_funil"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_oportunidades_convertida_os_id_fkey"
+            columns: ["convertida_os_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      crm_propostas: {
+        Row: {
+          id: string
+          oportunidade_id: string
+          numero_proposta: string
+          versao_numero: number
+          proposta_anterior_id: string | null
+          valor_total: number
+          desconto_percentual: number | null
+          desconto_valor: number | null
+          valor_liquido: number
+          condicoes_pagamento: string | null
+          prazo_producao_dias: number | null
+          validade_dias: number | null
+          data_validade: string | null
+          data_envio: string | null
+          status: "rascunho" | "enviada" | "aguardando_aprovacao" | "aprovada" | "recusada" | "revisada"
+          observacoes: string | null
+          criado_por: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          oportunidade_id: string
+          numero_proposta: string
+          versao_numero?: number
+          proposta_anterior_id?: string | null
+          valor_total?: number
+          desconto_percentual?: number | null
+          desconto_valor?: number | null
+          valor_liquido?: number
+          condicoes_pagamento?: string | null
+          prazo_producao_dias?: number | null
+          validade_dias?: number | null
+          data_validade?: string | null
+          data_envio?: string | null
+          status?: "rascunho" | "enviada" | "aguardando_aprovacao" | "aprovada" | "recusada" | "revisada"
+          observacoes?: string | null
+          criado_por?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          oportunidade_id?: string
+          numero_proposta?: string
+          versao_numero?: number
+          proposta_anterior_id?: string | null
+          valor_total?: number
+          desconto_percentual?: number | null
+          desconto_valor?: number | null
+          valor_liquido?: number
+          condicoes_pagamento?: string | null
+          prazo_producao_dias?: number | null
+          validade_dias?: number | null
+          data_validade?: string | null
+          data_envio?: string | null
+          status?: "rascunho" | "enviada" | "aguardando_aprovacao" | "aprovada" | "recusada" | "revisada"
+          observacoes?: string | null
+          criado_por?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_propostas_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "crm_oportunidades"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      crm_proposta_itens: {
+        Row: {
+          id: string
+          proposta_id: string
+          posicao: number
+          descricao_item: string
+          formato_aberto: string | null
+          formato_fechado: string | null
+          papel_substrato: string | null
+          cores_impressao: string | null
+          acabamentos_especiais: string | null
+          quantidade: number
+          preco_unitario: number
+          subtotal: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          proposta_id: string
+          posicao?: number
+          descricao_item: string
+          formato_aberto?: string | null
+          formato_fechado?: string | null
+          papel_substrato?: string | null
+          cores_impressao?: string | null
+          acabamentos_especiais?: string | null
+          quantidade?: number
+          preco_unitario?: number
+          subtotal?: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          proposta_id?: string
+          posicao?: number
+          descricao_item?: string
+          formato_aberto?: string | null
+          formato_fechado?: string | null
+          papel_substrato?: string | null
+          cores_impressao?: string | null
+          acabamentos_especiais?: string | null
+          quantidade?: number
+          preco_unitario?: number
+          subtotal?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_proposta_itens_proposta_id_fkey"
+            columns: ["proposta_id"]
+            isOneToOne: false
+            referencedRelation: "crm_propostas"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      crm_atividades: {
+        Row: {
+          id: string
+          oportunidade_id: string
+          tipo: "ligacao" | "whatsapp" | "email" | "reuniao" | "envio_amostra" | "followup_orcamento" | "visita" | "outro"
+          titulo: string
+          descricao: string | null
+          data_agendada: string
+          status: "pendente" | "concluido" | "cancelado"
+          resultado: string | null
+          responsavel_id: string | null
+          responsavel_nome: string | null
+          concluido_em: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          oportunidade_id: string
+          tipo: "ligacao" | "whatsapp" | "email" | "reuniao" | "envio_amostra" | "followup_orcamento" | "visita" | "outro"
+          titulo: string
+          descricao?: string | null
+          data_agendada: string
+          status?: "pendente" | "concluido" | "cancelado"
+          resultado?: string | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          concluido_em?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          oportunidade_id?: string
+          tipo?: "ligacao" | "whatsapp" | "email" | "reuniao" | "envio_amostra" | "followup_orcamento" | "visita" | "outro"
+          titulo?: string
+          descricao?: string | null
+          data_agendada?: string
+          status?: "pendente" | "concluido" | "cancelado"
+          resultado?: string | null
+          responsavel_id?: string | null
+          responsavel_nome?: string | null
+          concluido_em?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_atividades_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "crm_oportunidades"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      crm_oportunidade_historico: {
+        Row: {
+          id: string
+          oportunidade_id: string
+          usuario_id: string | null
+          usuario_nome: string | null
+          tipo_evento: string
+          descricao: string
+          dados_anteriores: Json | null
+          dados_novos: Json | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          oportunidade_id: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+          tipo_evento: string
+          descricao: string
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          oportunidade_id?: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+          tipo_evento?: string
+          descricao?: string
+          dados_anteriores?: Json | null
+          dados_novos?: Json | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "crm_oportunidade_historico_oportunidade_id_fkey"
+            columns: ["oportunidade_id"]
+            isOneToOne: false
+            referencedRelation: "crm_oportunidades"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

@@ -1981,3 +1981,140 @@ REVOKE EXECUTE ON FUNCTION public.notify_marcelo_on_preimpressao_saida() FROM PU
 REVOKE EXECUTE ON FUNCTION public.notify_marcelo_on_preimpressao_saida() FROM anon;
 REVOKE EXECUTE ON FUNCTION public.notify_marcelo_on_preimpressao_saida() FROM authenticated;
 
+-- ------------------------------------------------------------------
+-- Migration: 20261014_crm_sales_funnel.sql
+-- ------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.crm_etapas_funil (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nome TEXT NOT NULL,
+  ordem INTEGER NOT NULL,
+  cor TEXT NOT NULL DEFAULT '#06b6d4',
+  tipo_sistema TEXT NOT NULL DEFAULT 'padrao' CHECK (tipo_sistema IN ('padrao', 'ganha', 'perdida', 'cancelada')),
+  ativo BOOLEAN NOT NULL DEFAULT true,
+  regras JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.crm_clientes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  nome_fantasia TEXT NOT NULL,
+  razao_social TEXT,
+  cnpj_cpf TEXT,
+  contato_principal TEXT,
+  cargo TEXT,
+  telefone TEXT,
+  whatsapp TEXT,
+  email TEXT,
+  cidade TEXT,
+  uf TEXT DEFAULT 'MG',
+  endereco TEXT,
+  observacoes TEXT,
+  criado_por UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.crm_oportunidades (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  numero_sequencial SERIAL,
+  codigo_identificador TEXT,
+  titulo TEXT NOT NULL,
+  cliente_id UUID REFERENCES public.crm_clientes(id) ON DELETE SET NULL,
+  cliente_nome TEXT NOT NULL,
+  contato_nome TEXT,
+  contato_telefone TEXT,
+  contato_email TEXT,
+  origem_lead TEXT NOT NULL DEFAULT 'Outros',
+  servico_solicitado TEXT NOT NULL,
+  descricao_necessidade TEXT,
+  valor_estimado NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  vendedor_id UUID,
+  vendedor_nome TEXT,
+  prioridade TEXT NOT NULL DEFAULT 'media' CHECK (prioridade IN ('baixa', 'media', 'alta', 'urgente')),
+  etapa_id UUID NOT NULL REFERENCES public.crm_etapas_funil(id),
+  posicao INTEGER NOT NULL DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'aberta' CHECK (status IN ('aberta', 'fechada_ganha', 'fechada_perdida', 'cancelada', 'pausada')),
+  motivo_perda TEXT,
+  detalhes_motivo_perda TEXT,
+  prazo_fechamento_previsto TIMESTAMP WITH TIME ZONE,
+  proxima_acao_descricao TEXT,
+  proxima_acao_data TIMESTAMP WITH TIME ZONE,
+  data_ultimo_contato TIMESTAMP WITH TIME ZONE,
+  anexos JSONB DEFAULT '[]'::jsonb,
+  tags TEXT[] DEFAULT '{}'::text[],
+  convertida_os_id UUID REFERENCES public.orders(id) ON DELETE SET NULL,
+  convertida_em TIMESTAMP WITH TIME ZONE,
+  criado_por UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  atualizado_por UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  CONSTRAINT uq_crm_oportunidade_os UNIQUE (convertida_os_id)
+);
+
+CREATE TABLE IF NOT EXISTS public.crm_propostas (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  oportunidade_id UUID NOT NULL REFERENCES public.crm_oportunidades(id) ON DELETE CASCADE,
+  numero_proposta TEXT NOT NULL,
+  versao_numero INTEGER NOT NULL DEFAULT 1,
+  proposta_anterior_id UUID REFERENCES public.crm_propostas(id) ON DELETE SET NULL,
+  valor_total NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  desconto_percentual NUMERIC(5, 2) DEFAULT 0.00,
+  desconto_valor NUMERIC(12, 2) DEFAULT 0.00,
+  valor_liquido NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  condicoes_pagamento TEXT,
+  prazo_producao_dias INTEGER,
+  validade_dias INTEGER DEFAULT 10,
+  data_validade TIMESTAMP WITH TIME ZONE,
+  data_envio TIMESTAMP WITH TIME ZONE,
+  status TEXT NOT NULL DEFAULT 'rascunho' CHECK (status IN ('rascunho', 'enviada', 'aguardando_aprovacao', 'aprovada', 'recusada', 'revisada')),
+  observacoes TEXT,
+  criado_por UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.crm_proposta_itens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  proposta_id UUID NOT NULL REFERENCES public.crm_propostas(id) ON DELETE CASCADE,
+  posicao INTEGER NOT NULL DEFAULT 0,
+  descricao_item TEXT NOT NULL,
+  formato_aberto TEXT,
+  formato_fechado TEXT,
+  papel_substrato TEXT,
+  cores_impressao TEXT,
+  acabamentos_especiais TEXT,
+  quantidade INTEGER NOT NULL DEFAULT 1,
+  preco_unitario NUMERIC(12, 4) NOT NULL DEFAULT 0.00,
+  subtotal NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.crm_atividades (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  oportunidade_id UUID NOT NULL REFERENCES public.crm_oportunidades(id) ON DELETE CASCADE,
+  tipo TEXT NOT NULL CHECK (tipo IN ('ligacao', 'whatsapp', 'email', 'reuniao', 'envio_amostra', 'followup_orcamento', 'visita', 'outro')),
+  titulo TEXT NOT NULL,
+  descricao TEXT,
+  data_agendada TIMESTAMP WITH TIME ZONE NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pendente' CHECK (status IN ('pendente', 'concluido', 'cancelado')),
+  resultado TEXT,
+  responsavel_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  responsavel_nome TEXT,
+  concluido_em TIMESTAMP WITH TIME ZONE,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.crm_oportunidade_historico (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  oportunidade_id UUID NOT NULL REFERENCES public.crm_oportunidades(id) ON DELETE CASCADE,
+  usuario_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  usuario_nome TEXT,
+  tipo_evento TEXT NOT NULL,
+  descricao TEXT NOT NULL,
+  dados_anteriores JSONB,
+  dados_novos JSONB,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
