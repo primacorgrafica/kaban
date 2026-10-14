@@ -25,8 +25,9 @@ import { AiProductionBottlenecksModal } from "./AiProductionBottlenecksModal";
 import { ChatDialog } from "./chat/ChatDialog";
 import { useChatNotification } from "./chat/GlobalChatNotifier";
 import { RealtimeStatusIndicator } from "./RealtimeStatusIndicator";
-import { Activity, Command, MessageSquare } from "lucide-react";
+import { Activity, Command, MessageSquare, ExternalLink, Compass } from "lucide-react";
 import { Order } from "@/types/order";
+import { UTILITIES_CONFIG } from "@/config/utilities";
 
 interface LayoutProps {
   children: ReactNode;
@@ -64,6 +65,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
   const [producaoOpen, setProducaoOpen] = useState(false);
   const [expedicaoOpen, setExpedicaoOpen] = useState(false);
   const [cadastrosOpen, setCadastrosOpen] = useState(false);
+  const [utilidadesOpen, setUtilidadesOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [bottlenecksModalOpen, setBottlenecksModalOpen] = useState(false);
   const [chatDialogOpen, setChatDialogOpen] = useState(false);
@@ -362,6 +364,53 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
               )}
             </>
           )}
+
+          {/* Utilidades - Menu com sub-menus e botões para links externos */}
+          <div>
+            <button
+              onClick={() => setUtilidadesOpen(!utilidadesOpen)}
+              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 w-full ${
+                utilidadesOpen
+                  ? "bg-sidebar-primary/15 text-sidebar-primary font-medium"
+                  : "text-sidebar-foreground/75 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+              }`}
+            >
+              <Compass className="h-4 w-4" />
+              Utilidades
+              <ChevronDown className={`ml-auto h-3.5 w-3.5 transition-transform duration-200 ${utilidadesOpen ? "rotate-180" : ""}`} />
+            </button>
+            {utilidadesOpen && (
+              <div className="pl-3 space-y-2 mt-1 py-1">
+                {UTILITIES_CONFIG.map((submenu) => (
+                  <div key={submenu.id} className="space-y-0.5">
+                    {submenu.title && (
+                      <div className="px-3 pt-1 pb-0.5 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40 font-mono-tech flex items-center justify-between">
+                        <span>{submenu.title}</span>
+                      </div>
+                    )}
+                    {submenu.links.map((link) => (
+                      <a
+                        key={link.id}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-all duration-150 group"
+                        title={link.description || link.label}
+                      >
+                        <ExternalLink className="h-3.5 w-3.5 text-cyan-500/70 group-hover:text-cyan-400 group-hover:scale-110 transition-all shrink-0" />
+                        <span className="truncate flex-1 font-medium">{link.label}</span>
+                        {link.badge && (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                            {link.badge}
+                          </span>
+                        )}
+                      </a>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </nav>
 
         <div className="px-3 py-3 border-t border-sidebar-border/60 bg-sidebar-background/60">
