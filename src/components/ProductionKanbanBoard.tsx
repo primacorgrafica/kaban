@@ -54,9 +54,26 @@ export function ProductionKanbanBoard({
 }: ProductionKanbanBoardProps) {
   const ordersByStatus: Record<string, Order[]> = {};
   department.statuses.forEach(s => {
-    ordersByStatus[s.id] = orders
-      .filter(o => (o as any).setor_status === s.id)
-      .sort((a, b) => a.posicao - b.posicao);
+    ordersByStatus[s.id] = [];
+  });
+
+  orders.forEach(o => {
+    let status = (o as any).setor_status || "entrada";
+    // Compatibilidade CTP: se vier com status antigo do CTP, agrupa em gravando
+    if (department.id === "ctp") {
+      if (status === "gravacao" || status === "imposicao" || status === "filme_faca_cliche") {
+        status = "gravando";
+      }
+    }
+    if (ordersByStatus[status]) {
+      ordersByStatus[status].push(o);
+    } else if (department.statuses[0]) {
+      ordersByStatus[department.statuses[0].id].push(o);
+    }
+  });
+
+  department.statuses.forEach(s => {
+    ordersByStatus[s.id].sort((a, b) => a.posicao - b.posicao);
   });
 
   const containerRef = useRef<HTMLDivElement>(null);

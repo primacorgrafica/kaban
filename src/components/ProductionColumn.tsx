@@ -42,9 +42,10 @@ import { createPortal } from "react-dom";
 
 const STATUS_ICONS: Record<string, LucideIcon> = {
   entrada: ArrowRight,
+  gravando: CircleDot,
+  gravacao: CircleDot,
   imposicao: Layers,
   conferencia: Search,
-  gravacao: CircleDot,
   filme_faca_cliche: Film,
   saida: LogOut,
   desenvolvimento: Lightbulb,

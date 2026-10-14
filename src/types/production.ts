@@ -37,9 +37,7 @@ export const DEPARTMENTS: DepartmentConfig[] = [
     label: "CTP",
     statuses: [
       { id: "entrada", label: "Entrada", colorKey: "entrada" },
-      { id: "imposicao", label: "Imposição", colorKey: "novo" },
-      { id: "gravacao", label: "Gravação", colorKey: "aguardando" },
-      { id: "filme_faca_cliche", label: "Filme/Faca/Clichê", colorKey: "revisao" },
+      { id: "gravando", label: "Gravando", colorKey: "andamento" },
       { id: "saida", label: "Saída", colorKey: "concluido" },
     ],
   },
