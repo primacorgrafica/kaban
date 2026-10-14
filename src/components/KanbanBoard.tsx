@@ -16,7 +16,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Truck } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Truck, AlertTriangle } from "lucide-react";
 
 interface Permissions {
   canEditCard: boolean;
@@ -192,6 +193,7 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
     newIndex: number;
   } | null>(null);
   const [sendToExpedicao, setSendToExpedicao] = useState(false);
+  const [motivoPreparacao, setMotivoPreparacao] = useState("");
 
   const handleDragEnd = (result: DropResult) => {
     setIsDndActive(false);
@@ -207,6 +209,12 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
 
     // If status changed or position changed, ask for confirmation
     if (sourceStatus !== newStatus || result.source.index !== newIndex) {
+      if (newStatus === "aguardando_novo_arquivo") {
+        setMotivoPreparacao(order?.observacao || "");
+      } else {
+        setMotivoPreparacao("");
+      }
+
       setPendingMove({
         id: result.draggableId,
         orderTitle,
@@ -219,17 +227,22 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
 
   const confirmMove = () => {
     if (pendingMove) {
+      if (pendingMove.toStatus === "aguardando_novo_arquivo" && motivoPreparacao !== (orders.find(o => o.id === pendingMove.id)?.observacao || "")) {
+        onUpdate(pendingMove.id, { observacao: motivoPreparacao });
+      }
       onMove(pendingMove.id, pendingMove.toStatus, pendingMove.newIndex);
       if (sendToExpedicao && pendingMove.toStatus === "aguardando_prova" && onSendToExpedicao) {
         onSendToExpedicao(pendingMove.id);
       }
       setSendToExpedicao(false);
+      setMotivoPreparacao("");
       setPendingMove(null);
     }
   };
 
   const cancelMove = () => {
     setSendToExpedicao(false);
+    setMotivoPreparacao("");
     setPendingMove(null);
   };
 
@@ -316,6 +329,23 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
                       <strong>{STATUS_CONFIG[pendingMove.toStatus].label}</strong>
                       {pendingMove.fromStatus === pendingMove.toStatus && " (reordenar)"}?
                     </p>
+                    {pendingMove.toStatus === "aguardando_novo_arquivo" && (
+                      <div className="mt-4 p-3 rounded-xl border border-amber-500/40 bg-amber-500/10 space-y-2 text-left">
+                        <Label className="text-xs font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5 uppercase">
+                          <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
+                          Motivo da Parada / Preparação
+                        </Label>
+                        <Textarea
+                          value={motivoPreparacao}
+                          onChange={(e) => setMotivoPreparacao(e.target.value)}
+                          placeholder="Informe o motivo da parada (ex: Aguardando novo arquivo do cliente, faca com problema, cliente pediu alteração...)"
+                          className="text-xs bg-background min-h-[65px] text-foreground resize-none"
+                        />
+                        <p className="text-[11px] text-muted-foreground">
+                          Este motivo ficará em destaque visual no card da O.S.
+                        </p>
+                      </div>
+                    )}
                     {pendingMove.toStatus === "aguardando_prova" && onSendToExpedicao && (
                       <div className="flex items-center gap-2 mt-4 p-3 rounded-lg border border-border bg-muted/50">
                         <Checkbox

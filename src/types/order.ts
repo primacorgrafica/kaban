@@ -111,7 +111,7 @@ export interface Profile {
 
 export const STATUS_CONFIG: Record<OrderStatus, { label: string; colorKey: string }> = {
   fila_de_entrada: { label: "Entrada", colorKey: "entrada" },
-  aguardando_novo_arquivo: { label: "Aguar. Novo Arquivo", colorKey: "revisao" },
+  aguardando_novo_arquivo: { label: "Preparação", colorKey: "revisao" },
   preparando_arquivo: { label: "Operador 1", colorKey: "novo" },
   operador_2: { label: "Operador 2", colorKey: "novo" },
   operador_3: { label: "Operador 3", colorKey: "novo" },
