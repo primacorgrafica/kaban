@@ -206,12 +206,33 @@ CREATE TRIGGER trg_crm_sync_opportunity_activity
   FOR EACH ROW
   EXECUTE FUNCTION public.fn_crm_sync_opportunity_activity();
 
--- Triggers de updated_at
-CREATE TRIGGER update_crm_etapas_updated_at BEFORE UPDATE ON public.crm_etapas_funil FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-CREATE TRIGGER update_crm_clientes_updated_at BEFORE UPDATE ON public.crm_clientes FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-CREATE TRIGGER update_crm_oportunidades_updated_at BEFORE UPDATE ON public.crm_oportunidades FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-CREATE TRIGGER update_crm_propostas_updated_at BEFORE UPDATE ON public.crm_propostas FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
-CREATE TRIGGER update_crm_atividades_updated_at BEFORE UPDATE ON public.crm_atividades FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+-- Função dedicada de updated_at para tabelas do CRM
+CREATE OR REPLACE FUNCTION public.fn_crm_set_updated_at()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+-- Triggers de updated_at para o CRM
+DROP TRIGGER IF EXISTS update_crm_etapas_updated_at ON public.crm_etapas_funil;
+CREATE TRIGGER update_crm_etapas_updated_at BEFORE UPDATE ON public.crm_etapas_funil FOR EACH ROW EXECUTE FUNCTION public.fn_crm_set_updated_at();
+
+DROP TRIGGER IF EXISTS update_crm_clientes_updated_at ON public.crm_clientes;
+CREATE TRIGGER update_crm_clientes_updated_at BEFORE UPDATE ON public.crm_clientes FOR EACH ROW EXECUTE FUNCTION public.fn_crm_set_updated_at();
+
+DROP TRIGGER IF EXISTS update_crm_oportunidades_updated_at ON public.crm_oportunidades;
+CREATE TRIGGER update_crm_oportunidades_updated_at BEFORE UPDATE ON public.crm_oportunidades FOR EACH ROW EXECUTE FUNCTION public.fn_crm_set_updated_at();
+
+DROP TRIGGER IF EXISTS update_crm_propostas_updated_at ON public.crm_propostas;
+CREATE TRIGGER update_crm_propostas_updated_at BEFORE UPDATE ON public.crm_propostas FOR EACH ROW EXECUTE FUNCTION public.fn_crm_set_updated_at();
+
+DROP TRIGGER IF EXISTS update_crm_atividades_updated_at ON public.crm_atividades;
+CREATE TRIGGER update_crm_atividades_updated_at BEFORE UPDATE ON public.crm_atividades FOR EACH ROW EXECUTE FUNCTION public.fn_crm_set_updated_at();
 
 -- POPULAÇÃO INICIAL DAS ETAPAS DO FUNIL
 INSERT INTO public.crm_etapas_funil (nome, ordem, cor, tipo_sistema)
