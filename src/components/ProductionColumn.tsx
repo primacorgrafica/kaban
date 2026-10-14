@@ -36,12 +36,16 @@ import {
   Sun,
   Sunset,
   ArrowRight,
+  Clock,
 } from "lucide-react";
 import { OffsetIcon } from "./icons/OffsetIcon";
 import { createPortal } from "react-dom";
 
 const STATUS_ICONS: Record<string, LucideIcon> = {
   entrada: ArrowRight,
+  aguardando_novo_arquivo: Wrench,
+  aguardando_prova: PrinterIcon,
+  aguardando_aprovacao: Clock,
   gravando: CircleDot,
   gravacao: CircleDot,
   imposicao: Layers,

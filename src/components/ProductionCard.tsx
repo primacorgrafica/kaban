@@ -7,7 +7,8 @@ import { ptBR } from "date-fns/locale";
 import { businessHoursMs } from "@/lib/businessHours";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeApprovalEntry } from "@/lib/approvalEntryCache";
-import { Calendar, User, FileText, Archive, Trash2, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, GripVertical, UserCheck, Clock, AlertTriangle, Send, Undo2, Briefcase, Truck } from "lucide-react";
+import { Calendar, User, FileText, Archive, Trash2, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, GripVertical, UserCheck, Clock, AlertTriangle, Send, Undo2, Briefcase, Truck, Edit2 } from "lucide-react";
+import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -85,6 +86,21 @@ function ProductionCardImpl({
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [selectedDept, setSelectedDept] = useState<Department | "pre-impressao" | "">("");
   const [selectedMachine, setSelectedMachine] = useState("");
+  // Estado para diálogo rápido de motivo da parada (coluna Preparação)
+  const [motivoDialogOpen, setMotivoDialogOpen] = useState(false);
+  const [motivoTexto, setMotivoTexto] = useState(order.observacao || "");
+
+  useEffect(() => {
+    setMotivoTexto(order.observacao || "");
+  }, [order.observacao]);
+
+  const handleSaveMotivo = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    onUpdate(order.id, { observacao: motivoTexto });
+    setMotivoDialogOpen(false);
+    toast.success("Motivo da parada atualizado!");
+  };
+
   const [editData, setEditData] = useState({
     titulo: order.titulo,
     descricao: order.descricao,
@@ -638,9 +654,57 @@ function ProductionCardImpl({
               </span>
             )}
           </div>
-          {/* Linha 3: OBS (non-faturamento only, faturamento shows at end) */}
-          {department.id !== "faturamento" && order.observacao && (
-            <p className="text-xs text-muted-foreground mt-1 line-clamp-2 italic">{order.observacao}</p>
+          {/* Linha 3: OBS / Motivo da Parada em Preparação */}
+          {currentStatus.id === "aguardando_novo_arquivo" ? (
+            order.observacao && order.observacao.trim() ? (
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMotivoTexto(order.observacao || "");
+                  setMotivoDialogOpen(true);
+                }}
+                className="mt-2 p-2.5 rounded-xl border-2 border-amber-500/70 bg-amber-500/15 dark:bg-amber-950/45 hover:bg-amber-500/25 transition-all cursor-pointer shadow-xs space-y-1 group"
+                title="Clique para editar o motivo da parada"
+              >
+                <div className="flex items-center justify-between gap-1.5">
+                  <span className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                    <AlertTriangle className="h-3.5 w-3.5 text-amber-500 animate-pulse shrink-0" />
+                    Motivo da Parada
+                  </span>
+                  <span className="text-[10px] text-amber-700 dark:text-amber-300 font-semibold group-hover:underline flex items-center gap-0.5">
+                    <Edit2 className="h-2.5 w-2.5" /> Editar
+                  </span>
+                </div>
+                <p className="text-xs font-bold text-foreground break-words leading-snug">
+                  {order.observacao}
+                </p>
+              </div>
+            ) : (
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMotivoTexto("");
+                  setMotivoDialogOpen(true);
+                }}
+                className="mt-2 p-2.5 rounded-xl border-2 border-dashed border-amber-500/60 bg-amber-500/10 hover:bg-amber-500/20 transition-all flex items-center justify-between gap-2 cursor-pointer shadow-xs"
+                title="Clique para informar o motivo da parada desta OS"
+              >
+                <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500 animate-bounce shrink-0" />
+                  Informar motivo da parada...
+                </span>
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] px-2 py-0.5 bg-amber-500 text-slate-950 font-extrabold border-none"
+                >
+                  Comentar
+                </Badge>
+              </div>
+            )
+          ) : (
+            department.id !== "faturamento" && order.observacao && (
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2 italic">{order.observacao}</p>
+            )
           )}
             </>
           )}
@@ -1420,6 +1484,77 @@ function ProductionCardImpl({
             )}
             <Button className="w-full" disabled={!selectedDept || (!!DEPARTMENTS.find(d => d.id === selectedDept)?.machines && !selectedMachine)} onClick={handleSendToDepartment}>
               <Send className="h-4 w-4 mr-2" /> Confirmar Envio
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog Exclusivo para Comentar/Editar o Motivo da Parada em Preparação */}
+      <Dialog open={motivoDialogOpen} onOpenChange={setMotivoDialogOpen}>
+        <DialogContent
+          className="max-w-md border border-amber-500/40 bg-card p-5 rounded-2xl shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Motivo da Parada — O.S #{order.titulo}
+            </DialogTitle>
+            <p className="text-xs text-muted-foreground mt-1">
+              Cliente: <span className="font-semibold text-foreground">{order.cliente}</span>
+            </p>
+          </DialogHeader>
+          <div className="space-y-3 mt-3">
+            <Label className="text-xs font-semibold text-foreground">
+              Por que esta O.S está parada em Preparação?
+            </Label>
+            <Textarea
+              value={motivoTexto}
+              onChange={(e) => setMotivoTexto(e.target.value)}
+              placeholder="Descreva o motivo (ex: Aguardando novo arquivo do cliente, faca com problema de corte, cliente solicitou alteração de texto, arquivo sem sangria...)"
+              className="min-h-[100px] text-xs resize-none"
+              autoFocus
+            />
+            <div className="space-y-1.5 pt-1">
+              <span className="text-[10px] text-muted-foreground font-medium block">Sugestões rápidas:</span>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  "Aguardando novo arquivo do cliente",
+                  "Aguardando aprovação de alteração",
+                  "Faca / clichê incorreto",
+                  "Arquivo corrompido ou sem sangria",
+                  "Cliente solicitou pausa no trabalho",
+                ].map((sugestao) => (
+                  <Button
+                    key={sugestao}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setMotivoTexto(sugestao)}
+                    className="text-[10px] h-6 px-2 rounded-lg bg-muted/40 hover:bg-muted text-foreground cursor-pointer"
+                  >
+                    {sugestao}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2 mt-4 pt-3 border-t border-border">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setMotivoDialogOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={handleSaveMotivo}
+              className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold cursor-pointer"
+            >
+              Salvar Motivo
             </Button>
           </div>
         </DialogContent>

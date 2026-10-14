@@ -4,7 +4,7 @@ import { DepartmentConfig, Department } from "@/types/production";
 import { ProductionColumn } from "./ProductionColumn";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { useRef, useCallback, useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Car, Bike } from "lucide-react";
+import { ChevronLeft, ChevronRight, Car, Bike, AlertTriangle } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,6 +22,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 interface ProductionKanbanBoardProps {
   department: DepartmentConfig;
@@ -64,6 +66,10 @@ export function ProductionKanbanBoard({
       if (status === "gravacao" || status === "imposicao" || status === "filme_faca_cliche") {
         status = "gravando";
       }
+    }
+    // Compatibilidade Embalagens: se vier com status antigo desenvolvendo, agrupa em aguardando_novo_arquivo
+    if (department.id === "desenvolvimento" && status === "desenvolvendo") {
+      status = "aguardando_novo_arquivo";
     }
     if (ordersByStatus[status]) {
       ordersByStatus[status].push(o);
@@ -170,6 +176,8 @@ export function ProductionKanbanBoard({
     id: string; toStatus: string; newIndex: number;
   } | null>(null);
 
+  const [motivoPreparacao, setMotivoPreparacao] = useState("");
+
   const isRouteStatus = (status: string) => ["rota_manha", "rota_tarde"].includes(status);
 
   const handleDragEnd = (result: DropResult) => {
@@ -180,6 +188,11 @@ export function ProductionKanbanBoard({
     const newIndex = result.destination.index;
     const order = orders.find(o => o.id === result.draggableId);
     if (fromStatus !== toStatus || result.source.index !== newIndex) {
+      if (toStatus === "aguardando_novo_arquivo") {
+        setMotivoPreparacao(order?.observacao || "");
+      } else {
+        setMotivoPreparacao("");
+      }
       const moveData = {
         id: result.draggableId,
         orderTitle: order?.titulo || "Card",
@@ -212,7 +225,11 @@ export function ProductionKanbanBoard({
         return;
       }
     }
+    if (pendingMove.toStatus === "aguardando_novo_arquivo" && motivoPreparacao !== (orders.find(o => o.id === pendingMove.id)?.observacao || "")) {
+      onUpdate(pendingMove.id, { observacao: motivoPreparacao });
+    }
     onMove(pendingMove.id, pendingMove.toStatus, pendingMove.newIndex);
+    setMotivoPreparacao("");
     setPendingMove(null);
   };
 
@@ -266,7 +283,7 @@ export function ProductionKanbanBoard({
         </div>
       </div>
 
-      <AlertDialog open={!!pendingMove} onOpenChange={(open) => !open && setPendingMove(null)}>
+      <AlertDialog open={!!pendingMove} onOpenChange={(open) => { if (!open) { setMotivoPreparacao(""); setPendingMove(null); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar movimentação</AlertDialogTitle>
@@ -281,8 +298,25 @@ export function ProductionKanbanBoard({
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {pendingMove?.toStatus === "aguardando_novo_arquivo" && (
+            <div className="p-3 rounded-xl border border-amber-500/40 bg-amber-500/10 space-y-2 text-left my-2">
+              <Label className="text-xs font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5 uppercase">
+                <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
+                Motivo da Parada / Preparação
+              </Label>
+              <Textarea
+                value={motivoPreparacao}
+                onChange={(e) => setMotivoPreparacao(e.target.value)}
+                placeholder="Informe o motivo da parada (ex: Aguardando novo arquivo do cliente, faca com problema, cliente pediu alteração...)"
+                className="text-xs bg-background min-h-[65px] text-foreground resize-none"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Este motivo ficará em destaque visual no card da O.S.
+              </p>
+            </div>
+          )}
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setPendingMove(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => { setMotivoPreparacao(""); setPendingMove(null); }}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmMove}>Confirmar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
