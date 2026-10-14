@@ -54,6 +54,7 @@ import {
   Send,
   Sparkles,
   Archive,
+  ArchiveRestore,
   Trash2,
 } from "lucide-react";
 import { useCrmPropostas } from "@/hooks/useCrmPropostas";
@@ -314,6 +315,26 @@ export function OpportunitySlideOver({
               </div>
             </div>
 
+            {/* Banner de Perda se a oportunidade estiver fechada_perdida */}
+            {opportunity.status === "fechada_perdida" && (
+              <div className="mt-3 p-3 rounded-xl bg-rose-500/10 border border-rose-500/25 flex items-start gap-2.5 text-xs text-rose-300">
+                <XCircle className="h-4 w-4 text-rose-400 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-bold text-rose-400 block">
+                    Venda Registrada como Perdida
+                  </span>
+                  <span className="text-foreground font-medium">
+                    Motivo: <strong>{opportunity.motivo_perda || "Não informado"}</strong>
+                  </span>
+                  {opportunity.detalhes_motivo_perda && (
+                    <p className="text-muted-foreground mt-0.5 italic">
+                      "{opportunity.detalhes_motivo_perda}"
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Barra de Ações Rápidas no Cabeçalho */}
             <div className="flex items-center gap-2 mt-4 pt-3 border-t border-border/50 flex-wrap">
               {/* Botão de Conversão em OS */}
@@ -372,20 +393,29 @@ export function OpportunitySlideOver({
                 </Button>
               )}
 
-              {/* Arquivar / Restaurar Venda Concluída */}
-              {onArchive && (opportunity.status === "fechada_ganha" || opportunity.convertida_os_id || opportunity.arquivado) && (
+              {/* Arquivar / Desarquivar */}
+              {onArchive && (
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => onArchive(opportunity.id, !opportunity.arquivado)}
                   className={`gap-1.5 text-xs rounded-xl ${
                     opportunity.arquivado
-                      ? "border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/10"
-                      : "border-slate-500/40 text-slate-300 hover:bg-slate-500/10"
+                      ? "border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 font-semibold"
+                      : "border-border text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <Archive className="h-3.5 w-3.5" />
-                  <span>{opportunity.arquivado ? "Restaurar ao Funil" : "Arquivar Venda"}</span>
+                  {opportunity.arquivado ? (
+                    <>
+                      <ArchiveRestore className="h-3.5 w-3.5 text-cyan-400" />
+                      <span>Desarquivar (Restaurar)</span>
+                    </>
+                  ) : (
+                    <>
+                      <Archive className="h-3.5 w-3.5" />
+                      <span>Arquivar Oportunidade</span>
+                    </>
+                  )}
                 </Button>
               )}
 

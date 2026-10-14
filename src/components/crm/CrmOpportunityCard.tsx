@@ -24,6 +24,7 @@ import {
   DollarSign,
   MessageCircle,
   Archive,
+  ArchiveRestore,
   Trash2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -121,7 +122,16 @@ export function CrmOpportunityCard({
                   className="text-[10px] px-1.5 py-0 font-medium bg-slate-500/15 text-slate-400 border-slate-500/30 gap-1"
                 >
                   <Archive className="h-2.5 w-2.5" />
-                  Concluída
+                  Arquivada
+                </Badge>
+              )}
+              {opportunity.status === "fechada_perdida" && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 font-medium bg-rose-500/15 text-rose-400 border-rose-500/30 truncate max-w-[150px]"
+                  title={opportunity.motivo_perda ? `Motivo da perda: ${opportunity.motivo_perda}` : "Venda Perdida"}
+                >
+                  Perdida{opportunity.motivo_perda ? `: ${opportunity.motivo_perda}` : ""}
                 </Badge>
               )}
               {opportunity.origem_lead && (
@@ -188,17 +198,26 @@ export function CrmOpportunityCard({
                   </DropdownMenuItem>
                 )}
 
-                {/* Arquivar / Restaurar */}
-                {onArchive && (opportunity.status === "fechada_ganha" || opportunity.convertida_os_id || opportunity.arquivado) && (
+                {/* Arquivar / Desarquivar */}
+                {onArchive && (
                   <DropdownMenuItem
                     onClick={(e) => {
                       e.stopPropagation();
                       onArchive(opportunity.id, !opportunity.arquivado);
                     }}
-                    className="text-cyan-400 focus:text-cyan-300"
+                    className={opportunity.arquivado ? "text-cyan-400 focus:text-cyan-300 font-medium" : "text-muted-foreground focus:text-foreground"}
                   >
-                    <Archive className="h-4 w-4 mr-2" />
-                    {opportunity.arquivado ? "Restaurar ao Funil" : "Arquivar Venda"}
+                    {opportunity.arquivado ? (
+                      <>
+                        <ArchiveRestore className="h-4 w-4 mr-2 text-cyan-400" />
+                        Desarquivar (Restaurar ao Funil)
+                      </>
+                    ) : (
+                      <>
+                        <Archive className="h-4 w-4 mr-2" />
+                        Arquivar Oportunidade
+                      </>
+                    )}
                   </DropdownMenuItem>
                 )}
 

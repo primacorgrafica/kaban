@@ -24,7 +24,9 @@ import {
   SlidersHorizontal,
   X,
   Archive,
+  ArchiveRestore,
 } from "lucide-react";
+import { MarkLostDialog } from "./MarkLostDialog";
 
 interface CrmKanbanBoardProps {
   stages: CrmStage[];
@@ -33,10 +35,11 @@ interface CrmKanbanBoardProps {
   onSelectOpportunity: (opportunity: CrmOpportunity) => void;
   onNewOpportunity: (defaultStageId?: string) => void;
   onMarkWon?: (id: string) => void;
-  onMarkLost?: (opportunity: CrmOpportunity) => void;
+  onMarkLost?: (opportunityId: string, motivo: string, detalhes?: string) => Promise<boolean>;
   onScheduleActivity?: (opportunity: CrmOpportunity) => void;
   onArchiveOpportunity?: (id: string, arquivado: boolean) => void;
   onDeleteOpportunity?: (opportunity: CrmOpportunity) => void;
+  onOpenArchived?: () => void;
 }
 
 export function CrmKanbanBoard({
@@ -50,6 +53,7 @@ export function CrmKanbanBoard({
   onScheduleActivity,
   onArchiveOpportunity,
   onDeleteOpportunity,
+  onOpenArchived,
 }: CrmKanbanBoardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -58,6 +62,15 @@ export function CrmKanbanBoard({
   const mouseXRef = useRef(0);
   const mouseYRef = useRef(0);
   const rafRef = useRef<number | null>(null);
+
+  // Estados para modal de Perda Obrigatória
+  const [markLostOpportunity, setMarkLostOpportunity] = useState<CrmOpportunity | null>(null);
+  const [markLostDialogOpen, setMarkLostDialogOpen] = useState(false);
+  const [pendingDragLost, setPendingDragLost] = useState<{
+    opportunity: CrmOpportunity;
+    targetStageId: string;
+    newPos: number;
+  } | null>(null);
 
   // Filtros locais da visualização
   const [search, setSearch] = useState("");
@@ -290,6 +303,51 @@ export function CrmKanbanBoard({
     setIsDndActive(true);
   }, []);
 
+  const isStageLost = useCallback((stage?: CrmStage) => {
+    if (!stage) return false;
+    if (stage.tipo_sistema === "perdida" || stage.tipo_sistema === "cancelada") return true;
+    const nome = (stage.nome || "").toLowerCase();
+    return nome.includes("perdid") || nome.includes("cancelad");
+  }, []);
+
+  const handleOpenMarkLost = useCallback((opp: CrmOpportunity) => {
+    setPendingDragLost(null);
+    setMarkLostOpportunity(opp);
+    setMarkLostDialogOpen(true);
+  }, []);
+
+  const handleConfirmLost = useCallback(
+    async (motivo: string, detalhes?: string) => {
+      if (!markLostOpportunity) return;
+      const oppId = markLostOpportunity.id;
+      const drag = pendingDragLost;
+
+      if (onMarkLost) {
+        await onMarkLost(oppId, motivo, detalhes);
+      }
+
+      if (drag && drag.opportunity.id === oppId) {
+        onMoveStage(oppId, drag.targetStageId, drag.newPos);
+      } else {
+        const lostStage = stages.find((s) => isStageLost(s));
+        if (lostStage && markLostOpportunity.etapa_id !== lostStage.id) {
+          onMoveStage(oppId, lostStage.id, 0);
+        }
+      }
+
+      setPendingDragLost(null);
+      setMarkLostOpportunity(null);
+      setMarkLostDialogOpen(false);
+    },
+    [markLostOpportunity, pendingDragLost, onMarkLost, onMoveStage, stages, isStageLost]
+  );
+
+  const handleCancelLost = useCallback(() => {
+    setPendingDragLost(null);
+    setMarkLostOpportunity(null);
+    setMarkLostDialogOpen(false);
+  }, []);
+
   // Manipulador de drag and drop
   const handleDragEnd = (result: DropResult) => {
     setIsDndActive(false);
@@ -299,6 +357,21 @@ export function CrmKanbanBoard({
       destination.droppableId === source.droppableId &&
       destination.index === source.index
     ) {
+      return;
+    }
+
+    const targetStage = stages.find((s) => s.id === destination.droppableId);
+    const opp = opportunities.find((o) => o.id === draggableId);
+
+    // Se arrastou para uma etapa de perda/cancelamento, EXIGE preenchimento do motivo
+    if (opp && isStageLost(targetStage)) {
+      setPendingDragLost({
+        opportunity: opp,
+        targetStageId: destination.droppableId,
+        newPos: destination.index,
+      });
+      setMarkLostOpportunity(opp);
+      setMarkLostDialogOpen(true);
       return;
     }
 
@@ -436,7 +509,30 @@ export function CrmKanbanBoard({
           </SelectContent>
         </Select>
 
-        {/* Toggle para Vendas Concluídas */}
+        {/* Botão para Acessar Tela Completa de Vendas Arquivadas */}
+        {onOpenArchived && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onOpenArchived}
+            className="h-9 text-xs rounded-xl gap-1.5 border-border bg-card text-muted-foreground hover:text-foreground cursor-pointer"
+            title="Abrir central de vendas arquivadas para consulta ou desarquivamento"
+          >
+            <ArchiveRestore className="h-3.5 w-3.5 text-cyan-500" />
+            <span>Ver Arquivados</span>
+            {archivedCount > 0 && (
+              <Badge
+                variant="secondary"
+                className="ml-0.5 px-1.5 py-0 h-4 text-[10px] font-mono-tech bg-muted"
+              >
+                {archivedCount}
+              </Badge>
+            )}
+          </Button>
+        )}
+
+        {/* Toggle para Vendas Concluídas no Kanban */}
         <Button
           type="button"
           variant={showArchived ? "secondary" : "outline"}
@@ -548,7 +644,7 @@ export function CrmKanbanBoard({
                 onSelectOpportunity={onSelectOpportunity}
                 onAddOpportunityAtStage={() => onNewOpportunity(stage.id)}
                 onMarkWon={onMarkWon}
-                onMarkLost={onMarkLost}
+                onMarkLost={handleOpenMarkLost}
                 onScheduleActivity={onScheduleActivity}
                 onArchive={onArchiveOpportunity}
                 onDelete={onDeleteOpportunity}
@@ -557,6 +653,18 @@ export function CrmKanbanBoard({
           </div>
         </div>
       </DragDropContext>
+
+      {/* Modal Obrigatório para Motivo de Perda */}
+      <MarkLostDialog
+        open={markLostDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) handleCancelLost();
+          else setMarkLostDialogOpen(true);
+        }}
+        opportunityTitle={markLostOpportunity?.titulo}
+        clientName={markLostOpportunity?.cliente_nome}
+        onConfirm={handleConfirmLost}
+      />
     </div>
   );
 }

@@ -21,6 +21,7 @@ import {
   BarChart3,
   Layers,
   Sparkles,
+  ArchiveRestore,
 } from "lucide-react";
 import { startOfDay, startOfWeek, startOfMonth, format } from "date-fns";
 import { KanbanFiltersBar, KanbanFilters } from "@/components/KanbanFiltersBar";
@@ -32,6 +33,7 @@ import { OpportunitySlideOver } from "@/components/crm/OpportunitySlideOver";
 import { CrmMetricsView } from "@/components/crm/CrmMetricsView";
 import { CrmAlertsBanner } from "@/components/crm/CrmAlertsBanner";
 import { ConvertToOrderDialog } from "@/components/crm/ConvertToOrderDialog";
+import { CrmArchivedView } from "@/components/crm/CrmArchivedView";
 import { CrmOpportunity, CrmProposal, isFollowUpLate, isFollowUpToday, isProposalExpiringSoon } from "@/types/crm";
 import { differenceInDays } from "date-fns";
 import { toast } from "sonner";
@@ -65,11 +67,16 @@ export default function ComercialPage() {
     searchKnownClients,
   } = useCrm();
 
-  const [activeTab, setActiveTab] = useState<"funil" | "acompanhamento" | "indicadores">("funil");
+  const [activeTab, setActiveTab] = useState<"funil" | "acompanhamento" | "indicadores" | "arquivados">("funil");
   const [selectedOpportunity, setSelectedOpportunity] = useState<CrmOpportunity | null>(null);
   const [slideOverOpen, setSlideOverOpen] = useState(false);
   const [createOppDialogOpen, setCreateOppDialogOpen] = useState(false);
   const [defaultStageForCreate, setDefaultStageForCreate] = useState<string | undefined>(undefined);
+
+  // Contagem de oportunidades arquivadas
+  const crmArchivedCount = useMemo(() => {
+    return opportunities.filter((o) => Boolean(o.arquivado)).length;
+  }, [opportunities]);
 
   // Pedidos para o acompanhamento operacional de OS
   const allOrders = useMemo(() => {
@@ -334,6 +341,22 @@ export default function ComercialPage() {
                 <BarChart3 className="h-3.5 w-3.5" />
                 <span>Indicadores & BI</span>
               </TabsTrigger>
+
+              <TabsTrigger
+                value="arquivados"
+                className="gap-2 text-xs font-semibold rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
+              >
+                <ArchiveRestore className="h-3.5 w-3.5" />
+                <span>Vendas Arquivadas</span>
+                {crmArchivedCount > 0 && (
+                  <Badge
+                    variant="secondary"
+                    className="ml-1 text-[10px] font-mono-tech px-1.5 py-0"
+                  >
+                    {crmArchivedCount}
+                  </Badge>
+                )}
+              </TabsTrigger>
             </TabsList>
           </Tabs>
 
@@ -360,9 +383,10 @@ export default function ComercialPage() {
                 onSelectOpportunity={handleSelectOpportunity}
                 onNewOpportunity={handleNewOpportunity}
                 onMarkWon={markAsWon}
-                onMarkLost={(opp) => markAsLost(opp.id, "Perda rápida")}
+                onMarkLost={markAsLost}
                 onArchiveOpportunity={archiveOpportunity}
                 onDeleteOpportunity={(opp) => deleteOpportunity(opp.id)}
+                onOpenArchived={() => setActiveTab("arquivados")}
               />
             </div>
           </div>
@@ -567,6 +591,20 @@ export default function ComercialPage() {
         {activeTab === "indicadores" && (
           <div className="flex-1 overflow-auto">
             <CrmMetricsView opportunities={opportunities} stages={stages} />
+          </div>
+        )}
+
+        {/* CONTEÚDO DA ABA 4: VENDAS ARQUIVADAS & RESTAURAÇÃO */}
+        {activeTab === "arquivados" && (
+          <div className="flex-1 min-h-0">
+            <CrmArchivedView
+              opportunities={opportunities}
+              stages={stages}
+              onSelectOpportunity={handleSelectOpportunity}
+              onUnarchive={(id) => archiveOpportunity(id, false)}
+              onDeleteOpportunity={(opp) => deleteOpportunity(opp.id)}
+              onBackToFunil={() => setActiveTab("funil")}
+            />
           </div>
         )}
       </div>
