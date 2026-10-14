@@ -26,8 +26,10 @@ import { ChatDialog } from "./chat/ChatDialog";
 import { useChatNotification } from "./chat/GlobalChatNotifier";
 import { RealtimeStatusIndicator } from "./RealtimeStatusIndicator";
 import { Activity, Command, MessageSquare, ExternalLink, Compass } from "lucide-react";
-import { Order } from "@/types/order";
+import { Order, OrderStatus } from "@/types/order";
 import { UTILITIES_CONFIG } from "@/config/utilities";
+import { OrderSlideOver } from "./OrderSlideOver";
+import { toast } from "sonner";
 
 interface LayoutProps {
   children: ReactNode;
@@ -69,7 +71,28 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [bottlenecksModalOpen, setBottlenecksModalOpen] = useState(false);
   const [chatDialogOpen, setChatDialogOpen] = useState(false);
+  const [inspectOrder, setInspectOrder] = useState<Order | null>(null);
   const avisoSessionStartedAt = useRef(Date.now());
+
+  const handleUpdateInspectOrder = async (id: string, data: Partial<Order>) => {
+    const { error } = await supabase.from("orders").update({ ...data, atualizado_por: user?.id || null }).eq("id", id);
+    if (error) {
+      toast.error("Erro ao atualizar O.S.");
+    } else {
+      toast.success("O.S. atualizada!");
+      setInspectOrder((prev) => (prev ? { ...prev, ...data } : null));
+    }
+  };
+
+  const handleMoveInspectOrder = async (id: string, status: OrderStatus) => {
+    const { error } = await supabase.from("orders").update({ status, atualizado_por: user?.id || null }).eq("id", id);
+    if (error) {
+      toast.error("Erro ao alterar status da O.S.");
+    } else {
+      toast.success("Status atualizado!");
+      setInspectOrder((prev) => (prev ? { ...prev, status } : null));
+    }
+  };
 
   const fetchDeptCounts = useCallback(async () => {
     const NON_PRODUCTION_SECTORS = ["faturamento", "compras", "manutencao"];
@@ -566,13 +589,23 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
       <CommandPalette
         open={commandPaletteOpen}
         onOpenChange={setCommandPaletteOpen}
-        onSelectOrder={() => {}}
+        onSelectOrder={(order) => setInspectOrder(order)}
       />
 
       {/* AI Production Bottlenecks Diagnostic Modal */}
       <AiProductionBottlenecksModal
         open={bottlenecksModalOpen}
         onOpenChange={setBottlenecksModalOpen}
+        onSelectOrder={(order) => setInspectOrder(order)}
+      />
+
+      {/* Slide-over de Inspeção e Resolução de O.S. a partir de Gargalos ou Busca */}
+      <OrderSlideOver
+        order={inspectOrder}
+        open={!!inspectOrder}
+        onOpenChange={(open) => !open && setInspectOrder(null)}
+        onUpdate={handleUpdateInspectOrder}
+        onMove={handleMoveInspectOrder}
       />
 
       {/* Chat Privado Modal */}
