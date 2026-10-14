@@ -332,8 +332,9 @@ export function CrmOpportunityCard({
               )}
             </div>
           </div>
-        </PortalDrag>
-      )}
-    </Draggable>
+        </div>
+      </PortalDrag>
+    )}
+  </Draggable>
   );
 }
