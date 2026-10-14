@@ -8,6 +8,7 @@ import {
   OpportunityStatus,
   OpportunityPriority,
 } from "@/types/crm";
+import { subscribeReconcile } from "@/lib/realtimeManager";
 import { toast } from "sonner";
 
 export interface CreateOpportunityInput {
@@ -90,17 +91,44 @@ export function useCrm() {
     setLoading(false);
   }, [fetchStages, fetchOpportunities, fetchClients]);
 
+  // Merge incremental para crm_oportunidades (Zero-Delay e previne sobrescrita)
+  const applyOpportunityPayload = useCallback((payload: any) => {
+    if (!payload) return;
+    const eventType = payload.eventType as "INSERT" | "UPDATE" | "DELETE";
+    const newRow = payload.new as CrmOpportunity | undefined;
+    const oldRow = payload.old as CrmOpportunity | undefined;
+
+    if (eventType === "DELETE" && oldRow?.id) {
+      setOpportunities((prev) => prev.filter((o) => o.id !== oldRow.id));
+      return;
+    }
+    if (!newRow?.id) return;
+
+    setOpportunities((prev) => {
+      const idx = prev.findIndex((o) => o.id === newRow.id);
+      if (idx === -1) {
+        if (eventType === "INSERT") {
+          return [...prev, newRow].sort((a, b) => a.posicao - b.posicao);
+        }
+        return prev;
+      }
+      const copy = [...prev];
+      copy[idx] = { ...copy[idx], ...newRow };
+      return copy.sort((a, b) => a.posicao - b.posicao);
+    });
+  }, []);
+
   useEffect(() => {
     void refreshAll();
 
-    // Inscrição Realtime para atualizações em tempo real
+    // Inscrição Realtime centralizada com merge incremental
     const channel = supabase
       .channel("crm_realtime_channel")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "crm_oportunidades" },
-        () => {
-          void fetchOpportunities();
+        (payload) => {
+          applyOpportunityPayload(payload);
         }
       )
       .on(
@@ -119,10 +147,16 @@ export function useCrm() {
       )
       .subscribe();
 
+    // Reconciliação delta em caso de reconexão de rede
+    const unsubReconcile = subscribeReconcile(() => {
+      void refreshAll();
+    });
+
     return () => {
       supabase.removeChannel(channel);
+      unsubReconcile();
     };
-  }, [refreshAll, fetchOpportunities, fetchStages, fetchClients]);
+  }, [refreshAll, applyOpportunityPayload, fetchStages, fetchClients]);
 
   // Criar Oportunidade
   const createOpportunity = async (input: CreateOpportunityInput): Promise<CrmOpportunity | null> => {
