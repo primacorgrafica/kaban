@@ -78,7 +78,7 @@ function ProducaoRedirect() {
 }
 
 const App = () => (
-  <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="primacor-theme">
+  <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} themes={["light", "dark"]} storageKey="primacor-theme">
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
