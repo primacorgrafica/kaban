@@ -53,7 +53,7 @@ let cachedDeptCounts: Record<string, number> | null = null;
 
 export function Layout({ children, searchQuery, onSearchChange, onAddOrder, activeCount, archivedCount, sectorName, countsLoading = false, permissions }: LayoutProps) {
   const location = useLocation();
-  const { signOut, user, isAdmin, authReady, hasModule, canAccessSector, setorVinculado } = useAuth();
+  const { signOut, user, role, isAdmin, authReady, hasModule, canAccessSector, setorVinculado } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { unreadChatCount } = useChatNotification();
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -186,9 +186,10 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
     { to: "/producao/qualidade", label: "Qualidade", icon: Search, count: deptCountsLoaded ? (deptCounts["qualidade"] ?? 0) : undefined, dept: "qualidade" },
   ];
 
+  const canAccessGestaoEntregas = isAdmin || role === "coordenador" || permissions.canAccessDashboard;
   const allExpedicaoItems = [
     { to: "/expedicao", label: "Expedição", icon: Truck, count: deptCountsLoaded ? (deptCounts["expedicao"] ?? 0) : undefined },
-    { to: "/entregas", label: "Gestão de Entregas", icon: Package },
+    ...(canAccessGestaoEntregas ? [{ to: "/entregas", label: "Gestão de Entregas", icon: Package }] : []),
   ];
 
   // Filtra itens de produção estritamente pelo setor vinculado ou permissão do usuário
@@ -293,8 +294,8 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
         <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto scrollbar-none">
           {topItems.map(renderNavLink)}
 
-          {/* Produção - collapsible group */}
-          {producaoItems.length > 0 && (
+          {/* Produção - se tiver apenas 1 setor liberado, exibe direto em primeira linha sem setinha/acordeão */}
+          {producaoItems.length > 1 ? (
             <>
               <button
                 onClick={() => setProducaoOpen(!producaoOpen)}
@@ -314,10 +315,12 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
                 </div>
               )}
             </>
-          )}
+          ) : producaoItems.length === 1 ? (
+            producaoItems.map(renderNavLink)
+          ) : null}
 
-          {/* Expedição - collapsible group */}
-          {expedicaoItems.length > 0 && (
+          {/* Expedição - se tiver apenas 1 item liberado, exibe direto em primeira linha sem setinha/acordeão */}
+          {expedicaoItems.length > 1 ? (
             <>
               <button
                 onClick={() => setExpedicaoOpen(!expedicaoOpen)}
@@ -337,7 +340,9 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
                 </div>
               )}
             </>
-          )}
+          ) : expedicaoItems.length === 1 ? (
+            expedicaoItems.map(renderNavLink)
+          ) : null}
 
           {bottomItems.map(renderNavLink)}
 
