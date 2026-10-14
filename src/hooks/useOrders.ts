@@ -8,6 +8,7 @@ import {
   type OrderPayload,
 } from "@/lib/realtimeManager";
 import { invalidateApprovalEntry } from "@/lib/approvalEntryCache";
+import { syncServerTimeOffset } from "@/lib/businessHours";
 import { toast } from "sonner";
 import { Order, OrderStatus, Profile, STATUS_CONFIG } from "@/types/order";
 import { Department } from "@/types/production";
@@ -58,6 +59,9 @@ export function useOrders() {
 
     if (!hadError) {
       setOrders(all);
+      if (all.length > 0 && all[0].created_at) {
+        syncServerTimeOffset(all[0].created_at);
+      }
     }
   }, []);
 
