@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { businessHoursMs } from "@/lib/businessHours";
 
 const WORK_STATUSES = ["fila_de_entrada", "aguardando_prova"];
-const PAUSE_STATUSES = ["aguardando_aprovacao", "aguardando_novo_arquivo"];
+const PAUSE_STATUSES = ["aguardando_aprovacao", "aguardando_novo_arquivo", "paralisado"];
 const WORK_THRESHOLD_MS = 21 * 3600000; // 21 business hours
 
 const APPROVAL_STATUS = "aguardando_aprovacao";

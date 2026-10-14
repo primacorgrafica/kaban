@@ -46,7 +46,8 @@ export const DEPARTMENTS: DepartmentConfig[] = [
     label: "Embalagens",
     statuses: [
       { id: "entrada", label: "Entrada", colorKey: "entrada" },
-      { id: "aguardando_novo_arquivo", label: "Preparação", colorKey: "revisao" },
+      { id: "paralisado", label: "Paralisado", colorKey: "revisao" },
+      { id: "preparacao", label: "Preparação", colorKey: "andamento" },
       { id: "aguardando_prova", label: "Produzindo Prova", colorKey: "andamento" },
       { id: "aguardando_aprovacao", label: "Aguar. Aprovação", colorKey: "aguardando" },
       { id: "saida", label: "Saída", colorKey: "concluido" },

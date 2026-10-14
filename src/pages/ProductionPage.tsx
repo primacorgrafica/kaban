@@ -159,8 +159,9 @@ export default function ProductionPage() {
     return list.filter((o) => {
       if (deptFilters.statuses.length > 0) {
         let orderStatus = (o as any).setor_status || "entrada";
-        if (activeDepartment === "desenvolvimento" && orderStatus === "desenvolvendo") {
-          orderStatus = "aguardando_novo_arquivo";
+        if (activeDepartment === "desenvolvimento") {
+          if (orderStatus === "desenvolvendo") orderStatus = "preparacao";
+          if (orderStatus === "aguardando_novo_arquivo") orderStatus = "paralisado";
         }
         if (activeDepartment === "ctp" && (orderStatus === "gravacao" || orderStatus === "imposicao" || orderStatus === "filme_faca_cliche")) {
           orderStatus = "gravando";

@@ -1,4 +1,13 @@
-export type OrderStatus = "fila_de_entrada" | "aguardando_novo_arquivo" | "preparando_arquivo" | "operador_2" | "operador_3" | "aguardando_prova" | "aguardando_aprovacao" | "arquivo_liberado";
+export type OrderStatus =
+  | "fila_de_entrada"
+  | "paralisado"
+  | "preparando_arquivo"
+  | "aguardando_novo_arquivo"
+  | "operador_2"
+  | "operador_3"
+  | "aguardando_prova"
+  | "aguardando_aprovacao"
+  | "arquivo_liberado";
 
 // OrderPriority kept for backward compatibility with DB column
 export type OrderPriority = "normal" | "media" | "alta";
@@ -111,8 +120,9 @@ export interface Profile {
 
 export const STATUS_CONFIG: Record<OrderStatus, { label: string; colorKey: string }> = {
   fila_de_entrada: { label: "Entrada", colorKey: "entrada" },
-  aguardando_novo_arquivo: { label: "Preparação", colorKey: "revisao" },
-  preparando_arquivo: { label: "Operador 1", colorKey: "novo" },
+  paralisado: { label: "Paralisado", colorKey: "revisao" },
+  preparando_arquivo: { label: "Preparação", colorKey: "andamento" },
+  aguardando_novo_arquivo: { label: "Paralisado", colorKey: "revisao" },
   operador_2: { label: "Operador 2", colorKey: "novo" },
   operador_3: { label: "Operador 3", colorKey: "novo" },
   aguardando_prova: { label: "Produzindo Prova", colorKey: "andamento" },
@@ -122,7 +132,8 @@ export const STATUS_CONFIG: Record<OrderStatus, { label: string; colorKey: strin
 
 export const STATUS_ORDER: OrderStatus[] = [
   "fila_de_entrada",
-  "aguardando_novo_arquivo",
+  "paralisado",
+  "preparando_arquivo",
   "aguardando_prova",
   "aguardando_aprovacao",
   "arquivo_liberado",

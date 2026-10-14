@@ -98,14 +98,19 @@ export function ProductionTable({
   const getStatusConfig = (order: Order) => {
     if (department) {
       let sId = (order as any).setor_status || "entrada";
-      if (department.id === "desenvolvimento" && sId === "desenvolvendo") sId = "aguardando_novo_arquivo";
+      if (department.id === "desenvolvimento") {
+        if (sId === "desenvolvendo") sId = "preparacao";
+        if (sId === "aguardando_novo_arquivo") sId = "paralisado";
+      }
       if (department.id === "ctp" && (sId === "gravacao" || sId === "imposicao" || sId === "filme_faca_cliche")) sId = "gravando";
       const found = department.statuses.find(s => s.id === sId);
       if (found) {
         return { label: found.label, colorKey: found.colorKey || "andamento" };
       }
     }
-    return STATUS_CONFIG[order.status] || { label: order.status, colorKey: "andamento" };
+    let st = order.status;
+    if (st === "aguardando_novo_arquivo") st = "paralisado";
+    return STATUS_CONFIG[st] || { label: order.status, colorKey: "andamento" };
   };
 
   // Sorting logic
@@ -131,12 +136,18 @@ export function ProductionTable({
           let sa = (a as any).setor_status || "entrada";
           let sb = (b as any).setor_status || "entrada";
           if (department.id === "desenvolvimento") {
-            if (sa === "desenvolvendo") sa = "aguardando_novo_arquivo";
-            if (sb === "desenvolvendo") sb = "aguardando_novo_arquivo";
+            if (sa === "desenvolvendo") sa = "preparacao";
+            if (sa === "aguardando_novo_arquivo") sa = "paralisado";
+            if (sb === "desenvolvendo") sb = "preparacao";
+            if (sb === "aguardando_novo_arquivo") sb = "paralisado";
           }
           comparison = statusOrderList.indexOf(sa) - statusOrderList.indexOf(sb);
         } else {
-          comparison = STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status);
+          let sa = a.status;
+          let sb = b.status;
+          if (sa === "aguardando_novo_arquivo") sa = "paralisado";
+          if (sb === "aguardando_novo_arquivo") sb = "paralisado";
+          comparison = STATUS_ORDER.indexOf(sa) - STATUS_ORDER.indexOf(sb);
         }
       } else if (sortField === "prazo") {
         const da = a.prazo ? new Date(a.prazo).getTime() : 9999999999999;

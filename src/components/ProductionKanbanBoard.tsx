@@ -67,9 +67,13 @@ export function ProductionKanbanBoard({
         status = "gravando";
       }
     }
-    // Compatibilidade Embalagens: se vier com status antigo desenvolvendo, agrupa em aguardando_novo_arquivo
-    if (department.id === "desenvolvimento" && status === "desenvolvendo") {
-      status = "aguardando_novo_arquivo";
+    // Compatibilidade Embalagens: se vier com status antigo desenvolvendo -> preparacao, se vier aguardando_novo_arquivo -> paralisado
+    if (department.id === "desenvolvimento") {
+      if (status === "desenvolvendo") {
+        status = "preparacao";
+      } else if (status === "aguardando_novo_arquivo") {
+        status = "paralisado";
+      }
     }
     if (ordersByStatus[status]) {
       ordersByStatus[status].push(o);
@@ -176,7 +180,7 @@ export function ProductionKanbanBoard({
     id: string; toStatus: string; newIndex: number;
   } | null>(null);
 
-  const [motivoPreparacao, setMotivoPreparacao] = useState("");
+  const [motivoParada, setMotivoParada] = useState("");
 
   const isRouteStatus = (status: string) => ["rota_manha", "rota_tarde"].includes(status);
 
@@ -188,10 +192,10 @@ export function ProductionKanbanBoard({
     const newIndex = result.destination.index;
     const order = orders.find(o => o.id === result.draggableId);
     if (fromStatus !== toStatus || result.source.index !== newIndex) {
-      if (toStatus === "aguardando_novo_arquivo") {
-        setMotivoPreparacao(order?.observacao || "");
+      if (toStatus === "paralisado") {
+        setMotivoParada(order?.observacao || "");
       } else {
-        setMotivoPreparacao("");
+        setMotivoParada("");
       }
       const moveData = {
         id: result.draggableId,
@@ -225,11 +229,11 @@ export function ProductionKanbanBoard({
         return;
       }
     }
-    if (pendingMove.toStatus === "aguardando_novo_arquivo" && motivoPreparacao !== (orders.find(o => o.id === pendingMove.id)?.observacao || "")) {
-      onUpdate(pendingMove.id, { observacao: motivoPreparacao });
+    if (pendingMove.toStatus === "paralisado" && motivoParada !== (orders.find(o => o.id === pendingMove.id)?.observacao || "")) {
+      onUpdate(pendingMove.id, { observacao: motivoParada });
     }
     onMove(pendingMove.id, pendingMove.toStatus, pendingMove.newIndex);
-    setMotivoPreparacao("");
+    setMotivoParada("");
     setPendingMove(null);
   };
 
@@ -283,7 +287,7 @@ export function ProductionKanbanBoard({
         </div>
       </div>
 
-      <AlertDialog open={!!pendingMove} onOpenChange={(open) => { if (!open) { setMotivoPreparacao(""); setPendingMove(null); } }}>
+      <AlertDialog open={!!pendingMove} onOpenChange={(open) => { if (!open) { setMotivoParada(""); setPendingMove(null); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar movimentação</AlertDialogTitle>
@@ -298,15 +302,15 @@ export function ProductionKanbanBoard({
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          {pendingMove?.toStatus === "aguardando_novo_arquivo" && (
+          {pendingMove?.toStatus === "paralisado" && (
             <div className="p-3 rounded-xl border border-amber-500/40 bg-amber-500/10 space-y-2 text-left my-2">
               <Label className="text-xs font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5 uppercase">
                 <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
-                Motivo da Parada / Preparação
+                Motivo da Parada
               </Label>
               <Textarea
-                value={motivoPreparacao}
-                onChange={(e) => setMotivoPreparacao(e.target.value)}
+                value={motivoParada}
+                onChange={(e) => setMotivoParada(e.target.value)}
                 placeholder="Informe o motivo da parada (ex: Aguardando novo arquivo do cliente, faca com problema, cliente pediu alteração...)"
                 className="text-xs bg-background min-h-[65px] text-foreground resize-none"
               />
@@ -316,7 +320,7 @@ export function ProductionKanbanBoard({
             </div>
           )}
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => { setMotivoPreparacao(""); setPendingMove(null); }}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => { setMotivoParada(""); setPendingMove(null); }}>Cancelar</AlertDialogCancel>
             <AlertDialogAction onClick={confirmMove}>Confirmar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

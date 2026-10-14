@@ -405,8 +405,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
               <Clock className="h-3 w-3" />
               Prazo: {format(new Date(order.prazo), "dd/MM HH:mm", { locale: ptBR })}
             </div>
-          )}
-          {order.status === "aguardando_novo_arquivo" ? (
+          {(order.status === "paralisado" || order.status === "aguardando_novo_arquivo") ? (
             order.observacao && order.observacao.trim() ? (
               <div
                 onClick={(e) => {

@@ -11,13 +11,15 @@ import {
   CheckCircle2,
   ArrowRight,
   Wrench,
+  AlertTriangle,
 } from "lucide-react";
 import { createPortal } from "react-dom";
 
 const PRE_PRESS_STATUS_ICONS: Record<OrderStatus, LucideIcon> = {
   fila_de_entrada: ArrowRight,
-  aguardando_novo_arquivo: Wrench,
-  preparando_arquivo: FileEdit,
+  paralisado: AlertTriangle,
+  preparando_arquivo: Wrench,
+  aguardando_novo_arquivo: AlertTriangle,
   operador_2: FileEdit,
   operador_3: FileEdit,
   aguardando_prova: Printer,

@@ -654,8 +654,8 @@ function ProductionCardImpl({
               </span>
             )}
           </div>
-          {/* Linha 3: OBS / Motivo da Parada em Preparação */}
-          {currentStatus.id === "aguardando_novo_arquivo" ? (
+          {/* Linha 3: OBS / Motivo da Parada */}
+          {(currentStatus.id === "paralisado" || currentStatus.id === "aguardando_novo_arquivo") ? (
             order.observacao && order.observacao.trim() ? (
               <div
                 onClick={(e) => {

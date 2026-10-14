@@ -37,13 +37,16 @@ import {
   Sunset,
   ArrowRight,
   Clock,
+  AlertTriangle,
 } from "lucide-react";
 import { OffsetIcon } from "./icons/OffsetIcon";
 import { createPortal } from "react-dom";
 
 const STATUS_ICONS: Record<string, LucideIcon> = {
   entrada: ArrowRight,
-  aguardando_novo_arquivo: Wrench,
+  paralisado: AlertTriangle,
+  preparacao: Wrench,
+  aguardando_novo_arquivo: AlertTriangle,
   aguardando_prova: PrinterIcon,
   aguardando_aprovacao: Clock,
   gravando: CircleDot,

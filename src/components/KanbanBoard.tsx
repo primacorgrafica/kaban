@@ -54,8 +54,10 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
 
   orders.forEach((o) => {
     let s = o.status;
-    if (s === "preparando_arquivo" || s === "operador_2" || s === "operador_3") {
-      s = "aguardando_novo_arquivo";
+    if (s === "aguardando_novo_arquivo") {
+      s = "paralisado";
+    } else if (s === "operador_2" || s === "operador_3") {
+      s = "preparando_arquivo";
     }
     if (ordersByStatus[s]) {
       ordersByStatus[s].push(o);
@@ -209,7 +211,7 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
     newIndex: number;
   } | null>(null);
   const [sendToExpedicao, setSendToExpedicao] = useState(false);
-  const [motivoPreparacao, setMotivoPreparacao] = useState("");
+  const [motivoParada, setMotivoParada] = useState("");
 
   const handleDragEnd = (result: DropResult) => {
     setIsDndActive(false);
@@ -225,10 +227,10 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
 
     // If status changed or position changed, ask for confirmation
     if (sourceStatus !== newStatus || result.source.index !== newIndex) {
-      if (newStatus === "aguardando_novo_arquivo") {
-        setMotivoPreparacao(order?.observacao || "");
+      if (newStatus === "paralisado") {
+        setMotivoParada(order?.observacao || "");
       } else {
-        setMotivoPreparacao("");
+        setMotivoParada("");
       }
 
       setPendingMove({
@@ -243,22 +245,22 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
 
   const confirmMove = () => {
     if (pendingMove) {
-      if (pendingMove.toStatus === "aguardando_novo_arquivo" && motivoPreparacao !== (orders.find(o => o.id === pendingMove.id)?.observacao || "")) {
-        onUpdate(pendingMove.id, { observacao: motivoPreparacao });
+      if (pendingMove.toStatus === "paralisado" && motivoParada !== (orders.find(o => o.id === pendingMove.id)?.observacao || "")) {
+        onUpdate(pendingMove.id, { observacao: motivoParada });
       }
       onMove(pendingMove.id, pendingMove.toStatus, pendingMove.newIndex);
       if (sendToExpedicao && pendingMove.toStatus === "aguardando_prova" && onSendToExpedicao) {
         onSendToExpedicao(pendingMove.id);
       }
       setSendToExpedicao(false);
-      setMotivoPreparacao("");
+      setMotivoParada("");
       setPendingMove(null);
     }
   };
 
   const cancelMove = () => {
     setSendToExpedicao(false);
-    setMotivoPreparacao("");
+    setMotivoParada("");
     setPendingMove(null);
   };
 
@@ -345,15 +347,15 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
                       <strong>{STATUS_CONFIG[pendingMove.toStatus].label}</strong>
                       {pendingMove.fromStatus === pendingMove.toStatus && " (reordenar)"}?
                     </p>
-                    {pendingMove.toStatus === "aguardando_novo_arquivo" && (
+                    {pendingMove.toStatus === "paralisado" && (
                       <div className="mt-4 p-3 rounded-xl border border-amber-500/40 bg-amber-500/10 space-y-2 text-left">
                         <Label className="text-xs font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5 uppercase">
                           <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
-                          Motivo da Parada / Preparação
+                          Motivo da Parada
                         </Label>
                         <Textarea
-                          value={motivoPreparacao}
-                          onChange={(e) => setMotivoPreparacao(e.target.value)}
+                          value={motivoParada}
+                          onChange={(e) => setMotivoParada(e.target.value)}
                           placeholder="Informe o motivo da parada (ex: Aguardando novo arquivo do cliente, faca com problema, cliente pediu alteração...)"
                           className="text-xs bg-background min-h-[65px] text-foreground resize-none"
                         />

@@ -103,7 +103,7 @@ function computeMetrics(
     let subtractMs = 0;
     for (let i = 0; i < entries.length; i++) {
       const status = entries[i].status_novo;
-      if (status === "aguardando_aprovacao" || status === "aguardando_novo_arquivo") {
+      if (status === "aguardando_aprovacao" || status === "aguardando_novo_arquivo" || status === "paralisado") {
         const exitTime = entries[i + 1] ? new Date(entries[i + 1].created_at) : new Date(saidaEntry.created_at);
         subtractMs += businessHoursMs(new Date(entries[i].created_at), exitTime);
       }
