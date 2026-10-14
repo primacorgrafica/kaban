@@ -301,14 +301,14 @@ export function analyzeProductionBottlenecks(orders: Order[]): BottleneckAnalysi
     });
   }
 
-  const prep = active.filter((o) => o.status === "preparando_arquivo" || o.status === "operador_2" || o.status === "operador_3");
+  const prep = active.filter((o) => o.status === "aguardando_novo_arquivo");
   if (prep.length > 10) {
     insights.push({
       type: "warning",
-      title: `Sobrecarga em Pré-Impressão (${prep.length} O.S.)`,
-      description: "Volume elevado de ordens sendo processadas simultaneamente pelos operadores.",
+      title: `Sobrecarga em Preparação (${prep.length} O.S.)`,
+      description: "Volume elevado de ordens em preparação na pré-impressão.",
       count: prep.length,
-      suggestedAction: "Distribuir tarefas entre Operador 1, 2 e 3 ou liberar provas rápidas.",
+      suggestedAction: "Verificar os motivos das paradas e dar andamento às ordens liberadas.",
     });
   }
 

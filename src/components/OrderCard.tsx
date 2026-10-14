@@ -1059,41 +1059,6 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                     </div>
                   )}
 
-                  {/* Envio rápido para Operador */}
-                  {!order.setor && !order.arquivado && departmentContext === "pre_impressao" && (
-                    <div className="p-3.5 rounded-xl border border-border bg-muted/40 space-y-2">
-                      <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Despachar para Operador</span>
-                      <div className="grid grid-cols-3 gap-2">
-                        {([
-                          { label: "Operador 1", status: "preparando_arquivo" },
-                          { label: "Operador 2", status: "operador_2" },
-                          { label: "Operador 3", status: "operador_3" },
-                        ] as { label: string; status: OrderStatus }[]).map((op) => {
-                          const isCurrent = order.status === op.status;
-                          return (
-                            <Button
-                              key={op.status}
-                              size="sm"
-                              variant={isCurrent ? "default" : "outline"}
-                              disabled={isCurrent}
-                              className={`h-9 text-xs rounded-xl font-semibold transition-all ${
-                                isCurrent
-                                  ? "bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border-cyan-500/40 shadow-sm font-bold"
-                                  : "border-border bg-card text-foreground hover:bg-accent"
-                              }`}
-                              onClick={() => {
-                                onMove(order.id, op.status);
-                                setOpen(false);
-                              }}
-                            >
-                              {op.label}
-                            </Button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
                   {/* Bloco de Auditoria */}
                   <div className="p-3 rounded-xl border border-border/80 bg-muted/40 space-y-1 font-mono-tech text-[11px] text-muted-foreground">
                     {createdByName && (

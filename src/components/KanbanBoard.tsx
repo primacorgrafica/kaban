@@ -48,9 +48,25 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onDuplicate, onSendToProduction, onSendToMultipleProduction, onSendToExpedicao, getProfileName, permissions, departmentContext, slowAlertIds }: KanbanBoardProps) {
   const ordersByStatus = STATUS_ORDER.reduce((acc, status) => {
-    acc[status] = orders.filter((o) => o.status === status).sort((a, b) => a.posicao - b.posicao);
+    acc[status] = [];
     return acc;
   }, {} as Record<OrderStatus, Order[]>);
+
+  orders.forEach((o) => {
+    let s = o.status;
+    if (s === "preparando_arquivo" || s === "operador_2" || s === "operador_3") {
+      s = "aguardando_novo_arquivo";
+    }
+    if (ordersByStatus[s]) {
+      ordersByStatus[s].push(o);
+    } else if (ordersByStatus["fila_de_entrada"]) {
+      ordersByStatus["fila_de_entrada"].push(o);
+    }
+  });
+
+  STATUS_ORDER.forEach((status) => {
+    ordersByStatus[status].sort((a, b) => a.posicao - b.posicao);
+  });
 
   const containerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);

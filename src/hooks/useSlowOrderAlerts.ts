@@ -3,7 +3,7 @@ import { Order } from "@/types/order";
 import { supabase } from "@/integrations/supabase/client";
 import { businessHoursMs } from "@/lib/businessHours";
 
-const WORK_STATUSES = ["fila_de_entrada", "preparando_arquivo", "operador_2", "operador_3"];
+const WORK_STATUSES = ["fila_de_entrada", "aguardando_prova"];
 const PAUSE_STATUSES = ["aguardando_aprovacao", "aguardando_novo_arquivo"];
 const WORK_THRESHOLD_MS = 21 * 3600000; // 21 business hours
 
