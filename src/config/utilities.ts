@@ -8,7 +8,7 @@ export interface UtilityLink {
 
 export interface UtilitySubMenu {
   id: string;
-  title: string;
+  title?: string;
   links: UtilityLink[];
 }
 
@@ -18,29 +18,14 @@ export interface UtilitySubMenu {
  */
 export const UTILITIES_CONFIG: UtilitySubMenu[] = [
   {
-    id: "consultas",
-    title: "Consultas & Portais",
+    id: "utilidades-primacor",
+    title: "", // Deixando direto ou com categoria caso deseje agrupar
     links: [
       {
-        id: "link-1",
-        label: "Portal de Exemplo 1",
-        url: "https://www.google.com",
-      },
-      {
-        id: "link-2",
-        label: "Portal de Exemplo 2",
-        url: "https://www.google.com",
-      },
-    ],
-  },
-  {
-    id: "ferramentas",
-    title: "Ferramentas & Sistemas",
-    links: [
-      {
-        id: "link-3",
-        label: "Sistema Externo 1",
-        url: "https://www.google.com",
+        id: "packaging-cad-pro",
+        label: "PACKAGING CAD PRO",
+        url: "https://primacorembalagens.vercel.app/",
+        badge: "CAD",
       },
     ],
   },
