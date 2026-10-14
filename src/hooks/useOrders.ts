@@ -1,7 +1,12 @@
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { subscribeOrdersIncremental, subscribeProfilesIncremental, type OrderPayload } from "@/lib/realtimeManager";
+import {
+  subscribeOrdersIncremental,
+  subscribeProfilesIncremental,
+  subscribeReconcile,
+  type OrderPayload,
+} from "@/lib/realtimeManager";
 import { invalidateApprovalEntry } from "@/lib/approvalEntryCache";
 import { toast } from "sonner";
 import { Order, OrderStatus, Profile, STATUS_CONFIG } from "@/types/order";
@@ -105,11 +110,16 @@ export function useOrders() {
 
     const unsubOrders = subscribeOrdersIncremental(applyOrderPayload);
     const unsubProfiles = subscribeProfilesIncremental(() => { void fetchProfiles(); });
+    const unsubReconcile = subscribeReconcile(() => {
+      void fetchOrders();
+      void fetchProfiles();
+    });
 
     return () => {
       isMounted = false;
       unsubOrders();
       unsubProfiles();
+      unsubReconcile();
     };
   }, [authReady, user, applyOrderPayload]);
 

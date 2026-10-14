@@ -1,98 +1,208 @@
 /**
- * Gerenciador centralizado de Realtime para a tabela orders e profiles.
+ * Gerenciador centralizado de Realtime e Conectividade WebSocket (Supabase Realtime).
  *
- * MELHORIA DE PERFORMANCE (auditoria 2026):
- * - Antes: cada evento Realtime disparava um `fetchOrders` completo que baixava
- *   1.371+ linhas × 92 colunas (~5 MB) — total de 171.055 chamadas registradas
- *   no pg_stat_statements consumindo ~18h de CPU.
- * - Agora: subscribers recebem o payload do evento (INSERT/UPDATE/DELETE) e
- *   aplicam merge incremental no estado local. Refetch completo só ocorre no
- *   load inicial e como fallback de reconexão.
- *
- * Debounce aumentado para 600 ms — agrupa drag-and-drop em rajada (até 10
- * UPDATEs de `posicao` consecutivos viram 1 notificação).
+ * MUDANÇAS DA FASE 1 & FASE 2 (Auditoria e Evolução):
+ * 1. Monitoramento ativo de status de conexão: ONLINE (SUBSCRIBED), RECONNECTING / CONNECTING, OFFLINE (CLOSED / ERROR).
+ * 2. Priorização inteligente de eventos (Zero-Delay para ações críticas):
+ *    - INSERT, DELETE, e alterações de status/setor/responsável/prioridade são despachados IMEDIATAMENTE (0ms delay).
+ *    - Apenas UPDATEs puros de posição (arrastes consecutivos em lote) utilizam o debounce de agregação.
+ * 3. Rotina de Reconciliação pós-Reconexão:
+ *    - Sempre que o canal passa de reconectando para SUBSCRIBED, notifica os subscribers para executarem verificação delta.
+ * 4. Resiliência: listeners para queda de rede do navegador (window.online/offline).
  */
 import { supabase } from "@/integrations/supabase/client";
-import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
+import type { RealtimePostgresChangesPayload, RealtimeChannel } from "@supabase/supabase-js";
 
+export type RealtimeConnectionState = "CONNECTING" | "ONLINE" | "RECONNECTING" | "OFFLINE";
 export type OrderPayload = RealtimePostgresChangesPayload<Record<string, any>>;
+
 type PayloadCallback = (payload: OrderPayload | null) => void;
-type Callback = () => void;
+type ConnectionStateCallback = (state: RealtimeConnectionState) => void;
+type ReconcileCallback = () => void;
 
-const DEBOUNCE_MS = 600;
+const POSITION_DEBOUNCE_MS = 250; // Reduzido de 600ms para 250ms apenas para movimentações sequenciais de posição
 
-// Subscribers que recebem payloads (merge incremental)
+// Estado global de conectividade
+let currentConnectionState: RealtimeConnectionState = "CONNECTING";
+const connectionStateSubs = new Set<ConnectionStateCallback>();
+const reconcileSubs = new Set<ReconcileCallback>();
+
+// Subscribers de dados
 const ordersPayloadSubs = new Set<PayloadCallback>();
 const profilesPayloadSubs = new Set<PayloadCallback>();
+const ordersLegacySubs = new Set<ReconcileCallback>();
+const profilesLegacySubs = new Set<ReconcileCallback>();
 
-// Subscribers legados (refetch sem payload)
-const ordersLegacySubs = new Set<Callback>();
-const profilesLegacySubs = new Set<Callback>();
+let ordersChannel: RealtimeChannel | null = null;
+let profilesChannel: RealtimeChannel | null = null;
 
-let ordersChannel: ReturnType<typeof supabase.channel> | null = null;
-let profilesChannel: ReturnType<typeof supabase.channel> | null = null;
+// Buffers para eventos de posição
+let pendingPositionOrderPayloads: OrderPayload[] = [];
+let pendingPositionProfilePayloads: OrderPayload[] = [];
+let ordersPositionTimer: ReturnType<typeof setTimeout> | null = null;
+let profilesPositionTimer: ReturnType<typeof setTimeout> | null = null;
 
-// Buffer de payloads pendentes (entregues em lote após o debounce)
-let pendingOrderPayloads: OrderPayload[] = [];
-let pendingProfilePayloads: OrderPayload[] = [];
-let ordersTimer: ReturnType<typeof setTimeout> | null = null;
-let profilesTimer: ReturnType<typeof setTimeout> | null = null;
+function setConnectionState(newState: RealtimeConnectionState) {
+  if (currentConnectionState === newState) return;
+  const previousState = currentConnectionState;
+  currentConnectionState = newState;
+  connectionStateSubs.forEach((cb) => {
+    try {
+      cb(newState);
+    } catch (err) {
+      console.error("[RealtimeManager] Erro no listener de status:", err);
+    }
+  });
 
-function flushOrders() {
-  ordersTimer = null;
-  const payloads = pendingOrderPayloads;
-  pendingOrderPayloads = [];
-  // Entrega cada payload aos subscribers incrementais
+  // Se retornou para ONLINE a partir de RECONNECTING ou OFFLINE, aciona reconciliação
+  if (newState === "ONLINE" && (previousState === "RECONNECTING" || previousState === "OFFLINE")) {
+    console.info("[RealtimeManager] Conexão restabelecida. Disparando reconciliação delta...");
+    reconcileSubs.forEach((cb) => {
+      try {
+        cb();
+      } catch (err) {
+        console.error("[RealtimeManager] Erro no listener de reconciliação:", err);
+      }
+    });
+  }
+}
+
+// Ouvintes nativos de conectividade de rede do navegador
+if (typeof window !== "undefined") {
+  window.addEventListener("online", () => {
+    console.info("[RealtimeManager] Rede do navegador reconectada.");
+    setConnectionState("CONNECTING");
+    if (ordersChannel) {
+      ordersChannel.subscribe();
+    }
+  });
+
+  window.addEventListener("offline", () => {
+    console.warn("[RealtimeManager] Rede do navegador desconectada.");
+    setConnectionState("OFFLINE");
+  });
+}
+
+function flushPositionOrders() {
+  ordersPositionTimer = null;
+  const payloads = pendingPositionOrderPayloads;
+  pendingPositionOrderPayloads = [];
   for (const p of payloads) {
     ordersPayloadSubs.forEach((cb) => cb(p));
   }
-  // Legados refazem fetch UMA vez ao final do batch
   if (ordersLegacySubs.size > 0) ordersLegacySubs.forEach((cb) => cb());
 }
 
-function flushProfiles() {
-  profilesTimer = null;
-  const payloads = pendingProfilePayloads;
-  pendingProfilePayloads = [];
+function flushPositionProfiles() {
+  profilesPositionTimer = null;
+  const payloads = pendingPositionProfilePayloads;
+  pendingPositionProfilePayloads = [];
   for (const p of payloads) {
     profilesPayloadSubs.forEach((cb) => cb(p));
   }
   if (profilesLegacySubs.size > 0) profilesLegacySubs.forEach((cb) => cb());
 }
 
+/**
+ * Avalia se o evento é crítico (ex: novo card, exclusão, troca de etapa/setor, aprovação).
+ * Eventos críticos são entregues em 0ms (tempo real puro).
+ */
+function isCriticalOrderPayload(payload: OrderPayload): boolean {
+  const eventType = payload.eventType;
+  if (eventType === "INSERT" || eventType === "DELETE") return true;
+
+  const newRow = payload.new as Record<string, any> | undefined;
+  const oldRow = payload.old as Record<string, any> | undefined;
+
+  if (!newRow || !oldRow) return true;
+
+  // Mudança de status ou setor ou arquivamento ou prioridade ou responsável
+  if (newRow.status !== oldRow.status) return true;
+  if (newRow.setor !== oldRow.setor) return true;
+  if (newRow.setor_status !== oldRow.setor_status) return true;
+  if (newRow.arquivado !== oldRow.arquivado) return true;
+  if (newRow.prioridade !== oldRow.prioridade) return true;
+  if (newRow.responsavel_id !== oldRow.responsavel_id) return true;
+
+  return false;
+}
+
+function dispatchOrderPayload(payload: OrderPayload) {
+  if (isCriticalOrderPayload(payload)) {
+    // Despacho imediato (0ms delay)
+    ordersPayloadSubs.forEach((cb) => cb(payload));
+    if (ordersLegacySubs.size > 0) ordersLegacySubs.forEach((cb) => cb());
+  } else {
+    // É apenas ajuste de posição de arraste: agrupa com debounce de 250ms
+    pendingPositionOrderPayloads.push(payload);
+    if (ordersPositionTimer) clearTimeout(ordersPositionTimer);
+    ordersPositionTimer = setTimeout(flushPositionOrders, POSITION_DEBOUNCE_MS);
+  }
+}
+
 function ensureOrdersChannel() {
   if (ordersChannel) return;
+
   ordersChannel = supabase
     .channel("global-orders-realtime")
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "orders" },
       (payload) => {
-        pendingOrderPayloads.push(payload as OrderPayload);
-        if (ordersTimer) clearTimeout(ordersTimer);
-        ordersTimer = setTimeout(flushOrders, DEBOUNCE_MS);
+        dispatchOrderPayload(payload as OrderPayload);
       }
     )
-    .subscribe();
+    .subscribe((status, err) => {
+      if (err) {
+        console.error("[RealtimeManager] Erro no canal orders:", err);
+      }
+      if (status === "SUBSCRIBED") {
+        setConnectionState("ONLINE");
+      } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+        setConnectionState("RECONNECTING");
+      } else if (status === "CLOSED") {
+        setConnectionState("OFFLINE");
+      }
+    });
 }
 
 function ensureProfilesChannel() {
   if (profilesChannel) return;
+
   profilesChannel = supabase
     .channel("global-profiles-realtime")
     .on(
       "postgres_changes",
       { event: "*", schema: "public", table: "profiles" },
       (payload) => {
-        pendingProfilePayloads.push(payload as OrderPayload);
-        if (profilesTimer) clearTimeout(profilesTimer);
-        profilesTimer = setTimeout(flushProfiles, DEBOUNCE_MS);
+        profilesPayloadSubs.forEach((cb) => cb(payload as OrderPayload));
+        if (profilesLegacySubs.size > 0) profilesLegacySubs.forEach((cb) => cb());
       }
     )
     .subscribe();
 }
 
-// === Nova API: subscribe com payload (merge incremental) ===
+// === Assinatura do Estado da Conexão ===
+export function getRealtimeConnectionState(): RealtimeConnectionState {
+  return currentConnectionState;
+}
+
+export function subscribeRealtimeConnection(cb: ConnectionStateCallback): () => void {
+  connectionStateSubs.add(cb);
+  cb(currentConnectionState);
+  return () => {
+    connectionStateSubs.delete(cb);
+  };
+}
+
+export function subscribeReconcile(cb: ReconcileCallback): () => void {
+  reconcileSubs.add(cb);
+  return () => {
+    reconcileSubs.delete(cb);
+  };
+}
+
+// === Subscrições de Dados Incrementais ===
 export function subscribeOrdersIncremental(cb: PayloadCallback): () => void {
   ordersPayloadSubs.add(cb);
   ensureOrdersChannel();
@@ -111,8 +221,8 @@ export function subscribeProfilesIncremental(cb: PayloadCallback): () => void {
   };
 }
 
-// === API legada (refetch completo) — mantida por compatibilidade ===
-export function subscribeOrders(cb: Callback): () => void {
+// === Subscrições Legadas ===
+export function subscribeOrders(cb: ReconcileCallback): () => void {
   ordersLegacySubs.add(cb);
   ensureOrdersChannel();
   return () => {
@@ -121,7 +231,7 @@ export function subscribeOrders(cb: Callback): () => void {
   };
 }
 
-export function subscribeProfiles(cb: Callback): () => void {
+export function subscribeProfiles(cb: ReconcileCallback): () => void {
   profilesLegacySubs.add(cb);
   ensureProfilesChannel();
   return () => {
@@ -134,11 +244,11 @@ function maybeTeardownOrders() {
   if (ordersPayloadSubs.size === 0 && ordersLegacySubs.size === 0 && ordersChannel) {
     supabase.removeChannel(ordersChannel);
     ordersChannel = null;
-    if (ordersTimer) {
-      clearTimeout(ordersTimer);
-      ordersTimer = null;
+    if (ordersPositionTimer) {
+      clearTimeout(ordersPositionTimer);
+      ordersPositionTimer = null;
     }
-    pendingOrderPayloads = [];
+    pendingPositionOrderPayloads = [];
   }
 }
 
@@ -146,10 +256,10 @@ function maybeTeardownProfiles() {
   if (profilesPayloadSubs.size === 0 && profilesLegacySubs.size === 0 && profilesChannel) {
     supabase.removeChannel(profilesChannel);
     profilesChannel = null;
-    if (profilesTimer) {
-      clearTimeout(profilesTimer);
-      profilesTimer = null;
+    if (profilesPositionTimer) {
+      clearTimeout(profilesPositionTimer);
+      profilesPositionTimer = null;
     }
-    pendingProfilePayloads = [];
+    pendingPositionProfilePayloads = [];
   }
 }

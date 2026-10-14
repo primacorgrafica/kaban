@@ -24,6 +24,7 @@ import { CommandPalette } from "./CommandPalette";
 import { AiProductionBottlenecksModal } from "./AiProductionBottlenecksModal";
 import { ChatDialog } from "./chat/ChatDialog";
 import { useChatNotification } from "./chat/GlobalChatNotifier";
+import { RealtimeStatusIndicator } from "./RealtimeStatusIndicator";
 import { Activity, Command, MessageSquare } from "lucide-react";
 import { Order } from "@/types/order";
 
@@ -437,6 +438,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
             );
           })()}
           <div className="flex items-center gap-2 ml-auto order-2">
+            <RealtimeStatusIndicator />
             <Button
               variant="ghost"
               size="sm"
