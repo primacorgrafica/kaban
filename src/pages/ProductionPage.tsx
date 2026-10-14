@@ -19,7 +19,7 @@ const VALID_DEPARTMENTS: Department[] = ["desenvolvimento", "ctp", "digital", "o
 export default function ProductionPage() {
   const { departamento } = useParams<{ departamento: string }>();
   const location = useLocation();
-  const { isAdmin } = useAuth();
+  const { isAdmin, canAccessSector, setorVinculado } = useAuth();
   const permissions = usePermissions();
   const canSendBack = permissions.role === "admin" || permissions.role === "coordenador";
   const readOnly = permissions.isViewOnly;
@@ -99,7 +99,13 @@ export default function ProductionPage() {
     return () => { supabase.removeChannel(channel); };
   }, [isFaturamento, parentIdKey]);
 
-  if (!VALID_DEPARTMENTS.includes(activeDepartment)) {
+  if (!VALID_DEPARTMENTS.includes(activeDepartment) || !canAccessSector(activeDepartment)) {
+    if (setorVinculado === "pre_impressao") {
+      return <Navigate to="/" replace />;
+    }
+    if (setorVinculado) {
+      return <Navigate to={`/producao/${setorVinculado}`} replace />;
+    }
     return <Navigate to="/producao/desenvolvimento" replace />;
   }
 

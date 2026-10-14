@@ -12,8 +12,10 @@ interface AuthContextType {
   role: AppRole | null;
   isAdmin: boolean;
   modulosAcesso: string[];
+  setorVinculado: string | null;
   onlineUserIds: Set<string>;
   hasModule: (mod: string) => boolean;
+  canAccessSector: (sectorId: string) => boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -27,13 +29,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<AppRole | null>(null);
   const [modulosAcesso, setModulosAcesso] = useState<string[]>([]);
+  const [setorVinculado, setSetorVinculado] = useState<string | null>(null);
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
 
 
   const fetchRole = useCallback(async (userId: string) => {
     const [{ data, error }, { data: profile }] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle(),
-      supabase.from("profiles").select("modulos_acesso" as any).eq("user_id", userId).maybeSingle(),
+      supabase.from("profiles").select("modulos_acesso, setor_vinculado" as any).eq("user_id", userId).maybeSingle(),
     ]);
 
     if (error) {
@@ -44,6 +47,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const mods = (profile as any)?.modulos_acesso;
     setModulosAcesso(Array.isArray(mods) ? mods : []);
+    const setor = (profile as any)?.setor_vinculado;
+    setSetorVinculado(typeof setor === "string" && setor.trim() !== "" ? setor.trim() : null);
   }, []);
 
 
@@ -218,6 +223,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .eq("user_id", userId);
     }
     setOnlineUserIds(new Set());
+    setSetorVinculado(null);
+    setModulosAcesso([]);
     await supabase.auth.signOut();
   };
 
@@ -243,6 +250,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return false;
   };
 
+  const canAccessSector = useCallback((sectorId: string) => {
+    // Administrador tem acesso irrestrito
+    if (isAdmin) return true;
+
+    // Se o usuário possui um setor vinculado, o acesso à produção é estritamente restrito a ele
+    if (setorVinculado) {
+      return setorVinculado === sectorId;
+    }
+
+    // Coordenador sem setor fixo pode gerenciar todos os setores
+    if (role === "coordenador") return true;
+
+    // Para usuários operacionais sem setor específico, checa o módulo 'producao'
+    return hasModule("producao");
+  }, [isAdmin, setorVinculado, role, hasModule]);
+
   return (
     <AuthContext.Provider
       value={{
@@ -253,8 +276,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role,
         isAdmin,
         modulosAcesso,
+        setorVinculado,
         onlineUserIds,
         hasModule,
+        canAccessSector,
         signIn,
         signUp,
         signOut,
@@ -279,8 +304,10 @@ export function useAuth() {
       role: null,
       isAdmin: false,
       modulosAcesso: [],
+      setorVinculado: null,
       onlineUserIds: new Set<string>(),
       hasModule: () => false,
+      canAccessSector: () => false,
       signIn: async () => ({ error: new Error("Auth not ready") }),
       signUp: async () => ({ error: new Error("Auth not ready") }),
       signOut: async () => {},

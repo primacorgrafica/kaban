@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import { useOrders } from "@/hooks/useOrders";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useAuth } from "@/hooks/useAuth";
 import { Layout } from "@/components/Layout";
 import { KanbanBoard } from "@/components/KanbanBoard";
 import { ProductionTable } from "@/components/ProductionTable";
-import { useLocation } from "react-router-dom";
+import { useLocation, Navigate } from "react-router-dom";
 import { ArchivedOrders } from "@/components/ArchivedOrders";
 import { Dashboard } from "@/components/Dashboard";
 import { KanbanFiltersBar, KanbanFilters } from "@/components/KanbanFiltersBar";
@@ -36,9 +37,16 @@ const Index = () => {
     getProfileName,
   } = useOrders();
 
+  const { canAccessSector, setorVinculado } = useAuth();
   const location = useLocation();
   const isDashboard = location.pathname === "/dashboard";
   const isArchived = location.pathname === "/arquivados";
+
+  // Se o usuário tem um setor vinculado que não é pré-impressão e tenta acessar a raiz "/",
+  // redireciona para a página do seu respectivo setor
+  if (location.pathname === "/" && !canAccessSector("pre_impressao") && setorVinculado) {
+    return <Navigate to={`/producao/${setorVinculado}`} replace />;
+  }
 
   const [viewMode, setViewMode] = useState<"kanban" | "table">(() => {
     return (localStorage.getItem("primacor_view_mode") as "kanban" | "table") || "kanban";

@@ -66,6 +66,17 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function ProducaoRedirect() {
+  const { setorVinculado } = useAuth();
+  if (setorVinculado === "pre_impressao") {
+    return <Navigate to="/" replace />;
+  }
+  if (setorVinculado) {
+    return <Navigate to={`/producao/${setorVinculado}`} replace />;
+  }
+  return <Navigate to="/producao/desenvolvimento" replace />;
+}
+
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false} storageKey="primacor-theme">
     <QueryClientProvider client={queryClient}>
@@ -84,7 +95,7 @@ const App = () => (
                   <Route path="/dashboard" element={<ProtectedRoute module="dashboard"><DashboardPage /></ProtectedRoute>} />
                   <Route path="/arquivados" element={<ProtectedRoute module="trabalhos_concluidos"><Index /></ProtectedRoute>} />
                   <Route path="/producao/:departamento" element={<ProtectedRoute module="producao"><ProductionPage /></ProtectedRoute>} />
-                  <Route path="/producao" element={<Navigate to="/producao/desenvolvimento" replace />} />
+                  <Route path="/producao" element={<ProtectedRoute module="producao"><ProducaoRedirect /></ProtectedRoute>} />
                   <Route path="/expedicao" element={<ProtectedRoute module="expedicao"><ExpedicaoPage /></ProtectedRoute>} />
                   <Route path="/usuarios" element={<ProtectedRoute module="cadastro"><UserManagementPage /></ProtectedRoute>} />
                   <Route path="/equipamentos" element={<ProtectedRoute module="cadastro"><EquipamentosPage /></ProtectedRoute>} />

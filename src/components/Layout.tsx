@@ -52,7 +52,7 @@ let cachedDeptCounts: Record<string, number> | null = null;
 
 export function Layout({ children, searchQuery, onSearchChange, onAddOrder, activeCount, archivedCount, sectorName, countsLoading = false, permissions }: LayoutProps) {
   const location = useLocation();
-  const { signOut, user, isAdmin, authReady, hasModule } = useAuth();
+  const { signOut, user, isAdmin, authReady, hasModule, canAccessSector, setorVinculado } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { unreadChatCount } = useChatNotification();
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -174,14 +174,14 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
   }, []);
 
   const allProducaoItems = [
-    { to: "/producao/desenvolvimento", label: "Embalagens", icon: Lightbulb, count: deptCountsLoaded ? (deptCounts["desenvolvimento"] ?? 0) : undefined },
-    { to: "/", label: "Pré-Impressão", icon: Monitor, count: deptCountsLoaded ? (deptCounts["pre_impressao"] ?? 0) : undefined },
-    { to: "/producao/ctp", label: "CTP", icon: Square, count: deptCountsLoaded ? (deptCounts["ctp"] ?? 0) : undefined },
-    { to: "/producao/digital", label: "Digital", icon: PrinterCheck, count: deptCountsLoaded ? (deptCounts["digital"] ?? 0) : undefined },
-    { to: "/producao/offset", label: "Off-Set", icon: OffsetIcon as any, count: deptCountsLoaded ? (deptCounts["offset"] ?? 0) : undefined },
-    { to: "/producao/acabamento", label: "Acabamento", icon: Layers, count: deptCountsLoaded ? (deptCounts["acabamento"] ?? 0) : undefined },
-    { to: "/producao/terceiros", label: "Terceiros", icon: Handshake, count: deptCountsLoaded ? (deptCounts["terceiros"] ?? 0) : undefined },
-    { to: "/producao/qualidade", label: "Qualidade", icon: Search, count: deptCountsLoaded ? (deptCounts["qualidade"] ?? 0) : undefined },
+    { to: "/producao/desenvolvimento", label: "Embalagens", icon: Lightbulb, count: deptCountsLoaded ? (deptCounts["desenvolvimento"] ?? 0) : undefined, dept: "desenvolvimento" },
+    { to: "/", label: "Pré-Impressão", icon: Monitor, count: deptCountsLoaded ? (deptCounts["pre_impressao"] ?? 0) : undefined, dept: "pre_impressao" },
+    { to: "/producao/ctp", label: "CTP", icon: Square, count: deptCountsLoaded ? (deptCounts["ctp"] ?? 0) : undefined, dept: "ctp" },
+    { to: "/producao/digital", label: "Digital", icon: PrinterCheck, count: deptCountsLoaded ? (deptCounts["digital"] ?? 0) : undefined, dept: "digital" },
+    { to: "/producao/offset", label: "Off-Set", icon: OffsetIcon as any, count: deptCountsLoaded ? (deptCounts["offset"] ?? 0) : undefined, dept: "offset" },
+    { to: "/producao/acabamento", label: "Acabamento", icon: Layers, count: deptCountsLoaded ? (deptCounts["acabamento"] ?? 0) : undefined, dept: "acabamento" },
+    { to: "/producao/terceiros", label: "Terceiros", icon: Handshake, count: deptCountsLoaded ? (deptCounts["terceiros"] ?? 0) : undefined, dept: "terceiros" },
+    { to: "/producao/qualidade", label: "Qualidade", icon: Search, count: deptCountsLoaded ? (deptCounts["qualidade"] ?? 0) : undefined, dept: "qualidade" },
   ];
 
   const allExpedicaoItems = [
@@ -189,9 +189,13 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
     { to: "/entregas", label: "Gestão de Entregas", icon: Package },
   ];
 
-  const producaoItems = hasModule("producao") ? allProducaoItems : [];
+  // Filtra itens de produção estritamente pelo setor vinculado ou permissão do usuário
+  const producaoItems = hasModule("producao")
+    ? allProducaoItems.filter(item => canAccessSector(item.dept))
+    : [];
   const expedicaoItems = hasModule("expedicao") ? allExpedicaoItems : [];
 
+  // O CHAT é universal e aberto a todos os usuários autenticados da Primacor
   const topItems = [
     { to: "/chat", label: "Chat Privado", icon: MessageSquare, count: unreadChatCount > 0 ? unreadChatCount : undefined },
     ...(permissions.canAccessComercial && hasModule("comercial") ? [{ to: "/comercial", label: "Comercial", icon: Briefcase }] : []),
@@ -240,8 +244,12 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
   const isProducaoActive = producaoItems.some(i => location.pathname === i.to);
   const isExpedicaoActive = expedicaoItems.some(i => location.pathname === i.to);
 
-  // Auto-open Produção group when navigating to a production page
-  // Removed auto-open for Produção — it stays collapsed until clicked
+  // Abre grupo de Produção automaticamente se for rota ativa ou se usuário tem setor vinculado único
+  useEffect(() => {
+    if (isProducaoActive || !!setorVinculado) {
+      setProducaoOpen(true);
+    }
+  }, [isProducaoActive, setorVinculado]);
 
   useEffect(() => {
     if (isCadastrosActive) setCadastrosOpen(true);

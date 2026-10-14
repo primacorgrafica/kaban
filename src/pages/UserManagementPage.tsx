@@ -59,6 +59,17 @@ const ACCESS_MODULES: { id: string; label: string }[] = [
   { id: "cadastro", label: "Cadastro" },
 ];
 
+const SECTOR_OPTIONS = [
+  { id: "pre_impressao", label: "Pré-Impressão" },
+  { id: "desenvolvimento", label: "Embalagens" },
+  { id: "ctp", label: "CTP" },
+  { id: "digital", label: "Digital" },
+  { id: "offset", label: "Off-Set" },
+  { id: "acabamento", label: "Acabamento" },
+  { id: "terceiros", label: "Terceiros" },
+  { id: "qualidade", label: "Qualidade" },
+];
+
 interface PresenceInfo {
   last_seen: string | null;
   logged_in_at: string | null;
@@ -626,7 +637,7 @@ export default function UserManagementPage() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        {(u.role === "operador" || u.role === "coordenador") ? (
+                        {(u.role === "operador" || u.role === "coordenador" || u.role === "impressor") ? (
                           <Select
                             value={u.setor_vinculado || "nenhum"}
                             onValueChange={(v) => updateSetor(u.user_id, v === "nenhum" ? null : v)}
@@ -635,9 +646,9 @@ export default function UserManagementPage() {
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="nenhum">Nenhum</SelectItem>
-                              {DEPARTMENTS.map((d) => (
-                                <SelectItem key={d.id} value={d.id}>{d.label}</SelectItem>
+                              <SelectItem value="nenhum">Nenhum (Todos)</SelectItem>
+                              {SECTOR_OPTIONS.map((s) => (
+                                <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
