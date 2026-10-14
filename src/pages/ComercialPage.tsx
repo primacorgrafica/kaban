@@ -290,7 +290,7 @@ export default function ComercialPage() {
       sectorName="Comercial"
       permissions={permissions}
     >
-      <div className="flex flex-col h-full overflow-hidden p-4 space-y-4">
+      <div className="flex flex-col min-h-full space-y-4">
         {/* Navegação por Abas do Módulo Comercial */}
         <div className="flex items-center justify-between border-b border-border/60 pb-2.5 shrink-0 flex-wrap gap-2">
           <Tabs

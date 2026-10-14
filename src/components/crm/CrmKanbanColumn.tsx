@@ -35,9 +35,9 @@ export function CrmKanbanColumn({
   }, [opportunities]);
 
   return (
-    <div className="flex flex-col flex-shrink-0 w-80 max-h-full rounded-2xl border border-border/80 bg-muted/20 backdrop-blur-md shadow-xs overflow-hidden">
+    <div className="flex-shrink-0 w-[85vw] sm:w-80 flex flex-col rounded-2xl bg-slate-100/75 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800/80 shadow-xs dark:shadow-lg min-h-full h-fit">
       {/* Coluna Header */}
-      <div className="p-3.5 border-b border-border/60 bg-muted/40">
+      <div className="p-3.5 border-b border-border/60 bg-muted/40 rounded-t-2xl">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <span
@@ -61,7 +61,7 @@ export function CrmKanbanColumn({
                 variant="ghost"
                 size="icon"
                 onClick={() => onAddOpportunityAtStage(stage.id)}
-                className="h-6 w-6 text-muted-foreground hover:text-foreground rounded-lg"
+                className="h-6 w-6 text-muted-foreground hover:text-foreground rounded-lg cursor-pointer"
                 title={`Adicionar oportunidade em ${stage.nome}`}
               >
                 <Plus className="h-4 w-4" />
@@ -83,11 +83,12 @@ export function CrmKanbanColumn({
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`flex-1 p-2.5 space-y-2.5 overflow-y-auto min-h-[160px] transition-colors duration-150 ${
+            className={`flex-1 space-y-2.5 p-2.5 pb-6 transition-colors duration-200 ${
               snapshot.isDraggingOver
-                ? "bg-primary/5 ring-1 ring-primary/30 rounded-b-2xl"
-                : "bg-transparent"
+                ? "bg-cyan-500/5 ring-1 ring-cyan-500/30 rounded-b-2xl"
+                : ""
             }`}
+            style={{ minHeight: "140px" }}
           >
             {opportunities.map((opp, idx) => (
               <CrmOpportunityCard

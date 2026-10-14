@@ -54,6 +54,10 @@ export function CrmKanbanBoard({
   const containerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
+  const [isDndActive, setIsDndActive] = useState(false);
+  const mouseXRef = useRef(0);
+  const mouseYRef = useRef(0);
+  const rafRef = useRef<number | null>(null);
 
   // Filtros locais da visualização
   const [search, setSearch] = useState("");
@@ -154,21 +158,7 @@ export function CrmKanbanBoard({
     };
   }, [opportunities]);
 
-  // Manipulador de drag and drop
-  const handleDragEnd = (result: DropResult) => {
-    const { destination, source, draggableId } = result;
-    if (!destination) return;
-    if (
-      destination.droppableId === source.droppableId &&
-      destination.index === source.index
-    ) {
-      return;
-    }
-
-    onMoveStage(draggableId, destination.droppableId, destination.index);
-  };
-
-  // Scroll horizontal suave
+  // Indicadores de scroll horizontal
   const updateScrollIndicators = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
@@ -188,12 +178,131 @@ export function CrmKanbanBoard({
     };
   }, [updateScrollIndicators, stages]);
 
-  const scrollLeft = () => {
-    containerRef.current?.scrollBy({ left: -340, behavior: "smooth" });
-  };
+  const scrollTo = useCallback((direction: "left" | "right") => {
+    const el = containerRef.current;
+    if (!el) return;
+    const amount = direction === "left" ? -340 : 340;
+    el.scrollBy({ left: amount, behavior: "smooth" });
+  }, []);
 
-  const scrollRight = () => {
-    containerRef.current?.scrollBy({ left: 340, behavior: "smooth" });
+  // Rastreamento global do mouse durante drag para auto-scroll (mesmo esquema da pré-impressão)
+  useEffect(() => {
+    if (!isDndActive) return;
+
+    const handler = (e: MouseEvent) => {
+      mouseXRef.current = e.clientX;
+      mouseYRef.current = e.clientY;
+    };
+    const touchHandler = (e: TouchEvent) => {
+      if (e.touches[0]) {
+        mouseXRef.current = e.touches[0].clientX;
+        mouseYRef.current = e.touches[0].clientY;
+      }
+    };
+    document.addEventListener("mousemove", handler, { capture: true, passive: true });
+    document.addEventListener("pointermove", handler as EventListener, { capture: true, passive: true });
+    document.addEventListener("touchmove", touchHandler, { capture: true, passive: true });
+    return () => {
+      document.removeEventListener("mousemove", handler, { capture: true } as EventListenerOptions);
+      document.removeEventListener("pointermove", handler as EventListener, { capture: true } as EventListenerOptions);
+      document.removeEventListener("touchmove", touchHandler, { capture: true } as EventListenerOptions);
+    };
+  }, [isDndActive]);
+
+  // RAF-based auto-scroll durante o drag
+  useEffect(() => {
+    if (!isDndActive) {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+      return;
+    }
+
+    const EDGE_ZONE = 200;
+    const MAX_SPEED = 12;
+
+    const tick = () => {
+      const el = containerRef.current;
+      if (!el) {
+        rafRef.current = requestAnimationFrame(tick);
+        return;
+      }
+
+      const rect = el.getBoundingClientRect();
+      const mouseX = mouseXRef.current;
+      const mouseY = mouseYRef.current;
+
+      // Auto-scroll horizontal
+      if (mouseY >= rect.top && mouseY <= rect.bottom) {
+        const relX = mouseX - rect.left;
+        const width = rect.width;
+
+        if (relX < EDGE_ZONE && relX >= -50) {
+          const ratio = Math.max(0, Math.min(1, 1 - relX / EDGE_ZONE));
+          const speed = Math.ceil(MAX_SPEED * Math.pow(ratio, 1.5));
+          if (el.scrollLeft > 0) {
+            el.scrollLeft -= speed;
+          }
+        } else if (relX > width - EDGE_ZONE && relX <= width + 50) {
+          const ratio = Math.max(0, Math.min(1, 1 - (width - relX) / EDGE_ZONE));
+          const speed = Math.ceil(MAX_SPEED * Math.pow(ratio, 1.5));
+          if (el.scrollLeft < el.scrollWidth - el.clientWidth) {
+            el.scrollLeft += speed;
+          }
+        }
+      }
+
+      // Auto-scroll vertical
+      if (mouseX >= rect.left && mouseX <= rect.right) {
+        const relY = mouseY - rect.top;
+        const height = rect.height;
+
+        if (relY < EDGE_ZONE && relY >= -50) {
+          const ratio = Math.max(0, Math.min(1, 1 - relY / EDGE_ZONE));
+          const speed = Math.ceil(MAX_SPEED * Math.pow(ratio, 1.5));
+          if (el.scrollTop > 0) {
+            el.scrollTop -= speed;
+          }
+        } else if (relY > height - EDGE_ZONE && relY <= height + 50) {
+          const ratio = Math.max(0, Math.min(1, 1 - (height - relY) / EDGE_ZONE));
+          const speed = Math.ceil(MAX_SPEED * Math.pow(ratio, 1.5));
+          if (el.scrollTop < el.scrollHeight - el.clientHeight) {
+            el.scrollTop += speed;
+          }
+        }
+      }
+
+      rafRef.current = requestAnimationFrame(tick);
+    };
+
+    rafRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      if (rafRef.current) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, [isDndActive]);
+
+  const handleDragStart = useCallback(() => {
+    setIsDndActive(true);
+  }, []);
+
+  // Manipulador de drag and drop
+  const handleDragEnd = (result: DropResult) => {
+    setIsDndActive(false);
+    const { destination, source, draggableId } = result;
+    if (!destination) return;
+    if (
+      destination.droppableId === source.droppableId &&
+      destination.index === source.index
+    ) {
+      return;
+    }
+
+    onMoveStage(draggableId, destination.droppableId, destination.index);
   };
 
   const hasActiveFilters =
@@ -240,7 +349,7 @@ export function CrmKanbanBoard({
               <button
                 type="button"
                 onClick={() => setOnlyAlerts(onlyAlerts === "atrasados" ? "todos" : "atrasados")}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all ${
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
                   onlyAlerts === "atrasados"
                     ? "bg-rose-500 text-white border-rose-600 shadow-xs"
                     : "bg-rose-500/15 text-rose-500 dark:text-rose-400 border-rose-500/30 hover:bg-rose-500/25"
@@ -255,7 +364,7 @@ export function CrmKanbanBoard({
               <button
                 type="button"
                 onClick={() => setOnlyAlerts(onlyAlerts === "hoje" ? "todos" : "hoje")}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-medium transition-all ${
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-medium transition-all cursor-pointer ${
                   onlyAlerts === "hoje"
                     ? "bg-amber-500 text-white border-amber-600 shadow-xs"
                     : "bg-amber-500/15 text-amber-500 dark:text-amber-400 border-amber-500/30 hover:bg-amber-500/25"
@@ -271,7 +380,7 @@ export function CrmKanbanBoard({
         {/* Botão Principal: Nova Oportunidade */}
         <Button
           onClick={() => onNewOpportunity()}
-          className="gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium shadow-md shadow-cyan-500/20 border border-cyan-400/30 rounded-xl"
+          className="gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium shadow-md shadow-cyan-500/20 border border-cyan-400/30 rounded-xl cursor-pointer"
         >
           <Plus className="h-4 w-4" />
           <span>Nova Oportunidade</span>
@@ -291,7 +400,7 @@ export function CrmKanbanBoard({
           {search && (
             <button
               onClick={() => setSearch("")}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
             >
               <X className="h-3 w-3" />
             </button>
@@ -333,7 +442,7 @@ export function CrmKanbanBoard({
           variant={showArchived ? "secondary" : "outline"}
           size="sm"
           onClick={() => setShowArchived((prev) => !prev)}
-          className={`h-9 text-xs rounded-xl gap-1.5 transition-colors ${
+          className={`h-9 text-xs rounded-xl gap-1.5 transition-colors cursor-pointer ${
             showArchived
               ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/40 font-semibold"
               : "border-border text-muted-foreground hover:text-foreground"
@@ -356,7 +465,7 @@ export function CrmKanbanBoard({
             variant="ghost"
             size="sm"
             onClick={clearFilters}
-            className="h-9 text-xs text-muted-foreground hover:text-foreground"
+            className="h-9 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
           >
             Limpar Filtros
           </Button>
@@ -367,30 +476,69 @@ export function CrmKanbanBoard({
           <Button
             variant="outline"
             size="icon"
-            onClick={scrollLeft}
+            onClick={() => scrollTo("left")}
             disabled={!canScrollLeft}
-            className="h-8 w-8 rounded-lg border-border bg-card text-foreground disabled:opacity-30"
+            className="h-8 w-8 rounded-lg border-border bg-card text-foreground disabled:opacity-30 cursor-pointer"
+            title="Rolar para esquerda"
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
           <Button
             variant="outline"
             size="icon"
-            onClick={scrollRight}
+            onClick={() => scrollTo("right")}
             disabled={!canScrollRight}
-            className="h-8 w-8 rounded-lg border-border bg-card text-foreground disabled:opacity-30"
+            className="h-8 w-8 rounded-lg border-border bg-card text-foreground disabled:opacity-30 cursor-pointer"
+            title="Rolar para direita"
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      {/* 3. Área das Colunas do Funil Kanban com DragDropContext */}
-      <div className="flex-1 min-h-0 relative">
-        <DragDropContext onDragEnd={handleDragEnd}>
+      {/* 3. Área das Colunas do Funil Kanban com DragDropContext e Auto-scroll (Esquema da Pré-Impressão) */}
+      <DragDropContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        <div className="relative flex-1 min-h-0">
+          {/* Fade esquerdo + seta flutuante */}
+          <div
+            className={`absolute left-0 top-0 bottom-4 w-8 z-10 pointer-events-none transition-opacity duration-300 ${
+              canScrollLeft ? "opacity-100" : "opacity-0"
+            }`}
+            style={{ background: "linear-gradient(to right, hsl(var(--background)), transparent)" }}
+          />
+          {canScrollLeft && (
+            <button
+              type="button"
+              onClick={() => scrollTo("left")}
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-card border border-border shadow-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+              title="Rolar para esquerda"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* Fade direito + seta flutuante */}
+          <div
+            className={`absolute right-0 top-0 bottom-4 w-8 z-10 pointer-events-none transition-opacity duration-300 ${
+              canScrollRight ? "opacity-100" : "opacity-0"
+            }`}
+            style={{ background: "linear-gradient(to left, hsl(var(--background)), transparent)" }}
+          />
+          {canScrollRight && (
+            <button
+              type="button"
+              onClick={() => scrollTo("right")}
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-card border border-border shadow-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
+              title="Rolar para direita"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          )}
+
           <div
             ref={containerRef}
-            className="flex items-start gap-3.5 overflow-x-auto h-full pb-3 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent select-none"
+            className="flex gap-7 min-h-full items-stretch overflow-x-auto pb-8 px-1 scrollbar-hide select-none"
+            style={{ WebkitOverflowScrolling: "touch" }}
           >
             {stages.map((stage) => (
               <CrmKanbanColumn
@@ -407,8 +555,8 @@ export function CrmKanbanBoard({
               />
             ))}
           </div>
-        </DragDropContext>
-      </div>
+        </div>
+      </DragDropContext>
     </div>
   );
 }
