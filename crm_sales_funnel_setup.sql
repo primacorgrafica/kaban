@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS public.crm_oportunidades (
   data_ultimo_contato TIMESTAMP WITH TIME ZONE,
   anexos JSONB DEFAULT '[]'::jsonb,
   tags TEXT[] DEFAULT '{}'::text[],
+  arquivado BOOLEAN NOT NULL DEFAULT false,
   convertida_os_id UUID REFERENCES public.orders(id) ON DELETE SET NULL,
   convertida_em TIMESTAMP WITH TIME ZONE,
   criado_por UUID REFERENCES auth.users(id) ON DELETE SET NULL,
@@ -73,6 +74,9 @@ CREATE TABLE IF NOT EXISTS public.crm_oportunidades (
   updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
   CONSTRAINT uq_crm_oportunidade_os UNIQUE (convertida_os_id)
 );
+
+-- Suporte a migração segura da coluna arquivado caso a tabela já exista
+ALTER TABLE public.crm_oportunidades ADD COLUMN IF NOT EXISTS arquivado BOOLEAN NOT NULL DEFAULT false;
 
 -- 4. TABELA DE PROPOSTAS COMERCIAIS & ORÇAMENTOS (COM VERSIONAMENTO E HISTÓRICO)
 CREATE TABLE IF NOT EXISTS public.crm_propostas (

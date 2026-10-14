@@ -14,6 +14,8 @@ interface CrmKanbanColumnProps {
   onMarkWon?: (id: string) => void;
   onMarkLost?: (opportunity: CrmOpportunity) => void;
   onScheduleActivity?: (opportunity: CrmOpportunity) => void;
+  onArchive?: (id: string, arquivado: boolean) => void;
+  onDelete?: (opportunity: CrmOpportunity) => void;
 }
 
 export function CrmKanbanColumn({
@@ -24,6 +26,8 @@ export function CrmKanbanColumn({
   onMarkWon,
   onMarkLost,
   onScheduleActivity,
+  onArchive,
+  onDelete,
 }: CrmKanbanColumnProps) {
   // Total financeiro da coluna
   const totalValue = useMemo(() => {
@@ -94,6 +98,8 @@ export function CrmKanbanColumn({
                 onMarkWon={onMarkWon}
                 onMarkLost={onMarkLost}
                 onScheduleActivity={onScheduleActivity}
+                onArchive={onArchive}
+                onDelete={onDelete}
               />
             ))}
             {provided.placeholder}

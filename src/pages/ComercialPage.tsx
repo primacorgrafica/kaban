@@ -60,6 +60,8 @@ export default function ComercialPage() {
     moveOpportunityStage,
     markAsWon,
     markAsLost,
+    deleteOpportunity,
+    archiveOpportunity,
     searchKnownClients,
   } = useCrm();
 
@@ -359,6 +361,8 @@ export default function ComercialPage() {
                 onNewOpportunity={handleNewOpportunity}
                 onMarkWon={markAsWon}
                 onMarkLost={(opp) => markAsLost(opp.id, "Perda rápida")}
+                onArchiveOpportunity={archiveOpportunity}
+                onDeleteOpportunity={(opp) => deleteOpportunity(opp.id)}
               />
             </div>
           </div>
@@ -577,6 +581,8 @@ export default function ComercialPage() {
         onConvertToOrder={handleOpenConvertToOrder}
         onMarkWon={markAsWon}
         onMarkLost={markAsLost}
+        onArchive={archiveOpportunity}
+        onDelete={deleteOpportunity}
       />
 
       {/* Modal de Nova Oportunidade */}

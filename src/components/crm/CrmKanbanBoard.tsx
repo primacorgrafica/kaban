@@ -23,6 +23,7 @@ import {
   TrendingUp,
   SlidersHorizontal,
   X,
+  Archive,
 } from "lucide-react";
 
 interface CrmKanbanBoardProps {
@@ -34,6 +35,8 @@ interface CrmKanbanBoardProps {
   onMarkWon?: (id: string) => void;
   onMarkLost?: (opportunity: CrmOpportunity) => void;
   onScheduleActivity?: (opportunity: CrmOpportunity) => void;
+  onArchiveOpportunity?: (id: string, arquivado: boolean) => void;
+  onDeleteOpportunity?: (opportunity: CrmOpportunity) => void;
 }
 
 export function CrmKanbanBoard({
@@ -45,6 +48,8 @@ export function CrmKanbanBoard({
   onMarkWon,
   onMarkLost,
   onScheduleActivity,
+  onArchiveOpportunity,
+  onDeleteOpportunity,
 }: CrmKanbanBoardProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -55,6 +60,12 @@ export function CrmKanbanBoard({
   const [selectedVendedor, setSelectedVendedor] = useState<string>("todos");
   const [selectedPrioridade, setSelectedPrioridade] = useState<string>("todas");
   const [onlyAlerts, setOnlyAlerts] = useState<"todos" | "atrasados" | "hoje">("todos");
+  const [showArchived, setShowArchived] = useState<boolean>(false);
+
+  // Contagem de vendas concluídas/arquivadas
+  const archivedCount = useMemo(() => {
+    return opportunities.filter((o) => Boolean(o.arquivado)).length;
+  }, [opportunities]);
 
   // Lista de vendedores únicos presentes nas oportunidades
   const vendedoresList = useMemo(() => {
@@ -68,6 +79,12 @@ export function CrmKanbanBoard({
   // Aplicar filtros
   const filteredOpportunities = useMemo(() => {
     return opportunities.filter((o) => {
+      // 0. Vendas Concluídas / Arquivadas (ocultas por padrão)
+      const isArchived = Boolean(o.arquivado);
+      if (!showArchived && isArchived) {
+        return false;
+      }
+
       // 1. Busca por texto
       if (search) {
         const q = search.toLowerCase();
@@ -97,7 +114,7 @@ export function CrmKanbanBoard({
 
       return true;
     });
-  }, [opportunities, search, selectedVendedor, selectedPrioridade, onlyAlerts]);
+  }, [opportunities, search, selectedVendedor, selectedPrioridade, onlyAlerts, showArchived]);
 
   // Agrupamento por etapa
   const opportunitiesByStage = useMemo(() => {
@@ -310,6 +327,30 @@ export function CrmKanbanBoard({
           </SelectContent>
         </Select>
 
+        {/* Toggle para Vendas Concluídas */}
+        <Button
+          type="button"
+          variant={showArchived ? "secondary" : "outline"}
+          size="sm"
+          onClick={() => setShowArchived((prev) => !prev)}
+          className={`h-9 text-xs rounded-xl gap-1.5 transition-colors ${
+            showArchived
+              ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/40 font-semibold"
+              : "border-border text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Archive className="h-3.5 w-3.5" />
+          <span>{showArchived ? "Ocultar Concluídas" : "Exibir Concluídas"}</span>
+          {archivedCount > 0 && (
+            <Badge
+              variant="secondary"
+              className="ml-0.5 px-1.5 py-0 h-4 text-[10px] font-mono-tech bg-muted"
+            >
+              {archivedCount}
+            </Badge>
+          )}
+        </Button>
+
         {hasActiveFilters && (
           <Button
             variant="ghost"
@@ -361,6 +402,8 @@ export function CrmKanbanBoard({
                 onMarkWon={onMarkWon}
                 onMarkLost={onMarkLost}
                 onScheduleActivity={onScheduleActivity}
+                onArchive={onArchiveOpportunity}
+                onDelete={onDeleteOpportunity}
               />
             ))}
           </div>

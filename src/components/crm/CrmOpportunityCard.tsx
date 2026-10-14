@@ -23,6 +23,8 @@ import {
   FileText,
   DollarSign,
   MessageCircle,
+  Archive,
+  Trash2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -43,6 +45,8 @@ interface CrmOpportunityCardProps {
   onMarkWon?: (id: string) => void;
   onMarkLost?: (opportunity: CrmOpportunity) => void;
   onScheduleActivity?: (opportunity: CrmOpportunity) => void;
+  onArchive?: (id: string, arquivado: boolean) => void;
+  onDelete?: (opportunity: CrmOpportunity) => void;
 }
 
 function PortalDrag({
@@ -68,6 +72,8 @@ export function CrmOpportunityCard({
   onMarkWon,
   onMarkLost,
   onScheduleActivity,
+  onArchive,
+  onDelete,
 }: CrmOpportunityCardProps) {
   const isLate = isFollowUpLate(opportunity.proxima_acao_data);
   const isToday = isFollowUpToday(opportunity.proxima_acao_data);
@@ -109,6 +115,15 @@ export function CrmOpportunityCard({
               >
                 {priority.label}
               </Badge>
+              {opportunity.arquivado && (
+                <Badge
+                  variant="outline"
+                  className="text-[10px] px-1.5 py-0 font-medium bg-slate-500/15 text-slate-400 border-slate-500/30 gap-1"
+                >
+                  <Archive className="h-2.5 w-2.5" />
+                  Concluída
+                </Badge>
+              )}
               {opportunity.origem_lead && (
                 <span className="text-[10px] text-muted-foreground/80 truncate hidden sm:inline">
                   • {opportunity.origem_lead}
@@ -126,7 +141,7 @@ export function CrmOpportunityCard({
                   <MoreVertical className="h-3.5 w-3.5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48 bg-popover border-border">
+              <DropdownMenuContent align="end" className="w-52 bg-popover border-border">
                 <DropdownMenuItem
                   onClick={(e) => {
                     e.stopPropagation();
@@ -171,6 +186,37 @@ export function CrmOpportunityCard({
                     <XCircle className="h-4 w-4 mr-2" />
                     Marcar como Perdida
                   </DropdownMenuItem>
+                )}
+
+                {/* Arquivar / Restaurar */}
+                {onArchive && (opportunity.status === "fechada_ganha" || opportunity.convertida_os_id || opportunity.arquivado) && (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onArchive(opportunity.id, !opportunity.arquivado);
+                    }}
+                    className="text-cyan-400 focus:text-cyan-300"
+                  >
+                    <Archive className="h-4 w-4 mr-2" />
+                    {opportunity.arquivado ? "Restaurar ao Funil" : "Arquivar Venda"}
+                  </DropdownMenuItem>
+                )}
+
+                {/* Excluir Card */}
+                {onDelete && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(opportunity);
+                      }}
+                      className="text-rose-500 focus:text-rose-400"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Excluir Oportunidade
+                    </DropdownMenuItem>
+                  </>
                 )}
               </DropdownMenuContent>
             </DropdownMenu>

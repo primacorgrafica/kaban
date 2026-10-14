@@ -101,6 +101,7 @@ export interface CrmOpportunity {
   data_ultimo_contato?: string | null;
   anexos?: Array<{ nome: string; url: string; tamanho?: number; tipo?: string }>;
   tags?: string[];
+  arquivado?: boolean;
   convertida_os_id?: string | null;
   convertida_em?: string | null;
   criado_por?: string | null;

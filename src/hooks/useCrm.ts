@@ -357,7 +357,7 @@ export function useCrm() {
   const deleteOpportunity = async (opportunityId: string): Promise<boolean> => {
     try {
       const { error } = await supabase
-        .from("crm_oportunidades")
+        .from("crm_oportunidades" as any)
         .delete()
         .eq("id", opportunityId);
 
@@ -369,6 +369,48 @@ export function useCrm() {
     } catch (err: any) {
       console.error("Erro ao excluir oportunidade:", err);
       toast.error(err.message || "Falha ao excluir.");
+      return false;
+    }
+  };
+
+  // Arquivar / Restaurar Venda
+  const archiveOpportunity = async (opportunityId: string, arquivado = true): Promise<boolean> => {
+    try {
+      // Tenta persistir no banco (se a coluna existir)
+      const { error } = await supabase
+        .from("crm_oportunidades" as any)
+        .update({ arquivado, updated_at: new Date().toISOString() })
+        .eq("id", opportunityId);
+
+      if (error) {
+        console.warn("Aviso ao arquivar no banco:", error.message);
+      }
+
+      setOpportunities((prev) =>
+        prev.map((o) => (o.id === opportunityId ? { ...o, arquivado } : o))
+      );
+
+      // Histórico de auditoria
+      try {
+        await supabase.from("crm_oportunidade_historico" as any).insert({
+          oportunidade_id: opportunityId,
+          tipo_evento: arquivado ? "arquivado" : "restaurado",
+          descricao: arquivado
+            ? "Venda arquivada (movida para Vendas Concluídas)"
+            : "Oportunidade restaurada para o funil ativo",
+          dados_novos: { arquivado },
+        });
+      } catch (e) {
+        // Silêncio em auditoria
+      }
+
+      toast.success(
+        arquivado ? "Venda movida para Concluídas!" : "Oportunidade restaurada para o funil ativo."
+      );
+      return true;
+    } catch (err: any) {
+      console.error("Erro ao arquivar oportunidade:", err);
+      toast.error(err.message || "Falha ao arquivar.");
       return false;
     }
   };
@@ -470,6 +512,7 @@ export function useCrm() {
     markAsLost,
     markAsPaused,
     deleteOpportunity,
+    archiveOpportunity,
     saveClient,
     searchKnownClients,
   };

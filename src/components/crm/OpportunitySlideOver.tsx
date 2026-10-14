@@ -53,6 +53,8 @@ import {
   Save,
   Send,
   Sparkles,
+  Archive,
+  Trash2,
 } from "lucide-react";
 import { useCrmPropostas } from "@/hooks/useCrmPropostas";
 import { useCrmFollowUps } from "@/hooks/useCrmFollowUps";
@@ -73,6 +75,8 @@ interface OpportunitySlideOverProps {
   onConvertToOrder?: (opportunity: CrmOpportunity, proposal?: CrmProposal | null) => void;
   onMarkWon?: (id: string) => Promise<boolean>;
   onMarkLost?: (id: string, motivo: string, detalhes?: string) => Promise<boolean>;
+  onArchive?: (id: string, arquivado: boolean) => void;
+  onDelete?: (id: string) => Promise<boolean>;
 }
 
 export function OpportunitySlideOver({
@@ -84,11 +88,14 @@ export function OpportunitySlideOver({
   onConvertToOrder,
   onMarkWon,
   onMarkLost,
+  onArchive,
+  onDelete,
 }: OpportunitySlideOverProps) {
   if (!opportunity) return null;
 
   const [activeTab, setActiveTab] = useState("detalhes");
   const [isSaving, setIsSaving] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [vendedores, setVendedores] = useState<{ id: string; nome: string }[]>([]);
 
   // Modais de proposta
@@ -362,6 +369,36 @@ export function OpportunitySlideOver({
                 >
                   <XCircle className="h-3.5 w-3.5" />
                   <span>Perda</span>
+                </Button>
+              )}
+
+              {/* Arquivar / Restaurar Venda Concluída */}
+              {onArchive && (opportunity.status === "fechada_ganha" || opportunity.convertida_os_id || opportunity.arquivado) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onArchive(opportunity.id, !opportunity.arquivado)}
+                  className={`gap-1.5 text-xs rounded-xl ${
+                    opportunity.arquivado
+                      ? "border-cyan-500/40 text-cyan-400 hover:bg-cyan-500/10"
+                      : "border-slate-500/40 text-slate-300 hover:bg-slate-500/10"
+                  }`}
+                >
+                  <Archive className="h-3.5 w-3.5" />
+                  <span>{opportunity.arquivado ? "Restaurar ao Funil" : "Arquivar Venda"}</span>
+                </Button>
+              )}
+
+              {/* Botão Excluir */}
+              {onDelete && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setConfirmDeleteOpen(true)}
+                  className="gap-1.5 text-xs rounded-xl border-rose-500/40 text-rose-500 hover:bg-rose-500/10 ml-auto"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  <span>Excluir</span>
                 </Button>
               )}
             </div>
@@ -994,6 +1031,51 @@ export function OpportunitySlideOver({
           return false;
         }}
       />
+
+      {/* Diálogo de Confirmação de Exclusão */}
+      <Dialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <DialogContent className="max-w-md p-6 bg-card border-border rounded-2xl shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-foreground flex items-center gap-2 text-rose-500">
+              <AlertTriangle className="h-5 w-5" />
+              Excluir Oportunidade?
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground mt-2 leading-relaxed">
+              Deseja realmente excluir <strong>{opportunity.titulo}</strong> ({opportunity.codigo_identificador || `OPT-${opportunity.numero_sequencial}`})?
+              Esta ação removerá permanentemente esta oportunidade comercial e todos os orçamentos e follow-ups associados.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 mt-6">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setConfirmDeleteOpen(false)}
+              className="text-xs rounded-xl border-border"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              size="sm"
+              onClick={async () => {
+                if (onDelete) {
+                  const ok = await onDelete(opportunity.id);
+                  if (ok) {
+                    setConfirmDeleteOpen(false);
+                    onOpenChange(false);
+                  }
+                }
+              }}
+              className="text-xs rounded-xl gap-1.5 bg-rose-600 hover:bg-rose-700"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Confirmar Exclusão
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

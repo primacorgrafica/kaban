@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS public.crm_oportunidades (
   data_ultimo_contato TIMESTAMP WITH TIME ZONE,
   anexos JSONB DEFAULT '[]'::jsonb,
   tags TEXT[] DEFAULT '{}'::text[],
+  arquivado BOOLEAN NOT NULL DEFAULT false,
   convertida_os_id UUID REFERENCES public.orders(id) ON DELETE SET NULL,
   convertida_em TIMESTAMP WITH TIME ZONE,
   criado_por UUID REFERENCES auth.users(id) ON DELETE SET NULL,
