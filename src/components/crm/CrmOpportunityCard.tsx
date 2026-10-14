@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { Draggable } from "@hello-pangea/dnd";
 import {
   CrmOpportunity,
@@ -44,6 +45,22 @@ interface CrmOpportunityCardProps {
   onScheduleActivity?: (opportunity: CrmOpportunity) => void;
 }
 
+function PortalDrag({
+  isDragging,
+  children,
+}: {
+  isDragging: boolean;
+  children: React.ReactNode;
+}) {
+  if (isDragging) {
+    return createPortal(
+      <div className="drag-portal-item">{children}</div>,
+      document.body
+    );
+  }
+  return <>{children}</>;
+}
+
 export function CrmOpportunityCard({
   opportunity,
   index,
@@ -63,19 +80,23 @@ export function CrmOpportunityCard({
   return (
     <Draggable draggableId={opportunity.id} index={index}>
       {(provided, snapshot) => (
-        <div
-          ref={provided.innerRef}
-          {...provided.draggableProps}
-          {...provided.dragHandleProps}
-          onClick={() => onSelect(opportunity)}
-          className={`group relative rounded-xl border p-3.5 shadow-xs transition-all duration-200 cursor-pointer select-none bg-card hover:border-primary/50 hover:shadow-md ${
-            snapshot.isDragging ? "ring-2 ring-primary shadow-2xl scale-[1.02] z-50 bg-card" : ""
-          } ${
-            isLate && opportunity.status === "aberta"
-              ? "border-rose-500/50 dark:border-rose-500/40 bg-rose-500/[0.02]"
-              : "border-border/80"
-          }`}
-        >
+        <PortalDrag isDragging={snapshot.isDragging}>
+          <div
+            ref={provided.innerRef}
+            {...provided.draggableProps}
+            {...provided.dragHandleProps}
+            style={provided.draggableProps.style}
+            onClick={() => onSelect(opportunity)}
+            className={`group relative rounded-xl border p-3.5 shadow-xs transition-all duration-200 cursor-pointer select-none ${
+              snapshot.isDragging
+                ? "!opacity-100 !bg-slate-900 dark:!bg-slate-900 bg-card ring-2 ring-primary shadow-2xl scale-[1.02] z-[9999]"
+                : "bg-card hover:border-primary/50 hover:shadow-md"
+            } ${
+              isLate && opportunity.status === "aberta"
+                ? "border-rose-500/50 dark:border-rose-500/40 bg-rose-500/[0.02]"
+                : "border-border/80"
+            }`}
+          >
           {/* Top Header: Código + Prioridade + Menu */}
           <div className="flex items-center justify-between gap-1.5 mb-2">
             <div className="flex items-center gap-1.5 min-w-0">
@@ -265,7 +286,7 @@ export function CrmOpportunityCard({
               )}
             </div>
           </div>
-        </div>
+        </PortalDrag>
       )}
     </Draggable>
   );
