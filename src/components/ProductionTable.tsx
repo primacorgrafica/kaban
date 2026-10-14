@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Order, OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
-import { Department, DEPARTMENTS } from "@/types/production";
+import { Department, DepartmentConfig, DEPARTMENTS } from "@/types/production";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -58,7 +58,7 @@ interface Permissions {
 interface ProductionTableProps {
   orders: Order[];
   onUpdate: (id: string, data: Partial<Order>) => void;
-  onMove: (id: string, status: OrderStatus, newIndex?: number) => void;
+  onMove: (id: string, status: any, newIndex?: number) => void;
   onArchive: (id: string) => void;
   onDelete: (id: string) => void;
   onDuplicate?: (order: Order) => void;
@@ -67,6 +67,7 @@ interface ProductionTableProps {
   getProfileName: (userId: string | null) => string | null;
   permissions: Permissions;
   departmentContext?: string;
+  department?: DepartmentConfig;
   slowAlertIds?: Set<string>;
 }
 
@@ -85,6 +86,7 @@ export function ProductionTable({
   getProfileName,
   permissions,
   departmentContext,
+  department,
   slowAlertIds,
 }: ProductionTableProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -92,6 +94,19 @@ export function ProductionTable({
   const [slideOverOpen, setSlideOverOpen] = useState(false);
   const [sortField, setSortField] = useState<SortField>("created_at");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+
+  const getStatusConfig = (order: Order) => {
+    if (department) {
+      let sId = (order as any).setor_status || "entrada";
+      if (department.id === "desenvolvimento" && sId === "desenvolvendo") sId = "aguardando_novo_arquivo";
+      if (department.id === "ctp" && (sId === "gravacao" || sId === "imposicao" || sId === "filme_faca_cliche")) sId = "gravando";
+      const found = department.statuses.find(s => s.id === sId);
+      if (found) {
+        return { label: found.label, colorKey: found.colorKey || "andamento" };
+      }
+    }
+    return STATUS_CONFIG[order.status] || { label: order.status, colorKey: "andamento" };
+  };
 
   // Sorting logic
   const handleSort = (field: SortField) => {
@@ -111,7 +126,18 @@ export function ProductionTable({
       } else if (sortField === "cliente") {
         comparison = (a.cliente || "").localeCompare(b.cliente || "");
       } else if (sortField === "status") {
-        comparison = STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status);
+        if (department) {
+          const statusOrderList = department.statuses.map(s => s.id);
+          let sa = (a as any).setor_status || "entrada";
+          let sb = (b as any).setor_status || "entrada";
+          if (department.id === "desenvolvimento") {
+            if (sa === "desenvolvendo") sa = "aguardando_novo_arquivo";
+            if (sb === "desenvolvendo") sb = "aguardando_novo_arquivo";
+          }
+          comparison = statusOrderList.indexOf(sa) - statusOrderList.indexOf(sb);
+        } else {
+          comparison = STATUS_ORDER.indexOf(a.status) - STATUS_ORDER.indexOf(b.status);
+        }
       } else if (sortField === "prazo") {
         const da = a.prazo ? new Date(a.prazo).getTime() : 9999999999999;
         const db = b.prazo ? new Date(b.prazo).getTime() : 9999999999999;
@@ -145,13 +171,18 @@ export function ProductionTable({
   const isSomeSelected = selectedIds.size > 0 && selectedIds.size < orders.length;
 
   // Batch actions
-  const handleBatchMove = (status: OrderStatus) => {
+  const handleBatchMove = (status: string) => {
     if (permissions.isViewOnly) return;
     const count = selectedIds.size;
-    selectedIds.forEach((id) => onMove(id, status));
-    toast.success(`${count} O.S. movidas para ${STATUS_CONFIG[status].label}`);
+    selectedIds.forEach((id) => onMove(id, status as any));
+    const label = department ? department.statuses.find(s => s.id === status)?.label : STATUS_CONFIG[status as OrderStatus]?.label;
+    toast.success(`${count} O.S. movidas para ${label || status}`);
     setSelectedIds(new Set());
   };
+
+  const availableStatuses = department
+    ? department.statuses.map(s => ({ id: s.id, label: s.label, colorKey: s.colorKey }))
+    : STATUS_ORDER.map(st => ({ id: st, label: STATUS_CONFIG[st].label, colorKey: STATUS_CONFIG[st].colorKey }));
 
   const handleBatchArchive = () => {
     if (!permissions.canArchive) return;
@@ -196,14 +227,14 @@ export function ProductionTable({
               <DropdownMenuContent align="end" className="bg-popover border-border text-popover-foreground">
                 <DropdownMenuLabel className="text-xs text-muted-foreground">Alterar Status das Selecionadas</DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-border" />
-                {STATUS_ORDER.map((st) => (
+                {availableStatuses.map((st) => (
                   <DropdownMenuItem
-                    key={st}
-                    onClick={() => handleBatchMove(st)}
+                    key={st.id}
+                    onClick={() => handleBatchMove(st.id)}
                     className="text-xs hover:bg-accent cursor-pointer"
                   >
-                    <span className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: `hsl(var(--status-${STATUS_CONFIG[st].colorKey}))` }} />
-                    {STATUS_CONFIG[st].label}
+                    <span className="w-2 h-2 rounded-full mr-2" style={{ backgroundColor: `hsl(var(--status-${st.colorKey}))` }} />
+                    {st.label}
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
@@ -286,7 +317,7 @@ export function ProductionTable({
               </TableRow>
             ) : (
               sortedOrders.map((order) => {
-                const config = STATUS_CONFIG[order.status];
+                const config = getStatusConfig(order);
                 const isSelected = selectedIds.has(order.id);
                 const isUrgent = order.urgente;
                 const isSlowAlert = slowAlertIds?.has(order.id);

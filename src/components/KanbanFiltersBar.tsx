@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
-import { DEPARTMENTS, EXPEDICAO_DEPARTMENT, Department } from "@/types/production";
+import { DEPARTMENTS, EXPEDICAO_DEPARTMENT, Department, DepartmentConfig } from "@/types/production";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -11,7 +11,7 @@ import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 
 export interface KanbanFilters {
-  statuses: OrderStatus[];
+  statuses: (OrderStatus | string)[];
   vendedores: string[];
   setores: string[];
   dateFrom: Date | undefined;
@@ -45,9 +45,10 @@ interface KanbanFiltersBarProps {
   filters: KanbanFilters;
   onChange: (filters: KanbanFilters) => void;
   showOnly?: ("statuses" | "vendedores" | "setores" | "date" | "setoresManut" | "categoriasManut")[];
+  department?: DepartmentConfig;
 }
 
-export function KanbanFiltersBar({ filters, onChange, showOnly }: KanbanFiltersBarProps) {
+export function KanbanFiltersBar({ filters, onChange, showOnly, department }: KanbanFiltersBarProps) {
   const [open, setOpen] = useState(false);
   const [vendedoresList, setVendedoresList] = useState<string[]>([]);
   const show = (section: "statuses" | "vendedores" | "setores" | "date" | "setoresManut" | "categoriasManut") => !showOnly || showOnly.includes(section as any);
@@ -59,7 +60,7 @@ export function KanbanFiltersBar({ filters, onChange, showOnly }: KanbanFiltersB
     });
   }, []);
 
-  const toggleStatus = (status: OrderStatus) => {
+  const toggleStatus = (status: OrderStatus | string) => {
     const next = filters.statuses.includes(status)
       ? filters.statuses.filter((s) => s !== status)
       : [...filters.statuses, status];
@@ -117,13 +118,12 @@ export function KanbanFiltersBar({ filters, onChange, showOnly }: KanbanFiltersB
             <div>
               <p className="text-sm font-medium mb-2">Status</p>
               <div className="flex flex-wrap gap-1.5">
-                {STATUS_ORDER.map((status) => {
-                  const config = STATUS_CONFIG[status];
-                  const active = filters.statuses.includes(status);
+                {(department ? department.statuses : STATUS_ORDER.map(status => ({ id: status, label: STATUS_CONFIG[status].label, colorKey: STATUS_CONFIG[status].colorKey }))).map((st) => {
+                  const active = filters.statuses.includes(st.id as any);
                   return (
                     <button
-                      key={status}
-                      onClick={() => toggleStatus(status)}
+                      key={st.id}
+                      onClick={() => toggleStatus(st.id as any)}
                       className={cn(
                         "text-xs px-2.5 py-1 rounded-full border transition-colors",
                         active
@@ -131,12 +131,12 @@ export function KanbanFiltersBar({ filters, onChange, showOnly }: KanbanFiltersB
                           : "border-border text-muted-foreground hover:text-foreground"
                       )}
                       style={active ? {
-                        backgroundColor: `hsl(var(--status-${config.colorKey}-bg))`,
-                        color: `hsl(var(--status-${config.colorKey}))`,
-                        borderColor: `hsl(var(--status-${config.colorKey}) / 0.3)`,
+                        backgroundColor: `hsl(var(--status-${st.colorKey}-bg))`,
+                        color: `hsl(var(--status-${st.colorKey}))`,
+                        borderColor: `hsl(var(--status-${st.colorKey}) / 0.3)`,
                       } : undefined}
                     >
-                      {config.label}
+                      {st.label}
                     </button>
                   );
                 })}

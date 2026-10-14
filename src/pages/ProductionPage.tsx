@@ -13,6 +13,9 @@ import { KanbanFiltersBar, KanbanFilters } from "@/components/KanbanFiltersBar";
 import { Order } from "@/types/order";
 import { startOfDay, endOfDay } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
+import { LayoutGrid, TableProperties } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ProductionTable } from "@/components/ProductionTable";
 
 const VALID_DEPARTMENTS: Department[] = ["desenvolvimento", "ctp", "digital", "offset", "acabamento", "terceiros", "faturamento", "compras", "manutencao", "qualidade"];
 
@@ -50,6 +53,23 @@ export default function ProductionPage() {
     dateFrom: undefined,
     dateTo: undefined,
   });
+
+  const [deptFilters, setDeptFilters] = useState<KanbanFilters>({
+    statuses: [],
+    vendedores: [],
+    setores: [],
+    dateFrom: undefined,
+    dateTo: undefined,
+  });
+
+  const [viewMode, setViewMode] = useState<"kanban" | "table">(() => {
+    return (localStorage.getItem(`primacor_view_mode_${location.pathname}`) as "kanban" | "table") || "kanban";
+  });
+
+  const handleSetViewMode = (mode: "kanban" | "table") => {
+    setViewMode(mode);
+    localStorage.setItem(`primacor_view_mode_${location.pathname}`, mode);
+  };
 
   const PATH_TO_DEPT: Record<string, Department> = {
     "/faturamento": "faturamento",
@@ -135,6 +155,27 @@ export default function ProductionPage() {
 
   const manutFilteredOrders = isManutencao ? applyManutFilters(filteredOrders) : filteredOrders;
 
+  const applyDepartmentFilters = (list: Order[]) => {
+    return list.filter((o) => {
+      if (deptFilters.statuses.length > 0) {
+        let orderStatus = (o as any).setor_status || "entrada";
+        if (activeDepartment === "desenvolvimento" && orderStatus === "desenvolvendo") {
+          orderStatus = "aguardando_novo_arquivo";
+        }
+        if (activeDepartment === "ctp" && (orderStatus === "gravacao" || orderStatus === "imposicao" || orderStatus === "filme_faca_cliche")) {
+          orderStatus = "gravando";
+        }
+        if (!deptFilters.statuses.includes(orderStatus as any) && !deptFilters.statuses.includes(o.status as any)) return false;
+      }
+      if (deptFilters.vendedores.length > 0 && (!o.vendedor || !deptFilters.vendedores.includes(o.vendedor))) return false;
+      if (deptFilters.dateFrom && new Date(o.created_at) < startOfDay(deptFilters.dateFrom)) return false;
+      if (deptFilters.dateTo && new Date(o.created_at) > endOfDay(deptFilters.dateTo)) return false;
+      return true;
+    });
+  };
+
+  const deptFilteredOrders = (!isFaturamento && !isManutencao) ? applyDepartmentFilters(filteredOrders) : filteredOrders;
+
   return (
     <Layout
       searchQuery={searchQuery}
@@ -190,18 +231,74 @@ export default function ProductionPage() {
           </div>
         </div>
       ) : (
-        <ProductionKanbanBoard
-          department={currentDept}
-          orders={filteredOrders}
-          onUpdate={updateOrder}
-          onMove={moveInDepartment}
-          onSendToDepartment={sendToDepartment}
-          onSendBackToPrePress={canSendBack ? sendBackToPrePress : undefined}
-          onArchive={archiveOrder}
-          onDelete={deleteOrder}
-          getProfileName={getProfileName}
-          readOnly={readOnly}
-        />
+        <div className="flex flex-col min-h-full gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+            <KanbanFiltersBar
+              filters={deptFilters}
+              onChange={setDeptFilters}
+              department={currentDept}
+              showOnly={["statuses", "vendedores", "date"]}
+            />
+            <div className="flex items-center bg-card dark:bg-slate-900/60 p-1 rounded-xl border border-border dark:border-slate-800/80 shrink-0 shadow-xs">
+              <Button
+                variant={viewMode === "kanban" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => handleSetViewMode("kanban")}
+                className={`h-7 px-2.5 text-xs rounded-lg transition-all ${
+                  viewMode === "kanban"
+                    ? "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-500/30"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                title="Visualização em Quadro Kanban"
+              >
+                <LayoutGrid className="h-3.5 w-3.5 mr-1.5" /> Quadro
+              </Button>
+              <Button
+                variant={viewMode === "table" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => handleSetViewMode("table")}
+                className={`h-7 px-2.5 text-xs rounded-lg transition-all ${
+                  viewMode === "table"
+                    ? "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-500/30"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                title="Visualização em Tabela / Lista de Produção"
+              >
+                <TableProperties className="h-3.5 w-3.5 mr-1.5" /> Tabela
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex-1 min-h-0">
+            {viewMode === "kanban" ? (
+              <ProductionKanbanBoard
+                department={currentDept}
+                orders={deptFilteredOrders}
+                onUpdate={updateOrder}
+                onMove={moveInDepartment}
+                onSendToDepartment={sendToDepartment}
+                onSendBackToPrePress={canSendBack ? sendBackToPrePress : undefined}
+                onArchive={archiveOrder}
+                onDelete={deleteOrder}
+                getProfileName={getProfileName}
+                readOnly={readOnly}
+              />
+            ) : (
+              <ProductionTable
+                orders={deptFilteredOrders}
+                onUpdate={updateOrder}
+                onMove={moveInDepartment}
+                onArchive={archiveOrder}
+                onDelete={deleteOrder}
+                onSendToProduction={sendToDepartment}
+                getProfileName={getProfileName}
+                permissions={permissions}
+                departmentContext={activeDepartment}
+                department={currentDept}
+              />
+            )}
+          </div>
+        </div>
       )}
     </Layout>
   );
