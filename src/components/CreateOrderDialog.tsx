@@ -34,6 +34,8 @@ import {
   Calendar,
   Truck,
   ShieldAlert,
+  Cloud,
+  Upload,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -44,6 +46,12 @@ import {
   ACABAMENTO_TIPOS,
   ACABAMENTO_GROUPS,
 } from "@/lib/processos";
+import {
+  getOrCreateOsFolder,
+  uploadFileToSharePoint,
+  SHAREPOINT_ROOT_FOLDER,
+} from "@/lib/sharepointService";
+
 
 interface CreateOrderDialogProps {
   onAdd: (data: {
@@ -86,6 +94,9 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [isChecking, setIsChecking] = useState(false);
   const [vendedores, setVendedores] = useState<{ id: string; nome: string }[]>([]);
+  const [stagedFiles, setStagedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
 
 
   const [form, setForm] = useState({
@@ -163,7 +174,9 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
 
   const resetForm = () => {
     setStep(1);
+    setStagedFiles([]);
     setForm({
+
       titulo: "",
       descricao: "",
       cliente: "",
@@ -256,10 +269,12 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
 
     const allProcessos = [...form.processos];
     const effectiveDescricao = form.descricao.trim() || form.titulo.trim() || "Serviço";
+    const filesToUpload = [...stagedFiles];
+    const osTitulo = form.titulo.trim();
 
-    await Promise.resolve(
+    const result = await Promise.resolve(
       onAdd({
-        titulo: form.titulo.trim(),
+        titulo: osTitulo,
         descricao: effectiveDescricao,
         cliente: form.cliente.trim(),
         observacao: form.observacao.trim() || undefined,
@@ -308,7 +323,54 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
     resetForm();
     setOpen(false);
     toast.success("O.S. criada com sucesso!");
+
+    // Upload dos arquivos para a pasta do SharePoint criada para esta nova O.S.
+    if (filesToUpload.length > 0) {
+      void (async () => {
+        try {
+          let targetOrderId = (result as any)?.id;
+          if (!targetOrderId) {
+            const { data: latest } = await supabase
+              .from("orders")
+              .select("id")
+              .eq("titulo", osTitulo)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            targetOrderId = latest?.id;
+          }
+
+          if (targetOrderId) {
+            toast.info(`Iniciando envio de ${filesToUpload.length} anexo(s) para o SharePoint...`);
+            const folder = await getOrCreateOsFolder(targetOrderId, osTitulo);
+
+            for (const file of filesToUpload) {
+              const driveItem = await uploadFileToSharePoint(file, folder);
+              await (supabase.from("order_attachments" as any) as any).insert({
+                order_id: targetOrderId,
+                nome_arquivo: driveItem.name || file.name,
+                tamanho_bytes: driveItem.size || file.size,
+                content_type: driveItem.file?.mimeType || file.type || "application/octet-stream",
+                sharepoint_item_id: driveItem.id,
+                sharepoint_folder_id: folder.folderId,
+                sharepoint_folder_name: folder.folderName,
+                sharepoint_drive_id: folder.driveId,
+                sharepoint_site_id: folder.siteId,
+                sharepoint_web_url: driveItem.webUrl,
+                sharepoint_path: `${SHAREPOINT_ROOT_FOLDER}/${folder.folderName}/${driveItem.name}`,
+                status: "concluido",
+              });
+            }
+            toast.success(`${filesToUpload.length} anexo(s) gravados no SharePoint com sucesso!`);
+          }
+        } catch (spErr: any) {
+          console.error("Erro ao enviar anexos para o SharePoint após criação:", spErr);
+          toast.error(`Falha ao anexar arquivos no SharePoint: ${spErr?.message || spErr}`);
+        }
+      })();
+    }
   };
+
 
 
   const stepsConfig = [
@@ -571,8 +633,81 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                   className="min-h-[70px] bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 rounded-xl text-xs"
                 />
               </div>
+
+              {/* Anexos da O.S. para o SharePoint Corporativo */}
+              <div className="p-3.5 rounded-xl border border-cyan-500/25 bg-cyan-500/5 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <Cloud className="h-3.5 w-3.5 text-cyan-500" />
+                    <span>Anexos da O.S. (SharePoint)</span>
+                  </Label>
+                  <span className="text-[10px] text-muted-foreground uppercase font-mono-tech">
+                    {stagedFiles.length > 0
+                      ? `${stagedFiles.length} ${stagedFiles.length === 1 ? "arquivo selecionado" : "arquivos selecionados"}`
+                      : "Opcional"}
+                  </span>
+                </div>
+
+                <div
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    fileInputRef.current?.click();
+                  }}
+                  className="border border-dashed border-cyan-500/30 hover:border-cyan-500/60 bg-background/60 hover:bg-background/90 rounded-xl p-3.5 text-center cursor-pointer transition-all"
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files) {
+                        const newFiles = Array.from(e.target.files);
+                        setStagedFiles((prev) => {
+                          const existing = new Set(prev.map((f) => `${f.name}_${f.size}`));
+                          return [...prev, ...newFiles.filter((f) => !existing.has(`${f.name}_${f.size}`))];
+                        });
+                        e.target.value = "";
+                      }
+                    }}
+                  />
+                  <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                    <Upload className="h-4 w-4 text-cyan-500" />
+                    <span>Clique ou arraste arquivos para enviar ao SharePoint ao criar a O.S.</span>
+                  </div>
+                </div>
+
+                {stagedFiles.length > 0 && (
+                  <div className="space-y-1.5 max-h-28 overflow-y-auto pr-1">
+                    {stagedFiles.map((file, idx) => (
+                      <div
+                        key={`${file.name}_${idx}`}
+                        className="flex items-center justify-between text-[11px] bg-background/80 px-2.5 py-1.5 rounded-lg border border-border"
+                      >
+                        <span className="truncate max-w-[260px] text-foreground font-medium">{file.name}</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-muted-foreground font-mono-tech">
+                            {(file.size / (1024 * 1024)).toFixed(1)} MB
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setStagedFiles((prev) => prev.filter((_, i) => i !== idx));
+                            }}
+                            className="text-muted-foreground hover:text-red-400 p-0.5"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
+
 
 
           {/* ════════════ ETAPA 2: PROVA & IMPRESSÃO ════════════ */}

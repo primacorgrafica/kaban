@@ -2,7 +2,8 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import "./index.css";
-import { getMsalInstance } from "./lib/msalClient";
+import { getMsalInstance, clearMsalInteractions } from "./lib/msalClient";
+
 
 // Detecta se a URL contém parâmetros de retorno de autenticação do Microsoft Entra / MSAL
 const isMsalInteraction =
@@ -23,6 +24,7 @@ if (isMsalInteraction) {
     } catch (err) {
       console.warn("[MSAL Callback]", err);
     } finally {
+      clearMsalInteractions();
       // Fecha a janela popup automaticamente
       setTimeout(() => {
         try {
@@ -31,6 +33,7 @@ if (isMsalInteraction) {
       }, 500);
     }
   })();
+
 
   const root = document.getElementById("root");
   if (root) {

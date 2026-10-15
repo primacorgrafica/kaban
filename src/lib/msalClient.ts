@@ -103,9 +103,36 @@ export async function getActiveMicrosoftAccount(): Promise<AccountInfo | null> {
 }
 
 /**
+ * Limpa travas e status residuais de interação pendente do MSAL
+ */
+export function clearMsalInteractions(): void {
+  if (typeof window === "undefined") return;
+  [window.sessionStorage, window.localStorage].forEach((storage) => {
+    try {
+      const toRemove: string[] = [];
+      for (let i = 0; i < storage.length; i++) {
+        const key = storage.key(i);
+        if (
+          key &&
+          (key.toLowerCase().includes("interaction_status") ||
+            key.toLowerCase().includes("interaction.status") ||
+            key.toLowerCase().includes("request.origin"))
+        ) {
+          toRemove.push(key);
+        }
+      }
+      toRemove.forEach((k) => storage.removeItem(k));
+    } catch (_) {}
+  });
+}
+
+let activeInteractiveTokenPromise: Promise<string> | null = null;
+let activeLoginPromise: Promise<AccountInfo | null> | null = null;
+
+/**
  * Obtém o access token delegado para o Microsoft Graph / SharePoint.
  * Tenta silenciosamente via cache/refresh token primeiro.
- * Se falhar por necessidade de consentimento/interação, abre popup de login.
+ * Se falhar por necessidade de consentimento/interação, abre popup de login com trava anti-colisão.
  */
 export async function getSharePointAccessToken(interactiveFallback = true): Promise<string> {
   const pca = await getMsalInstance();
@@ -128,7 +155,6 @@ export async function getSharePointAccessToken(interactiveFallback = true): Prom
       });
       return response.accessToken;
     } catch (silentError) {
-      // Se for apenas expiração normal com necessidade de interação, prossegue para popup
       if (!(silentError instanceof InteractionRequiredAuthError) && !interactiveFallback) {
         throw silentError;
       }
@@ -136,44 +162,111 @@ export async function getSharePointAccessToken(interactiveFallback = true): Prom
     }
   }
 
-  // 2. Interação via Popup (não interrompe o fluxo de tela do Kaban)
+  // 2. Interação via Popup com trava singleton e recuperação automática
   if (!interactiveFallback) {
     throw new Error("Sessão Microsoft não autenticada no navegador.");
   }
 
-  try {
-    const popupResponse = await pca.acquireTokenPopup({
-      scopes: SHAREPOINT_SCOPES,
-      prompt: "select_account",
-    });
-
-    if (popupResponse?.account) {
-      pca.setActiveAccount(popupResponse.account);
-    }
-    return popupResponse.accessToken;
-  } catch (popupError: any) {
-    console.error("[MSAL] Erro no login popup:", popupError);
-    if (popupError?.errorCode === "user_cancelled") {
-      throw new Error("Autenticação Microsoft cancelada pelo usuário.");
-    }
-    throw popupError;
+  if (activeInteractiveTokenPromise) {
+    return activeInteractiveTokenPromise;
   }
+
+  activeInteractiveTokenPromise = (async () => {
+    try {
+      try {
+        const popupResponse = await pca.acquireTokenPopup({
+          scopes: SHAREPOINT_SCOPES,
+          prompt: "select_account",
+        });
+
+        if (popupResponse?.account) {
+          pca.setActiveAccount(popupResponse.account);
+        }
+        return popupResponse.accessToken;
+      } catch (popupError: any) {
+        // Se houver colisão de interação residual travada no cache do navegador
+        if (
+          popupError?.errorCode === "interaction_in_progress" ||
+          popupError?.message?.includes("interaction_in_progress")
+        ) {
+          console.warn("[MSAL] interaction_in_progress detectado. Limpando travas residuais e tentando novamente...");
+          clearMsalInteractions();
+          await new Promise((r) => setTimeout(r, 400));
+          const retryResponse = await pca.acquireTokenPopup({
+            scopes: SHAREPOINT_SCOPES,
+            prompt: "select_account",
+          });
+          if (retryResponse?.account) {
+            pca.setActiveAccount(retryResponse.account);
+          }
+          return retryResponse.accessToken;
+        }
+
+        if (popupError?.errorCode === "user_cancelled") {
+          throw new Error("Autenticação Microsoft cancelada pelo usuário.");
+        }
+        throw popupError;
+      }
+    } finally {
+      activeInteractiveTokenPromise = null;
+    }
+  })();
+
+  return activeInteractiveTokenPromise;
 }
 
 /**
- * Conecta explicitamente a conta corporativa Microsoft
+ * Conecta explicitamente a conta corporativa Microsoft com trava anti-colisão
  */
 export async function loginMicrosoft(): Promise<AccountInfo | null> {
-  const pca = await getMsalInstance();
-  const response = await pca.loginPopup({
-    scopes: SHAREPOINT_SCOPES,
-    prompt: "select_account",
-  });
-  if (response.account) {
-    pca.setActiveAccount(response.account);
-    return response.account;
+  if (activeLoginPromise) {
+    return activeLoginPromise;
   }
-  return null;
+
+  activeLoginPromise = (async () => {
+    try {
+      const pca = await getMsalInstance();
+      const currentActive = pca.getActiveAccount();
+      if (currentActive) return currentActive;
+
+      try {
+        const response = await pca.loginPopup({
+          scopes: SHAREPOINT_SCOPES,
+          prompt: "select_account",
+        });
+        if (response.account) {
+          pca.setActiveAccount(response.account);
+          return response.account;
+        }
+        return null;
+      } catch (loginErr: any) {
+        if (
+          loginErr?.errorCode === "interaction_in_progress" ||
+          loginErr?.message?.includes("interaction_in_progress")
+        ) {
+          console.warn("[MSAL] Limpando interação travada e tentando login novamente...");
+          clearMsalInteractions();
+          await new Promise((r) => setTimeout(r, 400));
+          const retryRes = await pca.loginPopup({
+            scopes: SHAREPOINT_SCOPES,
+            prompt: "select_account",
+          });
+          if (retryRes.account) {
+            pca.setActiveAccount(retryRes.account);
+            return retryRes.account;
+          }
+        }
+        if (loginErr?.errorCode === "user_cancelled") {
+          return null;
+        }
+        throw loginErr;
+      }
+    } finally {
+      activeLoginPromise = null;
+    }
+  })();
+
+  return activeLoginPromise;
 }
 
 /**
@@ -186,7 +279,10 @@ export async function logoutMicrosoft(): Promise<void> {
     if (account) {
       await pca.logoutPopup({ account });
     }
+    clearMsalInteractions();
   } catch (err) {
     console.warn("[MSAL] Erro ao deslogar da Microsoft:", err);
+    clearMsalInteractions();
   }
 }
+
