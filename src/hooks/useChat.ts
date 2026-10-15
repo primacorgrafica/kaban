@@ -20,9 +20,10 @@ import {
   hideConversationForUser,
   clearConversationHistoryForUser,
   toggleMessageReaction,
+  setLocalConversationHidden,
 } from "@/lib/chatService";
 import { toast } from "sonner";
-import { setActiveChatConversationId } from "@/components/chat/GlobalChatNotifier";
+import { setActiveChatConversationId, notifyConversationViewed } from "@/components/chat/GlobalChatNotifier";
 
 export function useChat() {
   const { user, onlineUserIds: authRealtimeOnlineIds } = useAuth();
@@ -85,8 +86,9 @@ export function useChat() {
       );
       setMessages(msgs);
 
-      // Marca conversa como lida
+      // Marca conversa como lida e notifica globalmente para sumir com notificações do topo
       await markConversationAsRead(conv.id, currentUserId);
+      void notifyConversationViewed(conv.id);
 
       // Zera contador local
       setConversations((prev) =>
@@ -104,6 +106,7 @@ export function useChat() {
       setActiveChatConversationId(conv?.id || null);
       if (conv) {
         void loadMessages(conv);
+        void notifyConversationViewed(conv.id);
       } else {
         setMessages([]);
       }
@@ -282,9 +285,12 @@ export function useChat() {
         setConversations((prev) => prev.filter((c) => c.id !== conversationId));
         if (activeConversation?.id === conversationId) {
           setActiveConversation(null);
+          setActiveChatConversationId(null);
           setMessages([]);
         }
         toast.success("Conversa excluída para você");
+      } else {
+        toast.error("Erro ao excluir conversa");
       }
     },
     [currentUserId, activeConversation]
@@ -425,11 +431,13 @@ export function useChat() {
               });
             });
 
-            // Marca como lida imediatamente
+            // Marca como lida imediatamente e remove notificação no topo
             void markConversationAsRead(newMsg.conversation_id, currentUserId);
+            void notifyConversationViewed(newMsg.conversation_id);
           } else {
-            // Se for de outra conversa e enviada por outro usuário, incrementa unreadCount
+            // Se for de outra conversa e enviada por outro usuário, incrementa unreadCount e desoculta
             if (newMsg.sender_id !== currentUserId) {
+              setLocalConversationHidden(currentUserId, newMsg.conversation_id, false);
               setConversations((prev) => {
                 const exists = prev.some((c) => c.id === newMsg.conversation_id);
                 if (!exists) {
@@ -466,7 +474,27 @@ export function useChat() {
           );
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "chat_conversations",
+        },
+        (payload: any) => {
+          const newConv = payload.new;
+          if (newConv && (newConv.user1_id === currentUserId || newConv.user2_id === currentUserId)) {
+            void loadConversations(false);
+          }
+        }
+      )
       .subscribe();
+
+    // Listener para novas conversas despachadas pelo Notifier global
+    const handleConvUpdated = () => {
+      void loadConversations(false);
+    };
+    window.addEventListener("primacor:chat_conversations_updated", handleConvUpdated);
 
     // Polling de presença do banco a cada 15 segundos (fallback)
     const checkDbPresence = async () => {
@@ -497,6 +525,7 @@ export function useChat() {
 
     return () => {
       clearInterval(presencePollInterval);
+      window.removeEventListener("primacor:chat_conversations_updated", handleConvUpdated);
       void supabase.removeChannel(channel);
     };
   }, [currentUserId, loadUsers, loadConversations]);

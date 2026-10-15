@@ -6,6 +6,7 @@ import { ChatConversationItem } from "./ChatConversationItem";
 import { ChatMessageItem } from "./ChatMessageItem";
 import { EmojiPickerPopover } from "./EmojiPickerPopover";
 import { NewConversationDialog } from "./NewConversationDialog";
+import { notifyConversationViewed } from "./GlobalChatNotifier";
 import {
   ChatConversation,
   ChatMessage,
@@ -92,19 +93,29 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const convParam = searchParams.get("conv");
 
   // Se houver um parâmetro ?conv=id na URL (ex: ao clicar na notificação), seleciona automaticamente essa conversa
   useEffect(() => {
     if (convParam && conversations.length > 0) {
       const target = conversations.find((c) => c.id === convParam);
-      if (target && activeConversation?.id !== target.id) {
-        selectConversation(target);
-        setMobileView("chat");
+      if (target) {
+        if (activeConversation?.id !== target.id) {
+          selectConversation(target);
+          setMobileView("chat");
+        }
+        void notifyConversationViewed(target.id);
       }
     }
   }, [convParam, conversations, activeConversation?.id, selectConversation]);
+
+  // Se a conversa ativa atual possui mensagens não lidas, notifica para limpar a notificação do topo
+  useEffect(() => {
+    if (activeConversation && activeConversation.unreadCount > 0) {
+      void notifyConversationViewed(activeConversation.id);
+    }
+  }, [activeConversation]);
 
   // Auto-scroll para a última mensagem
   const scrollToBottom = () => {
@@ -118,6 +129,7 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
   // Alterna visualização no mobile ao selecionar conversa
   const handleSelectConv = (conv: ChatConversation) => {
     selectConversation(conv);
+    void notifyConversationViewed(conv.id);
     setMobileView("chat");
   };
 
@@ -214,6 +226,7 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
     }
     const conv = await startConversationWithUser(targetUser);
     if (conv) {
+      void notifyConversationViewed(conv.id);
       setMobileView("chat");
     }
   };
@@ -673,7 +686,17 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
-                if (confirmHideConvId) hideConversation(confirmHideConvId);
+                if (confirmHideConvId) {
+                  hideConversation(confirmHideConvId);
+                  if (convParam === confirmHideConvId) {
+                    setSearchParams((prev) => {
+                      const next = new URLSearchParams(prev);
+                      next.delete("conv");
+                      return next;
+                    });
+                  }
+                  setMobileView("list");
+                }
                 setConfirmHideConvId(null);
               }}
               className="bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold"

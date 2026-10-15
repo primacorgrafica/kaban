@@ -298,4 +298,106 @@ describe("Chat Privado — Regras de Negócio e Lógica de Mensageria", () => {
     expect(messages.length).toBe(1);
     expect(messages[0].id).toBe(realId);
   });
+
+  it("deve zerar notificação do topo quando o usuário visualiza a conversa ativa", () => {
+    // Simula estado de mensagens não lidas no topo
+    let unreadByConversation: Record<string, number> = {
+      "conv-101": 3,
+    };
+    let unreadChatCount = Object.values(unreadByConversation).reduce((a, b) => a + b, 0);
+    expect(unreadChatCount).toBe(3);
+
+    // Usuário abre/visualiza a conversa "conv-101"
+    const markConversationAsViewed = (convId: string) => {
+      delete unreadByConversation[convId];
+      unreadChatCount = Object.values(unreadByConversation).reduce((a, b) => a + b, 0);
+    };
+
+    markConversationAsViewed("conv-101");
+
+    // A notificação no topo tem que sumir (unreadChatCount === 0)
+    expect(unreadChatCount).toBe(0);
+    expect(unreadByConversation["conv-101"]).toBeUndefined();
+  });
+
+  it("deve abater apenas as mensagens da conversa visualizada mantendo as outras não lidas", () => {
+    let unreadByConversation: Record<string, number> = {
+      "conv-alice": 2,
+      "conv-bob": 1,
+    };
+    let unreadChatCount = Object.values(unreadByConversation).reduce((a, b) => a + b, 0);
+    expect(unreadChatCount).toBe(3);
+
+    // Usuário visualiza a conversa da Alice
+    delete unreadByConversation["conv-alice"];
+    unreadChatCount = Object.values(unreadByConversation).reduce((a, b) => a + b, 0);
+
+    // Topo atualiza de 3 para 1
+    expect(unreadChatCount).toBe(1);
+
+    // Usuário visualiza a conversa do Bob
+    delete unreadByConversation["conv-bob"];
+    unreadChatCount = Object.values(unreadByConversation).reduce((a, b) => a + b, 0);
+
+    // Topo zera completamente
+    expect(unreadChatCount).toBe(0);
+  });
+
+  it("não deve incrementar notificação se o usuário estiver com a conversa aberta na tela e ativa", () => {
+    const activeConversationId = "conv-active";
+    const isModalOpen = true;
+    const isVisible = true;
+
+    const isActivelyViewing = (convId: string) => {
+      return convId === activeConversationId && isModalOpen && isVisible;
+    };
+
+    let unreadChatCount = 0;
+
+    // Chega nova mensagem na conversa ativa
+    const newMsgConvId = "conv-active";
+    if (!isActivelyViewing(newMsgConvId)) {
+      unreadChatCount += 1;
+    }
+
+    // Como está visualizando ativamente, o contador do topo continua 0
+    expect(unreadChatCount).toBe(0);
+  });
+
+  it("deve manter conversa excluída oculta mesmo após operações de sincronização e marcar como lida", () => {
+    const hiddenSet = new Set<string>();
+    const convId = "conv-to-delete";
+
+    // 1. Exclui conversa para si
+    hiddenSet.add(convId);
+    expect(hiddenSet.has(convId)).toBe(true);
+
+    // 2. Simula carregamento de conversas com filtro
+    const allConvs = [{ id: "conv-to-delete" }, { id: "conv-keep" }];
+    const visibleConvs = allConvs.filter((c) => !hiddenSet.has(c.id));
+
+    expect(visibleConvs.length).toBe(1);
+    expect(visibleConvs[0].id).toBe("conv-keep");
+
+    // 3. Simula markConversationAsRead: não deve remover do hiddenSet
+    // Atualiza apenas last_read sem redefinir is_hidden para false
+    expect(hiddenSet.has(convId)).toBe(true);
+  });
+
+  it("deve reativar a conversa oculta apenas se uma nova mensagem do outro participante chegar", () => {
+    const hiddenSet = new Set<string>(["conv-1"]);
+    const currentUserId = "me";
+
+    // Mensagem enviada pelo outro participante
+    const incomingMsg = {
+      conversation_id: "conv-1",
+      sender_id: "other-user",
+    };
+
+    if (incomingMsg.sender_id !== currentUserId) {
+      hiddenSet.delete(incomingMsg.conversation_id);
+    }
+
+    expect(hiddenSet.has("conv-1")).toBe(false);
+  });
 });

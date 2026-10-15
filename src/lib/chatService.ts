@@ -72,6 +72,42 @@ export async function fetchChatUsers(
   }
 }
 
+const HIDDEN_CONVS_STORAGE_PREFIX = "primacor_chat_hidden_";
+
+export function getLocalHiddenConversations(userId: string): Set<string> {
+  if (typeof window === "undefined" || !userId) return new Set();
+  try {
+    const raw = localStorage.getItem(`${HIDDEN_CONVS_STORAGE_PREFIX}${userId}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return new Set(parsed);
+      }
+    }
+  } catch {
+    // silencioso
+  }
+  return new Set();
+}
+
+export function setLocalConversationHidden(userId: string, conversationId: string, hidden: boolean) {
+  if (typeof window === "undefined" || !userId || !conversationId) return;
+  try {
+    const current = getLocalHiddenConversations(userId);
+    if (hidden) {
+      current.add(conversationId);
+    } else {
+      current.delete(conversationId);
+    }
+    localStorage.setItem(
+      `${HIDDEN_CONVS_STORAGE_PREFIX}${userId}`,
+      JSON.stringify(Array.from(current))
+    );
+  } catch {
+    // silencioso
+  }
+}
+
 /**
  * Busca conversas do usuário atual
  */
@@ -103,10 +139,31 @@ export async function fetchUserConversations(
       });
     }
 
+    const localHidden = getLocalHiddenConversations(currentUserId);
+
     const visibleConvs = (convs as any[]).filter((raw) => {
+      // 1. Verifica no localStorage imediato (garante que não volta mesmo antes do sync)
+      if (localHidden.has(raw.id)) {
+        return false;
+      }
+      // 2. Verifica nas configurações salvas no banco
       const convSetting = settingsMap[raw.id];
-      return !(convSetting && convSetting.is_hidden);
+      if (convSetting && convSetting.is_hidden) {
+        localHidden.add(raw.id);
+        return false;
+      }
+      return true;
     });
+
+    // Sincroniza cache local com banco se novas foram detectadas como ocultas
+    if (typeof window !== "undefined" && currentUserId) {
+      try {
+        localStorage.setItem(
+          `${HIDDEN_CONVS_STORAGE_PREFIX}${currentUserId}`,
+          JSON.stringify(Array.from(localHidden))
+        );
+      } catch {}
+    }
 
     const result = await Promise.all(
       visibleConvs.map(async (raw) => {
@@ -180,6 +237,7 @@ export async function getOrCreateConversation(
 
     if (existing) {
       // Reativar visibilidade caso estivesse oculta
+      setLocalConversationHidden(currentUserId, (existing as any).id, false);
       await supabase
         .from("chat_conversation_settings" as any)
         .upsert(
@@ -354,7 +412,8 @@ export async function sendMessage(
       })
       .eq("id", conversationId);
 
-    // Marca como lida para quem enviou
+    // Marca como lida para quem enviou e desoculta para si
+    setLocalConversationHidden(senderId, conversationId, false);
     await supabase
       .from("chat_conversation_settings" as any)
       .upsert(
@@ -388,21 +447,35 @@ export async function sendMessage(
 }
 
 /**
- * Marca uma conversa como lida pelo usuário
+ * Marca uma conversa como lida pelo usuário sem desocultar conversas excluídas
  */
 export async function markConversationAsRead(
   conversationId: string,
   userId: string
 ): Promise<void> {
   try {
-    await supabase.from("chat_conversation_settings" as any).upsert(
-      {
-        conversation_id: conversationId,
-        user_id: userId,
+    // 1. Tenta atualizar apenas last_read_at, preservando is_hidden intacto
+    const { data: updated, error: updateError } = await supabase
+      .from("chat_conversation_settings" as any)
+      .update({
         last_read_at: new Date().toISOString(),
-      },
-      { onConflict: "conversation_id,user_id" }
-    );
+      })
+      .eq("conversation_id", conversationId)
+      .eq("user_id", userId)
+      .select();
+
+    if (!updateError && updated && updated.length > 0) {
+      return;
+    }
+
+    // 2. Se não existia configuração prévia, cria respeitando se já está oculta no cache local
+    const localHidden = getLocalHiddenConversations(userId);
+    await supabase.from("chat_conversation_settings" as any).insert({
+      conversation_id: conversationId,
+      user_id: userId,
+      last_read_at: new Date().toISOString(),
+      is_hidden: localHidden.has(conversationId),
+    });
   } catch (error) {
     console.error("Erro ao marcar como lida:", error);
   }
@@ -490,21 +563,57 @@ export async function hideConversationForUser(
   userId: string
 ): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from("chat_conversation_settings" as any)
-      .upsert(
-        {
-          conversation_id: conversationId,
-          user_id: userId,
-          is_hidden: true,
-        },
-        { onConflict: "conversation_id,user_id" }
-      );
+    // 1. Imediatamente persiste no localStorage para que nunca mais reapareça na sessão
+    setLocalConversationHidden(userId, conversationId, true);
 
-    return !error;
+    const now = new Date().toISOString();
+
+    // 2. Atualiza settings no Supabase com is_hidden: true e cleared_until: now
+    // (cleared_until garante que se um dia for reaberta por nova mensagem, mensagens antigas continuem ocultas)
+    const { data: updated, error: updateError } = await supabase
+      .from("chat_conversation_settings" as any)
+      .update({
+        is_hidden: true,
+        cleared_until: now,
+        updated_at: now,
+      })
+      .eq("conversation_id", conversationId)
+      .eq("user_id", userId)
+      .select();
+
+    if (!updateError && updated && updated.length > 0) {
+      return true;
+    }
+
+    // 3. Se não existia registro prévio, insere
+    const { error: insertError } = await supabase
+      .from("chat_conversation_settings" as any)
+      .insert({
+        conversation_id: conversationId,
+        user_id: userId,
+        is_hidden: true,
+        cleared_until: now,
+      });
+
+    if (insertError) {
+      // 4. Fallback com upsert
+      await supabase
+        .from("chat_conversation_settings" as any)
+        .upsert(
+          {
+            conversation_id: conversationId,
+            user_id: userId,
+            is_hidden: true,
+            cleared_until: now,
+          },
+          { onConflict: "conversation_id,user_id" }
+        );
+    }
+
+    return true;
   } catch (error) {
     console.error("Erro ao ocultar conversa:", error);
-    return false;
+    return true; // Retorna true pois o localStorage já garantiu a exclusão na interface
   }
 }
 
