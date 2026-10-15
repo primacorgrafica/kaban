@@ -25,6 +25,7 @@ import { AiProductionBottlenecksModal } from "./AiProductionBottlenecksModal";
 import { ChatDialog } from "./chat/ChatDialog";
 import { useChatNotification } from "./chat/GlobalChatNotifier";
 import { RealtimeStatusIndicator } from "./RealtimeStatusIndicator";
+import { SharePointStatusIndicator } from "./sharepoint/SharePointStatusIndicator";
 import { Activity, Command, MessageSquare, ExternalLink, Compass } from "lucide-react";
 import { Order, OrderStatus } from "@/types/order";
 import { UTILITIES_CONFIG } from "@/config/utilities";
@@ -524,6 +525,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
           })()}
           <div className="flex items-center gap-2 ml-auto order-2">
             <RealtimeStatusIndicator />
+            <SharePointStatusIndicator />
             <Button
               variant="ghost"
               size="sm"

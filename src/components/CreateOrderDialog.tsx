@@ -37,6 +37,9 @@ import {
   Cloud,
   Upload,
   X,
+  ShieldCheck,
+  LogIn,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +54,13 @@ import {
   uploadFileToSharePoint,
   SHAREPOINT_ROOT_FOLDER,
 } from "@/lib/sharepointService";
+import {
+  getStoredMicrosoftUser,
+  getActiveMicrosoftAccount,
+  loginMicrosoft,
+  getSharePointAccessToken,
+  type StoredMicrosoftUser,
+} from "@/lib/msalClient";
 
 
 interface CreateOrderDialogProps {
@@ -95,7 +105,18 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
   const [isChecking, setIsChecking] = useState(false);
   const [vendedores, setVendedores] = useState<{ id: string; nome: string }[]>([]);
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
+  const [msUser, setMsUser] = useState<StoredMicrosoftUser | null>(() => getStoredMicrosoftUser());
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatusText, setSubmitStatusText] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    void getActiveMicrosoftAccount().then((acc) => {
+      if (acc) {
+        setMsUser({ name: acc.name || acc.username, username: acc.username });
+      }
+    });
+  }, []);
 
 
 
@@ -272,102 +293,135 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
     const filesToUpload = [...stagedFiles];
     const osTitulo = form.titulo.trim();
 
-    const result = await Promise.resolve(
-      onAdd({
-        titulo: osTitulo,
-        descricao: effectiveDescricao,
-        cliente: form.cliente.trim(),
-        observacao: form.observacao.trim() || undefined,
-        obs_prova: form.obs_prova.trim() || undefined,
-        saida_direta: form.saida_direta,
-        prova_digital: form.prova_digital,
-        prova_email: form.prova_email,
-        endereco_entrega:
-          form.prova_digital || form.prova_email
-            ? form.endereco_entrega.trim() || undefined
-            : undefined,
-        destinatario:
-          form.prova_digital || form.prova_email
-            ? form.destinatario.trim() || undefined
-            : undefined,
-        urgente:
-          form.urgente_prova ||
-          form.urgente_impressao ||
-          form.urgente_acabamento ||
-          form.urgente_expedicao,
-        urgente_prova: form.urgente_prova,
-        urgente_impressao: form.urgente_impressao,
-        urgente_acabamento: form.urgente_acabamento,
-        urgente_expedicao: form.urgente_expedicao,
-        digital_color: form.digital_color,
-        digital_pb: form.digital_pb,
-        prazo: form.prazo ? new Date(form.prazo).toISOString() : undefined,
-        vendedor: form.vendedor || undefined,
-        processos: allProcessos.length > 0 ? allProcessos : undefined,
-        nf: form.tem_nf ? "SIM" : undefined,
-        protocolo: form.tem_protocolo ? "SIM" : undefined,
-        empresa_entrega: form.empresa_entrega || undefined,
-        obs_entrega: form.obs_entrega.trim() || undefined,
-        tipo_entrega: form.tipo_entrega.length > 0 ? form.tipo_entrega : undefined,
-        entrega_para: form.entrega_para.trim() || undefined,
-        entrega_endereco: form.entrega_endereco.trim() || undefined,
-        entrega_ac: form.entrega_ac.trim() || undefined,
-        entrega_data_limite: form.entrega_data_limite
-          ? new Date(form.entrega_data_limite).toISOString()
-          : undefined,
-        status_destino: form.status_destino || undefined,
-        setor_destino: form.setor_destino || undefined,
-      })
-    );
+    setIsSubmitting(true);
+    setSubmitStatusText("Iniciando criação da O.S....");
 
-    resetForm();
-    setOpen(false);
-    toast.success("O.S. criada com sucesso!");
-
-    // Upload dos arquivos para a pasta do SharePoint criada para esta nova O.S.
-    if (filesToUpload.length > 0) {
-      void (async () => {
+    try {
+      // 1. Se houver anexos, pré-valida e adquire token SharePoint IMEDIATAMENTE (no contexto do clique)
+      if (filesToUpload.length > 0) {
+        setSubmitStatusText("Conectando ao SharePoint corporativo...");
         try {
-          let targetOrderId = (result as any)?.id;
-          if (!targetOrderId) {
-            const { data: latest } = await supabase
-              .from("orders")
-              .select("id")
-              .eq("titulo", osTitulo)
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .maybeSingle();
-            targetOrderId = latest?.id;
-          }
-
-          if (targetOrderId) {
-            toast.info(`Iniciando envio de ${filesToUpload.length} anexo(s) para o SharePoint...`);
-            const folder = await getOrCreateOsFolder(targetOrderId, osTitulo);
-
-            for (const file of filesToUpload) {
-              const driveItem = await uploadFileToSharePoint(file, folder);
-              await (supabase.from("order_attachments" as any) as any).insert({
-                order_id: targetOrderId,
-                nome_arquivo: driveItem.name || file.name,
-                tamanho_bytes: driveItem.size || file.size,
-                content_type: driveItem.file?.mimeType || file.type || "application/octet-stream",
-                sharepoint_item_id: driveItem.id,
-                sharepoint_folder_id: folder.folderId,
-                sharepoint_folder_name: folder.folderName,
-                sharepoint_drive_id: folder.driveId,
-                sharepoint_site_id: folder.siteId,
-                sharepoint_web_url: driveItem.webUrl,
-                sharepoint_path: `${SHAREPOINT_ROOT_FOLDER}/${folder.folderName}/${driveItem.name}`,
-                status: "concluido",
-              });
-            }
-            toast.success(`${filesToUpload.length} anexo(s) gravados no SharePoint com sucesso!`);
-          }
-        } catch (spErr: any) {
-          console.error("Erro ao enviar anexos para o SharePoint após criação:", spErr);
-          toast.error(`Falha ao anexar arquivos no SharePoint: ${spErr?.message || spErr}`);
+          await getSharePointAccessToken(true);
+        } catch (authErr: any) {
+          console.error("Falha ao autenticar Microsoft 365:", authErr);
+          toast.error(`Falha na autenticação Microsoft 365: ${authErr?.message || authErr}`);
+          setIsSubmitting(false);
+          setSubmitStatusText("");
+          return;
         }
-      })();
+      }
+
+      // 2. Criação do registro da Ordem de Serviço no banco de dados
+      setSubmitStatusText("Salvando Ordem de Serviço...");
+      const result = await Promise.resolve(
+        onAdd({
+          titulo: osTitulo,
+          descricao: effectiveDescricao,
+          cliente: form.cliente.trim(),
+          observacao: form.observacao.trim() || undefined,
+          obs_prova: form.obs_prova.trim() || undefined,
+          saida_direta: form.saida_direta,
+          prova_digital: form.prova_digital,
+          prova_email: form.prova_email,
+          endereco_entrega:
+            form.prova_digital || form.prova_email
+              ? form.endereco_entrega.trim() || undefined
+              : undefined,
+          destinatario:
+            form.prova_digital || form.prova_email
+              ? form.destinatario.trim() || undefined
+              : undefined,
+          urgente:
+            form.urgente_prova ||
+            form.urgente_impressao ||
+            form.urgente_acabamento ||
+            form.urgente_expedicao,
+          urgente_prova: form.urgente_prova,
+          urgente_impressao: form.urgente_impressao,
+          urgente_acabamento: form.urgente_acabamento,
+          urgente_expedicao: form.urgente_expedicao,
+          digital_color: form.digital_color,
+          digital_pb: form.digital_pb,
+          prazo: form.prazo ? new Date(form.prazo).toISOString() : undefined,
+          vendedor: form.vendedor || undefined,
+          processos: allProcessos.length > 0 ? allProcessos : undefined,
+          nf: form.tem_nf ? "SIM" : undefined,
+          protocolo: form.tem_protocolo ? "SIM" : undefined,
+          empresa_entrega: form.empresa_entrega || undefined,
+          obs_entrega: form.obs_entrega.trim() || undefined,
+          tipo_entrega: form.tipo_entrega.length > 0 ? form.tipo_entrega : undefined,
+          entrega_para: form.entrega_para.trim() || undefined,
+          entrega_endereco: form.entrega_endereco.trim() || undefined,
+          entrega_ac: form.entrega_ac.trim() || undefined,
+          entrega_data_limite: form.entrega_data_limite
+            ? new Date(form.entrega_data_limite).toISOString()
+            : undefined,
+          status_destino: form.status_destino || undefined,
+          setor_destino: form.setor_destino || undefined,
+        })
+      );
+
+      // 3. Upload dos arquivos diretamente para o SharePoint Corporativo
+      if (filesToUpload.length > 0) {
+        let targetOrderId = (result as any)?.id;
+        if (!targetOrderId) {
+          const { data: latest } = await supabase
+            .from("orders")
+            .select("id")
+            .eq("titulo", osTitulo)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          targetOrderId = latest?.id;
+        }
+
+        if (targetOrderId) {
+          setSubmitStatusText("Criando pasta da O.S. no SharePoint...");
+          const folder = await getOrCreateOsFolder(targetOrderId, osTitulo);
+
+          let uploadedCount = 0;
+          for (let i = 0; i < filesToUpload.length; i++) {
+            const file = filesToUpload[i];
+            const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+            setSubmitStatusText(
+              `Enviando anexo ${i + 1} de ${filesToUpload.length}: ${file.name} (${sizeMb} MB)...`
+            );
+
+            const driveItem = await uploadFileToSharePoint(file, folder);
+            await (supabase.from("order_attachments" as any) as any).insert({
+              order_id: targetOrderId,
+              nome_arquivo: driveItem.name || file.name,
+              tamanho_bytes: driveItem.size || file.size,
+              content_type: driveItem.file?.mimeType || file.type || "application/octet-stream",
+              sharepoint_item_id: driveItem.id,
+              sharepoint_folder_id: folder.folderId,
+              sharepoint_folder_name: folder.folderName,
+              sharepoint_drive_id: folder.driveId,
+              sharepoint_site_id: folder.siteId,
+              sharepoint_web_url: driveItem.webUrl,
+              sharepoint_path: `${SHAREPOINT_ROOT_FOLDER}/${folder.folderName}/${driveItem.name}`,
+              status: "concluido",
+            });
+            uploadedCount++;
+          }
+          toast.success(
+            `O.S. criada e ${uploadedCount} anexo(s) enviados para o SharePoint com sucesso!`
+          );
+        } else {
+          toast.success("O.S. criada com sucesso!");
+        }
+      } else {
+        toast.success("O.S. criada com sucesso!");
+      }
+
+      resetForm();
+      setOpen(false);
+    } catch (submitErr: any) {
+      console.error("Erro ao salvar O.S. e anexos:", submitErr);
+      toast.error(`Falha: ${submitErr?.message || submitErr}`);
+    } finally {
+      setIsSubmitting(false);
+      setSubmitStatusText("");
     }
   };
 
@@ -641,11 +695,43 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                     <Cloud className="h-3.5 w-3.5 text-cyan-500" />
                     <span>Anexos da O.S. (SharePoint)</span>
                   </Label>
-                  <span className="text-[10px] text-muted-foreground uppercase font-mono-tech">
-                    {stagedFiles.length > 0
-                      ? `${stagedFiles.length} ${stagedFiles.length === 1 ? "arquivo selecionado" : "arquivos selecionados"}`
-                      : "Opcional"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {msUser ? (
+                      <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[10px] text-emerald-400 font-medium">
+                        <ShieldCheck className="h-3 w-3 text-emerald-400" />
+                        <span className="truncate max-w-[150px]" title={msUser.username}>
+                          {msUser.name || msUser.username}
+                        </span>
+                      </div>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            const acc = await loginMicrosoft();
+                            if (acc) {
+                              setMsUser({ name: acc.name || acc.username, username: acc.username });
+                              toast.success(`Conectado ao Microsoft 365 como ${acc.name || acc.username}`);
+                            }
+                          } catch (err: any) {
+                            toast.error(`Falha ao conectar Microsoft 365: ${err?.message || err}`);
+                          }
+                        }}
+                        className="h-6 px-2 text-[10px] border-cyan-500/30 hover:border-cyan-500 text-cyan-400 bg-cyan-500/5 hover:bg-cyan-500/10 rounded-md gap-1"
+                      >
+                        <LogIn className="h-3 w-3" />
+                        <span>Conectar 365</span>
+                      </Button>
+                    )}
+                    <span className="text-[10px] text-muted-foreground uppercase font-mono-tech">
+                      {stagedFiles.length > 0
+                        ? `${stagedFiles.length} ${stagedFiles.length === 1 ? "arquivo" : "arquivos"}`
+                        : "Opcional"}
+                    </span>
+                  </div>
                 </div>
 
                 <div
@@ -1195,12 +1281,21 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
             ) : (
               <Button
                 type="button"
-                disabled={isChecking}
+                disabled={isChecking || isSubmitting}
                 onClick={() => handleSubmit()}
-                className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-xs font-bold rounded-xl h-10 px-6 gap-2 shadow-lg shadow-emerald-500/25"
+                className="bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-xs font-bold rounded-xl h-10 px-6 gap-2 shadow-lg shadow-emerald-500/25 transition-all"
               >
-                <Check className="h-4 w-4" />
-                <span>{isChecking ? "Verificando O.S...." : "Criar Ordem de Serviço"}</span>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin text-white" />
+                    <span className="truncate max-w-[280px]">{submitStatusText || "Salvando..."}</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="h-4 w-4" />
+                    <span>{isChecking ? "Verificando O.S...." : "Criar Ordem de Serviço"}</span>
+                  </>
+                )}
               </Button>
             )}
           </div>

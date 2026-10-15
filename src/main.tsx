@@ -2,38 +2,28 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import "./index.css";
-import { getMsalInstance, clearMsalInteractions } from "./lib/msalClient";
+import { getMsalInstance } from "./lib/msalClient";
 
-
-// Detecta se a URL contém parâmetros de retorno de autenticação do Microsoft Entra / MSAL
-const isMsalInteraction =
+// Detecta se esta janela é estritamente um popup de autenticação do MSAL retornando do Microsoft Entra ID
+const isMsalPopup =
   typeof window !== "undefined" &&
-  (window.location.hash.includes("code=") ||
+  Boolean(window.opener && window.opener !== window) &&
+  (window.name.includes("msal") ||
+    window.location.hash.includes("code=") ||
     window.location.search.includes("code=") ||
     window.location.hash.includes("error=") ||
-    window.location.search.includes("error=") ||
-    window.name.includes("msal") ||
-    Boolean(window.opener && window.opener !== window));
+    window.location.search.includes("error="));
 
-if (isMsalInteraction) {
-  // Inicializa o MSAL no popup para processar o callback do Entra ID e fechar a janela
+if (isMsalPopup) {
+  // Inicializa o MSAL no popup para que processe o token retornado e notifique o window.opener
   void (async () => {
     try {
       const pca = await getMsalInstance();
       await pca.handleRedirectPromise();
     } catch (err) {
-      console.warn("[MSAL Callback]", err);
-    } finally {
-      clearMsalInteractions();
-      // Fecha a janela popup automaticamente
-      setTimeout(() => {
-        try {
-          window.close();
-        } catch (_) {}
-      }, 500);
+      console.warn("[MSAL Popup Callback]", err);
     }
   })();
-
 
   const root = document.getElementById("root");
   if (root) {
@@ -46,10 +36,10 @@ if (isMsalInteraction) {
           </div>
           <div>
             <h2 className="text-sm font-semibold tracking-wider text-cyan-400 uppercase font-mono-tech">
-              Autenticação Microsoft Concluída
+              Microsoft 365
             </h2>
             <p className="text-xs text-slate-300 mt-1">
-              Conectado ao SharePoint corporativo com sucesso!
+              Conectando com segurança ao SharePoint corporativo...
             </p>
           </div>
           <p className="text-[11px] text-slate-400 font-mono-tech">
@@ -66,9 +56,8 @@ if (isMsalInteraction) {
       </div>
     );
   }
-}
- else {
-  // Inicializa o cliente MSAL no fluxo normal da aplicação
+} else {
+  // Inicialização padrão do Kaban no navegador
   void getMsalInstance();
 
   createRoot(document.getElementById("root")!).render(
@@ -77,5 +66,3 @@ if (isMsalInteraction) {
     </ErrorBoundary>
   );
 }
-
-

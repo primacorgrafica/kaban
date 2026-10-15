@@ -19,6 +19,63 @@ export const SHAREPOINT_SCOPES = [
   "Sites.Selected",
 ];
 
+export const MSAL_ACCOUNT_KEY = "kaban_msal_active_account_id";
+export const MSAL_USER_INFO_KEY = "kaban_msal_user_info";
+
+export interface StoredMicrosoftUser {
+  name: string;
+  username: string;
+  tenantId?: string;
+}
+
+/**
+ * Retorna dados da conta Microsoft gravados no localStorage de forma síncrona
+ * para renderização instantânea da interface sem esperar a inicialização do MSAL.
+ */
+export function getStoredMicrosoftUser(): StoredMicrosoftUser | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(MSAL_USER_INFO_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Grava a conta Microsoft ativa no localStorage para persistência permanente.
+ */
+export function saveStoredMicrosoftAccount(account: AccountInfo): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(MSAL_ACCOUNT_KEY, account.homeAccountId);
+    localStorage.setItem(
+      MSAL_USER_INFO_KEY,
+      JSON.stringify({
+        name: account.name || account.username,
+        username: account.username,
+        tenantId: account.tenantId,
+      })
+    );
+  } catch (err) {
+    console.warn("[MSAL] Erro ao gravar conta no localStorage:", err);
+  }
+}
+
+/**
+ * Remove a conta salva do localStorage.
+ */
+export function removeStoredMicrosoftAccount(): void {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.removeItem(MSAL_ACCOUNT_KEY);
+    localStorage.removeItem(MSAL_USER_INFO_KEY);
+  } catch (err) {
+    console.warn("[MSAL] Erro ao remover conta do localStorage:", err);
+  }
+}
+
 const msalConfig: Configuration = {
   auth: {
     clientId: AZURE_CLIENT_ID,
@@ -28,9 +85,10 @@ const msalConfig: Configuration = {
   },
   cache: {
     cacheLocation: BrowserCacheLocation.LocalStorage,
-    storeAuthStateInCookie: false,
+    storeAuthStateInCookie: true, // Mantém compatibilidade com navegadores restritivos e iframes
   },
   system: {
+    allowNativeBroker: false,
     loggerOptions: {
       logLevel: LogLevel.Warning,
       loggerCallback: (level, message, containsPii) => {
@@ -49,7 +107,8 @@ let msalInstance: PublicClientApplication | null = null;
 let initPromise: Promise<PublicClientApplication> | null = null;
 
 /**
- * Retorna a instância inicializada do MSAL PublicClientApplication (Singleton)
+ * Retorna a instância inicializada do MSAL PublicClientApplication (Singleton).
+ * Restaura automaticamente a conta ativa a partir do cache e localStorage.
  */
 export async function getMsalInstance(): Promise<PublicClientApplication> {
   if (msalInstance) return msalInstance;
@@ -58,20 +117,28 @@ export async function getMsalInstance(): Promise<PublicClientApplication> {
     initPromise = (async () => {
       const pca = new PublicClientApplication(msalConfig);
       await pca.initialize();
-      // Trata o retorno de redirect caso o fluxo tenha sido acionado via redirect
+
       try {
         await pca.handleRedirectPromise();
       } catch (err) {
         console.warn("[MSAL] Erro ao tratar handleRedirectPromise:", err);
       }
 
-      // Se não há conta ativa setada, seleciona a primeira disponível no cache
-      const activeAccount = pca.getActiveAccount();
-      if (!activeAccount) {
-        const allAccounts = pca.getAllAccounts();
-        if (allAccounts.length > 0) {
-          pca.setActiveAccount(allAccounts[0]);
-        }
+      // Restaura a conta ativa salva no localStorage ou primeira conta do cache
+      const savedAccountId = typeof window !== "undefined" ? localStorage.getItem(MSAL_ACCOUNT_KEY) : null;
+      const allAccounts = pca.getAllAccounts();
+      let active = pca.getActiveAccount();
+
+      if (!active && savedAccountId) {
+        active = allAccounts.find((a) => a.homeAccountId === savedAccountId) || null;
+      }
+      if (!active && allAccounts.length > 0) {
+        active = allAccounts[0];
+      }
+
+      if (active) {
+        pca.setActiveAccount(active);
+        saveStoredMicrosoftAccount(active);
       }
 
       msalInstance = pca;
@@ -83,18 +150,35 @@ export async function getMsalInstance(): Promise<PublicClientApplication> {
 }
 
 /**
- * Retorna a conta Microsoft atualmente conectada no navegador
+ * Retorna a conta Microsoft atualmente conectada no navegador.
  */
 export async function getActiveMicrosoftAccount(): Promise<AccountInfo | null> {
   try {
     const pca = await getMsalInstance();
-    const active = pca.getActiveAccount();
-    if (active) return active;
+    let active = pca.getActiveAccount();
+    if (active) {
+      saveStoredMicrosoftAccount(active);
+      return active;
+    }
+
+    const savedAccountId = typeof window !== "undefined" ? localStorage.getItem(MSAL_ACCOUNT_KEY) : null;
     const accounts = pca.getAllAccounts();
+
+    if (savedAccountId) {
+      const match = accounts.find((a) => a.homeAccountId === savedAccountId);
+      if (match) {
+        pca.setActiveAccount(match);
+        saveStoredMicrosoftAccount(match);
+        return match;
+      }
+    }
+
     if (accounts.length > 0) {
       pca.setActiveAccount(accounts[0]);
+      saveStoredMicrosoftAccount(accounts[0]);
       return accounts[0];
     }
+
     return null;
   } catch (err) {
     console.error("[MSAL] Erro ao obter conta ativa:", err);
@@ -103,7 +187,7 @@ export async function getActiveMicrosoftAccount(): Promise<AccountInfo | null> {
 }
 
 /**
- * Limpa travas e status residuais de interação pendente do MSAL
+ * Limpa travas e status residuais de interação pendente do MSAL sem apagar as credenciais da conta.
  */
 export function clearMsalInteractions(): void {
   if (typeof window === "undefined") return;
@@ -131,34 +215,43 @@ let activeLoginPromise: Promise<AccountInfo | null> | null = null;
 
 /**
  * Obtém o access token delegado para o Microsoft Graph / SharePoint.
- * Tenta silenciosamente via cache/refresh token primeiro.
- * Se falhar por necessidade de consentimento/interação, abre popup de login com trava anti-colisão.
+ * 1. Tenta silenciosamente via cache/refresh token (válido por 90 dias, renovado automaticamente).
+ * 2. Se falhar, realiza fallback interativo via popup com SSO automático (sem forçar escolha de conta).
  */
 export async function getSharePointAccessToken(interactiveFallback = true): Promise<string> {
   const pca = await getMsalInstance();
   let account = pca.getActiveAccount();
 
   if (!account) {
+    const savedAccountId = typeof window !== "undefined" ? localStorage.getItem(MSAL_ACCOUNT_KEY) : null;
     const accounts = pca.getAllAccounts();
-    if (accounts.length > 0) {
+    if (savedAccountId) {
+      account = accounts.find((a) => a.homeAccountId === savedAccountId) || null;
+    }
+    if (!account && accounts.length > 0) {
       account = accounts[0];
+    }
+    if (account) {
       pca.setActiveAccount(account);
+      saveStoredMicrosoftAccount(account);
     }
   }
 
-  // 1. Tentativa Silenciosa (Silent Token Acquisition)
+  // 1. Tentativa Silenciosa (Silent Token Acquisition via Refresh Token)
   if (account) {
     try {
       const response = await pca.acquireTokenSilent({
         scopes: SHAREPOINT_SCOPES,
         account,
       });
-      return response.accessToken;
+      if (response?.accessToken) {
+        return response.accessToken;
+      }
     } catch (silentError) {
       if (!(silentError instanceof InteractionRequiredAuthError) && !interactiveFallback) {
         throw silentError;
       }
-      console.info("[MSAL] Silent token falhou, solicitando via popup interativo...");
+      console.info("[MSAL] acquireTokenSilent necessita de renovação interativa:", silentError);
     }
   }
 
@@ -174,13 +267,14 @@ export async function getSharePointAccessToken(interactiveFallback = true): Prom
   activeInteractiveTokenPromise = (async () => {
     try {
       try {
+        // Sem prompt: "select_account" para aproveitar a sessão SSO já ativa do navegador
         const popupResponse = await pca.acquireTokenPopup({
           scopes: SHAREPOINT_SCOPES,
-          prompt: "select_account",
         });
 
         if (popupResponse?.account) {
           pca.setActiveAccount(popupResponse.account);
+          saveStoredMicrosoftAccount(popupResponse.account);
         }
         return popupResponse.accessToken;
       } catch (popupError: any) {
@@ -194,10 +288,10 @@ export async function getSharePointAccessToken(interactiveFallback = true): Prom
           await new Promise((r) => setTimeout(r, 400));
           const retryResponse = await pca.acquireTokenPopup({
             scopes: SHAREPOINT_SCOPES,
-            prompt: "select_account",
           });
           if (retryResponse?.account) {
             pca.setActiveAccount(retryResponse.account);
+            saveStoredMicrosoftAccount(retryResponse.account);
           }
           return retryResponse.accessToken;
         }
@@ -216,9 +310,12 @@ export async function getSharePointAccessToken(interactiveFallback = true): Prom
 }
 
 /**
- * Conecta explicitamente a conta corporativa Microsoft com trava anti-colisão
+ * Conecta explicitamente a conta corporativa Microsoft com SSO permanente.
  */
 export async function loginMicrosoft(): Promise<AccountInfo | null> {
+  const current = await getActiveMicrosoftAccount();
+  if (current) return current;
+
   if (activeLoginPromise) {
     return activeLoginPromise;
   }
@@ -227,15 +324,19 @@ export async function loginMicrosoft(): Promise<AccountInfo | null> {
     try {
       const pca = await getMsalInstance();
       const currentActive = pca.getActiveAccount();
-      if (currentActive) return currentActive;
+      if (currentActive) {
+        saveStoredMicrosoftAccount(currentActive);
+        return currentActive;
+      }
 
       try {
+        // Sem prompt: "select_account" para conectar direto via SSO da conta Microsoft 365
         const response = await pca.loginPopup({
           scopes: SHAREPOINT_SCOPES,
-          prompt: "select_account",
         });
         if (response.account) {
           pca.setActiveAccount(response.account);
+          saveStoredMicrosoftAccount(response.account);
           return response.account;
         }
         return null;
@@ -249,10 +350,10 @@ export async function loginMicrosoft(): Promise<AccountInfo | null> {
           await new Promise((r) => setTimeout(r, 400));
           const retryRes = await pca.loginPopup({
             scopes: SHAREPOINT_SCOPES,
-            prompt: "select_account",
           });
           if (retryRes.account) {
             pca.setActiveAccount(retryRes.account);
+            saveStoredMicrosoftAccount(retryRes.account);
             return retryRes.account;
           }
         }
@@ -270,19 +371,20 @@ export async function loginMicrosoft(): Promise<AccountInfo | null> {
 }
 
 /**
- * Desconecta a conta Microsoft do navegador
+ * Desconecta a conta Microsoft do navegador.
  */
 export async function logoutMicrosoft(): Promise<void> {
   try {
     const pca = await getMsalInstance();
     const account = pca.getActiveAccount();
+    removeStoredMicrosoftAccount();
     if (account) {
       await pca.logoutPopup({ account });
     }
     clearMsalInteractions();
   } catch (err) {
     console.warn("[MSAL] Erro ao deslogar da Microsoft:", err);
+    removeStoredMicrosoftAccount();
     clearMsalInteractions();
   }
 }
-

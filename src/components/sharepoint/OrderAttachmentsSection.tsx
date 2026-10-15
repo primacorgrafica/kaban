@@ -33,6 +33,7 @@ import {
 import { useOrderAttachments } from "@/hooks/useOrderAttachments";
 import {
   getActiveMicrosoftAccount,
+  getStoredMicrosoftUser,
   loginMicrosoft,
 } from "@/lib/msalClient";
 import { downloadFileFromSharePoint } from "@/lib/sharepointService";
@@ -96,7 +97,9 @@ export function OrderAttachmentsSection({
 
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [msAccount, setMsAccount] = useState<AccountInfo | null>(null);
+  const [msAccount, setMsAccount] = useState<AccountInfo | { name?: string; username: string } | null>(
+    () => getStoredMicrosoftUser()
+  );
   const [msAuthLoading, setMsAuthLoading] = useState(false);
   const [deletingAttachment, setDeletingAttachment] = useState<OrderAttachment | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -121,19 +124,24 @@ export function OrderAttachmentsSection({
     }
   };
 
-
-  // Verifica conta Microsoft conectada
+  // Verifica conta Microsoft conectada em segundo plano
   useEffect(() => {
-    void getActiveMicrosoftAccount().then(setMsAccount);
+    void getActiveMicrosoftAccount().then((acc) => {
+      if (acc) setMsAccount(acc);
+    });
   }, []);
 
   const handleConnectMicrosoft = async () => {
     setMsAuthLoading(true);
     try {
       const acc = await loginMicrosoft();
-      setMsAccount(acc);
+      if (acc) {
+        setMsAccount(acc);
+        toast.success(`Conectado ao Microsoft 365 como ${acc.name || acc.username}`);
+      }
     } catch (err: any) {
       console.warn("Falha ao autenticar Microsoft:", err);
+      toast.error(`Falha ao autenticar Microsoft: ${err?.message || err}`);
     } finally {
       setMsAuthLoading(false);
     }
