@@ -2,51 +2,30 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import "./index.css";
-import { getMsalInstance, saveStoredMicrosoftAccount } from "./lib/msalClient";
+import { getMsalInstance } from "./lib/msalClient";
+import { broadcastResponseToMainFrame } from "@azure/msal-browser/redirect-bridge";
 
-// Detecta se esta janela é estritamente um popup de autenticação do MSAL retornando do Microsoft Entra ID
+// Detecta se esta janela é um retorno de popup de autenticação do Microsoft Entra ID
 const isMsalPopup =
   typeof window !== "undefined" &&
   (window.location.hash.includes("code=") ||
     window.location.search.includes("code=") ||
     window.location.hash.includes("error=") ||
     window.location.search.includes("error=") ||
-    window.name.includes("msal") ||
-    Boolean(window.opener && window.opener !== window));
+    window.name.includes("msal"));
 
 if (isMsalPopup) {
-  // Inicializa o MSAL no popup para processar o token e fechar automaticamente
+  // Transmite a resposta OAuth diretamente para a janela principal via redirect-bridge oficial do MSAL
   void (async () => {
     try {
-      const pca = await getMsalInstance();
-      const response = await pca.handleRedirectPromise();
-      if (response?.account) {
-        pca.setActiveAccount(response.account);
-        saveStoredMicrosoftAccount(response.account);
-      }
-      try {
-        const bc = new BroadcastChannel("kaban_msal_channel");
-        bc.postMessage({ type: "MSAL_SUCCESS", account: response?.account });
-        bc.close();
-      } catch (_) {}
+      await broadcastResponseToMainFrame();
     } catch (err) {
-      console.warn("[MSAL Popup Callback]", err);
-    } finally {
-      // Fecha a janela popup automaticamente
-      setTimeout(() => {
-        try {
-          window.close();
-        } catch (_) {}
-      }, 400);
+      console.warn("[MSAL Popup Bridge Error]", err);
+      try {
+        window.close();
+      } catch (_) {}
     }
   })();
-
-  // Trava de segurança: fecha em no máximo 1.8s
-  setTimeout(() => {
-    try {
-      window.close();
-    } catch (_) {}
-  }, 1800);
 
   const root = document.getElementById("root");
   if (root) {

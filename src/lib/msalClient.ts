@@ -104,6 +104,7 @@ const msalConfig: Configuration = {
   },
   system: {
     allowNativeBroker: false,
+    popupBridgeTimeout: 60000, // 60s para evitar qualquer erro de timed_out em redes móveis/lentas
     loggerOptions: {
       logLevel: LogLevel.Warning,
       loggerCallback: (level, message, containsPii) => {
