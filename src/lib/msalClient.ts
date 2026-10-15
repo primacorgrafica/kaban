@@ -76,6 +76,21 @@ export function removeStoredMicrosoftAccount(): void {
   }
 }
 
+// Sincroniza em tempo real contas autenticadas através de popups em outras janelas/abas
+if (typeof window !== "undefined") {
+  try {
+    const bc = new BroadcastChannel("kaban_msal_channel");
+    bc.onmessage = (event) => {
+      if (event.data?.type === "MSAL_SUCCESS" && event.data?.account) {
+        if (msalInstance) {
+          msalInstance.setActiveAccount(event.data.account);
+        }
+        saveStoredMicrosoftAccount(event.data.account);
+      }
+    };
+  } catch (_) {}
+}
+
 const msalConfig: Configuration = {
   auth: {
     clientId: AZURE_CLIENT_ID,
@@ -297,6 +312,17 @@ export async function getSharePointAccessToken(interactiveFallback = true): Prom
         }
 
         if (popupError?.errorCode === "user_cancelled") {
+          // Se a janela popup foi fechada mas já salvou a conta com sucesso
+          const savedAcc = await getActiveMicrosoftAccount();
+          if (savedAcc) {
+            const silentToken = await pca.acquireTokenSilent({
+              scopes: SHAREPOINT_SCOPES,
+              account: savedAcc,
+            }).catch(() => null);
+            if (silentToken?.accessToken) {
+              return silentToken.accessToken;
+            }
+          }
           throw new Error("Autenticação Microsoft cancelada pelo usuário.");
         }
         throw popupError;
@@ -334,13 +360,19 @@ export async function loginMicrosoft(): Promise<AccountInfo | null> {
         const response = await pca.loginPopup({
           scopes: SHAREPOINT_SCOPES,
         });
-        if (response.account) {
+        if (response?.account) {
           pca.setActiveAccount(response.account);
           saveStoredMicrosoftAccount(response.account);
           return response.account;
         }
         return null;
       } catch (loginErr: any) {
+        // Se a janela popup foi fechada mas já salvou a conta com sucesso no localStorage
+        const savedAcc = await getActiveMicrosoftAccount();
+        if (savedAcc) {
+          return savedAcc;
+        }
+
         if (
           loginErr?.errorCode === "interaction_in_progress" ||
           loginErr?.message?.includes("interaction_in_progress")
@@ -351,7 +383,7 @@ export async function loginMicrosoft(): Promise<AccountInfo | null> {
           const retryRes = await pca.loginPopup({
             scopes: SHAREPOINT_SCOPES,
           });
-          if (retryRes.account) {
+          if (retryRes?.account) {
             pca.setActiveAccount(retryRes.account);
             saveStoredMicrosoftAccount(retryRes.account);
             return retryRes.account;

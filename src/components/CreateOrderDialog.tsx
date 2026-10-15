@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
   IMPRESSAO_TIPOS,
   IMPRESSAO_PROCESSOS,
@@ -108,6 +109,11 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
   const [msUser, setMsUser] = useState<StoredMicrosoftUser | null>(() => getStoredMicrosoftUser());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatusText, setSubmitStatusText] = useState("");
+  const [currentUploadFile, setCurrentUploadFile] = useState<string | null>(null);
+  const [currentUploadProgress, setCurrentUploadProgress] = useState<number>(0);
+  const [currentUploadFileIndex, setCurrentUploadFileIndex] = useState<number>(0);
+  const [currentUploadTotalFiles, setCurrentUploadTotalFiles] = useState<number>(0);
+  const [currentUploadSpeedOrBytes, setCurrentUploadSpeedOrBytes] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -196,6 +202,11 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
   const resetForm = () => {
     setStep(1);
     setStagedFiles([]);
+    setCurrentUploadFile(null);
+    setCurrentUploadProgress(0);
+    setCurrentUploadFileIndex(0);
+    setCurrentUploadTotalFiles(0);
+    setCurrentUploadSpeedOrBytes("");
     setForm({
 
       titulo: "",
@@ -379,15 +390,35 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
           setSubmitStatusText("Criando pasta da O.S. no SharePoint...");
           const folder = await getOrCreateOsFolder(targetOrderId, osTitulo);
 
+          setCurrentUploadTotalFiles(filesToUpload.length);
           let uploadedCount = 0;
+
           for (let i = 0; i < filesToUpload.length; i++) {
             const file = filesToUpload[i];
             const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+
+            setCurrentUploadFileIndex(i + 1);
+            setCurrentUploadFile(file.name);
+            setCurrentUploadProgress(0);
+            setCurrentUploadSpeedOrBytes(`0.0 MB / ${sizeMb} MB (0%)`);
+
             setSubmitStatusText(
               `Enviando anexo ${i + 1} de ${filesToUpload.length}: ${file.name} (${sizeMb} MB)...`
             );
 
-            const driveItem = await uploadFileToSharePoint(file, folder);
+            const driveItem = await uploadFileToSharePoint(
+              file,
+              folder,
+              (percent) => {
+                setCurrentUploadProgress(percent);
+                const loadedMb = ((file.size * percent) / (100 * 1024 * 1024)).toFixed(1);
+                setCurrentUploadSpeedOrBytes(`${loadedMb} MB / ${sizeMb} MB (${percent}%)`);
+              }
+            );
+
+            setCurrentUploadProgress(100);
+            setCurrentUploadSpeedOrBytes(`${sizeMb} MB / ${sizeMb} MB (100%)`);
+
             await (supabase.from("order_attachments" as any) as any).insert({
               order_id: targetOrderId,
               nome_arquivo: driveItem.name || file.name,
@@ -437,6 +468,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
     <Dialog
       open={open}
       onOpenChange={(v) => {
+        if (isSubmitting) return;
         setOpen(v);
         if (!v) resetForm();
       }}
@@ -535,6 +567,48 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
             })}
           </div>
         </div>
+
+        {/* Barra de Progresso Real-time de Upload para o SharePoint */}
+        {isSubmitting && (currentUploadTotalFiles > 0 || stagedFiles.length > 0) && (
+          <div className="mx-6 mt-4 p-4 rounded-2xl bg-cyan-950/40 border border-cyan-500/30 shadow-xl space-y-3 animate-in fade-in-50 duration-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="h-9 w-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                  <Cloud className="h-5 w-5 animate-pulse" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-foreground flex items-center gap-2">
+                    <span>Enviando anexo para o SharePoint Corporativo</span>
+                    {currentUploadTotalFiles > 0 && (
+                      <Badge variant="outline" className="text-[10px] font-mono-tech border-cyan-500/40 text-cyan-400 bg-cyan-500/10">
+                        Arquivo {currentUploadFileIndex} de {currentUploadTotalFiles}
+                      </Badge>
+                    )}
+                  </h4>
+                  <p className="text-[11px] text-muted-foreground truncate max-w-md font-mono-tech" title={currentUploadFile || ""}>
+                    {currentUploadFile || submitStatusText}
+                  </p>
+                </div>
+              </div>
+              <span className="text-base font-mono-tech font-bold text-cyan-400">
+                {currentUploadProgress}%
+              </span>
+            </div>
+
+            <div className="space-y-1.5">
+              <Progress
+                value={currentUploadProgress}
+                className="h-2.5 bg-slate-900 border border-cyan-500/20"
+              />
+              <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono-tech">
+                <span className="text-cyan-300 font-medium">
+                  {currentUploadSpeedOrBytes || "Transmitindo dados..."}
+                </span>
+                <span>SharePoint Primacor</span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Step Content Container (Centralized, No Ugly Scrollbar) */}
         <div className="p-6 flex-1 overflow-y-auto max-h-[58vh]">
@@ -1288,7 +1362,11 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                 {isSubmitting ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin text-white" />
-                    <span className="truncate max-w-[280px]">{submitStatusText || "Salvando..."}</span>
+                    <span className="truncate max-w-[280px]">
+                      {currentUploadTotalFiles > 0
+                        ? `Enviando ${currentUploadProgress}% (${currentUploadFileIndex}/${currentUploadTotalFiles})`
+                        : submitStatusText || "Salvando..."}
+                    </span>
                   </>
                 ) : (
                   <>

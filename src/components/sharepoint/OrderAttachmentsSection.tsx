@@ -395,7 +395,13 @@ export function OrderAttachmentsSection({
                 </div>
 
                 {item.status === "uploading" && (
-                  <Progress value={item.progress} className="h-1.5 bg-slate-800" />
+                  <div className="space-y-1 pt-1">
+                    <Progress value={item.progress} className="h-2.5 bg-slate-900 border border-cyan-500/25 rounded-full" />
+                    <div className="flex items-center justify-between text-[10px] font-mono-tech text-muted-foreground">
+                      <span>Enviando para o SharePoint...</span>
+                      <span className="text-cyan-400 font-bold">{item.progress}%</span>
+                    </div>
+                  </div>
                 )}
 
                 {item.error && (
