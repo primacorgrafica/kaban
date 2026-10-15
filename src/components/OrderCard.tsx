@@ -27,6 +27,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { PROCESSO_GROUPS, ALL_PROCESSOS, getProcessoCor, ACABAMENTO_TIPOS, IMPRESSAO_TIPOS, IMPRESSAO_PROCESSOS, ACABAMENTO_GROUPS } from "@/lib/processos";
+import { OrderAttachmentsSection } from "./sharepoint/OrderAttachmentsSection";
+
 
 const HIDDEN_PROCESSOS = [...(ACABAMENTO_TIPOS as readonly string[]), ...IMPRESSAO_TIPOS.map((p) => p.sigla)];
 const PROCESSO_ORDER = ALL_PROCESSOS.map((p) => p.sigla);
@@ -1075,7 +1077,18 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                     )}
                   </div>
                 </div>
+
+                {/* ─── SEÇÃO COMPLETA DE ANEXOS DO SHAREPOINT CORPORATIVO (2 COLUNAS) ─── */}
+                <div className="col-span-1 md:col-span-2 pt-2 border-t border-border/60">
+                  <OrderAttachmentsSection
+                    orderId={order.id}
+                    orderTitulo={order.titulo}
+                    readOnly={permissions.isViewOnly}
+                    canDelete={permissions.canDelete}
+                  />
+                </div>
               </div>
+
 
               {/* Rodapé Fixo de Ações */}
               <div className="px-6 py-3.5 border-t border-border bg-card/90 dark:border-slate-800/80 dark:bg-slate-900/60 flex flex-wrap items-center justify-between gap-3 shrink-0">

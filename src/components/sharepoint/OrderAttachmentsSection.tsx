@@ -15,6 +15,7 @@ import {
   FolderOpen,
   ShieldCheck,
   LogIn,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -34,10 +35,13 @@ import {
   getActiveMicrosoftAccount,
   loginMicrosoft,
 } from "@/lib/msalClient";
+import { downloadFileFromSharePoint } from "@/lib/sharepointService";
 import type { OrderAttachment } from "@/types/sharepoint";
 import type { AccountInfo } from "@azure/msal-browser";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { toast } from "sonner";
+
 
 interface OrderAttachmentsSectionProps {
   orderId: string | null;
@@ -95,8 +99,28 @@ export function OrderAttachmentsSection({
   const [msAccount, setMsAccount] = useState<AccountInfo | null>(null);
   const [msAuthLoading, setMsAuthLoading] = useState(false);
   const [deletingAttachment, setDeletingAttachment] = useState<OrderAttachment | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleDownload = async (att: OrderAttachment) => {
+    try {
+      setDownloadingId(att.id);
+      toast.info(`Iniciando download de "${att.nome_arquivo}"...`);
+      await downloadFileFromSharePoint(
+        att.sharepoint_item_id,
+        att.nome_arquivo,
+        att.sharepoint_drive_id
+      );
+      toast.success(`Download de "${att.nome_arquivo}" concluído!`);
+    } catch (err: any) {
+      console.error("Erro ao baixar anexo:", err);
+      toast.error(`Falha ao baixar arquivo: ${err?.message || err}`);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
 
   // Verifica conta Microsoft conectada
   useEffect(() => {
@@ -416,6 +440,24 @@ export function OrderAttachmentsSection({
                 </div>
 
                 <div className="flex items-center gap-1.5 shrink-0">
+                  {/* Baixar diretamente */}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={downloadingId === att.id}
+                    onClick={() => handleDownload(att)}
+                    className="h-7 px-2.5 text-xs font-semibold gap-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border-emerald-500/30 rounded-lg transition-colors"
+                    title="Baixar arquivo para o seu computador"
+                  >
+                    {downloadingId === att.id ? (
+                      <Loader2 className="h-3 w-3 animate-spin text-emerald-400" />
+                    ) : (
+                      <Download className="h-3 w-3 text-emerald-400" />
+                    )}
+                    <span>Baixar</span>
+                  </Button>
+
                   {/* Abrir diretamente no SharePoint */}
                   <a
                     href={att.sharepoint_web_url}
@@ -426,6 +468,7 @@ export function OrderAttachmentsSection({
                     <ExternalLink className="h-3 w-3" />
                     Abrir no SharePoint
                   </a>
+
 
                   {/* Excluir Anexo */}
                   {canDelete && !readOnly && (

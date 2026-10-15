@@ -4,45 +4,67 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import "./index.css";
 import { getMsalInstance } from "./lib/msalClient";
 
-// Detecta se a janela atual é um popup ou iframe de autenticação do Microsoft Entra / MSAL
+// Detecta se a URL contém parâmetros de retorno de autenticação do Microsoft Entra / MSAL
 const isMsalInteraction =
   typeof window !== "undefined" &&
-  ((window.opener && window.opener !== window) || window !== window.top) &&
   (window.location.hash.includes("code=") ||
     window.location.search.includes("code=") ||
     window.location.hash.includes("error=") ||
     window.location.search.includes("error=") ||
-    window.name.includes("msal"));
+    window.name.includes("msal") ||
+    Boolean(window.opener && window.opener !== window));
 
 if (isMsalInteraction) {
   // Inicializa o MSAL no popup para processar o callback do Entra ID e fechar a janela
-  void getMsalInstance();
+  void (async () => {
+    try {
+      const pca = await getMsalInstance();
+      await pca.handleRedirectPromise();
+    } catch (err) {
+      console.warn("[MSAL Callback]", err);
+    } finally {
+      // Fecha a janela popup automaticamente
+      setTimeout(() => {
+        try {
+          window.close();
+        } catch (_) {}
+      }, 500);
+    }
+  })();
 
   const root = document.getElementById("root");
   if (root) {
     createRoot(root).render(
       <div className="flex h-screen w-screen flex-col items-center justify-center bg-[#070a12] text-white select-none">
-        <div className="flex flex-col items-center gap-4 p-8 rounded-2xl bg-[#0f172a]/80 border border-cyan-500/30 shadow-2xl backdrop-blur-md max-w-sm text-center">
+        <div className="flex flex-col items-center gap-4 p-8 rounded-2xl bg-[#0f172a]/95 border border-cyan-500/30 shadow-2xl backdrop-blur-md max-w-sm text-center">
           <div className="relative h-12 w-12 flex items-center justify-center">
             <div className="absolute inset-0 rounded-full border-2 border-cyan-500/20 border-t-cyan-400 animate-spin" />
             <div className="h-4 w-4 rounded-full bg-cyan-400 animate-pulse" />
           </div>
           <div>
             <h2 className="text-sm font-semibold tracking-wider text-cyan-400 uppercase font-mono-tech">
-              Autenticação Microsoft 365
+              Autenticação Microsoft Concluída
             </h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Conectando com segurança ao SharePoint Primacor...
+            <p className="text-xs text-slate-300 mt-1">
+              Conectado ao SharePoint corporativo com sucesso!
             </p>
           </div>
-          <p className="text-[10px] text-slate-500 font-mono-tech">
-            Esta janela será fechada automaticamente em instantes.
+          <p className="text-[11px] text-slate-400 font-mono-tech">
+            Esta janela será fechada automaticamente...
           </p>
+          <button
+            type="button"
+            onClick={() => window.close()}
+            className="mt-2 text-xs px-4 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-medium transition-all shadow-md cursor-pointer"
+          >
+            Fechar Janela
+          </button>
         </div>
       </div>
     );
   }
-} else {
+}
+ else {
   // Inicializa o cliente MSAL no fluxo normal da aplicação
   void getMsalInstance();
 

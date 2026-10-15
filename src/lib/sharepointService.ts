@@ -534,3 +534,67 @@ export async function deleteFileFromSharePoint(itemId: string): Promise<void> {
     throw new Error(`Falha ao excluir arquivo do SharePoint: ${err?.error?.message || res.statusText}`);
   }
 }
+
+/**
+ * Baixa um arquivo do SharePoint diretamente pelo Microsoft Graph
+ */
+export async function downloadFileFromSharePoint(
+  itemId: string,
+  fileName: string,
+  driveId?: string
+): Promise<void> {
+  const token = await getSharePointAccessToken();
+  const resolved = await resolveSharePointSiteAndDrive();
+  const effectiveDriveId = driveId || resolved.driveId;
+
+  // 1. Tenta obter a URL de download direto (CDN pré-autenticada da Microsoft)
+  const metaUrl = `https://graph.microsoft.com/v1.0/sites/${resolved.siteId}/drives/${effectiveDriveId}/items/${itemId}?select=id,name,@microsoft.graph.downloadUrl`;
+  try {
+    const metaRes = await fetch(metaUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (metaRes.ok) {
+      const data = await metaRes.json();
+      const downloadUrl = data["@microsoft.graph.downloadUrl"];
+      if (downloadUrl) {
+        const a = document.createElement("a");
+        a.href = downloadUrl;
+        a.download = fileName;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        return;
+      }
+    }
+  } catch (metaErr) {
+    console.warn("[SharePoint] Falha ao obter @microsoft.graph.downloadUrl, tentando stream binário:", metaErr);
+  }
+
+  // 2. Fallback: Baixa os bytes via Graph API e cria um Object URL local
+  const contentUrl = `https://graph.microsoft.com/v1.0/sites/${resolved.siteId}/drives/${effectiveDriveId}/items/${itemId}/content`;
+  const contentRes = await fetch(contentUrl, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!contentRes.ok) {
+    throw new Error(`Falha ao baixar arquivo do SharePoint (${contentRes.status})`);
+  }
+
+  const blob = await contentRes.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+}
+
