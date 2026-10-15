@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, createContext, useContext, ReactNode, useC
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { markConversationAsRead, getLocalHiddenConversations, setLocalConversationHidden } from "@/lib/chatService";
+import { markConversationAsRead, getLocalHiddenConversations, setLocalConversationHidden, setLocalHiddenOtherUser } from "@/lib/chatService";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
@@ -100,6 +100,7 @@ export function GlobalChatNotifier({ children }: { children?: ReactNode }) {
   const [unreadChatCount, setUnreadChatCount] = useState(0);
   const [unreadByConversation, setUnreadByConversation] = useState<Record<string, number>>({});
   const profilesCache = useRef<Record<string, { nome: string; setor?: string }>>({});
+  const myConvIdsRef = useRef<Set<string>>(new Set());
 
   // Atualiza contagem de mensagens não lidas (geral e por conversa)
   const refreshUnreadCount = useCallback(async () => {
@@ -123,6 +124,7 @@ export function GlobalChatNotifier({ children }: { children?: ReactNode }) {
       }
 
       const convIds = convs.map((c: any) => c.id);
+      myConvIdsRef.current = new Set(convIds);
 
       // 2. Busca settings de cada conversa para saber o last_read_at
       const { data: settings } = await supabase
@@ -272,8 +274,26 @@ export function GlobalChatNotifier({ children }: { children?: ReactNode }) {
           // Se a mensagem foi enviada pelo próprio usuário, não notifica
           if (newMsg.sender_id === currentUserId) return;
 
-          // Se recebeu mensagem de outra pessoa, garante que a conversa não continue oculta
+          // Verifica se a conversa pertence a este usuário antes de notificar ou desocultar
+          let isMyConv = myConvIdsRef.current.has(newMsg.conversation_id);
+          if (!isMyConv) {
+            const { data: convCheck } = await supabase
+              .from("chat_conversations" as any)
+              .select("id")
+              .eq("id", newMsg.conversation_id)
+              .or(`user1_id.eq.${currentUserId},user2_id.eq.${currentUserId}`)
+              .maybeSingle();
+
+            if (!convCheck) {
+              // Mensagem entre outros usuários: ignorar completamente
+              return;
+            }
+            myConvIdsRef.current.add(newMsg.conversation_id);
+          }
+
+          // Se recebeu nova mensagem de outra pessoa nesta conversa, desoculta conversa e contato
           setLocalConversationHidden(currentUserId, newMsg.conversation_id, false);
+          setLocalHiddenOtherUser(currentUserId, newMsg.sender_id, false);
 
           // Se o usuário já está ativo exatamente nessa conversa e com a aba visível
           const activeId = getActiveChatConversationId();

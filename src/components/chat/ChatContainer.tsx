@@ -7,6 +7,7 @@ import { ChatMessageItem } from "./ChatMessageItem";
 import { EmojiPickerPopover } from "./EmojiPickerPopover";
 import { NewConversationDialog } from "./NewConversationDialog";
 import { notifyConversationViewed } from "./GlobalChatNotifier";
+import { getLocalHiddenOtherUsers } from "@/lib/chatService";
 import {
   ChatConversation,
   ChatMessage,
@@ -174,20 +175,22 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
     }
   };
 
-  // Usuários online que ainda não possuem conversa no histórico
+  // Usuários online que ainda não possuem conversa no histórico (e que não foram ocultados/excluídos)
   const onlineUsersWithoutConversation = useMemo(() => {
     const existingOtherUserIds = new Set(
       conversations.map((c) => c.otherUser.id)
     );
+    const hiddenUserIds = getLocalHiddenOtherUsers(currentUserId);
     return availableUsers.filter(
-      (u) => u.online && !existingOtherUserIds.has(u.id)
+      (u) => u.online && !existingOtherUserIds.has(u.id) && !hiddenUserIds.has(u.id)
     );
-  }, [availableUsers, conversations]);
+  }, [availableUsers, conversations, currentUserId]);
 
-  // Lista de todos os usuários online no momento
+  // Lista de todos os usuários online no momento (excluindo os que foram ocultados para o usuário)
   const allOnlineUsersList = useMemo(() => {
-    return availableUsers.filter((u) => u.online);
-  }, [availableUsers]);
+    const hiddenUserIds = getLocalHiddenOtherUsers(currentUserId);
+    return availableUsers.filter((u) => u.online && !hiddenUserIds.has(u.id));
+  }, [availableUsers, currentUserId]);
 
   // Filtragem de conversas existentes
   const filteredConversations = useMemo(() => {

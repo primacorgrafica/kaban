@@ -73,6 +73,7 @@ export async function fetchChatUsers(
 }
 
 const HIDDEN_CONVS_STORAGE_PREFIX = "primacor_chat_hidden_";
+const HIDDEN_USERS_STORAGE_PREFIX = "primacor_chat_hidden_users_";
 
 export function getLocalHiddenConversations(userId: string): Set<string> {
   if (typeof window === "undefined" || !userId) return new Set();
@@ -101,6 +102,40 @@ export function setLocalConversationHidden(userId: string, conversationId: strin
     }
     localStorage.setItem(
       `${HIDDEN_CONVS_STORAGE_PREFIX}${userId}`,
+      JSON.stringify(Array.from(current))
+    );
+  } catch {
+    // silencioso
+  }
+}
+
+export function getLocalHiddenOtherUsers(userId: string): Set<string> {
+  if (typeof window === "undefined" || !userId) return new Set();
+  try {
+    const raw = localStorage.getItem(`${HIDDEN_USERS_STORAGE_PREFIX}${userId}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return new Set(parsed);
+      }
+    }
+  } catch {
+    // silencioso
+  }
+  return new Set();
+}
+
+export function setLocalHiddenOtherUser(userId: string, otherUserId: string, hidden: boolean) {
+  if (typeof window === "undefined" || !userId || !otherUserId) return;
+  try {
+    const current = getLocalHiddenOtherUsers(userId);
+    if (hidden) {
+      current.add(otherUserId);
+    } else {
+      current.delete(otherUserId);
+    }
+    localStorage.setItem(
+      `${HIDDEN_USERS_STORAGE_PREFIX}${userId}`,
       JSON.stringify(Array.from(current))
     );
   } catch {
@@ -140,16 +175,21 @@ export async function fetchUserConversations(
     }
 
     const localHidden = getLocalHiddenConversations(currentUserId);
+    const localHiddenUsers = getLocalHiddenOtherUsers(currentUserId);
 
     const visibleConvs = (convs as any[]).filter((raw) => {
+      const otherId = raw.user1_id === currentUserId ? raw.user2_id : raw.user1_id;
+
       // 1. Verifica no localStorage imediato (garante que não volta mesmo antes do sync)
       if (localHidden.has(raw.id)) {
+        if (otherId) localHiddenUsers.add(otherId);
         return false;
       }
       // 2. Verifica nas configurações salvas no banco
       const convSetting = settingsMap[raw.id];
-      if (convSetting && convSetting.is_hidden) {
+      if (convSetting && (convSetting.is_hidden === true || (convSetting.is_hidden as any) === "true")) {
         localHidden.add(raw.id);
+        if (otherId) localHiddenUsers.add(otherId);
         return false;
       }
       return true;
@@ -161,6 +201,10 @@ export async function fetchUserConversations(
         localStorage.setItem(
           `${HIDDEN_CONVS_STORAGE_PREFIX}${currentUserId}`,
           JSON.stringify(Array.from(localHidden))
+        );
+        localStorage.setItem(
+          `${HIDDEN_USERS_STORAGE_PREFIX}${currentUserId}`,
+          JSON.stringify(Array.from(localHiddenUsers))
         );
       } catch {}
     }
@@ -238,6 +282,7 @@ export async function getOrCreateConversation(
     if (existing) {
       // Reativar visibilidade caso estivesse oculta
       setLocalConversationHidden(currentUserId, (existing as any).id, false);
+      setLocalHiddenOtherUser(currentUserId, targetUserId, false);
       await supabase
         .from("chat_conversation_settings" as any)
         .upsert(
@@ -556,58 +601,67 @@ export async function deleteMessageForAll(
 
 /**
  * Exclui a conversa para o usuário atual ("Excluir conversa para mim")
- * Oculta a conversa da lista sem apagar mensagens do outro participante
+ * Oculta a conversa da lista, remove o contato da exibição e apaga as mensagens para este usuário
  */
 export async function hideConversationForUser(
   conversationId: string,
-  userId: string
+  userId: string,
+  otherUserId?: string
 ): Promise<boolean> {
   try {
-    // 1. Imediatamente persiste no localStorage para que nunca mais reapareça na sessão
-    setLocalConversationHidden(userId, conversationId, true);
-
     const now = new Date().toISOString();
 
-    // 2. Atualiza settings no Supabase com is_hidden: true e cleared_until: now
-    // (cleared_until garante que se um dia for reaberta por nova mensagem, mensagens antigas continuem ocultas)
-    const { data: updated, error: updateError } = await supabase
-      .from("chat_conversation_settings" as any)
-      .update({
-        is_hidden: true,
-        cleared_until: now,
-        updated_at: now,
-      })
-      .eq("conversation_id", conversationId)
-      .eq("user_id", userId)
-      .select();
-
-    if (!updateError && updated && updated.length > 0) {
-      return true;
+    // 1. Imediatamente persiste no localStorage para que nunca mais reapareça na sessão
+    setLocalConversationHidden(userId, conversationId, true);
+    if (otherUserId) {
+      setLocalHiddenOtherUser(userId, otherUserId, true);
     }
 
-    // 3. Se não existia registro prévio, insere
-    const { error: insertError } = await supabase
+    // 2. Atualiza settings no Supabase de forma atômica garantida com upsert
+    // (cleared_until garante que se um dia for reaberta por nova mensagem, mensagens antigas continuem ocultas)
+    const { error: upsertError } = await supabase
       .from("chat_conversation_settings" as any)
-      .insert({
-        conversation_id: conversationId,
-        user_id: userId,
-        is_hidden: true,
-        cleared_until: now,
-      });
+      .upsert(
+        {
+          conversation_id: conversationId,
+          user_id: userId,
+          is_hidden: true,
+          cleared_until: now,
+          last_read_at: now,
+          updated_at: now,
+        },
+        { onConflict: "conversation_id,user_id" }
+      );
 
-    if (insertError) {
-      // 4. Fallback com upsert
-      await supabase
-        .from("chat_conversation_settings" as any)
-        .upsert(
-          {
-            conversation_id: conversationId,
-            user_id: userId,
-            is_hidden: true,
-            cleared_until: now,
-          },
-          { onConflict: "conversation_id,user_id" }
-        );
+    if (upsertError) {
+      console.warn("Aviso ao salvar settings de exclusão da conversa:", upsertError);
+    }
+
+    // 3. Marca todas as mensagens existentes desta conversa como excluídas para este usuário (deleted_for_users)
+    try {
+      const { data: msgs } = await supabase
+        .from("chat_messages" as any)
+        .select("id, deleted_for_users")
+        .eq("conversation_id", conversationId);
+
+      if (msgs && msgs.length > 0) {
+        const updatePromises = msgs
+          .filter((m: any) => {
+            const currentDeleted = Array.isArray(m.deleted_for_users) ? m.deleted_for_users : [];
+            return !currentDeleted.includes(userId);
+          })
+          .map((m: any) => {
+            const currentDeleted = Array.isArray(m.deleted_for_users) ? m.deleted_for_users : [];
+            return supabase
+              .from("chat_messages" as any)
+              .update({ deleted_for_users: [...currentDeleted, userId] })
+              .eq("id", m.id);
+          });
+
+        await Promise.allSettled(updatePromises);
+      }
+    } catch (e) {
+      console.warn("Aviso ao marcar mensagens apagadas na exclusão:", e);
     }
 
     return true;

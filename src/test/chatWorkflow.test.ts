@@ -400,4 +400,37 @@ describe("Chat Privado — Regras de Negócio e Lógica de Mensageria", () => {
 
     expect(hiddenSet.has("conv-1")).toBe(false);
   });
+
+  it("não deve exibir contato excluído em disponíveis online", () => {
+    const hiddenUsers = new Set<string>(["user-carlos"]);
+    const availableUsers = [
+      { id: "user-carlos", nome: "Carlos", online: true },
+      { id: "user-ana", nome: "Ana", online: true },
+    ];
+    const existingOtherUserIds = new Set<string>();
+
+    const onlineWithoutConv = availableUsers.filter(
+      (u) => u.online && !existingOtherUserIds.has(u.id) && !hiddenUsers.has(u.id)
+    );
+
+    expect(onlineWithoutConv.length).toBe(1);
+    expect(onlineWithoutConv[0].id).toBe("user-ana");
+  });
+
+  it("não deve desocultar conversas por mensagens enviadas entre terceiros", () => {
+    const myConvIds = new Set<string>(["conv-me-and-ana"]);
+    const hiddenConvs = new Set<string>(["conv-me-and-carlos"]);
+
+    // Mensagem entre Carlos e Roberto (eu não participo desta conversa)
+    const thirdPartyMsg = {
+      conversation_id: "conv-carlos-roberto",
+      sender_id: "user-carlos",
+    };
+
+    if (myConvIds.has(thirdPartyMsg.conversation_id)) {
+      hiddenConvs.delete(thirdPartyMsg.conversation_id);
+    }
+
+    expect(hiddenConvs.has("conv-me-and-carlos")).toBe(true);
+  });
 });

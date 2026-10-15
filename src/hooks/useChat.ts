@@ -41,6 +41,8 @@ export function useChat() {
   const knownUsersMapRef = useRef<Record<string, ChatUser>>({});
   const activeConvRef = useRef<ChatConversation | null>(null);
   activeConvRef.current = activeConversation;
+  const conversationsRef = useRef<ChatConversation[]>([]);
+  conversationsRef.current = conversations;
 
   // União dos usuários detectados online via WebSocket (gerenciado centralmente no AuthProvider) e fallback de banco
   const allOnlineUserIds = useMemo(() => {
@@ -280,20 +282,25 @@ export function useChat() {
   const hideConversation = useCallback(
     async (conversationId: string) => {
       if (!currentUserId) return;
-      const success = await hideConversationForUser(conversationId, currentUserId);
+      const targetConv = conversations.find((c) => c.id === conversationId);
+      const otherUserId = targetConv?.otherUser.id;
+
+      // Remoção otimista imediata da lista e da seleção ativa
+      setConversations((prev) => prev.filter((c) => c.id !== conversationId));
+      if (activeConversation?.id === conversationId) {
+        setActiveConversation(null);
+        setActiveChatConversationId(null);
+        setMessages([]);
+      }
+
+      const success = await hideConversationForUser(conversationId, currentUserId, otherUserId);
       if (success) {
-        setConversations((prev) => prev.filter((c) => c.id !== conversationId));
-        if (activeConversation?.id === conversationId) {
-          setActiveConversation(null);
-          setActiveChatConversationId(null);
-          setMessages([]);
-        }
         toast.success("Conversa excluída para você");
       } else {
         toast.error("Erro ao excluir conversa");
       }
     },
-    [currentUserId, activeConversation]
+    [currentUserId, activeConversation, conversations]
   );
 
   // Limpar histórico para si
@@ -435,26 +442,39 @@ export function useChat() {
             void markConversationAsRead(newMsg.conversation_id, currentUserId);
             void notifyConversationViewed(newMsg.conversation_id);
           } else {
-            // Se for de outra conversa e enviada por outro usuário, incrementa unreadCount e desoculta
+            // Se for de outra conversa e enviada por outro usuário, só processa se o usuário atual for participante
             if (newMsg.sender_id !== currentUserId) {
-              setLocalConversationHidden(currentUserId, newMsg.conversation_id, false);
-              setConversations((prev) => {
-                const exists = prev.some((c) => c.id === newMsg.conversation_id);
-                if (!exists) {
-                  void loadConversations(false);
-                  return prev;
-                }
-                return prev.map((c) =>
-                  c.id === newMsg.conversation_id
-                    ? {
-                        ...c,
-                        unreadCount: c.unreadCount + 1,
-                        last_message_at: newMsg.created_at,
-                        last_message_preview: newMsg.content.slice(0, 80),
-                      }
-                    : c
+              const knownConv = conversationsRef.current.find((c) => c.id === newMsg.conversation_id);
+              if (knownConv) {
+                setLocalConversationHidden(currentUserId, newMsg.conversation_id, false);
+                setConversations((prev) =>
+                  prev.map((c) =>
+                    c.id === newMsg.conversation_id
+                      ? {
+                          ...c,
+                          unreadCount: c.unreadCount + 1,
+                          last_message_at: newMsg.created_at,
+                          last_message_preview: newMsg.content.slice(0, 80),
+                        }
+                      : c
+                  )
                 );
-              });
+              } else {
+                // Pode ser uma conversa oculta recebendo nova mensagem do outro colega:
+                // valida se o usuário atual é realmente participante antes de carregar
+                void supabase
+                  .from("chat_conversations" as any)
+                  .select("id")
+                  .eq("id", newMsg.conversation_id)
+                  .or(`user1_id.eq.${currentUserId},user2_id.eq.${currentUserId}`)
+                  .maybeSingle()
+                  .then(({ data: validConv }) => {
+                    if (validConv) {
+                      setLocalConversationHidden(currentUserId, newMsg.conversation_id, false);
+                      void loadConversations(false);
+                    }
+                  });
+              }
             }
           }
         }
