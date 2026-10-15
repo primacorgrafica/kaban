@@ -50,6 +50,7 @@ import {
   IMPRESSAO_PROCESSOS,
   ACABAMENTO_GROUPS,
 } from "@/lib/processos";
+import { OrderAttachmentsSection } from "@/components/sharepoint/OrderAttachmentsSection";
 
 const HIDDEN_PROCESSOS = [
   ...(ACABAMENTO_TIPOS as readonly string[]),
@@ -486,6 +487,16 @@ export function OrderDetailDialog({
                 </div>
               </div>
 
+              {/* ═══ ANEXOS SHAREPOINT (MODO EDIÇÃO) ═══ */}
+              <div className="border rounded-lg p-3">
+                <OrderAttachmentsSection
+                  orderId={order.id}
+                  orderTitulo={editData.titulo || order.titulo}
+                  readOnly={false}
+                  canDelete={true}
+                />
+              </div>
+
               <div className="flex gap-2 justify-end pt-2">
                 <Button variant="outline" onClick={() => setEditing(false)}>
                   Cancelar
@@ -643,6 +654,18 @@ export function OrderDetailDialog({
                         </span>
                       </div>
                     )}
+                  </div>
+                </div>
+
+                {/* ─── SEÇÃO DE ANEXOS DO SHAREPOINT (VISUALIZAÇÃO COMPLETA) ─── */}
+                <div className="col-span-1 md:col-span-2 pt-2">
+                  <div className="p-4 rounded-xl border border-border bg-slate-50/70 dark:bg-slate-900/50">
+                    <OrderAttachmentsSection
+                      orderId={order.id}
+                      orderTitulo={order.titulo}
+                      readOnly={permissions.isViewOnly}
+                      canDelete={permissions.canDelete || permissions.canEditCard}
+                    />
                   </div>
                 </div>
               </div>

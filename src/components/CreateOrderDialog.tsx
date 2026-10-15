@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,9 @@ import {
   Calendar,
   Truck,
   ShieldAlert,
+  Cloud,
+  Upload,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +46,11 @@ import {
   ACABAMENTO_TIPOS,
   ACABAMENTO_GROUPS,
 } from "@/lib/processos";
+import {
+  getOrCreateOsFolder,
+  uploadFileToSharePoint,
+  SHAREPOINT_ROOT_FOLDER,
+} from "@/lib/sharepointService";
 
 interface CreateOrderDialogProps {
   onAdd: (data: {
@@ -77,7 +85,7 @@ interface CreateOrderDialogProps {
     entrega_data_limite?: string;
     status_destino?: string;
     setor_destino?: string;
-  }) => void;
+  }) => Promise<any> | any;
 }
 
 export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
@@ -85,6 +93,8 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [isChecking, setIsChecking] = useState(false);
   const [vendedores, setVendedores] = useState<{ id: string; nome: string }[]>([]);
+  const [stagedFiles, setStagedFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState({
     titulo: "",
@@ -161,6 +171,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
 
   const resetForm = () => {
     setStep(1);
+    setStagedFiles([]);
     setForm({
       titulo: "",
       descricao: "",
@@ -257,55 +268,106 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
 
     const allProcessos = [...form.processos];
 
-    onAdd({
-      titulo: form.titulo.trim(),
-      descricao: form.descricao.trim(),
-      cliente: form.cliente.trim(),
-      observacao: form.observacao.trim() || undefined,
-      obs_prova: form.obs_prova.trim() || undefined,
-      saida_direta: form.saida_direta,
-      prova_digital: form.prova_digital,
-      prova_email: form.prova_email,
-      endereco_entrega:
-        form.prova_digital || form.prova_email
-          ? form.endereco_entrega.trim() || undefined
+    const filesToUpload = [...stagedFiles];
+    setStagedFiles([]);
+
+    const result = await Promise.resolve(
+      onAdd({
+        titulo: form.titulo.trim(),
+        descricao: form.descricao.trim(),
+        cliente: form.cliente.trim(),
+        observacao: form.observacao.trim() || undefined,
+        obs_prova: form.obs_prova.trim() || undefined,
+        saida_direta: form.saida_direta,
+        prova_digital: form.prova_digital,
+        prova_email: form.prova_email,
+        endereco_entrega:
+          form.prova_digital || form.prova_email
+            ? form.endereco_entrega.trim() || undefined
+            : undefined,
+        destinatario:
+          form.prova_digital || form.prova_email
+            ? form.destinatario.trim() || undefined
+            : undefined,
+        urgente:
+          form.urgente_prova ||
+          form.urgente_impressao ||
+          form.urgente_acabamento ||
+          form.urgente_expedicao,
+        urgente_prova: form.urgente_prova,
+        urgente_impressao: form.urgente_impressao,
+        urgente_acabamento: form.urgente_acabamento,
+        urgente_expedicao: form.urgente_expedicao,
+        digital_color: form.digital_color,
+        digital_pb: form.digital_pb,
+        prazo: form.prazo ? new Date(form.prazo).toISOString() : undefined,
+        vendedor: form.vendedor || undefined,
+        processos: allProcessos.length > 0 ? allProcessos : undefined,
+        nf: form.tem_nf ? "SIM" : undefined,
+        protocolo: form.tem_protocolo ? "SIM" : undefined,
+        empresa_entrega: form.empresa_entrega || undefined,
+        obs_entrega: form.obs_entrega.trim() || undefined,
+        tipo_entrega: form.tipo_entrega.length > 0 ? form.tipo_entrega : undefined,
+        entrega_para: form.entrega_para.trim() || undefined,
+        entrega_endereco: form.entrega_endereco.trim() || undefined,
+        entrega_ac: form.entrega_ac.trim() || undefined,
+        entrega_data_limite: form.entrega_data_limite
+          ? new Date(form.entrega_data_limite).toISOString()
           : undefined,
-      destinatario:
-        form.prova_digital || form.prova_email
-          ? form.destinatario.trim() || undefined
-          : undefined,
-      urgente:
-        form.urgente_prova ||
-        form.urgente_impressao ||
-        form.urgente_acabamento ||
-        form.urgente_expedicao,
-      urgente_prova: form.urgente_prova,
-      urgente_impressao: form.urgente_impressao,
-      urgente_acabamento: form.urgente_acabamento,
-      urgente_expedicao: form.urgente_expedicao,
-      digital_color: form.digital_color,
-      digital_pb: form.digital_pb,
-      prazo: form.prazo ? new Date(form.prazo).toISOString() : undefined,
-      vendedor: form.vendedor || undefined,
-      processos: allProcessos.length > 0 ? allProcessos : undefined,
-      nf: form.tem_nf ? "SIM" : undefined,
-      protocolo: form.tem_protocolo ? "SIM" : undefined,
-      empresa_entrega: form.empresa_entrega || undefined,
-      obs_entrega: form.obs_entrega.trim() || undefined,
-      tipo_entrega: form.tipo_entrega.length > 0 ? form.tipo_entrega : undefined,
-      entrega_para: form.entrega_para.trim() || undefined,
-      entrega_endereco: form.entrega_endereco.trim() || undefined,
-      entrega_ac: form.entrega_ac.trim() || undefined,
-      entrega_data_limite: form.entrega_data_limite
-        ? new Date(form.entrega_data_limite).toISOString()
-        : undefined,
-      status_destino: form.status_destino || undefined,
-      setor_destino: form.setor_destino || undefined,
-    });
+        status_destino: form.status_destino || undefined,
+        setor_destino: form.setor_destino || undefined,
+      })
+    );
 
     resetForm();
     setOpen(false);
     toast.success("O.S. criada com sucesso!");
+
+    // Upload assíncrono dos arquivos para o SharePoint vinculado à nova O.S.
+    if (filesToUpload.length > 0) {
+      void (async () => {
+        try {
+          let targetOrderId = result?.id;
+          if (!targetOrderId) {
+            const { data: latest } = await supabase
+              .from("orders")
+              .select("id")
+              .eq("titulo", form.titulo.trim())
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            targetOrderId = latest?.id;
+          }
+
+          if (targetOrderId) {
+            toast.info(`Iniciando envio de ${filesToUpload.length} anexo(s) para o SharePoint...`);
+            const folder = await getOrCreateOsFolder(targetOrderId, form.titulo.trim());
+
+            for (const file of filesToUpload) {
+              const driveItem = await uploadFileToSharePoint(file, folder);
+              await (supabase.from("order_attachments" as any) as any).insert({
+                order_id: targetOrderId,
+                nome_arquivo: driveItem.name || file.name,
+                tamanho_bytes: driveItem.size || file.size,
+                content_type: driveItem.file?.mimeType || file.type || "application/octet-stream",
+                sharepoint_item_id: driveItem.id,
+                sharepoint_folder_id: folder.folderId,
+                sharepoint_folder_name: folder.folderName,
+                sharepoint_drive_id: folder.driveId,
+                sharepoint_site_id: folder.siteId,
+                sharepoint_web_url: driveItem.webUrl,
+                sharepoint_path: `${SHAREPOINT_ROOT_FOLDER}/${folder.folderName}/${driveItem.name}`,
+                status: "concluido",
+              });
+            }
+            toast.success(`${filesToUpload.length} anexo(s) gravados no SharePoint com sucesso!`);
+          }
+        } catch (spErr: any) {
+          console.error("Erro ao enviar anexos para o SharePoint após criação:", spErr);
+          toast.error(`Falha ao anexar arquivos no SharePoint: ${spErr?.message || spErr}`);
+        }
+      })();
+    }
   };
 
   const stepsConfig = [
@@ -563,6 +625,68 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                   placeholder="Informações adicionais, detalhes de faca, arquivos recebidos..."
                   className="min-h-[70px] bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 rounded-xl text-xs"
                 />
+              </div>
+
+              {/* Anexar Arquivos para o SharePoint Corporativo */}
+              <div className="p-3.5 rounded-xl border border-cyan-500/20 bg-cyan-500/5 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <Cloud className="h-3.5 w-3.5 text-cyan-400" />
+                    <span>Anexos da O.S. (SharePoint)</span>
+                  </Label>
+                  <span className="text-[10px] text-muted-foreground uppercase font-mono-tech">
+                    {stagedFiles.length > 0
+                      ? `${stagedFiles.length} ${stagedFiles.length === 1 ? "arquivo" : "arquivos"}`
+                      : "Opcional"}
+                  </span>
+                </div>
+
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border border-dashed border-cyan-500/30 hover:border-cyan-500/60 bg-background/60 hover:bg-background/90 rounded-xl p-3 text-center cursor-pointer transition-all"
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => {
+                      if (e.target.files) {
+                        const newFiles = Array.from(e.target.files);
+                        setStagedFiles((prev) => [...prev, ...newFiles]);
+                      }
+                    }}
+                  />
+                  <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+                    <Upload className="h-4 w-4 text-cyan-400" />
+                    <span>Clique ou arraste arquivos para enviar ao SharePoint ao salvar a O.S.</span>
+                  </div>
+                </div>
+
+                {stagedFiles.length > 0 && (
+                  <div className="space-y-1 max-h-24 overflow-y-auto pr-1">
+                    {stagedFiles.map((file, idx) => (
+                      <div
+                        key={`${file.name}_${idx}`}
+                        className="flex items-center justify-between text-[11px] bg-background/80 px-2.5 py-1 rounded-lg border border-border"
+                      >
+                        <span className="truncate max-w-[260px] text-foreground font-medium">{file.name}</span>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-muted-foreground font-mono-tech">
+                            {(file.size / (1024 * 1024)).toFixed(1)} MB
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setStagedFiles((prev) => prev.filter((_, i) => i !== idx))}
+                            className="text-muted-foreground hover:text-red-400 p-0.5"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

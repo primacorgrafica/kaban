@@ -2118,3 +2118,53 @@ CREATE TABLE IF NOT EXISTS public.crm_oportunidade_historico (
   created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
+-- ------------------------------------------------------------------
+-- Migration: 20261015_create_order_attachments.sql
+-- ------------------------------------------------------------------
+ALTER TABLE public.orders 
+  ADD COLUMN IF NOT EXISTS sharepoint_folder_id TEXT,
+  ADD COLUMN IF NOT EXISTS sharepoint_folder_url TEXT,
+  ADD COLUMN IF NOT EXISTS sharepoint_folder_name TEXT;
+
+CREATE TABLE IF NOT EXISTS public.order_attachments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_id UUID NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
+  nome_arquivo TEXT NOT NULL,
+  tamanho_bytes BIGINT NOT NULL DEFAULT 0,
+  content_type TEXT,
+  sharepoint_item_id TEXT NOT NULL,
+  sharepoint_folder_id TEXT NOT NULL,
+  sharepoint_folder_name TEXT NOT NULL,
+  sharepoint_drive_id TEXT NOT NULL,
+  sharepoint_site_id TEXT,
+  sharepoint_web_url TEXT NOT NULL,
+  sharepoint_path TEXT,
+  status TEXT NOT NULL DEFAULT 'concluido' CHECK (status IN ('uploading', 'concluido', 'falha')),
+  criado_por UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_order_attachments_order_id ON public.order_attachments(order_id);
+CREATE INDEX IF NOT EXISTS idx_order_attachments_created_at ON public.order_attachments(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_order_attachments_sharepoint_item_id ON public.order_attachments(sharepoint_item_id);
+
+ALTER TABLE public.order_attachments ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Authenticated users can view order attachments" 
+  ON public.order_attachments FOR SELECT TO authenticated USING (true);
+
+CREATE POLICY "Authenticated users can insert order attachments" 
+  ON public.order_attachments FOR INSERT TO authenticated WITH CHECK (true);
+
+CREATE POLICY "Authenticated users can update order attachments" 
+  ON public.order_attachments FOR UPDATE TO authenticated USING (true) WITH CHECK (true);
+
+CREATE POLICY "Admins coordinators or uploader can delete order attachments" 
+  ON public.order_attachments FOR DELETE TO authenticated 
+  USING (
+    auth.uid() = criado_por 
+    OR public.get_user_role(auth.uid()) IN ('admin', 'coordenador')
+  );
+
+

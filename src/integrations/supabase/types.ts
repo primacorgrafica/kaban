@@ -285,6 +285,71 @@ export type Database = {
           },
         ]
       }
+      order_attachments: {
+        Row: {
+          content_type: string | null
+          created_at: string
+          criado_por: string | null
+          id: string
+          nome_arquivo: string
+          order_id: string
+          sharepoint_drive_id: string
+          sharepoint_folder_id: string
+          sharepoint_folder_name: string
+          sharepoint_item_id: string
+          sharepoint_path: string | null
+          sharepoint_site_id: string | null
+          sharepoint_web_url: string
+          status: string
+          tamanho_bytes: number
+          updated_at: string
+        }
+        Insert: {
+          content_type?: string | null
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          nome_arquivo: string
+          order_id: string
+          sharepoint_drive_id: string
+          sharepoint_folder_id: string
+          sharepoint_folder_name: string
+          sharepoint_item_id: string
+          sharepoint_path?: string | null
+          sharepoint_site_id?: string | null
+          sharepoint_web_url: string
+          status?: string
+          tamanho_bytes?: number
+          updated_at?: string
+        }
+        Update: {
+          content_type?: string | null
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          nome_arquivo?: string
+          order_id?: string
+          sharepoint_drive_id?: string
+          sharepoint_folder_id?: string
+          sharepoint_folder_name?: string
+          sharepoint_item_id?: string
+          sharepoint_path?: string | null
+          sharepoint_site_id?: string | null
+          sharepoint_web_url?: string
+          status?: string
+          tamanho_bytes?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_attachments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_time_summary: {
         Row: {
           created_at: string
@@ -403,6 +468,9 @@ export type Database = {
           setor: string | null
           setor_manut: string | null
           setor_status: string | null
+          sharepoint_folder_id?: string | null
+          sharepoint_folder_name?: string | null
+          sharepoint_folder_url?: string | null
           solucao: string | null
           status: string
           tempo_pausado_ms: number

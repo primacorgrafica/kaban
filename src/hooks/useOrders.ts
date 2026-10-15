@@ -182,50 +182,57 @@ export function useOrders() {
             return maxData && maxData.length > 0 ? (maxData[0] as any).posicao + 1 : 0;
           })();
 
-      const { error } = await supabase.from("orders").insert({
-        titulo: data.titulo,
-        descricao: data.descricao,
-        cliente: data.cliente,
-        observacao: data.observacao || null,
-        obs_prova: data.obs_prova || null,
-        saida_direta: data.saida_direta || false,
-        prova_digital: data.prova_digital || false,
-        prova_email: data.prova_email || false,
-        prioridade: data.urgente ? "alta" : "normal",
-        urgente: data.urgente || false,
-        urgente_prova: data.urgente_prova || false,
-        urgente_impressao: data.urgente_impressao || false,
-        urgente_acabamento: data.urgente_acabamento || false,
-        urgente_expedicao: data.urgente_expedicao || false,
-        digital_color: data.digital_color || false,
-        digital_pb: data.digital_pb || false,
-        prazo: data.prazo || null,
-        endereco_entrega: data.endereco_entrega || null,
-        destinatario: data.destinatario || null,
-        criado_por: user?.id || null,
-        atualizado_por: user?.id || null,
-        posicao: newPos,
-        setor: sendToSetor,
-        setor_status: sendToSetor ? "entrada" : null,
-        vendedor: data.vendedor || null,
-        tipo_trabalho: data.tipo_trabalho || null,
-        equipamentos: data.equipamentos || [],
-        acabamentos: data.acabamentos || [],
-        processos: data.processos || [],
-        nf: data.nf || null,
-        protocolo: data.protocolo || null,
-        empresa_entrega: data.empresa_entrega || null,
-        obs_entrega: data.obs_entrega || null,
-        tipo_entrega: data.tipo_entrega || [],
-        entrega_para: data.entrega_para || null,
-        entrega_endereco: data.entrega_endereco || null,
-        entrega_ac: data.entrega_ac || null,
-        entrega_data_limite: data.entrega_data_limite || null,
-      } as any);
+      const { data: created, error } = await supabase
+        .from("orders")
+        .insert({
+          titulo: data.titulo,
+          descricao: data.descricao,
+          cliente: data.cliente,
+          observacao: data.observacao || null,
+          obs_prova: data.obs_prova || null,
+          saida_direta: data.saida_direta || false,
+          prova_digital: data.prova_digital || false,
+          prova_email: data.prova_email || false,
+          prioridade: data.urgente ? "alta" : "normal",
+          urgente: data.urgente || false,
+          urgente_prova: data.urgente_prova || false,
+          urgente_impressao: data.urgente_impressao || false,
+          urgente_acabamento: data.urgente_acabamento || false,
+          urgente_expedicao: data.urgente_expedicao || false,
+          digital_color: data.digital_color || false,
+          digital_pb: data.digital_pb || false,
+          prazo: data.prazo || null,
+          endereco_entrega: data.endereco_entrega || null,
+          destinatario: data.destinatario || null,
+          criado_por: user?.id || null,
+          atualizado_por: user?.id || null,
+          posicao: newPos,
+          setor: sendToSetor,
+          setor_status: sendToSetor ? "entrada" : null,
+          vendedor: data.vendedor || null,
+          tipo_trabalho: data.tipo_trabalho || null,
+          equipamentos: data.equipamentos || [],
+          acabamentos: data.acabamentos || [],
+          processos: data.processos || [],
+          nf: data.nf || null,
+          protocolo: data.protocolo || null,
+          empresa_entrega: data.empresa_entrega || null,
+          obs_entrega: data.obs_entrega || null,
+          tipo_entrega: data.tipo_entrega || [],
+          entrega_para: data.entrega_para || null,
+          entrega_endereco: data.entrega_endereco || null,
+          entrega_ac: data.entrega_ac || null,
+          entrega_data_limite: data.entrega_data_limite || null,
+        } as any)
+        .select()
+        .single();
+
       if (error) {
         toast.error("Erro ao criar OS.");
         console.error(error);
+        return null;
       }
+      return created as Order;
     },
     [user]
   );

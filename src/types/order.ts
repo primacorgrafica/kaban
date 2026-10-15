@@ -109,6 +109,10 @@ export interface Order {
   categoria_nc: string | null;
   endereco_nc: string | null;
   os_ref_nc: string | null;
+  // SharePoint integration fields
+  sharepoint_folder_id?: string | null;
+  sharepoint_folder_url?: string | null;
+  sharepoint_folder_name?: string | null;
 }
 
 export interface Profile {

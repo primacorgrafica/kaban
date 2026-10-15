@@ -44,6 +44,7 @@ export default defineConfig(() => ({
           "pdf-vendor": ["jspdf", "jspdf-autotable"],
           "icons-vendor": ["lucide-react"],
           "supabase-vendor": ["@supabase/supabase-js"],
+          "msal-vendor": ["@azure/msal-browser"],
         },
       },
     },
