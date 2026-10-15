@@ -42,6 +42,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { OrderDetailDialog } from "./OrderDetailDialog";
+import { getProcessoCor } from "@/lib/processos";
 
 interface Permissions {
   canEditCard: boolean;
