@@ -33,7 +33,6 @@ import { useOrderAttachments } from "@/hooks/useOrderAttachments";
 import {
   getActiveMicrosoftAccount,
   getStoredMicrosoftUser,
-  loginMicrosoft,
 } from "@/lib/msalClient";
 import { downloadFileFromSharePoint } from "@/lib/sharepointService";
 import type { OrderAttachment } from "@/types/sharepoint";

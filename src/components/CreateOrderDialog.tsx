@@ -38,7 +38,6 @@ import {
   Upload,
   X,
   ShieldCheck,
-  LogIn,
   Loader2,
   Repeat,
 } from "lucide-react";
@@ -59,7 +58,6 @@ import {
 import {
   getStoredMicrosoftUser,
   getActiveMicrosoftAccount,
-  loginMicrosoft,
   getSharePointAccessToken,
   type StoredMicrosoftUser,
 } from "@/lib/msalClient";
@@ -850,35 +848,13 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                     <span>Anexos da O.S. (SharePoint)</span>
                   </Label>
                   <div className="flex items-center gap-2">
-                    {msUser ? (
+                    {msUser && (
                       <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[10px] text-emerald-400 font-medium">
                         <ShieldCheck className="h-3 w-3 text-emerald-400" />
                         <span className="truncate max-w-[150px]" title={msUser.username}>
                           {msUser.name || msUser.username}
                         </span>
                       </div>
-                    ) : (
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          try {
-                            const acc = await loginMicrosoft();
-                            if (acc) {
-                              setMsUser({ name: acc.name || acc.username, username: acc.username });
-                              toast.success(`Conectado ao Microsoft 365 como ${acc.name || acc.username}`);
-                            }
-                          } catch (err: any) {
-                            toast.error(`Falha ao conectar Microsoft 365: ${err?.message || err}`);
-                          }
-                        }}
-                        className="h-6 px-2 text-[10px] border-cyan-500/30 hover:border-cyan-500 text-cyan-400 bg-cyan-500/5 hover:bg-cyan-500/10 rounded-md gap-1"
-                      >
-                        <LogIn className="h-3 w-3" />
-                        <span>Conectar 365</span>
-                      </Button>
                     )}
                     <span className="text-[10px] text-muted-foreground uppercase font-mono-tech">
                       {stagedFiles.length > 0
