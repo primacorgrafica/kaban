@@ -48,6 +48,7 @@ interface OrderAttachmentsSectionProps {
   orderTitulo?: string;
   readOnly?: boolean;
   canDelete?: boolean;
+  allowUpload?: boolean;
 }
 
 function formatBytes(bytes: number, decimals = 1): string {
@@ -81,6 +82,7 @@ export function OrderAttachmentsSection({
   orderTitulo,
   readOnly = false,
   canDelete = true,
+  allowUpload = false,
 }: OrderAttachmentsSectionProps) {
   const {
     attachments,
@@ -197,8 +199,8 @@ export function OrderAttachmentsSection({
         </div>
       </div>
 
-      {/* ─── ÁREA DE DRAG & DROP / SELEÇÃO (Apenas quando não for somente leitura) ─── */}
-      {!readOnly && (
+      {/* ─── ÁREA DE DRAG & DROP / SELEÇÃO (Apenas quando explicitamente habilitado upload) ─── */}
+      {!readOnly && allowUpload && (
         <div className="space-y-3">
           <div
             onDragOver={(e) => {
