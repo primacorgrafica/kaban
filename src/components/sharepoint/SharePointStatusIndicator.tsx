@@ -16,9 +16,15 @@ import {
   logoutMicrosoft,
   type StoredMicrosoftUser,
 } from "@/lib/msalClient";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 export function SharePointStatusIndicator() {
+  const { isAdmin, role } = useAuth();
+  const canManageSharePoint = isAdmin || role === "coordenador";
+
+  if (!canManageSharePoint) return null;
+
   const [user, setUser] = useState<StoredMicrosoftUser | null>(() => getStoredMicrosoftUser());
   const [loading, setLoading] = useState(false);
 
