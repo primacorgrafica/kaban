@@ -760,10 +760,7 @@ export default function PcpPage() {
 
         <div className="flex-1 overflow-hidden whitespace-nowrap text-foreground dark:text-slate-300 text-[11px] sm:text-xs">
           <span className="inline-block animate-marquee">
-            📢 <strong>PRIMACOR GRÁFICA</strong> • TRANSMISSÃO AO VIVO EM TEMPO REAL • HOJE: {totalEmitidasHoje} EMITIDAS / {totalLiberadasHoje} LIBERADAS •
-            {lastLiberada ? ` ÚLTIMA LIBERAÇÃO: ${lastLiberada.titulo} (${lastLiberada.cliente}) •` : ""}
-            WEBSOCKET SUPABASE CONECTADO • RITMO DE PRODUÇÃO: {totalEmitidasHoje > 0 ? `${Math.round((totalLiberadasHoje / totalEmitidasHoje) * 100)}%` : "100%"} •
-            CONTROLE PCP PRIMACOR OS v2.0
+            📢 <strong>PRIMACOR GRÁFICA</strong> • HOJE: {totalEmitidasHoje} EMITIDAS / {totalLiberadasHoje} LIBERADAS • {lastLiberada ? `ÚLTIMA LIBERAÇÃO: ${lastLiberada.titulo} (${lastLiberada.cliente}) • ` : ""}RITMO DE PRODUÇÃO: {totalEmitidasHoje > 0 ? `${Math.round((totalLiberadasHoje / totalEmitidasHoje) * 100)}%` : "100%"}
           </span>
         </div>
 
