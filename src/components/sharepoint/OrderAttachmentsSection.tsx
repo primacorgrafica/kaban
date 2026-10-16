@@ -14,7 +14,6 @@ import {
   Image as ImageIcon,
   FolderOpen,
   ShieldCheck,
-  LogIn,
   Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -100,7 +99,6 @@ export function OrderAttachmentsSection({
   const [msAccount, setMsAccount] = useState<AccountInfo | { name?: string; username: string } | null>(
     () => getStoredMicrosoftUser()
   );
-  const [msAuthLoading, setMsAuthLoading] = useState(false);
   const [deletingAttachment, setDeletingAttachment] = useState<OrderAttachment | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
 
@@ -130,22 +128,6 @@ export function OrderAttachmentsSection({
       if (acc) setMsAccount(acc);
     });
   }, []);
-
-  const handleConnectMicrosoft = async () => {
-    setMsAuthLoading(true);
-    try {
-      const acc = await loginMicrosoft();
-      if (acc) {
-        setMsAccount(acc);
-        toast.success(`Conectado ao Microsoft 365 como ${acc.name || acc.username}`);
-      }
-    } catch (err: any) {
-      console.warn("Falha ao autenticar Microsoft:", err);
-      toast.error(`Falha ao autenticar Microsoft: ${err?.message || err}`);
-    } finally {
-      setMsAuthLoading(false);
-    }
-  };
 
   const handleFileSelect = (files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -190,31 +172,15 @@ export function OrderAttachmentsSection({
           </Badge>
         </div>
 
-        {/* Status da Conta Microsoft */}
+        {/* Status da Conta Microsoft (se conectado) e link da pasta */}
         <div className="flex items-center gap-2">
-          {msAccount ? (
+          {msAccount && (
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[11px] text-emerald-400 font-medium">
               <ShieldCheck className="h-3 w-3 text-emerald-400" />
               <span className="truncate max-w-[180px]" title={msAccount.username}>
                 {msAccount.name || msAccount.username}
               </span>
             </div>
-          ) : (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={msAuthLoading}
-              onClick={handleConnectMicrosoft}
-              className="h-7 text-xs gap-1 border-cyan-500/30 hover:border-cyan-500 text-cyan-400 bg-cyan-500/5 hover:bg-cyan-500/10 rounded-lg"
-            >
-              {msAuthLoading ? (
-                <Loader2 className="h-3 w-3 animate-spin" />
-              ) : (
-                <LogIn className="h-3 w-3" />
-              )}
-              Conectar Microsoft 365
-            </Button>
           )}
 
           {folderInfo?.folderWebUrl && (
