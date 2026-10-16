@@ -40,6 +40,7 @@ import {
   ShieldCheck,
   LogIn,
   Loader2,
+  Repeat,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -69,6 +70,8 @@ interface CreateOrderDialogProps {
     titulo: string;
     descricao: string;
     cliente: string;
+    tipo_trabalho?: string;
+    os_anterior?: string;
     observacao?: string;
     obs_prova?: string;
     saida_direta?: boolean;
@@ -130,6 +133,8 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
     titulo: "",
     descricao: "",
     cliente: "",
+    tipo_trabalho: "novo",
+    os_anterior: "",
     observacao: "",
     obs_prova: "",
     saida_direta: false,
@@ -212,6 +217,8 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
       titulo: "",
       descricao: "",
       cliente: "",
+      tipo_trabalho: "novo",
+      os_anterior: "",
       observacao: "",
       obs_prova: "",
       saida_direta: false,
@@ -250,6 +257,10 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
     }
     if (!form.cliente.trim()) {
       toast.error("Informe o Nome do Cliente");
+      return false;
+    }
+    if (form.tipo_trabalho === "repeticao" && !form.os_anterior.trim()) {
+      toast.error("Informe o N.º O.S ANTERIOR");
       return false;
     }
     if (!form.vendedor) {
@@ -329,6 +340,8 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
           titulo: osTitulo,
           descricao: effectiveDescricao,
           cliente: form.cliente.trim(),
+          tipo_trabalho: form.tipo_trabalho,
+          os_anterior: form.tipo_trabalho === "repeticao" ? form.os_anterior.trim() || undefined : undefined,
           observacao: form.observacao.trim() || undefined,
           obs_prova: form.obs_prova.trim() || undefined,
           saida_direta: form.saida_direta,
@@ -674,6 +687,73 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                   className="h-10 bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 rounded-xl text-sm"
                 />
               </div>
+
+              {/* Tipo de Trabalho: Novo vs Repetição */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-medium text-foreground flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
+                    <span>Tipo de Trabalho</span>
+                  </Label>
+                  {form.tipo_trabalho === "repeticao" && (
+                    <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 font-bold uppercase">
+                      Repetição de O.S.
+                    </Badge>
+                  )}
+                </div>
+                <div className="grid grid-cols-2 gap-2 h-10">
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, tipo_trabalho: "novo", os_anterior: "" }))}
+                    className={`h-full rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-2 ${
+                      form.tipo_trabalho !== "repeticao"
+                        ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-700 dark:text-cyan-300 shadow-sm font-bold"
+                        : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
+                    }`}
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    <span>Trabalho Novo</span>
+                    {form.tipo_trabalho !== "repeticao" && <Check className="h-3.5 w-3.5 ml-0.5" />}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, tipo_trabalho: "repeticao" }))}
+                    className={`h-full rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-2 ${
+                      form.tipo_trabalho === "repeticao"
+                        ? "bg-amber-500/20 border-amber-500/50 text-amber-700 dark:text-amber-300 shadow-sm font-bold"
+                        : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
+                    }`}
+                  >
+                    <Repeat className="h-3.5 w-3.5 text-amber-500" />
+                    <span>Repetição</span>
+                    {form.tipo_trabalho === "repeticao" && <Check className="h-3.5 w-3.5 ml-0.5" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Campo N.º O.S ANTERIOR (quando for Repetição) */}
+              {form.tipo_trabalho === "repeticao" && (
+                <div className="p-3.5 rounded-xl border border-amber-500/40 bg-amber-500/5 dark:bg-amber-950/20 space-y-1.5 animate-in fade-in-50 duration-200">
+                  <Label
+                    htmlFor="os_anterior"
+                    className="text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5 uppercase tracking-wide"
+                  >
+                    <Hash className="h-3.5 w-3.5 text-amber-500" />
+                    <span>N.º O.S ANTERIOR</span>
+                    <span className="text-rose-500">*</span>
+                  </Label>
+                  <Input
+                    id="os_anterior"
+                    value={form.os_anterior}
+                    onChange={(e) => setForm((f) => ({ ...f, os_anterior: e.target.value }))}
+                    placeholder="Digite o número da O.S. anterior (Ex: 69387)"
+                    className="h-10 bg-background border-amber-500/40 text-foreground placeholder:text-muted-foreground focus:border-amber-500 focus:ring-1 focus:ring-amber-500/40 rounded-xl font-mono-tech text-sm font-bold tracking-wider"
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Informe o número da O.S. anterior para referência da pré-impressão e produção.
+                  </p>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                 {/* Vendedor */}

@@ -3,7 +3,7 @@ import { Order, OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
 import { DEPARTMENTS, Department } from "@/types/production";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar, User, FileText, Archive, Trash2, GripVertical, UserCheck, Clock, AlertTriangle, Send, ChevronDown, ChevronUp, Truck, Briefcase, Copy, Edit2, MessageSquarePlus } from "lucide-react";
+import { Calendar, User, FileText, Archive, Trash2, GripVertical, UserCheck, Clock, AlertTriangle, Send, ChevronDown, ChevronUp, Truck, Briefcase, Copy, Edit2, MessageSquarePlus, Repeat } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -199,6 +199,8 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
         prazo: order.prazo ? order.prazo.slice(0, 16) : "",
         vendedor: order.vendedor || "",
         operador: order.operador || "",
+        tipo_trabalho: order.tipo_trabalho || "novo",
+        os_anterior: order.os_anterior || "",
         processos: order.processos || [] as string[],
         tipo_documento: ((order.nf ? "NF" : order.protocolo ? "PROTOCOLO" : "") as "NF" | "PROTOCOLO" | ""),
         valor_documento: order.nf || order.protocolo || "",
@@ -293,6 +295,8 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
       prazo: editData.prazo ? new Date(editData.prazo).toISOString() : null,
       vendedor: editData.vendedor || null,
       operador: editData.operador || null,
+      tipo_trabalho: editData.tipo_trabalho || null,
+      os_anterior: editData.tipo_trabalho === "repeticao" ? (editData.os_anterior || null) : null,
       processos: editData.processos.length > 0 ? editData.processos : [],
       nf: editData.tipo_documento === "NF" ? (editData.valor_documento || null) : null,
       protocolo: editData.tipo_documento === "PROTOCOLO" ? (editData.valor_documento || null) : null,
@@ -458,6 +462,15 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
             <span className="font-mono-tech text-[11px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 shrink-0">
               #{order.titulo}
             </span>
+            {(order.tipo_trabalho === "repeticao" || order.os_anterior) && (
+              <span
+                className="font-mono-tech text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shrink-0 flex items-center gap-1"
+                title={order.os_anterior ? `Repetição da O.S. Anterior: ${order.os_anterior}` : "Repetição"}
+              >
+                <span>REP</span>
+                {order.os_anterior && <span className="opacity-90">#{order.os_anterior}</span>}
+              </span>
+            )}
             <span className="flex items-start gap-1 text-sm text-foreground min-w-0 font-semibold break-words leading-tight">
               <span className="break-words">{order.cliente}</span>
             </span>
@@ -612,6 +625,12 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                   <span className="font-mono-tech text-base font-bold text-foreground tracking-wide">
                     O.S. #{order.titulo}
                   </span>
+                  {(order.tipo_trabalho === "repeticao" || order.os_anterior) && (
+                    <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40 text-[11px] font-bold flex items-center gap-1">
+                      <Repeat className="h-3 w-3" />
+                      <span>REPETIÇÃO {order.os_anterior ? `(ANT: #${order.os_anterior})` : ""}</span>
+                    </Badge>
+                  )}
                   <Badge
                     style={{
                       backgroundColor: `hsl(var(--status-${config.colorKey}-bg))`,
@@ -669,6 +688,34 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                 <div>
                   <Label className="text-xs uppercase text-muted-foreground">Descrição do Serviço</Label>
                   <Input value={editData.descricao} onChange={(e) => setEditData((d) => ({ ...d, descricao: e.target.value }))} className="h-9" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <Label className="text-xs uppercase text-muted-foreground">Tipo de Trabalho</Label>
+                    <Select
+                      value={editData.tipo_trabalho || "novo"}
+                      onValueChange={(v) => setEditData((d) => ({ ...d, tipo_trabalho: v, os_anterior: v === "repeticao" ? d.os_anterior : "" }))}
+                    >
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="novo">Trabalho Novo</SelectItem>
+                        <SelectItem value="repeticao">Repetição</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {editData.tipo_trabalho === "repeticao" && (
+                    <div>
+                      <Label className="text-xs uppercase text-amber-600 dark:text-amber-400 font-bold">N.º O.S ANTERIOR *</Label>
+                      <Input
+                        value={editData.os_anterior || ""}
+                        onChange={(e) => setEditData((d) => ({ ...d, os_anterior: e.target.value }))}
+                        placeholder="Ex: 69387"
+                        className="h-9 font-mono-tech font-bold border-amber-500/40"
+                      />
+                    </div>
+                  )}
                 </div>
                 <div>
                   <Label className="text-xs uppercase text-muted-foreground">Vendedor *</Label>
@@ -1054,6 +1101,20 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                           <User className="h-3 w-3 text-primary" />
                           {order.vendedor}
                         </p>
+                      </div>
+                    )}
+                    {(order.tipo_trabalho === "repeticao" || order.os_anterior) && (
+                      <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 font-bold text-xs">
+                          <Repeat className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                          <span>REPETIÇÃO</span>
+                        </div>
+                        <div className="text-xs">
+                          <span className="text-muted-foreground mr-1">N.º O.S ANTERIOR:</span>
+                          <span className="font-mono-tech font-bold text-foreground text-sm">
+                            {order.os_anterior ? `#${order.os_anterior}` : "—"}
+                          </span>
+                        </div>
                       </div>
                     )}
                     {order.observacao && (

@@ -476,6 +476,7 @@ export type Database = {
           tempo_pausado_ms: number
           tipo_entrega: string[] | null
           tipo_trabalho: string | null
+          os_anterior?: string | null
           titulo: string
           updated_at: string
           urgente: boolean
@@ -572,6 +573,7 @@ export type Database = {
           tempo_pausado_ms?: number
           tipo_entrega?: string[] | null
           tipo_trabalho?: string | null
+          os_anterior?: string | null
           titulo: string
           updated_at?: string
           urgente?: boolean
@@ -667,6 +669,7 @@ export type Database = {
           tempo_pausado_ms?: number
           tipo_entrega?: string[] | null
           tipo_trabalho?: string | null
+          os_anterior?: string | null
           titulo?: string
           updated_at?: string
           urgente?: boolean

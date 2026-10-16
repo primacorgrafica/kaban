@@ -632,6 +632,15 @@ function ProductionCardImpl({
             <h4 className={`font-semibold text-sm shrink-0 ${isUrgent ? "text-red-700 dark:text-red-400" : "text-card-foreground"}`}>
               OS. {order.titulo}
             </h4>
+            {(order.tipo_trabalho === "repeticao" || order.os_anterior) && (
+              <span
+                className="font-mono-tech text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shrink-0 flex items-center gap-1"
+                title={order.os_anterior ? `Repetição da O.S. Anterior: ${order.os_anterior}` : "Repetição"}
+              >
+                <span>REP</span>
+                {order.os_anterior && <span className="opacity-90">#{order.os_anterior}</span>}
+              </span>
+            )}
             {department.id === "faturamento" && order.parent_order_id && (
               <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-purple-600 text-white text-[10px] font-bold shrink-0" title="OS de Faturamento (sub-ordem)">F</span>
             )}

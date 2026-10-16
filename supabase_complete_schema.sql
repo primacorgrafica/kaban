@@ -2170,5 +2170,8 @@ CREATE POLICY "Admins coordinators or uploader can delete order attachments"
 -- Coluna para indicar qual operador irá trabalhar na O.S. do card
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS operador TEXT;
 
+-- Coluna para registrar o número da O.S. anterior quando o trabalho for Repetição
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS os_anterior TEXT;
+
 
 

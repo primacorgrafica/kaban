@@ -362,6 +362,14 @@ export function ProductionTable({
                         <span className="px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 text-[11px]">
                           #{order.titulo}
                         </span>
+                        {(order.tipo_trabalho === "repeticao" || order.os_anterior) && (
+                          <span
+                            className="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[10px] font-bold"
+                            title={order.os_anterior ? `Repetição da O.S. Anterior: ${order.os_anterior}` : "Repetição"}
+                          >
+                            REP {order.os_anterior ? `#${order.os_anterior}` : ""}
+                          </span>
+                        )}
                       </div>
                     </TableCell>
 

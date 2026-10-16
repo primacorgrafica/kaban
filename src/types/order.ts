@@ -51,6 +51,7 @@ export interface Order {
   vendedor: string | null;
   operador?: string | null;
   tipo_trabalho: string | null;
+  os_anterior?: string | null;
   equipamentos: string[];
   acabamentos: string[];
   processos: string[];

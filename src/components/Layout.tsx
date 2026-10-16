@@ -36,7 +36,7 @@ interface LayoutProps {
   children: ReactNode;
   searchQuery: string;
   onSearchChange: (value: string) => void;
-  onAddOrder: (data: { titulo: string; descricao: string; cliente: string; observacao?: string }) => void;
+  onAddOrder: (data: any) => Promise<any> | any;
   activeCount: number;
   archivedCount: number;
   sectorName?: string;
