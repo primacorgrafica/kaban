@@ -227,11 +227,8 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
 
     // If status changed or position changed, ask for confirmation
     if (sourceStatus !== newStatus || result.source.index !== newIndex) {
-      if (newStatus === "aguardando_novo_arquivo" || newStatus === "paralisado") {
-        setMotivoParada(order?.observacao || "");
-      } else {
-        setMotivoParada("");
-      }
+      // Ao arrastar card para paralisado ou qualquer coluna, sempre vir zerado
+      setMotivoParada("");
 
       setPendingMove({
         id: result.draggableId,
@@ -245,8 +242,8 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
 
   const confirmMove = () => {
     if (pendingMove) {
-      if ((pendingMove.toStatus === "aguardando_novo_arquivo" || pendingMove.toStatus === "paralisado") && motivoParada !== (orders.find(o => o.id === pendingMove.id)?.observacao || "")) {
-        onUpdate(pendingMove.id, { observacao: motivoParada });
+      if (pendingMove.toStatus === "aguardando_novo_arquivo" || pendingMove.toStatus === "paralisado") {
+        onUpdate(pendingMove.id, { observacao: motivoParada.trim() || null });
       }
       onMove(pendingMove.id, pendingMove.toStatus, pendingMove.newIndex);
       if (sendToExpedicao && pendingMove.toStatus === "aguardando_prova" && onSendToExpedicao) {

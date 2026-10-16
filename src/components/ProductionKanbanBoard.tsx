@@ -192,11 +192,8 @@ export function ProductionKanbanBoard({
     const newIndex = result.destination.index;
     const order = orders.find(o => o.id === result.draggableId);
     if (fromStatus !== toStatus || result.source.index !== newIndex) {
-      if (toStatus === "aguardando_novo_arquivo" || toStatus === "paralisado") {
-        setMotivoParada(order?.observacao || "");
-      } else {
-        setMotivoParada("");
-      }
+      // Ao arrastar card para paralisado ou qualquer coluna, sempre vir zerado
+      setMotivoParada("");
       const moveData = {
         id: result.draggableId,
         orderTitle: order?.titulo || "Card",
@@ -229,8 +226,8 @@ export function ProductionKanbanBoard({
         return;
       }
     }
-    if ((pendingMove.toStatus === "aguardando_novo_arquivo" || pendingMove.toStatus === "paralisado") && motivoParada !== (orders.find(o => o.id === pendingMove.id)?.observacao || "")) {
-      onUpdate(pendingMove.id, { observacao: motivoParada });
+    if (pendingMove.toStatus === "aguardando_novo_arquivo" || pendingMove.toStatus === "paralisado") {
+      onUpdate(pendingMove.id, { observacao: motivoParada.trim() || null });
     }
     onMove(pendingMove.id, pendingMove.toStatus, pendingMove.newIndex);
     setMotivoParada("");
