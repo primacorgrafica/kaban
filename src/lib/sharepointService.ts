@@ -1,4 +1,4 @@
-import { getSharePointAccessToken } from "./msalClient";
+import { getSharePointAccessToken, AZURE_CLIENT_ID } from "./msalClient";
 import type {
   DriveItemResponse,
   SharePointFolderInfo,
@@ -24,6 +24,15 @@ const CHUNK_SIZE_BYTES = 5 * 1024 * 1024;
 let cachedSiteId: string | null = null;
 let cachedDriveId: string | null = null;
 let cachedKabanFolderId: string | null = null;
+
+/**
+ * Limpa o cache em memória de Site ID e Drive ID (útil após concessão de novas permissões)
+ */
+export function resetSharePointCache(): void {
+  cachedSiteId = null;
+  cachedDriveId = null;
+  cachedKabanFolderId = null;
+}
 
 /**
  * Formata o nome padronizado da pasta da O.S. no SharePoint.
@@ -54,7 +63,10 @@ export async function resolveSharePointSiteAndDrive(): Promise<{ siteId: string;
   const token = await getSharePointAccessToken();
 
   // 1. Obter Site ID
-  const siteUrl = `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_HOSTNAME}:${SHAREPOINT_SITE_PATH}`;
+  const cleanSitePath = SHAREPOINT_SITE_PATH.startsWith("/")
+    ? SHAREPOINT_SITE_PATH
+    : `/${SHAREPOINT_SITE_PATH}`;
+  const siteUrl = `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_HOSTNAME}:${cleanSitePath}`;
   const siteRes = await fetch(siteUrl, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -66,7 +78,7 @@ export async function resolveSharePointSiteAndDrive(): Promise<{ siteId: string;
     const errorBody = await siteRes.json().catch(() => ({}));
     if (siteRes.status === 403 || siteRes.status === 401) {
       throw new Error(
-        `Permissão negada no SharePoint (${siteRes.status}). O aplicativo "Kaban - Integração SharePoint" requer que um administrador do Microsoft 365 conceda acesso de escrita no site "Produo_grupo" via permissão Sites.Selected.`
+        `Permissão negada no SharePoint (${siteRes.status}). O aplicativo "Kaban - Integração SharePoint" requer permissão no site "${SHAREPOINT_SITE_PATH}". Se usar Sites.Selected, o administrador precisa conceder acesso no site via PowerShell ou Graph API.`
       );
     }
     throw new Error(
@@ -75,39 +87,120 @@ export async function resolveSharePointSiteAndDrive(): Promise<{ siteId: string;
   }
 
   const siteData = await siteRes.json();
-  cachedSiteId = siteData.id;
-
-  // 2. Obter Drive ID (Documentos Compartilhados)
-  const drivesUrl = `https://graph.microsoft.com/v1.0/sites/${cachedSiteId}/drives`;
-  const drivesRes = await fetch(drivesUrl, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/json",
-    },
+  const foundSiteId = siteData.id;
+  console.info("[SharePoint] Site localizado com sucesso:", {
+    id: siteData.id,
+    name: siteData.name,
+    displayName: siteData.displayName,
+    webUrl: siteData.webUrl,
   });
 
-  if (!drivesRes.ok) {
-    throw new Error(`Falha ao listar bibliotecas do site (${drivesRes.status}).`);
+  // 2. Obter Drive ID (Documentos Compartilhados)
+  // Tentativa 1: Endpoint canônico da biblioteca padrão do site (/drive)
+  try {
+    const defaultDriveUrl = `https://graph.microsoft.com/v1.0/sites/${foundSiteId}/drive`;
+    const defaultDriveRes = await fetch(defaultDriveUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    });
+
+    if (defaultDriveRes.ok) {
+      const defaultDriveData = await defaultDriveRes.json();
+      if (defaultDriveData?.id) {
+        cachedSiteId = foundSiteId;
+        cachedDriveId = defaultDriveData.id;
+        console.info("[SharePoint] Biblioteca padrão identificada via /drive:", {
+          id: defaultDriveData.id,
+          name: defaultDriveData.name,
+        });
+        return { siteId: cachedSiteId, driveId: cachedDriveId };
+      }
+    } else {
+      const defaultErr = await defaultDriveRes.json().catch(() => ({}));
+      console.warn("[SharePoint] /drive padrão retornou status", defaultDriveRes.status, defaultErr);
+    }
+  } catch (err) {
+    console.warn("[SharePoint] Falha ao consultar /drive padrão:", err);
   }
 
-  const drivesData = await drivesRes.json();
-  const drives: Array<{ id: string; name: string }> = drivesData.value || [];
+  // Tentativa 2: Listar todas as bibliotecas de documentos do site (/drives)
+  try {
+    const drivesUrl = `https://graph.microsoft.com/v1.0/sites/${foundSiteId}/drives`;
+    const drivesRes = await fetch(drivesUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    });
 
-  // Localiza "Documentos Compartilhados" ou "Documents" ou usa o default
-  const targetDrive =
-    drives.find(
-      (d) =>
-        d.name.toLowerCase() === "documentos compartilhados" ||
-        d.name.toLowerCase() === "documentos" ||
-        d.name.toLowerCase() === "documents"
-    ) || drives[0];
+    if (drivesRes.ok) {
+      const drivesData = await drivesRes.json();
+      const drives: Array<{ id: string; name: string }> = drivesData.value || [];
 
-  if (!targetDrive) {
-    throw new Error("Nenhuma biblioteca de documentos encontrada no site do SharePoint.");
+      // Localiza "Documentos Compartilhados" ou "Documentos" ou "Documents" ou primeira biblioteca
+      const targetDrive =
+        drives.find(
+          (d) =>
+            d.name?.toLowerCase() === "documentos compartilhados" ||
+            d.name?.toLowerCase() === "documentos" ||
+            d.name?.toLowerCase() === "documents"
+        ) || drives[0];
+
+      if (targetDrive?.id) {
+        cachedSiteId = foundSiteId;
+        cachedDriveId = targetDrive.id;
+        console.info("[SharePoint] Biblioteca identificada via /drives:", targetDrive);
+        return { siteId: cachedSiteId, driveId: cachedDriveId };
+      }
+    } else {
+      const drivesErr = await drivesRes.json().catch(() => ({}));
+      console.warn("[SharePoint] /drives retornou status", drivesRes.status, drivesErr);
+    }
+  } catch (err) {
+    console.warn("[SharePoint] Falha ao consultar /drives:", err);
   }
 
-  cachedDriveId = targetDrive.id;
-  return { siteId: cachedSiteId!, driveId: cachedDriveId! };
+  // Tentativa 3: Listas com biblioteca expandida (/lists?$expand=drive)
+  try {
+    const listsUrl = `https://graph.microsoft.com/v1.0/sites/${foundSiteId}/lists?$expand=drive($select=id,name)`;
+    const listsRes = await fetch(listsUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    });
+
+    if (listsRes.ok) {
+      const listsData = await listsRes.json();
+      const listsWithDrives = (listsData.value || []).filter((l: any) => l.drive && l.drive.id);
+      const targetList =
+        listsWithDrives.find(
+          (l: any) =>
+            l.name?.toLowerCase() === "documentos compartilhados" ||
+            l.displayName?.toLowerCase() === "documentos compartilhados" ||
+            l.name?.toLowerCase() === "documentos" ||
+            l.displayName?.toLowerCase() === "documentos" ||
+            l.name?.toLowerCase() === "documents"
+        ) || listsWithDrives[0];
+
+      if (targetList?.drive?.id) {
+        cachedSiteId = foundSiteId;
+        cachedDriveId = targetList.drive.id;
+        console.info("[SharePoint] Biblioteca identificada via /lists expand:", targetList.drive);
+        return { siteId: cachedSiteId, driveId: cachedDriveId };
+      }
+    }
+  } catch (err) {
+    console.warn("[SharePoint] Falha ao consultar /lists:", err);
+  }
+
+  // Se nenhuma biblioteca foi localizada após todas as tentativas
+  throw new Error(
+    `Nenhuma biblioteca de documentos acessível no site "${siteData.displayName || SHAREPOINT_SITE_PATH}". ` +
+    `Se o aplicativo utiliza "Sites.Selected", um administrador do Microsoft 365 precisa conceder permissão de escrita (Write) no site para o App ID "${AZURE_CLIENT_ID}".`
+  );
 }
 
 /**

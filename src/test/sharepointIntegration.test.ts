@@ -7,6 +7,7 @@ import {
   SHAREPOINT_ROOT_FOLDER,
   resolveSharePointSiteAndDrive,
   getOrCreateOsFolder,
+  resetSharePointCache,
 } from "@/lib/sharepointService";
 import {
   AZURE_CLIENT_ID,
@@ -19,7 +20,7 @@ describe("Integração SharePoint - Convenções e Mapeamentos", () => {
     expect(AZURE_CLIENT_ID).toBe("bace3c78-42ed-4939-ae62-2c3403ad906b");
     expect(AZURE_TENANT_ID).toBe("62946ce0-3dbb-47b0-9699-8190d4e679b8");
     expect(SHAREPOINT_SCOPES).toContain("User.Read");
-    expect(SHAREPOINT_SCOPES).toContain("Sites.Selected");
+    expect(SHAREPOINT_SCOPES).toContain("Sites.ReadWrite.All");
   });
 
   it("deve validar as constantes do site e biblioteca corporativa da Primacor", () => {
@@ -68,6 +69,7 @@ describe("Integração SharePoint - Convenções e Mapeamentos", () => {
 describe("Integração SharePoint - Resolução e Tratamento de Erros via Graph API", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    resetSharePointCache();
   });
 
   it("deve lançar mensagem clara de orientação caso o app não tenha permissão no site (Sites.Selected)", async () => {
@@ -90,6 +92,59 @@ describe("Integração SharePoint - Resolução e Tratamento de Erros via Graph 
         ...actual,
         getSharePointAccessToken: vi.fn().mockResolvedValue("mock_token"),
       };
+    });
+
+    await expect(resolveSharePointSiteAndDrive()).rejects.toThrow(/Sites\.Selected/);
+  });
+
+  it("deve resolver biblioteca padrão diretamente via endpoint /drive", async () => {
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("/sites/") && url.includes(":")) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ id: "mock_site_id", displayName: "Produção Grupo" }),
+        });
+      }
+      if (url.endsWith("/drive")) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ id: "mock_default_drive_id", name: "Documentos Compartilhados" }),
+        });
+      }
+      return Promise.reject(new Error("Not found"));
+    });
+
+    const res = await resolveSharePointSiteAndDrive();
+    expect(res.siteId).toBe("mock_site_id");
+    expect(res.driveId).toBe("mock_default_drive_id");
+  });
+
+  it("deve lançar mensagem detalhada com AppId caso nenhuma biblioteca seja retornada", async () => {
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes("/sites/") && url.includes(":")) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ id: "mock_site_id", displayName: "Produção Grupo" }),
+        });
+      }
+      if (url.endsWith("/drive")) {
+        return Promise.resolve({
+          ok: false,
+          status: 404,
+          json: () => Promise.resolve({}),
+        });
+      }
+      if (url.endsWith("/drives") || url.includes("/lists")) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ value: [] }),
+        });
+      }
+      return Promise.reject(new Error("Not found"));
     });
 
     await expect(resolveSharePointSiteAndDrive()).rejects.toThrow(/Sites\.Selected/);
