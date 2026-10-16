@@ -654,6 +654,17 @@ function ProductionCardImpl({
               </span>
             )}
           </div>
+          {order.operador && (
+            <div className="flex justify-end mt-1">
+              <span
+                className="shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 dark:bg-cyan-950/40 border border-cyan-500/30 px-1.5 py-0.5 rounded-md shadow-2xs"
+                title={`Operador responsável: ${order.operador}`}
+              >
+                <UserCheck className="h-3 w-3 text-cyan-500" />
+                {order.operador}
+              </span>
+            </div>
+          )}
           {/* Linha 3: OBS / Motivo da Parada */}
           {(currentStatus.id === "paralisado" || currentStatus.id === "aguardando_novo_arquivo") ? (
             order.observacao && order.observacao.trim() ? (

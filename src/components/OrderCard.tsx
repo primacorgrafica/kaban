@@ -128,6 +128,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
     digital_pb: (order as any).digital_pb || false,
     prazo: order.prazo ? order.prazo.slice(0, 16) : "",
     vendedor: order.vendedor || "",
+    operador: order.operador || "",
     processos: order.processos || [] as string[],
     tipo_documento: ((order.nf ? "NF" : order.protocolo ? "PROTOCOLO" : "") as "NF" | "PROTOCOLO" | ""),
     valor_documento: order.nf || order.protocolo || "",
@@ -140,6 +141,78 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
     entrega_data_limite: order.entrega_data_limite ? order.entrega_data_limite.slice(0, 16) : "",
   });
   const [vendedoresList, setVendedoresList] = useState<{ id: string; nome: string }[]>([]);
+  const [operadoresList, setOperadoresList] = useState<{ id: string; user_id?: string; nome: string; setor_vinculado?: string | null }[]>([]);
+
+  useEffect(() => {
+    supabase
+      .from("profiles")
+      .select("id, user_id, nome, setor_vinculado")
+      .order("nome")
+      .then(({ data }) => {
+        if (data) {
+          setOperadoresList(data.filter((p) => p.nome && p.nome.trim().length > 0));
+        }
+      });
+  }, []);
+
+  const handleAssignOperador = async (newOperador: string | null) => {
+    if (!order) return;
+    onUpdate(order.id, { operador: newOperador });
+    const { error } = await (supabase.from("orders") as any)
+      .update({ operador: newOperador })
+      .eq("id", order.id);
+
+    if (error) {
+      toast.error("Erro ao atribuir operador: " + error.message);
+    } else {
+      toast.success(
+        newOperador
+          ? `Operador "${newOperador}" atribuído à O.S. com sucesso!`
+          : "Operador desvinculado da O.S."
+      );
+    }
+  };
+
+  useEffect(() => {
+    if (order) {
+      setEditData({
+        titulo: order.titulo,
+        descricao: order.descricao,
+        cliente: order.cliente,
+        observacao: order.observacao || "",
+        obs_prova: order.obs_prova || "",
+        saida_direta: order.saida_direta || false,
+        prova_digital: order.prova_digital || false,
+        prova_email: order.prova_email || false,
+        endereco_entrega: order.endereco_entrega || "",
+        destinatario: order.destinatario || "",
+        entregue_para: order.entregue_para || "",
+        entregue_por: (order as any).entregue_por || "",
+        entregue_em: order.entregue_em || "",
+        urgente: order.urgente || false,
+        urgente_prova: order.urgente_prova || false,
+        urgente_impressao: order.urgente_impressao || false,
+        urgente_acabamento: order.urgente_acabamento || false,
+        urgente_expedicao: order.urgente_expedicao || false,
+        digital_color: (order as any).digital_color || false,
+        digital_pb: (order as any).digital_pb || false,
+        prazo: order.prazo ? order.prazo.slice(0, 16) : "",
+        vendedor: order.vendedor || "",
+        operador: order.operador || "",
+        processos: order.processos || [] as string[],
+        tipo_documento: ((order.nf ? "NF" : order.protocolo ? "PROTOCOLO" : "") as "NF" | "PROTOCOLO" | ""),
+        valor_documento: order.nf || order.protocolo || "",
+        empresa_entrega: order.empresa_entrega || "",
+        obs_entrega: order.obs_entrega || "",
+        tipo_entrega: order.tipo_entrega || [] as string[],
+        entrega_para: order.entrega_para || "",
+        entrega_endereco: order.entrega_endereco || "",
+        entrega_ac: order.entrega_ac || "",
+        entrega_data_limite: order.entrega_data_limite ? order.entrega_data_limite.slice(0, 16) : "",
+      });
+      setEditing(false);
+    }
+  }, [order]);
 
   const config = STATUS_CONFIG[order.status];
   const statusIdx = STATUS_ORDER.indexOf(order.status);
@@ -219,6 +292,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
       digital_pb: editData.digital_pb,
       prazo: editData.prazo ? new Date(editData.prazo).toISOString() : null,
       vendedor: editData.vendedor || null,
+      operador: editData.operador || null,
       processos: editData.processos.length > 0 ? editData.processos : [],
       nf: editData.tipo_documento === "NF" ? (editData.valor_documento || null) : null,
       protocolo: editData.tipo_documento === "PROTOCOLO" ? (editData.valor_documento || null) : null,
@@ -402,6 +476,25 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
               </span>
             )}
           </div>
+          {/* Linha 2.5: Observação (esquerda) + Operador (direita, abaixo do vendedor) */}
+          {(order.operador || (order.observacao && !(order.status === "paralisado" || order.status === "aguardando_novo_arquivo"))) && (
+            <div className="flex items-center justify-between gap-2 mt-1 text-xs min-w-0">
+              <div className="min-w-0 flex-1">
+                {!(order.status === "paralisado" || order.status === "aguardando_novo_arquivo") && order.observacao && (
+                  <p className="text-xs text-muted-foreground line-clamp-1 italic">{order.observacao}</p>
+                )}
+              </div>
+              {order.operador && (
+                <span
+                  className="shrink-0 ml-auto flex items-center gap-1 text-[11px] font-semibold text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 dark:bg-cyan-950/40 border border-cyan-500/30 px-1.5 py-0.5 rounded-md shadow-2xs"
+                  title={`Operador responsável: ${order.operador}`}
+                >
+                  <UserCheck className="h-3 w-3 text-cyan-500" />
+                  {order.operador}
+                </span>
+              )}
+            </div>
+          )}
           {order.prazo && (
             <div className={`flex items-center gap-1 mt-1 text-[10px] font-semibold ${isNearDeadline ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>
               <Clock className="h-3 w-3" />
@@ -454,11 +547,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                 </Badge>
               </div>
             )
-          ) : (
-            order.observacao && (
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-2 italic">{order.observacao}</p>
-            )
-          )}
+          ) : null}
           {order.obs_prova && (showAll || visibleSections.prova) && (
             <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 line-clamp-2 italic">📋 {order.obs_prova}</p>
           )}
@@ -588,6 +677,27 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                     <SelectContent>
                       {vendedoresList.map((v) => (
                         <SelectItem key={v.id} value={v.nome}>{v.nome}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs uppercase text-muted-foreground">Operador Responsável</Label>
+                  <Select
+                    value={editData.operador || "__none__"}
+                    onValueChange={(v) => setEditData((d) => ({ ...d, operador: v === "__none__" ? "" : v }))}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue placeholder="Selecionar operador..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__" className="text-muted-foreground italic">
+                        — Nenhum operador —
+                      </SelectItem>
+                      {operadoresList.map((op) => (
+                        <SelectItem key={op.id} value={op.nome}>
+                          {op.nome} {op.setor_vinculado ? `(${op.setor_vinculado})` : ""}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -1075,6 +1185,51 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                         <span>Atualizado por <strong className="text-foreground">{updatedByName}</strong> em {format(new Date(order.updated_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
                       </div>
                     )}
+                  </div>
+
+                  {/* Bloco de Atribuição de Operador (SELECIONAR O USUARIO QUE VAI TRABALHAR NA O.S) */}
+                  <div className="p-3.5 rounded-xl border border-cyan-500/30 bg-cyan-500/5 dark:bg-cyan-950/20 space-y-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="h-7 w-7 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
+                          <UserCheck className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
+                            Operador da O.S.
+                          </p>
+                          <p className="text-xs font-semibold text-foreground">
+                            {order.operador ? order.operador : "Nenhum operador selecionado"}
+                          </p>
+                        </div>
+                      </div>
+                      {order.operador && (
+                        <Badge variant="outline" className="text-[10px] bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/30">
+                          Atribuído
+                        </Badge>
+                      )}
+                    </div>
+
+                    <div className="pt-1">
+                      <Select
+                        value={order.operador || "__none__"}
+                        onValueChange={(val) => handleAssignOperador(val === "__none__" ? null : val)}
+                      >
+                        <SelectTrigger className="h-9 text-xs bg-background/90 border-border/80 shadow-xs">
+                          <SelectValue placeholder="Selecionar operador para trabalhar na O.S..." />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-56">
+                          <SelectItem value="__none__" className="text-muted-foreground italic text-xs">
+                            — Nenhum operador (Aguardando) —
+                          </SelectItem>
+                          {operadoresList.map((op) => (
+                            <SelectItem key={op.id} value={op.nome} className="text-xs font-medium">
+                              {op.nome} {op.setor_vinculado ? `(${op.setor_vinculado})` : ""}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
 

@@ -483,6 +483,7 @@ export type Database = {
           urgente_expedicao: boolean
           urgente_impressao: boolean
           urgente_prova: boolean
+          operador?: string | null
           vendedor: string | null
           vendedor_compra: string | null
         }
@@ -547,6 +548,7 @@ export type Database = {
           observacao?: string | null
           oc_numero?: number | null
           om_numero?: number | null
+          operador?: string | null
           os_ref_nc?: string | null
           parent_order_id?: string | null
           pausado?: boolean
@@ -641,6 +643,7 @@ export type Database = {
           observacao?: string | null
           oc_numero?: number | null
           om_numero?: number | null
+          operador?: string | null
           os_ref_nc?: string | null
           parent_order_id?: string | null
           pausado?: boolean

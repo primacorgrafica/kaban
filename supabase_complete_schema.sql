@@ -2167,4 +2167,8 @@ CREATE POLICY "Admins coordinators or uploader can delete order attachments"
     OR public.get_user_role(auth.uid()) IN ('admin', 'coordenador')
   );
 
+-- Coluna para indicar qual operador irá trabalhar na O.S. do card
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS operador TEXT;
+
+
 

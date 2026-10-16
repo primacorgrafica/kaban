@@ -49,6 +49,7 @@ export interface Order {
   pausado_em: string | null;
   tempo_pausado_ms: number;
   vendedor: string | null;
+  operador?: string | null;
   tipo_trabalho: string | null;
   equipamentos: string[];
   acabamentos: string[];
