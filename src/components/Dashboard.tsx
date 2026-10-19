@@ -5,7 +5,7 @@ import {
   ArrowRight, FileDown, DatabaseBackup, Loader2, Upload, AlertTriangle,
   Printer, CalendarClock, History, Bell, Trash2, Info, Square,
   PrinterCheck, Layers, Truck, List, Eye, EyeOff, Search, Filter,
-  ChevronLeft, ChevronRight, Activity, ShieldCheck, Sparkles, RefreshCw, X, Download
+  ChevronLeft, ChevronRight, Activity, ShieldCheck, Sparkles, RefreshCw, X, Download, Check
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PreImpressaoTab } from "./PreImpressaoTab";
@@ -20,7 +20,14 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useRef, useEffect, useMemo } from "react";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { Badge } from "@/components/ui/badge";
+import {
+  SPECIAL_SUPPLIES,
+  isSpecialSupplyActive,
+  getSpecialSupplyDetails,
+  SpecialSupplyId,
+} from "@/lib/processos";
 
 interface DashboardProps {
   orders: Order[];
@@ -42,6 +49,11 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
   const [selectedSector, setSelectedSector] = useState<string>("all");
   const [onlyUrgent, setOnlyUrgent] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Suprimentos especiais (PANTONE, FACA, CLICHÊ)
+  const [supplySearch, setSupplySearch] = useState("");
+  const [supplyTypeFilter, setSupplyTypeFilter] = useState<string>("all");
+  const [supplyStatusFilter, setSupplyStatusFilter] = useState<string>("all");
 
   // Avisos management
   const [avisos, setAvisos] = useState<any[]>([]);
@@ -323,6 +335,122 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
     setActiveTab("producao");
   };
 
+  // Registros de Telemetria de Suprimentos Especiais (PANTONE, FACA, CLICHÊ)
+  const specialSupplyRecords = useMemo(() => {
+    const list: Array<{
+      orderId: string;
+      titulo: string;
+      cliente: string;
+      descricao?: string | null;
+      supplyId: SpecialSupplyId;
+      supplyLabel: string;
+      sent: boolean;
+      sentAt: string | null;
+      createdAt: string;
+      operator: string | null;
+      status: string;
+    }> = [];
+
+    orders.forEach((o) => {
+      SPECIAL_SUPPLIES.forEach((supply) => {
+        if (isSpecialSupplyActive(o.processos, supply.id)) {
+          const details = getSpecialSupplyDetails(o.processos, supply.id);
+          list.push({
+            orderId: o.id,
+            titulo: o.titulo,
+            cliente: o.cliente,
+            descricao: o.descricao,
+            supplyId: supply.id,
+            supplyLabel: supply.label,
+            sent: details.sent,
+            sentAt: details.sentAt,
+            createdAt: o.created_at,
+            operator: details.operator || o.operador || null,
+            status: o.status,
+          });
+        }
+      });
+    });
+
+    return list.sort((a, b) => {
+      const timeA = a.sentAt ? new Date(a.sentAt).getTime() : new Date(a.createdAt).getTime();
+      const timeB = b.sentAt ? new Date(b.sentAt).getTime() : new Date(b.createdAt).getTime();
+      return timeB - timeA;
+    });
+  }, [orders]);
+
+  const filteredSupplyRecords = useMemo(() => {
+    return specialSupplyRecords.filter((r) => {
+      if (supplyTypeFilter !== "all" && r.supplyId !== supplyTypeFilter) return false;
+      if (supplyStatusFilter === "sent" && !r.sent) return false;
+      if (supplyStatusFilter === "pending" && r.sent) return false;
+      if (supplySearch.trim()) {
+        const q = supplySearch.toLowerCase();
+        return (
+          r.titulo.toLowerCase().includes(q) ||
+          r.cliente.toLowerCase().includes(q) ||
+          (r.descricao && r.descricao.toLowerCase().includes(q)) ||
+          r.supplyLabel.toLowerCase().includes(q) ||
+          (r.operator && r.operator.toLowerCase().includes(q))
+        );
+      }
+      return true;
+    });
+  }, [specialSupplyRecords, supplyTypeFilter, supplyStatusFilter, supplySearch]);
+
+  const supplyStats = useMemo(() => {
+    const total = specialSupplyRecords.length;
+    const sent = specialSupplyRecords.filter((r) => r.sent).length;
+    const pending = total - sent;
+
+    const pantoneTotal = specialSupplyRecords.filter((r) => r.supplyId === "PANTONE").length;
+    const pantoneSent = specialSupplyRecords.filter((r) => r.supplyId === "PANTONE" && r.sent).length;
+
+    const facaTotal = specialSupplyRecords.filter((r) => r.supplyId === "FACA").length;
+    const facaSent = specialSupplyRecords.filter((r) => r.supplyId === "FACA" && r.sent).length;
+
+    const clicheTotal = specialSupplyRecords.filter((r) => r.supplyId === "CLICHE").length;
+    const clicheSent = specialSupplyRecords.filter((r) => r.supplyId === "CLICHE" && r.sent).length;
+
+    return {
+      total,
+      sent,
+      pending,
+      pantone: { total: pantoneTotal, sent: pantoneSent, pending: pantoneTotal - pantoneSent },
+      faca: { total: facaTotal, sent: facaSent, pending: facaTotal - facaSent },
+      cliche: { total: clicheTotal, sent: clicheSent, pending: clicheTotal - clicheSent },
+    };
+  }, [specialSupplyRecords]);
+
+  const handleExportSupplyCSV = () => {
+    if (filteredSupplyRecords.length === 0) {
+      toast.info("Nenhum registro para exportar.");
+      return;
+    }
+    const headers = ["O.S.", "Cliente", "Suprimento", "Status", "Data_Aprovacao", "Horario_Aprovacao", "Operador_Responsavel", "Data_Criacao_OS"];
+    const rows = filteredSupplyRecords.map((r) => [
+      `#${r.titulo}`,
+      `"${(r.cliente || "").replace(/"/g, '""')}"`,
+      r.supplyLabel,
+      r.sent ? "ENVIADO / APROVADO" : "PENDENTE",
+      r.sent && r.sentAt ? format(new Date(r.sentAt), "dd/MM/yyyy") : (r.sent ? "Registrado" : "Pendente"),
+      r.sent && r.sentAt ? format(new Date(r.sentAt), "HH:mm:ss") : (r.sent ? "—" : "—"),
+      `"${(r.operator || "—").replace(/"/g, '""')}"`,
+      format(new Date(r.createdAt), "dd/MM/yyyy HH:mm")
+    ]);
+    const csvContent = "\uFEFF" + [headers.join(";"), ...rows.map((row) => row.join(";"))].join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `telemetria_suprimentos_${format(new Date(), "yyyyMMdd_HHmm")}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("Relatório de suprimentos exportado com sucesso!");
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-in fade-in duration-300">
       {/* Executive Telemetry Header */}
@@ -533,6 +661,15 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
               className="text-xs py-2 px-3.5 rounded-xl data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-300 data-[state=active]:font-bold transition-all"
             >
               Métricas Pré-Impressão
+            </TabsTrigger>
+            <TabsTrigger
+              value="suprimentos"
+              className="text-xs py-2 px-3.5 rounded-xl data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-300 data-[state=active]:font-bold transition-all flex items-center gap-1.5"
+            >
+              <span>Faca / Clichê / Pantone</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-mono-tech bg-emerald-500/20 text-emerald-400 font-semibold">
+                {supplyStats.sent}/{supplyStats.total}
+              </span>
             </TabsTrigger>
             <TabsTrigger
               value="avisos"
@@ -797,6 +934,109 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
               </CardContent>
             </Card>
           </div>
+
+          {/* Card Resumo Suprimentos Especiais: FACA / CLICHÊ / PANTONE */}
+          {supplyStats.total > 0 && (
+            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl overflow-hidden">
+              <CardHeader className="pb-3 border-b border-border">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                      <Sparkles className="h-4 w-4 text-emerald-500" />
+                      Acompanhamento de Suprimentos Especiais (Faca • Clichê • Pantone)
+                    </CardTitle>
+                    <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                      Rastreamento em tempo real de aprovações com registro de data, hora e operador
+                    </CardDescription>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setActiveTab("suprimentos")}
+                    className="text-xs h-8 rounded-xl border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 font-semibold gap-1.5 shrink-0"
+                  >
+                    <span>Ver Tabela Completa</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {/* FACA */}
+                  <div className="p-3 rounded-xl bg-muted/40 border border-border flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-semibold text-foreground">FACA</div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">
+                        {supplyStats.faca.sent} de {supplyStats.faca.total} liberadas
+                      </div>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={`text-xs font-mono-tech font-bold ${
+                        supplyStats.faca.total > 0 && supplyStats.faca.sent === supplyStats.faca.total
+                          ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
+                          : supplyStats.faca.sent > 0
+                          ? "bg-amber-500/20 text-amber-400 border-amber-500/40"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {supplyStats.faca.total > 0
+                        ? `${Math.round((supplyStats.faca.sent / supplyStats.faca.total) * 100)}%`
+                        : "—"}
+                    </Badge>
+                  </div>
+
+                  {/* CLICHÊ */}
+                  <div className="p-3 rounded-xl bg-muted/40 border border-border flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-semibold text-foreground">CLICHÊ</div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">
+                        {supplyStats.cliche.sent} de {supplyStats.cliche.total} liberados
+                      </div>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={`text-xs font-mono-tech font-bold ${
+                        supplyStats.cliche.total > 0 && supplyStats.cliche.sent === supplyStats.cliche.total
+                          ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
+                          : supplyStats.cliche.sent > 0
+                          ? "bg-amber-500/20 text-amber-400 border-amber-500/40"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {supplyStats.cliche.total > 0
+                        ? `${Math.round((supplyStats.cliche.sent / supplyStats.cliche.total) * 100)}%`
+                        : "—"}
+                    </Badge>
+                  </div>
+
+                  {/* PANTONE */}
+                  <div className="p-3 rounded-xl bg-muted/40 border border-border flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-semibold text-foreground">PANTONE</div>
+                      <div className="text-[11px] text-muted-foreground mt-0.5">
+                        {supplyStats.pantone.sent} de {supplyStats.pantone.total} liberados
+                      </div>
+                    </div>
+                    <Badge
+                      variant="outline"
+                      className={`text-xs font-mono-tech font-bold ${
+                        supplyStats.pantone.total > 0 && supplyStats.pantone.sent === supplyStats.pantone.total
+                          ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
+                          : supplyStats.pantone.sent > 0
+                          ? "bg-amber-500/20 text-amber-400 border-amber-500/40"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {supplyStats.pantone.total > 0
+                        ? `${Math.round((supplyStats.pantone.sent / supplyStats.pantone.total) * 100)}%`
+                        : "—"}
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* TAB 2: CHÃO DE FÁBRICA (OS EM PRODUÇÃO) */}
@@ -1409,6 +1649,311 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
               </CardContent>
             </Card>
           </div>
+        {/* TAB: TELEMETRIA DE SUPRIMENTOS ESPECIAIS (FACA, CLICHÊ, PANTONE) */}
+        <TabsContent value="suprimentos" className="space-y-6 m-0">
+          {/* KPI Cards Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Total */}
+            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-muted-foreground font-medium">Total de Suprimentos</div>
+                  <div className="text-2xl font-bold font-mono-tech text-foreground mt-1">{supplyStats.total}</div>
+                </div>
+                <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                  <Layers className="h-5 w-5" />
+                </div>
+              </div>
+              <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border">
+                <span className="text-emerald-500 dark:text-emerald-400 font-semibold flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> {supplyStats.sent} aprovados
+                </span>
+                <span className="text-amber-500 dark:text-amber-400 font-semibold flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5" /> {supplyStats.pending} pendentes
+                </span>
+              </div>
+            </Card>
+
+            {/* FACA */}
+            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-muted-foreground font-medium">Faca Especial</div>
+                  <div className="text-2xl font-bold font-mono-tech text-foreground mt-1">
+                    {supplyStats.faca.sent} <span className="text-sm font-normal text-muted-foreground">/ {supplyStats.faca.total}</span>
+                  </div>
+                </div>
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold text-xs">
+                  FACA
+                </div>
+              </div>
+              <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border">
+                <span>Taxa de Liberação</span>
+                <span className="font-mono-tech font-bold text-foreground">
+                  {supplyStats.faca.total > 0 ? `${Math.round((supplyStats.faca.sent / supplyStats.faca.total) * 100)}%` : "0%"}
+                </span>
+              </div>
+            </Card>
+
+            {/* CLICHE */}
+            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-muted-foreground font-medium">Clichê</div>
+                  <div className="text-2xl font-bold font-mono-tech text-foreground mt-1">
+                    {supplyStats.cliche.sent} <span className="text-sm font-normal text-muted-foreground">/ {supplyStats.cliche.total}</span>
+                  </div>
+                </div>
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold text-xs">
+                  CLICHÊ
+                </div>
+              </div>
+              <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border">
+                <span>Taxa de Liberação</span>
+                <span className="font-mono-tech font-bold text-foreground">
+                  {supplyStats.cliche.total > 0 ? `${Math.round((supplyStats.cliche.sent / supplyStats.cliche.total) * 100)}%` : "0%"}
+                </span>
+              </div>
+            </Card>
+
+            {/* PANTONE */}
+            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-muted-foreground font-medium">Pantone</div>
+                  <div className="text-2xl font-bold font-mono-tech text-foreground mt-1">
+                    {supplyStats.pantone.sent} <span className="text-sm font-normal text-muted-foreground">/ {supplyStats.pantone.total}</span>
+                  </div>
+                </div>
+                <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold text-xs">
+                  PANTONE
+                </div>
+              </div>
+              <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border">
+                <span>Taxa de Liberação</span>
+                <span className="font-mono-tech font-bold text-foreground">
+                  {supplyStats.pantone.total > 0 ? `${Math.round((supplyStats.pantone.sent / supplyStats.pantone.total) * 100)}%` : "0%"}
+                </span>
+              </div>
+            </Card>
+          </div>
+
+          {/* Filters & Actions Bar */}
+          <div className="p-4 rounded-2xl bg-card border border-border backdrop-blur-md flex flex-col md:flex-row items-center justify-between gap-3 shadow-xs">
+            <div className="relative w-full md:w-80">
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por O.S., cliente, operador..."
+                value={supplySearch}
+                onChange={(e) => setSupplySearch(e.target.value)}
+                className="pl-9 bg-background border-input h-9 text-xs rounded-xl text-foreground placeholder:text-muted-foreground"
+              />
+              {supplySearch && (
+                <button
+                  onClick={() => setSupplySearch("")}
+                  className="absolute right-2.5 top-2.5 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap w-full md:w-auto justify-start md:justify-end">
+              {/* Type filter pills */}
+              <Button
+                variant={supplyTypeFilter === "all" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSupplyTypeFilter("all")}
+                className="h-8 text-xs rounded-xl px-3"
+              >
+                Todos
+              </Button>
+              <Button
+                variant={supplyTypeFilter === "FACA" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSupplyTypeFilter("FACA")}
+                className="h-8 text-xs rounded-xl px-3"
+              >
+                Faca ({supplyStats.faca.total})
+              </Button>
+              <Button
+                variant={supplyTypeFilter === "CLICHE" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSupplyTypeFilter("CLICHE")}
+                className="h-8 text-xs rounded-xl px-3"
+              >
+                Clichê ({supplyStats.cliche.total})
+              </Button>
+              <Button
+                variant={supplyTypeFilter === "PANTONE" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSupplyTypeFilter("PANTONE")}
+                className="h-8 text-xs rounded-xl px-3"
+              >
+                Pantone ({supplyStats.pantone.total})
+              </Button>
+
+              <div className="h-4 w-px bg-border mx-1" />
+
+              {/* Status filter */}
+              <Button
+                variant={supplyStatusFilter === "all" ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setSupplyStatusFilter("all")}
+                className="h-8 text-xs rounded-xl px-2.5"
+              >
+                Status: Todos
+              </Button>
+              <Button
+                variant={supplyStatusFilter === "sent" ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setSupplyStatusFilter("sent")}
+                className="h-8 text-xs rounded-xl px-2.5 text-emerald-500"
+              >
+                Aprovados
+              </Button>
+              <Button
+                variant={supplyStatusFilter === "pending" ? "secondary" : "outline"}
+                size="sm"
+                onClick={() => setSupplyStatusFilter("pending")}
+                className="h-8 text-xs rounded-xl px-2.5 text-amber-500"
+              >
+                Pendentes
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportSupplyCSV}
+                className="h-8 text-xs rounded-xl px-3 gap-1.5 border-cyan-500/30 text-cyan-500 hover:bg-cyan-500/10 font-semibold ml-auto md:ml-0"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Exportar CSV
+              </Button>
+            </div>
+          </div>
+
+          {/* Records Table */}
+          <Card className="border border-border bg-card backdrop-blur-md rounded-2xl overflow-hidden shadow-xl">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-muted/40">
+                  <TableRow className="border-border hover:bg-transparent">
+                    <TableHead className="w-[120px] text-xs font-semibold text-muted-foreground">O.S.</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground">Cliente & Descrição</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground">Suprimento</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground">Status</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground">Data da Aprovação</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground">Horário</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground">Tempo até Envio</TableHead>
+                    <TableHead className="text-xs font-semibold text-muted-foreground text-right">Operador Responsável</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredSupplyRecords.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-12 text-xs text-muted-foreground">
+                        Nenhum suprimento encontrado com os filtros selecionados.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredSupplyRecords.map((r, idx) => {
+                      const hasSentDate = r.sent && r.sentAt;
+                      const sentDate = hasSentDate ? new Date(r.sentAt!) : null;
+                      const elapsedSinceCreation =
+                        hasSentDate && sentDate
+                          ? sentDate.getTime() - new Date(r.createdAt).getTime()
+                          : null;
+
+                      return (
+                        <TableRow
+                          key={`${r.orderId}-${r.supplyId}-${idx}`}
+                          className="border-border/60 hover:bg-accent/40 transition-colors"
+                        >
+                          <TableCell className="font-medium">
+                            <span className="font-mono-tech font-bold text-xs text-foreground">
+                              #{r.titulo}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-col max-w-[260px]">
+                              <span className="text-xs font-medium text-foreground truncate">
+                                {r.cliente || "—"}
+                              </span>
+                              {r.descricao && (
+                                <span className="text-[11px] text-muted-foreground truncate">
+                                  {r.descricao}
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                                r.sent
+                                  ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                                  : "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                              }`}
+                            >
+                              {r.supplyLabel}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {r.sent ? (
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-500 dark:text-emerald-400 border border-emerald-500/30">
+                                <CheckCircle2 className="h-3 w-3" />
+                                <span>Enviado / Aprovado</span>
+                              </div>
+                            ) : (
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-500 dark:text-amber-400 border border-amber-500/30">
+                                <Clock className="h-3 w-3" />
+                                <span>Pendente</span>
+                              </div>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {sentDate ? (
+                              <span className="text-xs font-mono-tech font-medium text-foreground">
+                                {format(sentDate, "dd/MM/yyyy", { locale: ptBR })}
+                              </span>
+                            ) : r.sent ? (
+                              <span className="text-xs text-muted-foreground italic">Registrado</span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {sentDate ? (
+                              <span className="text-xs font-mono-tech font-bold text-emerald-500 dark:text-emerald-400">
+                                {format(sentDate, "HH:mm:ss")}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {elapsedSinceCreation && elapsedSinceCreation > 0 ? (
+                              <span className="text-xs font-mono-tech text-muted-foreground">
+                                {formatDuration(elapsedSinceCreation)}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <span className="text-xs font-medium text-foreground">
+                              {r.operator || "—"}
+                            </span>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

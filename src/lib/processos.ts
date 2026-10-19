@@ -104,9 +104,7 @@ export function isSpecialSupplyActive(processos: string[] | undefined | null, id
   const config = SPECIAL_SUPPLIES.find((s) => s.id === id);
   if (!config) return false;
   return config.alt.some((name) =>
-    processos.includes(name) ||
-    processos.includes(`${name}:enviado`) ||
-    processos.includes(`${name}:ok`)
+    processos.some((p) => p === name || p.startsWith(`${name}:`))
   );
 }
 
@@ -115,8 +113,13 @@ export function isSpecialSupplySent(processos: string[] | undefined | null, id: 
   const config = SPECIAL_SUPPLIES.find((s) => s.id === id);
   if (!config) return false;
   return config.alt.some((name) =>
-    processos.includes(`${name}:enviado`) ||
-    processos.includes(`${name}:ok`)
+    processos.some(
+      (p) =>
+        p === `${name}:enviado` ||
+        p.startsWith(`${name}:enviado:`) ||
+        p === `${name}:ok` ||
+        p.startsWith(`${name}:ok:`)
+    )
   );
 }
 
@@ -127,7 +130,7 @@ export function toggleSpecialSupplyActive(processos: string[] | undefined | null
 
   const isActive = isSpecialSupplyActive(current, id);
   const filtered = current.filter(
-    (p) => !config.alt.some((name) => p === name || p === `${name}:enviado` || p === `${name}:ok`)
+    (p) => !config.alt.some((name) => p === name || p.startsWith(`${name}:`))
   );
 
   if (isActive) {
@@ -137,7 +140,11 @@ export function toggleSpecialSupplyActive(processos: string[] | undefined | null
   }
 }
 
-export function toggleSpecialSupplySent(processos: string[] | undefined | null, id: SpecialSupplyId): string[] {
+export function toggleSpecialSupplySent(
+  processos: string[] | undefined | null,
+  id: SpecialSupplyId,
+  operatorName?: string | null
+): string[] {
   const current = [...(processos || [])];
   const config = SPECIAL_SUPPLIES.find((s) => s.id === id);
   if (!config) return current;
@@ -146,15 +153,81 @@ export function toggleSpecialSupplySent(processos: string[] | undefined | null, 
   const primaryName = config.id;
 
   const filtered = current.filter(
-    (p) => !config.alt.some((name) => p === name || p === `${name}:enviado` || p === `${name}:ok`)
+    (p) => !config.alt.some((name) => p === name || p.startsWith(`${name}:`))
   );
 
   if (isSent) {
     // Se estava enviado (verde), volta a pendente (amarelo)
     return [...filtered, primaryName];
   } else {
-    // Se estava pendente (amarelo), passa a enviado (verde)
-    return [...filtered, `${primaryName}:enviado`];
+    // Se estava pendente (amarelo), passa a enviado (verde) gravando timestamp ISO e operador
+    const nowIso = new Date().toISOString();
+    const op = operatorName && operatorName.trim() ? `:${encodeURIComponent(operatorName.trim())}` : "";
+    return [...filtered, `${primaryName}:enviado:${nowIso}${op}`];
   }
+}
+
+export interface SpecialSupplyDetails {
+  id: SpecialSupplyId;
+  label: string;
+  active: boolean;
+  sent: boolean;
+  sentAt: string | null;
+  operator: string | null;
+}
+
+export function getSpecialSupplyDetails(
+  processos: string[] | undefined | null,
+  id: SpecialSupplyId
+): SpecialSupplyDetails {
+  const config = SPECIAL_SUPPLIES.find((s) => s.id === id);
+  if (!config) {
+    return { id, label: id, active: false, sent: false, sentAt: null, operator: null };
+  }
+  if (!processos || !Array.isArray(processos)) {
+    return { id, label: config.label, active: false, sent: false, sentAt: null, operator: null };
+  }
+
+  const match = processos.find((p) =>
+    config.alt.some((name) => p === name || p.startsWith(`${name}:`))
+  );
+
+  if (!match) {
+    return { id, label: config.label, active: false, sent: false, sentAt: null, operator: null };
+  }
+
+  const isSent = config.alt.some((name) =>
+    match === `${name}:enviado` ||
+    match.startsWith(`${name}:enviado:`) ||
+    match === `${name}:ok` ||
+    match.startsWith(`${name}:ok:`)
+  );
+
+  let sentAt: string | null = null;
+  let operator: string | null = null;
+
+  if (isSent) {
+    const parts = match.split(":");
+    // parts[0] = sigla, parts[1] = "enviado", parts[2] = ISO timestamp, parts[3] = operator
+    if (parts.length >= 3 && parts[2]) {
+      sentAt = parts[2];
+    }
+    if (parts.length >= 4 && parts[3]) {
+      try {
+        operator = decodeURIComponent(parts[3]);
+      } catch {
+        operator = parts[3];
+      }
+    }
+  }
+
+  return {
+    id,
+    label: config.label,
+    active: true,
+    sent: isSent,
+    sentAt,
+    operator,
+  };
 }
 

@@ -53,6 +53,7 @@ import {
   isSpecialSupplySent,
   toggleSpecialSupplySent,
   toggleSpecialSupplyActive,
+  getSpecialSupplyDetails,
 } from "@/lib/processos";
 import { OrderAttachmentsSection } from "@/components/sharepoint/OrderAttachmentsSection";
 
@@ -736,37 +737,66 @@ export function OrderDetailDialog({
 
                     {/* Quadros PANTONE - FACA - CLICHÊ */}
                     {SPECIAL_SUPPLIES.some((s) => isSpecialSupplyActive(order.processos, s.id)) && (
-                      <div className="flex items-center gap-2 flex-wrap pb-1">
-                        {SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(order.processos, s.id)).map((item) => {
-                          const isSent = isSpecialSupplySent(order.processos, item.id);
-                          return (
-                            <button
-                              key={item.id}
-                              type="button"
-                              onClick={() => {
-                                const updated = toggleSpecialSupplySent(order.processos, item.id);
-                                onUpdate(order.id, { processos: updated });
-                                if (!isSent) {
-                                  toast.success(`${item.label} marcado como ENVIADO!`);
-                                } else {
-                                  toast.info(`${item.label} desmarcado (pendente).`);
+                      <div className="flex flex-col gap-2 pb-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(order.processos, s.id)).map((item) => {
+                            const details = getSpecialSupplyDetails(order.processos, item.id);
+                            const isSent = details.sent;
+                            const formattedTime = details.sentAt
+                              ? format(new Date(details.sentAt), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })
+                              : null;
+                            const op = details.operator || order.operador || null;
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => {
+                                  const updated = toggleSpecialSupplySent(order.processos, item.id, order.operador);
+                                  onUpdate(order.id, { processos: updated });
+                                  if (!isSent) {
+                                    toast.success(`${item.label} marcado como ENVIADO! Registrado com data e hora.`);
+                                  } else {
+                                    toast.info(`${item.label} desmarcado (pendente).`);
+                                  }
+                                }}
+                                title={
+                                  isSent
+                                    ? `${item.label}: ENVIADO ${formattedTime ? `em ${formattedTime}` : ""}${op ? ` por ${op}` : ""} (Clique para alterar para pendente)`
+                                    : `${item.label}: PENDENTE (Clique para marcar como enviado)`
                                 }
-                              }}
-                              className={`px-3 py-1 rounded-lg text-xs font-black tracking-wider uppercase transition-all flex items-center gap-1.5 shadow-xs border cursor-pointer ${
-                                isSent
-                                  ? "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 shadow-[0_0_8px_rgba(16,185,129,0.35)]"
-                                  : "bg-amber-400 hover:bg-amber-500 text-amber-950 border-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.25)]"
-                              }`}
-                            >
-                              <span className={`w-2 h-2 rounded-full ${isSent ? "bg-white" : "bg-amber-950"}`} />
-                              <span>{item.label}</span>
-                              {isSent ? <Check className="h-3.5 w-3.5 stroke-[3]" /> : <span className="text-[10px]">⏳</span>}
-                              <span className="text-[10px] font-mono-tech ml-1 opacity-90">
-                                {isSent ? "(Enviado)" : "(Pendente)"}
-                              </span>
-                            </button>
-                          );
-                        })}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-black tracking-wider uppercase transition-all flex items-center gap-1.5 shadow-xs border cursor-pointer ${
+                                  isSent
+                                    ? "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 shadow-[0_0_8px_rgba(16,185,129,0.35)]"
+                                    : "bg-amber-400 hover:bg-amber-500 text-amber-950 border-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.25)]"
+                                }`}
+                              >
+                                <span className={`w-2 h-2 rounded-full ${isSent ? "bg-white" : "bg-amber-950"}`} />
+                                <span>{item.label}</span>
+                                {isSent ? <Check className="h-3.5 w-3.5 stroke-[3]" /> : <span className="text-[10px]">⏳</span>}
+                                <span className="text-[10px] font-mono-tech ml-1 opacity-90">
+                                  {isSent ? "(Enviado)" : "(Pendente)"}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {/* Detalhes de rastreabilidade com data e hora */}
+                        <div className="space-y-1 pt-1">
+                          {SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(order.processos, s.id)).map((item) => {
+                            const details = getSpecialSupplyDetails(order.processos, item.id);
+                            if (!details.sent) return null;
+                            const formattedTime = details.sentAt
+                              ? format(new Date(details.sentAt), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })
+                              : format(new Date(order.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+                            return (
+                              <p key={`info-${item.id}`} className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono-tech flex items-center gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                <strong className="font-bold">{item.label}:</strong> Aprovado/Enviado em {formattedTime}
+                                {details.operator && <span>por <u>{details.operator}</u></span>}
+                              </p>
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
 

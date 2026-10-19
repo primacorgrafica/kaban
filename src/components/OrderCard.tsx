@@ -36,6 +36,7 @@ import {
   isSpecialSupplySent,
   toggleSpecialSupplySent,
   toggleSpecialSupplyActive,
+  getSpecialSupplyDetails,
 } from "@/lib/processos";
 import { OrderAttachmentsSection } from "./sharepoint/OrderAttachmentsSection";
 import { Check } from "lucide-react";
@@ -589,24 +590,30 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
               onClick={(e) => e.stopPropagation()}
             >
               {SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(order.processos, s.id)).map((item) => {
-                const isSent = isSpecialSupplySent(order.processos, item.id);
+                const details = getSpecialSupplyDetails(order.processos, item.id);
+                const isSent = details.sent;
+                const formattedTime = details.sentAt
+                  ? format(new Date(details.sentAt), "dd/MM 'às' HH:mm", { locale: ptBR })
+                  : null;
+                const op = details.operator || order.operador || updatedByName || null;
                 return (
                   <button
                     key={item.id}
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      const updated = toggleSpecialSupplySent(order.processos, item.id);
+                      const operatorToSave = order.operador || updatedByName || undefined;
+                      const updated = toggleSpecialSupplySent(order.processos, item.id, operatorToSave);
                       onUpdate(order.id, { processos: updated });
                       if (!isSent) {
-                        toast.success(`${item.label} marcado como ENVIADO!`);
+                        toast.success(`${item.label} marcado como ENVIADO! Registrado no sistema.`);
                       } else {
                         toast.info(`${item.label} alterado para PENDENTE.`);
                       }
                     }}
                     title={
                       isSent
-                        ? `${item.label}: ENVIADO (Clique para alterar para pendente)`
+                        ? `${item.label}: ENVIADO ${formattedTime ? `em ${formattedTime}` : ""}${op ? ` por ${op}` : ""} (Clique para alterar para pendente)`
                         : `${item.label}: PENDENTE (Clique para marcar como enviado)`
                     }
                     className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider uppercase transition-all flex items-center gap-1 shadow-xs cursor-pointer border ${
@@ -618,7 +625,14 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isSent ? "bg-white" : "bg-amber-950"}`} />
                     <span>{item.label}</span>
                     {isSent ? (
-                      <Check className="h-3 w-3 stroke-[3]" />
+                      <>
+                        <Check className="h-3 w-3 stroke-[3]" />
+                        {details.sentAt && (
+                          <span className="text-[9px] font-mono-tech opacity-90 tracking-tight bg-black/20 px-1 rounded">
+                            {format(new Date(details.sentAt), "HH:mm")}
+                          </span>
+                        )}
+                      </>
                     ) : (
                       <span className="text-[9px] opacity-75">⏳</span>
                     )}
