@@ -60,7 +60,61 @@ function playTvChime() {
   } catch {}
 }
 
-// Síntese de voz com Web Speech API em português (pt-BR)
+// Obtém voz feminina em português (pt-BR) disponível no navegador/sistema
+function getFemalePtVoice(): SpeechSynthesisVoice | null {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices || voices.length === 0) return null;
+
+  const ptVoices = voices.filter(
+    (v) => v.lang === "pt-BR" || v.lang === "pt_BR" || v.lang.startsWith("pt")
+  );
+  if (ptVoices.length === 0) return null;
+
+  // Lista de nomes de vozes femininas conhecidas em português (Windows, Edge, Chrome, Android, macOS, iOS)
+  const femaleNames = [
+    "francisca",
+    "maria",
+    "thalita",
+    "brenda",
+    "heloisa",
+    "raquel",
+    "luciana",
+    "vitoria",
+    "vitória",
+    "helena",
+    "joana",
+    "camila",
+    "leticia",
+    "letícia",
+    "female",
+    "mulher",
+    "feminina",
+  ];
+
+  // 1. Prioriza voz com nome feminino explícito
+  const explicitFemale = ptVoices.find((v) => {
+    const name = v.name.toLowerCase();
+    return femaleNames.some((n) => name.includes(n));
+  });
+  if (explicitFemale) return explicitFemale;
+
+  // 2. No Chrome / Android, "Google português do Brasil" é historicamente voz feminina
+  const googlePt = ptVoices.find((v) => v.name.toLowerCase().includes("google"));
+  if (googlePt) return googlePt;
+
+  // 3. Exclui vozes masculinas conhecidas (Daniel, Antonio, Julio, Fabio, etc.)
+  const maleNames = ["daniel", "antonio", "antônio", "julio", "júlio", "fabio", "fábio", "male", "homem"];
+  const nonMale = ptVoices.find((v) => {
+    const name = v.name.toLowerCase();
+    return !maleNames.some((n) => name.includes(n));
+  });
+  if (nonMale) return nonMale;
+
+  return ptVoices[0];
+}
+
+// Síntese de voz feminina com Web Speech API em português (pt-BR)
 function speakOsLiberada(titulo: string) {
   try {
     // 1. Toca o sinal sonoro para chamar a atenção na TV
@@ -74,24 +128,21 @@ function speakOsLiberada(titulo: string) {
     // Sanitiza o número da O.S. (ex: "OS 1045", "OS-1045", "1045" -> "1045")
     const cleanNumber = titulo.replace(/^O\.?S\.?[\s._-]*/i, "").trim();
 
-    // Formata com "O. S." espaçado para garantir pronúncia correta de cada letra (Ó-Ésse) em todos os sintetizadores
+    // Formata com "O. S." espaçado para garantir pronúncia correta de cada letra (Ó-Ésse)
     const frase = cleanNumber
-      ? `Atenção: O. S. número ${cleanNumber} foi liberada.`
-      : `Atenção: O. S. ${titulo} foi liberada.`;
+      ? `Atenção: O. S. número ${cleanNumber} foi aprovada e liberada.`
+      : `Atenção: O. S. ${titulo} foi aprovada e liberada.`;
 
     const utterance = new SpeechSynthesisUtterance(frase);
     utterance.lang = "pt-BR";
     utterance.rate = 0.95; // Velocidade ligeiramente compassada para perfeita compreensão na fábrica
-    utterance.pitch = 1.0;
+    utterance.pitch = 1.2; // Pitch agudo e cristalino para voz feminina
     utterance.volume = 1.0;
 
-    // Seleciona voz em português (pt-BR) se disponível no navegador
-    const voices = window.speechSynthesis.getVoices();
-    const ptVoice =
-      voices.find((v) => v.lang === "pt-BR" || v.lang === "pt_BR") ||
-      voices.find((v) => v.lang.startsWith("pt"));
-    if (ptVoice) {
-      utterance.voice = ptVoice;
+    // Seleciona voz feminina em português (pt-BR) se disponível no navegador
+    const femaleVoice = getFemalePtVoice();
+    if (femaleVoice) {
+      utterance.voice = femaleVoice;
     }
 
     // Inicia a fala 450ms após o chime de chamada
@@ -99,7 +150,7 @@ function speakOsLiberada(titulo: string) {
       window.speechSynthesis.speak(utterance);
     }, 450);
   } catch (err) {
-    console.warn("Falha na síntese de voz:", err);
+    console.warn("Falha na síntese de voz feminina:", err);
   }
 }
 
@@ -129,7 +180,7 @@ export default function PcpPage() {
 
   // Notificação de último evento em tempo real
   const [lastEventAlert, setLastEventAlert] = useState<{ text: string; time: string; type: "liberada" | "emitida" } | null>(null);
-  const prevLiberadasCountRef = useRef<number>(0);
+  const knownLiberadaIdsRef = useRef<Set<string> | null>(null);
 
   const toggleTvMode = () => {
     const next = !isTvMode;
@@ -148,17 +199,27 @@ export default function PcpPage() {
     since.setHours(0, 0, 0, 0);
     const sinceISO = since.toISOString();
 
-    const [statusRes, sectorRes, currentRes] = await Promise.all([
+    const [statusRes, sectorRes, currentPreRes, currentEmbRes] = await Promise.all([
+      // 1. Histórico de saída de pré-impressão
       supabase
         .from("order_status_history")
         .select("order_id, created_at")
         .eq("status_novo", "arquivo_liberado")
         .gte("created_at", sinceISO),
+      // 2. Histórico de transferência do setor de desenvolvimento (embalagens)
       supabase
         .from("sector_history")
         .select("order_id, setor_anterior, setor_novo, created_at")
         .eq("setor_anterior", "desenvolvimento")
         .gte("created_at", sinceISO),
+      // 3. Ordens ativas atualmente na coluna Saída de Pré-impressão (status = arquivo_liberado)
+      supabase
+        .from("orders")
+        .select("id, updated_at")
+        .eq("status", "arquivo_liberado")
+        .eq("arquivado", false)
+        .gte("updated_at", sinceISO),
+      // 4. Ordens ativas atualmente na coluna Saída de Embalagens (setor = desenvolvimento e setor_status = saida)
       supabase
         .from("orders")
         .select("id, updated_at")
@@ -172,7 +233,8 @@ export default function PcpPage() {
     (statusRes.data || []).forEach((r: any) => ids.add(r.order_id));
     const sectorRows = (sectorRes.data || []).filter((r: any) => r.setor_novo !== "desenvolvimento");
     sectorRows.forEach((r: any) => ids.add(r.order_id));
-    (currentRes.data || []).forEach((r: any) => ids.add(r.id));
+    (currentPreRes.data || []).forEach((r: any) => ids.add(r.id));
+    (currentEmbRes.data || []).forEach((r: any) => ids.add(r.id));
 
     if (ids.size === 0) { setLiberadas([]); return; }
 
@@ -189,27 +251,32 @@ export default function PcpPage() {
       stateMap.set(o.id, o);
     });
 
-    const preValida = (id: string) => {
-      const o = stateMap.get(id);
-      return !!o && o.status === "arquivo_liberado";
-    };
-    const embValida = (id: string) => {
+    const isLiberada = (id: string) => {
       const o = stateMap.get(id);
       if (!o) return false;
-      if (o.setor === "desenvolvimento") return o.setor_status === "saida";
-      return true;
+      // Na Pré-impressão: coluna Saída (status === arquivo_liberado)
+      if (o.status === "arquivo_liberado") return true;
+      // Em Embalagens: coluna Saída (setor === desenvolvimento && setor_status === saida)
+      if (o.setor === "desenvolvimento" && o.setor_status === "saida") return true;
+      // Transferido para produção
+      if (o.setor && o.setor !== "desenvolvimento") return true;
+      return false;
     };
 
     const entries: LiberadaEntry[] = [];
     (statusRes.data || []).forEach((r: any) => {
-      const m = preValida(r.order_id) ? map.get(r.order_id) : undefined;
+      const m = isLiberada(r.order_id) ? map.get(r.order_id) : undefined;
       if (m) entries.push({ order_id: r.order_id, ...m, chegou_em: r.created_at });
     });
     sectorRows.forEach((r: any) => {
-      const m = embValida(r.order_id) ? map.get(r.order_id) : undefined;
-      if (m) entries.push({ order_id: r.order_id, ...m, chegou_em: r.created_at });
+      const m = map.get(r.order_id);
+      if (m && isLiberada(r.order_id)) entries.push({ order_id: r.order_id, ...m, chegou_em: r.created_at });
     });
-    (currentRes.data || []).forEach((r: any) => {
+    (currentPreRes.data || []).forEach((r: any) => {
+      const m = map.get(r.id);
+      if (m) entries.push({ order_id: r.id, ...m, chegou_em: r.updated_at });
+    });
+    (currentEmbRes.data || []).forEach((r: any) => {
       const m = map.get(r.id);
       if (m) entries.push({ order_id: r.id, ...m, chegou_em: r.updated_at });
     });
@@ -223,19 +290,26 @@ export default function PcpPage() {
     const deduped = Array.from(latestByKey.values());
     deduped.sort((a, b) => b.chegou_em.localeCompare(a.chegou_em));
 
-    // Checa se houve nova liberação para alerta da TV
-    if (prevLiberadasCountRef.current > 0 && deduped.length > prevLiberadasCountRef.current) {
-      const newlyLiberada = deduped[0];
-      setLastEventAlert({
-        text: `O.S. ${newlyLiberada.titulo} liberada para Produção! (${newlyLiberada.cliente})`,
-        time: format(new Date(), "HH:mm:ss"),
-        type: "liberada"
-      });
-      if (soundEnabled) {
-        speakOsLiberada(newlyLiberada.titulo);
+    // Checa se houve nova liberação para alerta da TV e voz feminina
+    if (knownLiberadaIdsRef.current === null) {
+      // Primeira inicialização: registra as O.S. já liberadas para não anunciar todas em lote
+      knownLiberadaIdsRef.current = new Set(deduped.map((d) => d.order_id));
+    } else {
+      // Identifica quaisquer O.S. recém movidas para a Saída (tanto pré-impressão quanto embalagens)
+      const recemLiberadas = deduped.filter((d) => !knownLiberadaIdsRef.current!.has(d.order_id));
+      if (recemLiberadas.length > 0) {
+        const newlyLiberada = recemLiberadas[0];
+        setLastEventAlert({
+          text: `O.S. ${newlyLiberada.titulo} aprovada e liberada para Produção! (${newlyLiberada.cliente})`,
+          time: format(new Date(), "HH:mm:ss"),
+          type: "liberada"
+        });
+        if (soundEnabled) {
+          speakOsLiberada(newlyLiberada.titulo);
+        }
       }
+      knownLiberadaIdsRef.current = new Set(deduped.map((d) => d.order_id));
     }
-    prevLiberadasCountRef.current = deduped.length;
 
     setLiberadas(deduped);
     setLoading(false);
@@ -423,14 +497,12 @@ export default function PcpPage() {
                   playTvChime();
                   if (typeof window !== "undefined" && "speechSynthesis" in window) {
                     window.speechSynthesis.cancel();
-                    const testUtterance = new SpeechSynthesisUtterance("Som e aviso de voz do PCP ativados.");
+                    const testUtterance = new SpeechSynthesisUtterance("Som e avisos de voz feminina ativados.");
                     testUtterance.lang = "pt-BR";
                     testUtterance.rate = 1.0;
-                    const voices = window.speechSynthesis.getVoices();
-                    const ptVoice =
-                      voices.find((v) => v.lang === "pt-BR" || v.lang === "pt_BR") ||
-                      voices.find((v) => v.lang.startsWith("pt"));
-                    if (ptVoice) testUtterance.voice = ptVoice;
+                    testUtterance.pitch = 1.2;
+                    const femaleVoice = getFemalePtVoice();
+                    if (femaleVoice) testUtterance.voice = femaleVoice;
                     setTimeout(() => window.speechSynthesis.speak(testUtterance), 450);
                   }
                 } else {
