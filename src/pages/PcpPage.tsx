@@ -114,7 +114,7 @@ function getFemaleVoice(): SpeechSynthesisVoice | null {
 }
 
 // Reprodução garantida de áudio de alerta e locução feminina
-function playFemaleVoice(text: string) {
+function playFemaleVoice(text: string, customRate?: number) {
   try {
     // 1. Toca chime harmônico de TV
     playTvChime();
@@ -130,19 +130,29 @@ function playFemaleVoice(text: string) {
     utterance.lang = "pt-BR";
     utterance.volume = 1.0;
 
+    const savedSpeed = (() => {
+      if (customRate) return customRate;
+      try {
+        const s = localStorage.getItem("primacor_pcp_voice_speed");
+        return s ? parseFloat(s) || 1.55 : 1.55;
+      } catch {
+        return 1.55;
+      }
+    })();
+
     if (voice && !isMaleName) {
       utterance.voice = voice;
-      utterance.rate = 1.30; // Ritmo bem acelerado, direto e dinâmico para ambiente de fábrica/TV
+      utterance.rate = savedSpeed;
       utterance.pitch = 1.0;
     } else {
       if (voice) utterance.voice = voice;
-      utterance.rate = 1.25;
+      utterance.rate = savedSpeed;
       utterance.pitch = 1.35; // Modulação aguda para afinar e soar feminina mesmo se o Windows só tiver voz masculina instalada
     }
 
     setTimeout(() => {
       window.speechSynthesis.speak(utterance);
-    }, 320);
+    }, 280);
   } catch (err) {
     console.warn("[Voz PCP] Erro ao reproduzir locução:", err);
   }
@@ -173,6 +183,10 @@ export default function PcpPage() {
   // Som e Voz com persistência e Ref para evitar stale closures em WebSockets/Realtime
   const [soundEnabled, setSoundEnabled] = useState(() => {
     return localStorage.getItem("primacor_pcp_sound_enabled") === "true";
+  });
+  const [voiceSpeed, setVoiceSpeed] = useState<number>(() => {
+    const saved = localStorage.getItem("primacor_pcp_voice_speed");
+    return saved ? parseFloat(saved) || 1.55 : 1.55;
   });
   const soundEnabledRef = useRef(soundEnabled);
   useEffect(() => {
@@ -605,18 +619,38 @@ export default function PcpPage() {
             </Button>
 
             {soundEnabled && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  playFemaleVoice("Teste de voz do PCP. Notificações de liberação ativas.");
-                }}
-                className="h-9 px-2 rounded-xl border border-cyan-500/40 text-cyan-300 bg-cyan-950/30 hover:bg-cyan-900/40 text-xs gap-1"
-                title="Ouvir demonstração da voz feminina"
-              >
-                <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
-                <span className="hidden 2xl:inline">Testar Voz</span>
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const speeds = [1.2, 1.4, 1.55, 1.75, 2.0];
+                    const currentIdx = speeds.indexOf(voiceSpeed);
+                    const nextSpeed = speeds[(currentIdx + 1) % speeds.length] || 1.55;
+                    setVoiceSpeed(nextSpeed);
+                    localStorage.setItem("primacor_pcp_voice_speed", String(nextSpeed));
+                    playFemaleVoice(`Velocidade ${nextSpeed}x`, nextSpeed);
+                  }}
+                  className="h-9 px-2 rounded-xl border border-amber-500/40 text-amber-300 bg-amber-950/30 hover:bg-amber-900/40 text-xs font-mono font-bold gap-1"
+                  title="Ajustar velocidade da voz (Clique para alternar: 1.2x, 1.4x, 1.55x, 1.75x, 2.0x)"
+                >
+                  <Zap className="h-3.5 w-3.5 text-amber-400" />
+                  <span>{voiceSpeed}x</span>
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    playFemaleVoice("Teste de voz do PCP. Notificações de liberação ativas.", voiceSpeed);
+                  }}
+                  className="h-9 px-2 rounded-xl border border-cyan-500/40 text-cyan-300 bg-cyan-950/30 hover:bg-cyan-900/40 text-xs gap-1"
+                  title="Ouvir demonstração da voz feminina"
+                >
+                  <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
+                  <span className="hidden 2xl:inline">Testar Voz</span>
+                </Button>
+              </>
             )}
 
             <Button
