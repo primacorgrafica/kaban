@@ -5,6 +5,15 @@ import "./index.css";
 import { getMsalInstance } from "./lib/msalClient";
 import { broadcastResponseToMainFrame } from "@azure/msal-browser/redirect-bridge";
 
+// Trata atualizações em produção: se houver novo deploy e o navegador tentar baixar um chunk antigo, recarrega automaticamente
+if (typeof window !== "undefined") {
+  window.addEventListener("vite:preloadError", (event) => {
+    event.preventDefault();
+    console.warn("[Vite] Nova versão detectada após deploy, atualizando a página...");
+    window.location.reload();
+  });
+}
+
 // Detecta se esta janela é um retorno de popup de autenticação do Microsoft Entra ID
 const isMsalPopup =
   typeof window !== "undefined" &&

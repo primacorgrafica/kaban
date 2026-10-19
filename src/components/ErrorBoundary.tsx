@@ -23,6 +23,23 @@ export class ErrorBoundary extends Component<Props, State> {
 
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("Uncaught error in React component tree:", error, errorInfo);
+
+    // Se a aplicação foi atualizada no servidor (deploy recente) e o navegador tentou buscar um arquivo JS antigo
+    const isChunkError =
+      error?.message?.includes("Failed to fetch dynamically imported module") ||
+      error?.message?.includes("Importing a module script failed") ||
+      error?.message?.includes("loading dynamically imported module");
+
+    if (isChunkError && typeof window !== "undefined") {
+      const storageKey = "primacor_chunk_reload_retry";
+      const lastRetry = sessionStorage.getItem(storageKey);
+      const now = Date.now();
+      // Evita loop infinito: só recarrega automaticamente uma vez a cada 15 segundos
+      if (!lastRetry || now - parseInt(lastRetry, 10) > 15000) {
+        sessionStorage.setItem(storageKey, String(now));
+        window.location.reload();
+      }
+    }
   }
 
   public handleReload = () => {
