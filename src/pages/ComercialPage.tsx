@@ -124,7 +124,7 @@ export default function ComercialPage() {
   const searchedAll = useMemo(() => applySearch(filteredAll), [filteredAll, searchQuery]);
 
   const preImpressaoOrders = useMemo(() => {
-    return applySearch(applyFiltersOnly(allOrders.filter(o => !o.setor)));
+    return applySearch(applyFiltersOnly(allOrders.filter(o => !o.setor || o.setor === "desenvolvimento")));
   }, [allOrders, filters, searchQuery]);
 
   const now = new Date();
@@ -132,12 +132,12 @@ export default function ComercialPage() {
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
   const monthStart = startOfMonth(now);
 
-  const PRODUCTION_SECTORS = ["desenvolvimento", "ctp", "offset", "digital", "acabamento", "terceiros", "expedicao"];
+  const PRODUCTION_SECTORS = ["ctp", "offset", "digital", "acabamento", "terceiros", "expedicao"];
   const filteredAllParents = useMemo(() => filteredAll.filter(o => !o.parent_order_id), [filteredAll]);
   const filteredProdParents = useMemo(() => filteredProd.filter(o => !o.parent_order_id), [filteredProd]);
 
   const osEmProducao = useMemo(() => {
-    const preImpressao = filteredAllParents.filter(o => !o.setor);
+    const preImpressao = filteredAllParents.filter(o => !o.setor || o.setor === "desenvolvimento");
     const inSectors = filteredProdParents.filter(o => o.setor && PRODUCTION_SECTORS.includes(o.setor));
     const allProduction = [...preImpressao, ...inSectors];
     const uniqueTitulos = new Set(allProduction.map(o => o.titulo));
@@ -198,7 +198,7 @@ export default function ComercialPage() {
     },
   ];
 
-  const SECTOR_ORDER = ["desenvolvimento", "ctp", "offset", "digital", "acabamento", "terceiros", "expedicao"];
+  const SECTOR_ORDER = ["ctp", "offset", "digital", "acabamento", "terceiros", "expedicao"];
 
   const displayDepts: { dept: DepartmentConfig; orders: Order[]; statusField: "setor_status" | "status" }[] = useMemo(() => {
     const result: { dept: DepartmentConfig; orders: Order[]; statusField: "setor_status" | "status" }[] = [];
@@ -218,7 +218,7 @@ export default function ComercialPage() {
   }, [searchedAll]);
 
   const getSetorLabel = (order: Order) => {
-    if (!order.setor) return "Pré-Impressão";
+    if (!order.setor || order.setor === "desenvolvimento") return "Pré-Impressão";
     const dept = DEPARTMENT_MAP[order.setor];
     return dept ? dept.label : order.setor;
   };

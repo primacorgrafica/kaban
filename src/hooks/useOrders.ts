@@ -364,13 +364,17 @@ export function useOrders() {
       p_status: newStatus as string,
     });
 
+    if (currentOrder.setor === "desenvolvimento") {
+      void supabase.from("orders").update({ setor: null, setor_status: null }).eq("id", id);
+    }
+
     if (rpcErr) {
       // Fallback para updates diretos
       const updates: PromiseLike<{ error: any }>[] = [];
       for (let i = 0; i < destOrders.length; i++) {
         if (destOrders[i].id === id) {
           updates.push(
-            supabase.from("orders").update({ status: newStatus as string, posicao: i, atualizado_por: user?.id || null }).eq("id", id)
+            supabase.from("orders").update({ status: newStatus as string, setor: null, setor_status: null, posicao: i, atualizado_por: user?.id || null }).eq("id", id)
           );
         } else if (destOrders[i].posicao !== i) {
           updates.push(
@@ -592,8 +596,10 @@ export function useOrders() {
     toast.success(`OS. enviada para ${created} setor(es)!`);
   }, [user, orders, sendToProduction]);
 
+  const isPreImpressao = (o: Order) => !o.setor || o.setor === "desenvolvimento";
+
   const filteredOrders = orders.filter((o) => {
-    if (!searchQuery) return !o.setor;
+    if (!searchQuery) return isPreImpressao(o);
     // Exclude sub-orders (P, F, NC, etc.) from search results
     if (o.parent_order_id) return false;
     const q = searchQuery.toLowerCase();
@@ -608,7 +614,7 @@ export function useOrders() {
   const activeOrders = filteredOrders.filter((o) => !o.arquivado);
   const archivedOrders = searchQuery
     ? filteredOrders.filter((o) => o.arquivado)
-    : filteredOrders.filter((o) => o.arquivado && !o.setor);
+    : filteredOrders.filter((o) => o.arquivado && isPreImpressao(o));
 
   return {
     orders,

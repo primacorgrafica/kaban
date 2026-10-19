@@ -98,10 +98,6 @@ export function ProductionTable({
   const getStatusConfig = (order: Order) => {
     if (department) {
       let sId = (order as any).setor_status || "entrada";
-      if (department.id === "desenvolvimento") {
-        if (sId === "desenvolvendo") sId = "preparacao";
-        if (sId === "aguardando_novo_arquivo") sId = "paralisado";
-      }
       if (department.id === "ctp" && (sId === "gravacao" || sId === "imposicao" || sId === "filme_faca_cliche")) sId = "gravando";
       const found = department.statuses.find(s => s.id === sId);
       if (found) {
@@ -135,12 +131,6 @@ export function ProductionTable({
           const statusOrderList = department.statuses.map(s => s.id);
           let sa = (a as any).setor_status || "entrada";
           let sb = (b as any).setor_status || "entrada";
-          if (department.id === "desenvolvimento") {
-            if (sa === "desenvolvendo") sa = "preparacao";
-            if (sa === "aguardando_novo_arquivo") sa = "paralisado";
-            if (sb === "desenvolvendo") sb = "preparacao";
-            if (sb === "aguardando_novo_arquivo") sb = "paralisado";
-          }
           comparison = statusOrderList.indexOf(sa) - statusOrderList.indexOf(sb);
         } else {
           let sa = a.status;

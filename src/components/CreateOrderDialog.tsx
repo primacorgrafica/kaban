@@ -755,7 +755,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
 
               <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                 {/* Vendedor */}
-                <div className="md:col-span-6 space-y-1.5">
+                <div className="md:col-span-12 space-y-1.5">
                   <Label className="text-xs font-medium text-foreground flex items-center gap-1.5">
                     <User className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
                     <span>Vendedor Responsável</span>
@@ -780,49 +780,6 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                       ))}
                     </SelectContent>
                   </Select>
-                </div>
-
-                {/* Destino Inicial */}
-                <div className="md:col-span-6 space-y-1.5">
-                  <Label className="text-xs font-medium text-foreground">
-                    Encaminhar Inicialmente Para
-                  </Label>
-                  <div className="grid grid-cols-2 gap-2 h-10">
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setForm((f) => ({ ...f, setor_destino: "", status_destino: "" }))
-                      }
-                      className={`h-full rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-1.5 ${
-                        form.setor_destino === ""
-                          ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-700 dark:text-cyan-300 shadow-sm"
-                          : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
-                      }`}
-                    >
-                      <span>Pré-Impressão</span>
-                      {form.setor_destino === "" && <Check className="h-3.5 w-3.5" />}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setForm((f) => ({
-                          ...f,
-                          setor_destino: "desenvolvimento",
-                          status_destino: "",
-                        }))
-                      }
-                      className={`h-full rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-1.5 ${
-                        form.setor_destino === "desenvolvimento"
-                          ? "bg-amber-500/20 border-amber-500/50 text-amber-700 dark:text-amber-300 shadow-sm"
-                          : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
-                      }`}
-                    >
-                      <span>Embalagens</span>
-                      {form.setor_destino === "desenvolvimento" && (
-                        <Check className="h-3.5 w-3.5" />
-                      )}
-                    </button>
-                  </div>
                 </div>
               </div>
 

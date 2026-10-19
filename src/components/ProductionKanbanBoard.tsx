@@ -67,14 +67,6 @@ export function ProductionKanbanBoard({
         status = "gravando";
       }
     }
-    // Compatibilidade Embalagens: se vier com status antigo desenvolvendo -> preparacao, se vier paralisado -> aguardando_novo_arquivo
-    if (department.id === "desenvolvimento") {
-      if (status === "desenvolvendo") {
-        status = "preparacao";
-      } else if (status === "paralisado") {
-        status = "aguardando_novo_arquivo";
-      }
-    }
     if (ordersByStatus[status]) {
       ordersByStatus[status].push(o);
     } else if (department.statuses[0]) {

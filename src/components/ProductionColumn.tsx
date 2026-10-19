@@ -55,7 +55,6 @@ const STATUS_ICONS: Record<string, LucideIcon> = {
   conferencia: Search,
   filme_faca_cliche: Film,
   saida: LogOut,
-  desenvolvimento: Lightbulb,
   confeccao: Hammer,
   finalizado: CheckCircle,
   ryobi_524: OffsetIcon as any,

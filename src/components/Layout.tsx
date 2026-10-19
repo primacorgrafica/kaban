@@ -102,12 +102,13 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
         .from("orders")
         .select("setor, setor_status, titulo")
         .not("setor", "is", null)
+        .neq("setor", "desenvolvimento")
         .eq("arquivado", false)
         .neq("setor_status", "saida"),
       supabase
         .from("orders")
-        .select("status, titulo")
-        .is("setor", null)
+        .select("status, titulo, setor")
+        .or("setor.is.null,setor.eq.desenvolvimento")
         .eq("arquivado", false)
         .neq("status", "arquivo_liberado"),
     ]);
@@ -200,7 +201,6 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
   }, []);
 
   const allProducaoItems = [
-    { to: "/producao/desenvolvimento", label: "Embalagens", icon: Lightbulb, count: deptCountsLoaded ? (deptCounts["desenvolvimento"] ?? 0) : undefined, dept: "desenvolvimento" },
     { to: "/", label: "Pré-Impressão", icon: Monitor, count: deptCountsLoaded ? (deptCounts["pre_impressao"] ?? 0) : undefined, dept: "pre_impressao" },
     { to: "/producao/ctp", label: "CTP", icon: Square, count: deptCountsLoaded ? (deptCounts["ctp"] ?? 0) : undefined, dept: "ctp" },
     { to: "/producao/digital", label: "Digital", icon: PrinterCheck, count: deptCountsLoaded ? (deptCounts["digital"] ?? 0) : undefined, dept: "digital" },
@@ -505,7 +505,6 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
           </div>
           {sectorName && (() => {
             const sectorIconMap: Record<string, LucideIcon> = {
-              "Embalagens": Lightbulb,
               "CTP": Square,
               "Digital": PrinterCheck,
               "Acabamento": Layers,

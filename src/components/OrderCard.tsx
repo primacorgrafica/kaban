@@ -432,7 +432,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
             <AlertTriangle className="h-3 w-3" /> Urgente
           </div>
         )}
-        {order.setor && (
+        {order.setor && order.setor !== "desenvolvimento" && (
           <div className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-center">
             <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">
               Em Produção — {DEPARTMENTS.find(d => d.id === order.setor)?.label || order.setor}

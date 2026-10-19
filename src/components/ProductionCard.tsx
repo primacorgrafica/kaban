@@ -176,8 +176,7 @@ function ProductionCardImpl({
   const isUrgent = order.urgente;
   const sectorUrgent = isSpecialOrder
     ? order.urgente
-    : (department.id === "desenvolvimento" && isUrgentProva) ||
-      (["ctp", "offset", "digital"].includes(department.id) && isUrgentImpressao) ||
+    : (["ctp", "offset", "digital"].includes(department.id) && isUrgentImpressao) ||
       (["acabamento", "terceiros"].includes(department.id) && isUrgentAcabamento) ||
       (department.id === "expedicao" && isUrgentExpedicao);
   const shouldBlink = sectorUrgent || isNearDeadline;
@@ -199,7 +198,7 @@ function ProductionCardImpl({
   // ao invés de 1 query por card. Reduz ~9,8M chamadas/sessão para ~1 por refresh.
   useEffect(() => {
     if (
-      department.id !== "desenvolvimento" ||
+      (department.id as string) !== "desenvolvimento" ||
       currentStatus.id !== "aguardando_aprovacao" ||
       approvalThresholdMs === null
     ) {
@@ -214,7 +213,7 @@ function ProductionCardImpl({
 
   useEffect(() => {
     if (
-      department.id !== "desenvolvimento" ||
+      (department.id as string) !== "desenvolvimento" ||
       currentStatus.id !== "aguardando_aprovacao" ||
       approvalThresholdMs === null ||
       !approvalSince
@@ -351,7 +350,7 @@ function ProductionCardImpl({
         })()}
 
         {/* Prova banners - only in Pré-Impressão (desenvolvimento) */}
-        {department.id === "desenvolvimento" && (
+        {(department.id as string) === "desenvolvimento" && (
           <>
             {order.saida_direta && (
               <div className="px-2 py-0.5 bg-amber-400 text-amber-900 text-center relative">
@@ -404,7 +403,7 @@ function ProductionCardImpl({
           </>
         )}
         {/* Standalone URGENTE banner - when sector is urgent but no specific banner is shown */}
-        {sectorUrgent && !(department.id === "desenvolvimento" && (order.saida_direta || order.prova_digital || order.prova_email)) && !(["ctp", "offset", "digital"].includes(department.id) && order.processos && (order.processos.includes("CMYK") || order.processos.includes("CMYK+IR") || order.processos.includes("CMYK+VM") || order.processos.includes("PANTONE"))) && !(["acabamento", "terceiros"].includes(department.id) && order.processos && (order.processos.includes("Promocional") || order.processos.includes("Editorial") || order.processos.includes("Embalagem"))) && !(department.id === "expedicao" && order.tipo_entrega && (order.tipo_entrega.includes("CARRO") || order.tipo_entrega.includes("MOTO") || order.tipo_entrega.includes("RETIRA"))) && (
+        {sectorUrgent && !((department.id as string) === "desenvolvimento" && (order.saida_direta || order.prova_digital || order.prova_email)) && !(["ctp", "offset", "digital"].includes(department.id) && order.processos && (order.processos.includes("CMYK") || order.processos.includes("CMYK+IR") || order.processos.includes("CMYK+VM") || order.processos.includes("PANTONE"))) && !(["acabamento", "terceiros"].includes(department.id) && order.processos && (order.processos.includes("Promocional") || order.processos.includes("Editorial") || order.processos.includes("Embalagem"))) && !(department.id === "expedicao" && order.tipo_entrega && (order.tipo_entrega.includes("CARRO") || order.tipo_entrega.includes("MOTO") || order.tipo_entrega.includes("RETIRA"))) && (
           <div className={`bg-red-500 text-white text-[10px] font-bold text-center py-0.5 tracking-wide uppercase flex items-center justify-center gap-1 ${shouldBlink ? "animate-pulse" : ""}`}>
             <AlertTriangle className="h-3 w-3" /> Urgente
           </div>

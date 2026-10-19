@@ -1,6 +1,5 @@
 export type Department = 
   | "ctp"
-  | "desenvolvimento" 
   | "offset" 
   | "digital" 
   | "plotter" 
@@ -10,7 +9,6 @@ export type Department =
   | "faturamento"
   | "compras"
   | "manutencao"
-  
   | "qualidade";
 
 export interface DepartmentStatusConfig {
@@ -38,18 +36,6 @@ export const DEPARTMENTS: DepartmentConfig[] = [
     statuses: [
       { id: "entrada", label: "Entrada", colorKey: "entrada" },
       { id: "gravando", label: "Gravando", colorKey: "andamento" },
-      { id: "saida", label: "Saída", colorKey: "concluido" },
-    ],
-  },
-  {
-    id: "desenvolvimento",
-    label: "Embalagens",
-    statuses: [
-      { id: "entrada", label: "Entrada", colorKey: "entrada" },
-      { id: "preparacao", label: "Preparação", colorKey: "andamento" },
-      { id: "aguardando_novo_arquivo", label: "Paralisado", colorKey: "revisao" },
-      { id: "aguardando_prova", label: "Produzindo Prova", colorKey: "andamento" },
-      { id: "aguardando_aprovacao", label: "Aguar. Aprovação", colorKey: "aguardando" },
       { id: "saida", label: "Saída", colorKey: "concluido" },
     ],
   },

@@ -61,7 +61,6 @@ const ACCESS_MODULES: { id: string; label: string }[] = [
 
 const SECTOR_OPTIONS = [
   { id: "pre_impressao", label: "Pré-Impressão" },
-  { id: "desenvolvimento", label: "Embalagens" },
   { id: "ctp", label: "CTP" },
   { id: "digital", label: "Digital" },
   { id: "offset", label: "Off-Set" },

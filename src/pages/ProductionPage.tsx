@@ -17,7 +17,7 @@ import { LayoutGrid, TableProperties } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProductionTable } from "@/components/ProductionTable";
 
-const VALID_DEPARTMENTS: Department[] = ["desenvolvimento", "ctp", "digital", "offset", "acabamento", "terceiros", "faturamento", "compras", "manutencao", "qualidade"];
+const VALID_DEPARTMENTS: Department[] = ["ctp", "digital", "offset", "acabamento", "terceiros", "faturamento", "compras", "manutencao", "qualidade"];
 
 export default function ProductionPage() {
   const { departamento } = useParams<{ departamento: string }>();
@@ -76,7 +76,7 @@ export default function ProductionPage() {
     "/compras": "compras",
     "/manutencao": "manutencao",
   };
-  const activeDepartment: Department = PATH_TO_DEPT[location.pathname] || (departamento as Department) || "desenvolvimento";
+  const activeDepartment: Department = PATH_TO_DEPT[location.pathname] || (departamento as Department) || "ctp";
 
   const currentDept = DEPARTMENT_MAP[activeDepartment];
   const isFaturamento = activeDepartment === "faturamento";
@@ -126,7 +126,7 @@ export default function ProductionPage() {
     if (setorVinculado) {
       return <Navigate to={`/producao/${setorVinculado}`} replace />;
     }
-    return <Navigate to="/producao/desenvolvimento" replace />;
+    return <Navigate to="/" replace />;
   }
 
   const applyFatFilters = (list: Order[]) => {
@@ -159,10 +159,6 @@ export default function ProductionPage() {
     return list.filter((o) => {
       if (deptFilters.statuses.length > 0) {
         let orderStatus = (o as any).setor_status || "entrada";
-        if (activeDepartment === "desenvolvimento") {
-          if (orderStatus === "desenvolvendo") orderStatus = "preparacao";
-          if (orderStatus === "aguardando_novo_arquivo") orderStatus = "paralisado";
-        }
         if (activeDepartment === "ctp" && (orderStatus === "gravacao" || orderStatus === "imposicao" || orderStatus === "filme_faca_cliche")) {
           orderStatus = "gravando";
         }

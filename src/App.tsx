@@ -74,7 +74,7 @@ function ProducaoRedirect() {
   if (setorVinculado) {
     return <Navigate to={`/producao/${setorVinculado}`} replace />;
   }
-  return <Navigate to="/producao/desenvolvimento" replace />;
+  return <Navigate to="/" replace />;
 }
 
 const App = () => (
