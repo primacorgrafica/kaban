@@ -937,11 +937,11 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
             </Card>
           </div>
 
-          {/* Card Resumo Suprimentos Especiais: FACA / CLICHÊ / PANTONE */}
+          {/* Card Acompanhamento de Suprimentos Especiais: FACA / CLICHÊ / PANTONE (Tabela Completa Direta) */}
           {supplyStats.total > 0 && (
             <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl overflow-hidden">
               <CardHeader className="pb-3 border-b border-border">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
                     <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
                       <Sparkles className="h-4 w-4 text-emerald-500" />
@@ -954,15 +954,16 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => setActiveTab("suprimentos")}
-                    className="text-xs h-8 rounded-xl border-emerald-500/30 hover:bg-emerald-500/10 text-emerald-500 dark:text-emerald-400 font-semibold gap-1.5 shrink-0"
+                    onClick={handleExportSupplyCSV}
+                    className="text-xs h-8 rounded-xl border-cyan-500/30 text-cyan-500 hover:bg-cyan-500/10 font-semibold gap-1.5 shrink-0"
                   >
-                    <span>Ver Tabela Completa</span>
-                    <ArrowRight className="h-3.5 w-3.5" />
+                    <Download className="h-3.5 w-3.5" />
+                    <span>Exportar CSV</span>
                   </Button>
                 </div>
               </CardHeader>
-              <CardContent className="pt-4">
+              <CardContent className="pt-4 space-y-4">
+                {/* 3 Metric Cards */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {/* FACA */}
                   <div className="p-3 rounded-xl bg-muted/40 border border-border flex items-center justify-between">
@@ -1034,6 +1035,214 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                         ? `${Math.round((supplyStats.pantone.sent / supplyStats.pantone.total) * 100)}%`
                         : "—"}
                     </Badge>
+                  </div>
+                </div>
+
+                {/* Filters & Actions Bar */}
+                <div className="p-3 rounded-xl bg-muted/30 border border-border flex flex-col md:flex-row items-center justify-between gap-2.5">
+                  <div className="relative w-full md:w-72">
+                    <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar por O.S., cliente, operador..."
+                      value={supplySearch}
+                      onChange={(e) => setSupplySearch(e.target.value)}
+                      className="pl-8 bg-background border-input h-8 text-xs rounded-xl text-foreground placeholder:text-muted-foreground"
+                    />
+                    {supplySearch && (
+                      <button
+                        onClick={() => setSupplySearch("")}
+                        className="absolute right-2.5 top-2 text-muted-foreground hover:text-foreground"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-1.5 flex-wrap w-full md:w-auto justify-start md:justify-end">
+                    {/* Type filter pills */}
+                    <Button
+                      variant={supplyTypeFilter === "all" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSupplyTypeFilter("all")}
+                      className="h-7 text-[11px] rounded-lg px-2.5"
+                    >
+                      Todos
+                    </Button>
+                    <Button
+                      variant={supplyTypeFilter === "FACA" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSupplyTypeFilter("FACA")}
+                      className="h-7 text-[11px] rounded-lg px-2.5"
+                    >
+                      Faca ({supplyStats.faca.total})
+                    </Button>
+                    <Button
+                      variant={supplyTypeFilter === "CLICHE" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSupplyTypeFilter("CLICHE")}
+                      className="h-7 text-[11px] rounded-lg px-2.5"
+                    >
+                      Clichê ({supplyStats.cliche.total})
+                    </Button>
+                    <Button
+                      variant={supplyTypeFilter === "PANTONE" ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSupplyTypeFilter("PANTONE")}
+                      className="h-7 text-[11px] rounded-lg px-2.5"
+                    >
+                      Pantone ({supplyStats.pantone.total})
+                    </Button>
+
+                    <div className="h-3.5 w-px bg-border mx-0.5" />
+
+                    {/* Status filter */}
+                    <Button
+                      variant={supplyStatusFilter === "all" ? "secondary" : "outline"}
+                      size="sm"
+                      onClick={() => setSupplyStatusFilter("all")}
+                      className="h-7 text-[11px] rounded-lg px-2"
+                    >
+                      Status: Todos
+                    </Button>
+                    <Button
+                      variant={supplyStatusFilter === "sent" ? "secondary" : "outline"}
+                      size="sm"
+                      onClick={() => setSupplyStatusFilter("sent")}
+                      className="h-7 text-[11px] rounded-lg px-2 text-emerald-500"
+                    >
+                      Aprovados
+                    </Button>
+                    <Button
+                      variant={supplyStatusFilter === "pending" ? "secondary" : "outline"}
+                      size="sm"
+                      onClick={() => setSupplyStatusFilter("pending")}
+                      className="h-7 text-[11px] rounded-lg px-2 text-amber-500"
+                    >
+                      Pendentes
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Complete Telemetry Table */}
+                <div className="rounded-xl border border-border overflow-hidden bg-background/50">
+                  <div className="overflow-x-auto max-h-[460px]">
+                    <Table>
+                      <TableHeader className="bg-muted/50 sticky top-0 z-10 backdrop-blur-sm">
+                        <TableRow className="border-border hover:bg-transparent">
+                          <TableHead className="w-[110px] text-xs font-semibold text-muted-foreground">O.S.</TableHead>
+                          <TableHead className="text-xs font-semibold text-muted-foreground">Cliente & Descrição</TableHead>
+                          <TableHead className="text-xs font-semibold text-muted-foreground">Suprimento</TableHead>
+                          <TableHead className="text-xs font-semibold text-muted-foreground">Status</TableHead>
+                          <TableHead className="text-xs font-semibold text-muted-foreground">Data da Aprovação</TableHead>
+                          <TableHead className="text-xs font-semibold text-muted-foreground">Horário</TableHead>
+                          <TableHead className="text-xs font-semibold text-muted-foreground">Tempo até Envio</TableHead>
+                          <TableHead className="text-xs font-semibold text-muted-foreground text-right">Operador Responsável</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredSupplyRecords.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={8} className="text-center py-10 text-xs text-muted-foreground">
+                              Nenhum suprimento encontrado com os filtros selecionados.
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          filteredSupplyRecords.map((r, idx) => {
+                            const hasSentDate = r.sent && Boolean(r.sentAt);
+                            const sentDate = hasSentDate ? parseSafeDate(r.sentAt) : null;
+                            const createdDate = parseSafeDate(r.createdAt);
+                            const elapsedSinceCreation =
+                              hasSentDate && sentDate && createdDate
+                                ? sentDate.getTime() - createdDate.getTime()
+                                : null;
+
+                            return (
+                              <TableRow
+                                key={`geral-supply-${r.orderId}-${r.supplyId}-${idx}`}
+                                className="border-border/60 hover:bg-accent/40 transition-colors"
+                              >
+                                <TableCell className="font-medium">
+                                  <span className="font-mono-tech font-bold text-xs text-foreground">
+                                    #{r.titulo}
+                                  </span>
+                                </TableCell>
+                                <TableCell>
+                                  <div className="flex flex-col max-w-[260px]">
+                                    <span className="text-xs font-medium text-foreground truncate">
+                                      {r.cliente || "—"}
+                                    </span>
+                                    {r.descricao && (
+                                      <span className="text-[11px] text-muted-foreground truncate">
+                                        {r.descricao}
+                                      </span>
+                                    )}
+                                  </div>
+                                </TableCell>
+                                <TableCell>
+                                  <Badge
+                                    variant="outline"
+                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                                      r.sent
+                                        ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                                        : "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                                    }`}
+                                  >
+                                    {r.supplyLabel}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell>
+                                  {r.sent ? (
+                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-500 dark:text-emerald-400 border border-emerald-500/30">
+                                      <CheckCircle2 className="h-3 w-3" />
+                                      <span>Enviado / Aprovado</span>
+                                    </div>
+                                  ) : (
+                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-500 dark:text-amber-400 border border-amber-500/30">
+                                      <Clock className="h-3 w-3" />
+                                      <span>Pendente</span>
+                                    </div>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {sentDate ? (
+                                    <span className="text-xs font-mono-tech font-medium text-foreground">
+                                      {formatSafeDate(sentDate, "dd/MM/yyyy", { locale: ptBR })}
+                                    </span>
+                                  ) : r.sent ? (
+                                    <span className="text-xs text-muted-foreground italic">Registrado</span>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">—</span>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {sentDate ? (
+                                    <span className="text-xs font-mono-tech font-bold text-emerald-500 dark:text-emerald-400">
+                                      {formatSafeDate(sentDate, "HH:mm:ss")}
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">—</span>
+                                  )}
+                                </TableCell>
+                                <TableCell>
+                                  {elapsedSinceCreation && elapsedSinceCreation > 0 ? (
+                                    <span className="text-xs font-mono-tech text-muted-foreground">
+                                      {formatDuration(elapsedSinceCreation)}
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">—</span>
+                                  )}
+                                </TableCell>
+                                <TableCell className="text-right">
+                                  <span className="text-xs font-medium text-foreground">
+                                    {r.operator || "—"}
+                                  </span>
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })
+                        )}
+                      </TableBody>
+                    </Table>
                   </div>
                 </div>
               </CardContent>
