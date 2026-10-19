@@ -1649,6 +1649,8 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
         {/* TAB: TELEMETRIA DE SUPRIMENTOS ESPECIAIS (FACA, CLICHÊ, PANTONE) */}
         <TabsContent value="suprimentos" className="space-y-6 m-0">
           {/* KPI Cards Row */}
