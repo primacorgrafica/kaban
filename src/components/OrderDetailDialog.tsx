@@ -54,6 +54,7 @@ import {
   toggleSpecialSupplySent,
   toggleSpecialSupplyActive,
   getSpecialSupplyDetails,
+  formatSafeDate,
 } from "@/lib/processos";
 import { OrderAttachmentsSection } from "@/components/sharepoint/OrderAttachmentsSection";
 
@@ -742,9 +743,7 @@ export function OrderDetailDialog({
                           {SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(order.processos, s.id)).map((item) => {
                             const details = getSpecialSupplyDetails(order.processos, item.id);
                             const isSent = details.sent;
-                            const formattedTime = details.sentAt
-                              ? format(new Date(details.sentAt), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })
-                              : null;
+                            const formattedTime = formatSafeDate(details.sentAt, "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR });
                             const op = details.operator || order.operador || null;
                             return (
                               <button
@@ -785,9 +784,9 @@ export function OrderDetailDialog({
                           {SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(order.processos, s.id)).map((item) => {
                             const details = getSpecialSupplyDetails(order.processos, item.id);
                             if (!details.sent) return null;
-                            const formattedTime = details.sentAt
-                              ? format(new Date(details.sentAt), "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })
-                              : format(new Date(order.updated_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR });
+                            const formattedTime = formatSafeDate(details.sentAt, "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })
+                              || formatSafeDate(order.updated_at, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                              || "Registrado";
                             return (
                               <p key={`info-${item.id}`} className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono-tech flex items-center gap-1.5">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />

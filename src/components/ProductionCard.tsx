@@ -1,5 +1,5 @@
 import { useState, useEffect, memo } from "react";
-import { getProcessoCor, SPECIAL_SUPPLIES, isSpecialSupplyActive, isSpecialSupplySent, toggleSpecialSupplySent, getSpecialSupplyDetails } from "@/lib/processos";
+import { getProcessoCor, SPECIAL_SUPPLIES, isSpecialSupplyActive, isSpecialSupplySent, toggleSpecialSupplySent, getSpecialSupplyDetails, formatSafeDate } from "@/lib/processos";
 import { Order } from "@/types/order";
 import { DepartmentConfig, DepartmentStatusConfig, DEPARTMENTS, Department } from "@/types/production";
 import { format } from "date-fns";
@@ -724,9 +724,8 @@ function ProductionCardImpl({
                   {SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(order.processos, s.id)).map((item) => {
                     const details = getSpecialSupplyDetails(order.processos, item.id);
                     const isSent = details.sent;
-                    const formattedTime = details.sentAt
-                      ? format(new Date(details.sentAt), "dd/MM 'às' HH:mm", { locale: ptBR })
-                      : null;
+                    const formattedTime = formatSafeDate(details.sentAt, "dd/MM 'às' HH:mm", { locale: ptBR });
+                    const timeOnly = formatSafeDate(details.sentAt, "HH:mm");
                     const op = details.operator || order.operador || updatedByName || null;
                     return (
                       <button
@@ -759,9 +758,9 @@ function ProductionCardImpl({
                         {isSent ? (
                           <>
                             <Check className="h-3 w-3 stroke-[3]" />
-                            {details.sentAt && (
+                            {timeOnly && (
                               <span className="text-[9px] font-mono-tech opacity-90 tracking-tight bg-black/20 px-1 rounded">
-                                {format(new Date(details.sentAt), "HH:mm")}
+                                {timeOnly}
                               </span>
                             )}
                           </>

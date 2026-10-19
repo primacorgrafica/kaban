@@ -1,6 +1,45 @@
+import { format } from "date-fns";
+
 export interface ProcessoItem {
   sigla: string;
   cor: string;
+}
+
+export function parseSafeDate(val: string | number | Date | null | undefined): Date | null {
+  if (!val) return null;
+  if (val instanceof Date) {
+    return isNaN(val.getTime()) ? null : val;
+  }
+  if (typeof val === "number") {
+    const d = new Date(val);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  if (typeof val === "string") {
+    const trimmed = val.trim();
+    if (!trimmed) return null;
+    if (/^\d{10,}$/.test(trimmed)) {
+      const num = Number(trimmed);
+      const d = new Date(num);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    const d = new Date(trimmed);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  return null;
+}
+
+export function formatSafeDate(
+  dateVal: string | number | Date | null | undefined,
+  formatStr: string,
+  options?: any
+): string | null {
+  const d = parseSafeDate(dateVal);
+  if (!d) return null;
+  try {
+    return format(d, formatStr, options);
+  } catch {
+    return null;
+  }
 }
 
 export interface ProcessoGroup {
@@ -160,10 +199,10 @@ export function toggleSpecialSupplySent(
     // Se estava enviado (verde), volta a pendente (amarelo)
     return [...filtered, primaryName];
   } else {
-    // Se estava pendente (amarelo), passa a enviado (verde) gravando timestamp ISO e operador
-    const nowIso = new Date().toISOString();
+    // Se estava pendente (amarelo), passa a enviado (verde) gravando timestamp epoch e operador
+    const nowEpoch = Date.now().toString();
     const op = operatorName && operatorName.trim() ? `:${encodeURIComponent(operatorName.trim())}` : "";
-    return [...filtered, `${primaryName}:enviado:${nowIso}${op}`];
+    return [...filtered, `${primaryName}:enviado:${nowEpoch}${op}`];
   }
 }
 
@@ -207,16 +246,70 @@ export function getSpecialSupplyDetails(
   let operator: string | null = null;
 
   if (isSent) {
-    const parts = match.split(":");
-    // parts[0] = sigla, parts[1] = "enviado", parts[2] = ISO timestamp, parts[3] = operator
-    if (parts.length >= 3 && parts[2]) {
-      sentAt = parts[2];
+    const enviadoPrefix = ":enviado:";
+    const okPrefix = ":ok:";
+    let payload = "";
+
+    const envIdx = match.indexOf(enviadoPrefix);
+    if (envIdx !== -1) {
+      payload = match.slice(envIdx + enviadoPrefix.length);
+    } else {
+      const okIdx = match.indexOf(okPrefix);
+      if (okIdx !== -1) {
+        payload = match.slice(okIdx + okPrefix.length);
+      }
     }
-    if (parts.length >= 4 && parts[3]) {
-      try {
-        operator = decodeURIComponent(parts[3]);
-      } catch {
-        operator = parts[3];
+
+    if (payload) {
+      // Caso 1: Timestamp numérico epoch (ex: "1729359670000" ou "1729359670000:Operador")
+      const epochMatch = payload.match(/^(\d{10,})(?::(.*))?$/);
+      if (epochMatch) {
+        const parsed = parseSafeDate(epochMatch[1]);
+        if (parsed) {
+          sentAt = parsed.toISOString();
+        }
+        if (epochMatch[2]) {
+          try {
+            operator = decodeURIComponent(epochMatch[2]);
+          } catch {
+            operator = epochMatch[2];
+          }
+        }
+      } else {
+        // Caso 2: Formato ISO ou string com colons (ex: "2026-10-19T17:40:00.000Z:Operador")
+        const isoMatch = payload.match(/^(\d{4}-\d{2}-\d{2}T[0-9:.]+Z?)(?::(.*))?$/i);
+        if (isoMatch) {
+          const parsed = parseSafeDate(isoMatch[1]);
+          if (parsed) {
+            sentAt = parsed.toISOString();
+          }
+          if (isoMatch[2]) {
+            try {
+              operator = decodeURIComponent(isoMatch[2]);
+            } catch {
+              operator = isoMatch[2];
+            }
+          }
+        } else {
+          // Caso 3: Fallback genérico testando partes
+          const parts = payload.split(":");
+          for (let i = parts.length; i >= 1; i--) {
+            const candidate = parts.slice(0, i).join(":");
+            const parsed = parseSafeDate(candidate);
+            if (parsed) {
+              sentAt = parsed.toISOString();
+              const opCandidate = parts.slice(i).join(":");
+              if (opCandidate) {
+                try {
+                  operator = decodeURIComponent(opCandidate);
+                } catch {
+                  operator = opCandidate;
+                }
+              }
+              break;
+            }
+          }
+        }
       }
     }
   }

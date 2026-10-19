@@ -27,6 +27,8 @@ import {
   isSpecialSupplyActive,
   getSpecialSupplyDetails,
   SpecialSupplyId,
+  formatSafeDate,
+  parseSafeDate,
 } from "@/lib/processos";
 
 interface DashboardProps {
@@ -373,9 +375,9 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
     });
 
     return list.sort((a, b) => {
-      const timeA = a.sentAt ? new Date(a.sentAt).getTime() : new Date(a.createdAt).getTime();
-      const timeB = b.sentAt ? new Date(b.sentAt).getTime() : new Date(b.createdAt).getTime();
-      return timeB - timeA;
+      const dateA = parseSafeDate(a.sentAt) || parseSafeDate(a.createdAt) || new Date(0);
+      const dateB = parseSafeDate(b.sentAt) || parseSafeDate(b.createdAt) || new Date(0);
+      return dateB.getTime() - dateA.getTime();
     });
   }, [orders]);
 
@@ -433,10 +435,10 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
       `"${(r.cliente || "").replace(/"/g, '""')}"`,
       r.supplyLabel,
       r.sent ? "ENVIADO / APROVADO" : "PENDENTE",
-      r.sent && r.sentAt ? format(new Date(r.sentAt), "dd/MM/yyyy") : (r.sent ? "Registrado" : "Pendente"),
-      r.sent && r.sentAt ? format(new Date(r.sentAt), "HH:mm:ss") : (r.sent ? "—" : "—"),
+      r.sent && r.sentAt ? (formatSafeDate(r.sentAt, "dd/MM/yyyy") || "Registrado") : (r.sent ? "Registrado" : "Pendente"),
+      r.sent && r.sentAt ? (formatSafeDate(r.sentAt, "HH:mm:ss") || "—") : "—",
       `"${(r.operator || "—").replace(/"/g, '""')}"`,
-      format(new Date(r.createdAt), "dd/MM/yyyy HH:mm")
+      formatSafeDate(r.createdAt, "dd/MM/yyyy HH:mm") || "—"
     ]);
     const csvContent = "\uFEFF" + [headers.join(";"), ...rows.map((row) => row.join(";"))].join("\r\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -1860,11 +1862,12 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                     </TableRow>
                   ) : (
                     filteredSupplyRecords.map((r, idx) => {
-                      const hasSentDate = r.sent && r.sentAt;
-                      const sentDate = hasSentDate ? new Date(r.sentAt!) : null;
+                      const hasSentDate = r.sent && Boolean(r.sentAt);
+                      const sentDate = hasSentDate ? parseSafeDate(r.sentAt) : null;
+                      const createdDate = parseSafeDate(r.createdAt);
                       const elapsedSinceCreation =
-                        hasSentDate && sentDate
-                          ? sentDate.getTime() - new Date(r.createdAt).getTime()
+                        hasSentDate && sentDate && createdDate
+                          ? sentDate.getTime() - createdDate.getTime()
                           : null;
 
                       return (
@@ -1917,7 +1920,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                           <TableCell>
                             {sentDate ? (
                               <span className="text-xs font-mono-tech font-medium text-foreground">
-                                {format(sentDate, "dd/MM/yyyy", { locale: ptBR })}
+                                {formatSafeDate(sentDate, "dd/MM/yyyy", { locale: ptBR })}
                               </span>
                             ) : r.sent ? (
                               <span className="text-xs text-muted-foreground italic">Registrado</span>
@@ -1928,7 +1931,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                           <TableCell>
                             {sentDate ? (
                               <span className="text-xs font-mono-tech font-bold text-emerald-500 dark:text-emerald-400">
-                                {format(sentDate, "HH:mm:ss")}
+                                {formatSafeDate(sentDate, "HH:mm:ss")}
                               </span>
                             ) : (
                               <span className="text-xs text-muted-foreground">—</span>
