@@ -132,11 +132,11 @@ function playFemaleVoice(text: string) {
 
     if (voice && !isMaleName) {
       utterance.voice = voice;
-      utterance.rate = 1.18; // Ritmo mais acelerado e dinâmico para TV
+      utterance.rate = 1.30; // Ritmo bem acelerado, direto e dinâmico para ambiente de fábrica/TV
       utterance.pitch = 1.0;
     } else {
       if (voice) utterance.voice = voice;
-      utterance.rate = 1.15;
+      utterance.rate = 1.25;
       utterance.pitch = 1.35; // Modulação aguda para afinar e soar feminina mesmo se o Windows só tiver voz masculina instalada
     }
 
