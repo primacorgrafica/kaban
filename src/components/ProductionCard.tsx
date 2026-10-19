@@ -7,7 +7,7 @@ import { ptBR } from "date-fns/locale";
 import { businessHoursMs } from "@/lib/businessHours";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeApprovalEntry } from "@/lib/approvalEntryCache";
-import { Calendar, User, FileText, Archive, Trash2, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, GripVertical, UserCheck, Clock, AlertTriangle, Send, Undo2, Briefcase, Truck, Edit2, Check } from "lucide-react";
+import { Calendar, User, FileText, Archive, Trash2, ChevronRight, ChevronLeft, GripVertical, UserCheck, Clock, AlertTriangle, Send, Undo2, Briefcase, Truck, Edit2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -82,7 +82,6 @@ function ProductionCardImpl({
 }: ProductionCardProps) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [expanded, setExpanded] = useState(false);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [selectedDept, setSelectedDept] = useState<Department | "pre-impressao" | "">("");
   const [selectedMachine, setSelectedMachine] = useState("");
@@ -762,29 +761,16 @@ function ProductionCardImpl({
                 </div>
               )}
 
-              {/* Expandable details */}
-              {expanded && (
-                <>
-                  {order.processos && order.processos.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1.5">
-                      {order.processos
-                        .filter((p) => !["Promocional", "Editorial", "Embalagem", "CMYK", "CMYK+IR", "CMYK+VM", "PANTONE", "PANTONE:enviado", "PANTONE:ok", "FACA", "FACA:enviado", "FACA:ok", "CLICHE", "CLICHÊ", "CLICHE:enviado", "CLICHÊ:enviado"].includes(p))
-                        .map((p) => (
-                          <span key={p} className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${getProcessoCor(p)}`}>{p}</span>
-                        ))}
-                    </div>
-                  )}
-                </>
+              {/* Processos badges adicionais */}
+              {order.processos && order.processos.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {order.processos
+                    .filter((p) => !["Promocional", "Editorial", "Embalagem", "CMYK", "CMYK+IR", "CMYK+VM", "PANTONE", "PANTONE:enviado", "PANTONE:ok", "FACA", "FACA:enviado", "FACA:ok", "CLICHE", "CLICHÊ", "CLICHE:enviado", "CLICHÊ:enviado"].includes(p))
+                    .map((p) => (
+                      <span key={p} className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${getProcessoCor(p)}`}>{p}</span>
+                    ))}
+                </div>
               )}
-
-              {/* Expand/Collapse toggle */}
-              <button
-                onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-                className="w-full flex items-center justify-center gap-1 mt-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
-              >
-                {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                {expanded ? "Ocultar" : "Ver detalhes"}
-              </button>
             </>
           )}
 

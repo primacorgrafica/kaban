@@ -3,7 +3,7 @@ import { Order, OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
 import { DEPARTMENTS, Department } from "@/types/production";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar, User, FileText, Archive, Trash2, GripVertical, UserCheck, Clock, AlertTriangle, Send, ChevronDown, ChevronUp, Truck, Briefcase, Copy, Edit2, MessageSquarePlus, Repeat } from "lucide-react";
+import { Calendar, User, FileText, Archive, Trash2, GripVertical, UserCheck, Clock, AlertTriangle, Send, Truck, Briefcase, Copy, Edit2, MessageSquarePlus, Repeat } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -124,7 +124,6 @@ function getVisibleSections(departmentContext?: string): { general: boolean; pro
 function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplicate, onSendToProduction, onSendToMultipleProduction, onSendToExpedicao, dragHandleProps, updatedByName, createdByName, permissions, departmentContext, isSlowAlert }: OrderCardProps) {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [expanded, setExpanded] = useState(false);
   const [editData, setEditData] = useState({
     titulo: order.titulo,
     descricao: order.descricao,
@@ -259,10 +258,6 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
     setMotivoDialogOpen(false);
     toast.success("Motivo da parada atualizado!");
   };
-
-  const visibleSections = getVisibleSections(departmentContext);
-  // When expanded or no department context, show all
-  const showAll = expanded || !departmentContext;
 
   useEffect(() => {
     if (editing) {
@@ -581,10 +576,10 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
               </div>
             )
           ) : null}
-          {order.obs_prova && (showAll || visibleSections.prova) && (
+          {order.obs_prova && (
             <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 line-clamp-2 italic">📋 {order.obs_prova}</p>
           )}
-          {order.prova_digital && order.endereco_entrega && (showAll || visibleSections.prova) && (
+          {order.prova_digital && order.endereco_entrega && (
             <p className="text-xs font-bold text-foreground mt-1 truncate">{order.endereco_entrega}</p>
           )}
 
@@ -646,16 +641,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
 
 
 
-          {/* Expand/Collapse button when department context is set */}
-          {departmentContext && (
-            <button
-              onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
-              className="flex items-center gap-1 mt-1.5 text-[10px] text-primary hover:underline"
-            >
-              {expanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-              {expanded ? "Recolher" : "Ver detalhes"}
-            </button>
-          )}
+
 
           {updatedByName && (
             <div className="flex items-center gap-1 mt-1.5 text-[10px] text-muted-foreground/60">
