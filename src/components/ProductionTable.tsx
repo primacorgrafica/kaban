@@ -98,7 +98,6 @@ export function ProductionTable({
   const getStatusConfig = (order: Order) => {
     if (department) {
       let sId = (order as any).setor_status || "entrada";
-      if (department.id === "ctp" && (sId === "gravacao" || sId === "imposicao" || sId === "filme_faca_cliche")) sId = "gravando";
       const found = department.statuses.find(s => s.id === sId);
       if (found) {
         return { label: found.label, colorKey: found.colorKey || "andamento" };

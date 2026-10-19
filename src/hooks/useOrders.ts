@@ -596,7 +596,8 @@ export function useOrders() {
     toast.success(`OS. enviada para ${created} setor(es)!`);
   }, [user, orders, sendToProduction]);
 
-  const isPreImpressao = (o: Order) => !o.setor || o.setor === "desenvolvimento";
+  const VALID_EXTERNAL_SECTORS = ["qualidade", "expedicao", "compras", "manutencao"];
+  const isPreImpressao = (o: Order) => !o.setor || !VALID_EXTERNAL_SECTORS.includes(o.setor);
 
   const filteredOrders = orders.filter((o) => {
     if (!searchQuery) return isPreImpressao(o);

@@ -61,12 +61,6 @@ export function ProductionKanbanBoard({
 
   orders.forEach(o => {
     let status = (o as any).setor_status || "entrada";
-    // Compatibilidade CTP: se vier com status antigo do CTP, agrupa em gravando
-    if (department.id === "ctp") {
-      if (status === "gravacao" || status === "imposicao" || status === "filme_faca_cliche") {
-        status = "gravando";
-      }
-    }
     if (ordersByStatus[status]) {
       ordersByStatus[status].push(o);
     } else if (department.statuses[0]) {

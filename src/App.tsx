@@ -68,11 +68,8 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
 
 function ProducaoRedirect() {
   const { setorVinculado } = useAuth();
-  if (setorVinculado === "pre_impressao") {
-    return <Navigate to="/" replace />;
-  }
-  if (setorVinculado) {
-    return <Navigate to={`/producao/${setorVinculado}`} replace />;
+  if (setorVinculado === "qualidade") {
+    return <Navigate to="/qualidade" replace />;
   }
   return <Navigate to="/" replace />;
 }
@@ -94,6 +91,7 @@ const App = () => (
                   <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
                   <Route path="/dashboard" element={<ProtectedRoute module="dashboard"><DashboardPage /></ProtectedRoute>} />
                   <Route path="/arquivados" element={<ProtectedRoute module="trabalhos_concluidos"><Index /></ProtectedRoute>} />
+                  <Route path="/qualidade" element={<ProtectedRoute module="producao"><ProductionPage /></ProtectedRoute>} />
                   <Route path="/producao/:departamento" element={<ProtectedRoute module="producao"><ProductionPage /></ProtectedRoute>} />
                   <Route path="/producao" element={<ProtectedRoute module="producao"><ProducaoRedirect /></ProtectedRoute>} />
                   <Route path="/expedicao" element={<ProtectedRoute module="expedicao"><ExpedicaoPage /></ProtectedRoute>} />

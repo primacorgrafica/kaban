@@ -132,7 +132,7 @@ export default function ComercialPage() {
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
   const monthStart = startOfMonth(now);
 
-  const PRODUCTION_SECTORS = ["ctp", "offset", "digital", "acabamento", "terceiros", "expedicao"];
+  const PRODUCTION_SECTORS = ["qualidade", "expedicao"];
   const filteredAllParents = useMemo(() => filteredAll.filter(o => !o.parent_order_id), [filteredAll]);
   const filteredProdParents = useMemo(() => filteredProd.filter(o => !o.parent_order_id), [filteredProd]);
 
@@ -198,7 +198,7 @@ export default function ComercialPage() {
     },
   ];
 
-  const SECTOR_ORDER = ["ctp", "offset", "digital", "acabamento", "terceiros", "expedicao"];
+  const SECTOR_ORDER = ["qualidade", "expedicao"];
 
   const displayDepts: { dept: DepartmentConfig; orders: Order[]; statusField: "setor_status" | "status" }[] = useMemo(() => {
     const result: { dept: DepartmentConfig; orders: Order[]; statusField: "setor_status" | "status" }[] = [];
@@ -212,7 +212,7 @@ export default function ComercialPage() {
     return result;
   }, [preImpressaoOrders, ordersBySector]);
 
-  const GENERAL_EXCLUDED_SECTORS = ["faturamento", "compras", "manutencao", "qualidade"];
+  const GENERAL_EXCLUDED_SECTORS = ["compras", "manutencao"];
   const generalOsList = useMemo(() => {
     return [...searchedAll].filter(o => !o.setor || !GENERAL_EXCLUDED_SECTORS.includes(o.setor)).sort((a, b) => a.titulo.localeCompare(b.titulo, "pt-BR", { numeric: true }));
   }, [searchedAll]);

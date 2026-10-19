@@ -65,8 +65,6 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
   const [viewingAviso, setViewingAviso] = useState<Aviso | null>(null);
   const [deptCounts, setDeptCounts] = useState<Record<string, number>>(() => cachedDeptCounts || {});
   const [deptCountsLoaded, setDeptCountsLoaded] = useState(() => !!cachedDeptCounts);
-  const [producaoOpen, setProducaoOpen] = useState(false);
-  const [expedicaoOpen, setExpedicaoOpen] = useState(false);
   const [cadastrosOpen, setCadastrosOpen] = useState(false);
   const [utilidadesOpen, setUtilidadesOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
@@ -200,39 +198,44 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
     return () => document.removeEventListener("fullscreenchange", handler);
   }, []);
 
-  const allProducaoItems = [
-    { to: "/", label: "Pré-Impressão", icon: Monitor, count: deptCountsLoaded ? (deptCounts["pre_impressao"] ?? 0) : undefined, dept: "pre_impressao" },
-    { to: "/producao/ctp", label: "CTP", icon: Square, count: deptCountsLoaded ? (deptCounts["ctp"] ?? 0) : undefined, dept: "ctp" },
-    { to: "/producao/digital", label: "Digital", icon: PrinterCheck, count: deptCountsLoaded ? (deptCounts["digital"] ?? 0) : undefined, dept: "digital" },
-    { to: "/producao/offset", label: "Off-Set", icon: OffsetIcon as any, count: deptCountsLoaded ? (deptCounts["offset"] ?? 0) : undefined, dept: "offset" },
-    { to: "/producao/acabamento", label: "Acabamento", icon: Layers, count: deptCountsLoaded ? (deptCounts["acabamento"] ?? 0) : undefined, dept: "acabamento" },
-    { to: "/producao/terceiros", label: "Terceiros", icon: Handshake, count: deptCountsLoaded ? (deptCounts["terceiros"] ?? 0) : undefined, dept: "terceiros" },
-    { to: "/producao/qualidade", label: "Qualidade", icon: Search, count: deptCountsLoaded ? (deptCounts["qualidade"] ?? 0) : undefined, dept: "qualidade" },
-  ];
-
   const canAccessGestaoEntregas = isAdmin || role === "coordenador" || permissions.canAccessDashboard;
-  const allExpedicaoItems = [
-    { to: "/expedicao", label: "Expedição", icon: Truck, count: deptCountsLoaded ? (deptCounts["expedicao"] ?? 0) : undefined },
-    ...(canAccessGestaoEntregas ? [{ to: "/entregas", label: "Gestão de Entregas", icon: Package }] : []),
-  ];
 
-  // Filtra itens de produção estritamente pelo setor vinculado ou permissão do usuário
-  const producaoItems = hasModule("producao")
-    ? allProducaoItems.filter(item => canAccessSector(item.dept))
-    : [];
-  const expedicaoItems = hasModule("expedicao") ? allExpedicaoItems : [];
-
-  // O CHAT é universal e aberto a todos os usuários autenticados da Primacor
-  const topItems = [
-    { to: "/chat", label: "Chat Privado", icon: MessageSquare, count: unreadChatCount > 0 ? unreadChatCount : undefined },
+  // Novo Fluxo Unificado Primacor:
+  // 1. CHAT
+  // 2. COMERCIAL
+  // 3. PCP
+  // 4. PRÉ-IMPRESSÃO
+  // 5. QUALIDADE
+  // 6. EXPEDIÇÃO
+  // 7. GESTÃO ENTREGAS
+  // 8. TRABALHOS CONCLUIDOS
+  // 9. COMPRAS
+  // 10. MANUTENÇÃO
+  // 11. DASHBOARD
+  // 12. CADASTROS
+  // 13. UTILIDADES
+  const navItems = [
+    // 1. CHAT
+    { to: "/chat", label: "Chat", icon: MessageSquare, count: unreadChatCount > 0 ? unreadChatCount : undefined },
+    // 2. COMERCIAL
     ...(permissions.canAccessComercial && hasModule("comercial") ? [{ to: "/comercial", label: "Comercial", icon: Briefcase }] : []),
+    // 3. PCP
     ...(hasModule("pcp") ? [{ to: "/pcp", label: "PCP", icon: ClipboardList }] : []),
-  ];
-
-  const bottomItems = [
+    // 4. PRÉ-IMPRESSÃO
+    ...(canAccessSector("pre_impressao") ? [{ to: "/", label: "Pré-Impressão", icon: Monitor, count: deptCountsLoaded ? (deptCounts["pre_impressao"] ?? 0) : undefined }] : []),
+    // 5. QUALIDADE
+    ...(canAccessSector("qualidade") ? [{ to: "/qualidade", label: "Qualidade", icon: Search, count: deptCountsLoaded ? (deptCounts["qualidade"] ?? 0) : undefined }] : []),
+    // 6. EXPEDIÇÃO
+    ...(hasModule("expedicao") && canAccessSector("expedicao") ? [{ to: "/expedicao", label: "Expedição", icon: Truck, count: deptCountsLoaded ? (deptCounts["expedicao"] ?? 0) : undefined }] : []),
+    // 7. GESTÃO ENTREGAS
+    ...(canAccessGestaoEntregas && hasModule("expedicao") ? [{ to: "/entregas", label: "Gestão Entregas", icon: Package }] : []),
+    // 8. TRABALHOS CONCLUIDOS
     ...(permissions.canArchive && hasModule("trabalhos_concluidos") ? [{ to: "/arquivados", label: "Trabalhos Concluídos", icon: Archive, count: countsLoading ? undefined : archivedCount }] : []),
+    // 9. COMPRAS
     ...(hasModule("compras") ? [{ to: "/compras", label: "Compras", icon: ShoppingCart, count: deptCountsLoaded ? (deptCounts["compras"] ?? 0) : undefined }] : []),
+    // 10. MANUTENÇÃO
     ...(hasModule("manutencao") ? [{ to: "/manutencao", label: "Manutenção", icon: Wrench, count: deptCountsLoaded ? (deptCounts["manutencao"] ?? 0) : undefined }] : []),
+    // 11. DASHBOARD
     ...(permissions.canAccessDashboard && hasModule("dashboard") ? [{ to: "/dashboard", label: "Dashboard", icon: BarChart3 }] : []),
   ];
 
@@ -243,9 +246,8 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
 
   const isCadastrosActive = cadastrosItems.some(i => location.pathname === i.to);
 
-
   const renderNavLink = (item: { to: string; label: string; icon: any; count?: number }) => {
-    const isActive = location.pathname === item.to;
+    const isActive = location.pathname === item.to || (item.to === "/qualidade" && location.pathname === "/producao/qualidade");
     return (
       <Link
         key={item.to}
@@ -267,16 +269,6 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
       </Link>
     );
   };
-
-  const isProducaoActive = producaoItems.some(i => location.pathname === i.to);
-  const isExpedicaoActive = expedicaoItems.some(i => location.pathname === i.to);
-
-  // Abre grupo de Produção automaticamente se for rota ativa ou se usuário tem setor vinculado único
-  useEffect(() => {
-    if (isProducaoActive || !!setorVinculado) {
-      setProducaoOpen(true);
-    }
-  }, [isProducaoActive, setorVinculado]);
 
   useEffect(() => {
     if (isCadastrosActive) setCadastrosOpen(true);
@@ -316,59 +308,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
         </div>
 
         <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto scrollbar-none">
-          {topItems.map(renderNavLink)}
-
-          {/* Produção - se tiver apenas 1 setor liberado, exibe direto em primeira linha sem setinha/acordeão */}
-          {producaoItems.length > 1 ? (
-            <>
-              <button
-                onClick={() => setProducaoOpen(!producaoOpen)}
-                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 w-full ${
-                  isProducaoActive && !producaoOpen
-                    ? "bg-sidebar-primary/15 text-sidebar-primary font-medium"
-                    : "text-sidebar-foreground/75 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                }`}
-              >
-                <Factory className="h-4 w-4" />
-                Produção
-                <ChevronDown className={`ml-auto h-3.5 w-3.5 transition-transform duration-200 ${producaoOpen ? "rotate-180" : ""}`} />
-              </button>
-              {producaoOpen && (
-                <div className="pl-3 space-y-0.5">
-                  {producaoItems.map(renderNavLink)}
-                </div>
-              )}
-            </>
-          ) : producaoItems.length === 1 ? (
-            producaoItems.map(renderNavLink)
-          ) : null}
-
-          {/* Expedição - se tiver apenas 1 item liberado, exibe direto em primeira linha sem setinha/acordeão */}
-          {expedicaoItems.length > 1 ? (
-            <>
-              <button
-                onClick={() => setExpedicaoOpen(!expedicaoOpen)}
-                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 w-full ${
-                  isExpedicaoActive && !expedicaoOpen
-                    ? "bg-sidebar-primary/15 text-sidebar-primary font-medium"
-                    : "text-sidebar-foreground/75 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                }`}
-              >
-                <Truck className="h-4 w-4" />
-                Expedição
-                <ChevronDown className={`ml-auto h-3.5 w-3.5 transition-transform duration-200 ${expedicaoOpen ? "rotate-180" : ""}`} />
-              </button>
-              {expedicaoOpen && (
-                <div className="pl-3 space-y-0.5">
-                  {expedicaoItems.map(renderNavLink)}
-                </div>
-              )}
-            </>
-          ) : expedicaoItems.length === 1 ? (
-            expedicaoItems.map(renderNavLink)
-          ) : null}
-
-          {bottomItems.map(renderNavLink)}
+          {navItems.map(renderNavLink)}
 
 
           {/* Cadastros - collapsible group, admin only */}
@@ -505,12 +445,8 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
           </div>
           {sectorName && (() => {
             const sectorIconMap: Record<string, LucideIcon> = {
-              "CTP": Square,
-              "Digital": PrinterCheck,
-              "Acabamento": Layers,
-              "Terceiros": Handshake,
-              "Expedição": Truck,
               "Qualidade": Search,
+              "Expedição": Truck,
               "Compras": ShoppingCart,
               "Manutenção": Wrench,
             };

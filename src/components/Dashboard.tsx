@@ -225,16 +225,13 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
   const allDepts = useMemo(() => [...DEPARTMENTS, EXPEDICAO_DEPARTMENT], []);
 
   const preImpressaoOrders = useMemo(() => {
-    return activeNonArchived.filter((o) => !o.setor);
+    return activeNonArchived.filter((o) => !o.setor || !["qualidade", "expedicao", "compras", "manutencao"].includes(o.setor));
   }, [activeNonArchived]);
 
   const sectorCounts = useMemo(() => {
     return {
       pre_impressao: preImpressaoOrders.length,
-      ctp: activeNonArchived.filter((o) => o.setor === "ctp" && o.setor_status !== "saida").length,
-      offset: activeNonArchived.filter((o) => o.setor === "offset" && o.setor_status !== "saida").length,
-      digital: activeNonArchived.filter((o) => o.setor === "digital" && o.setor_status !== "saida").length,
-      acabamento: activeNonArchived.filter((o) => o.setor === "acabamento" && o.setor_status !== "saida").length,
+      qualidade: activeNonArchived.filter((o) => o.setor === "qualidade" && o.setor_status !== "saida").length,
       expedicao: activeNonArchived.filter((o) => o.setor === "expedicao" && o.setor_status !== "saida").length,
     };
   }, [activeNonArchived, preImpressaoOrders]);
@@ -285,7 +282,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
     // Sector filter
     if (selectedSector === "pre_impressao") {
-      list = list.filter((o) => !o.setor);
+      list = list.filter((o) => !o.setor || !["qualidade", "expedicao", "compras", "manutencao"].includes(o.setor));
     } else if (selectedSector !== "all") {
       list = list.filter((o) => o.setor === selectedSector);
     }
@@ -458,14 +455,14 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
           <span className="text-[11px] text-muted-foreground">Clique para filtrar ordens no Chão de Fábrica</span>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <button
             onClick={() => handleSelectSectorFilter("pre_impressao")}
-            className="flex flex-col p-2.5 rounded-xl bg-muted/40 dark:bg-slate-950/60 border border-border dark:border-slate-800 hover:border-cyan-500/40 hover:bg-cyan-500/5 transition-all text-left group"
+            className="flex flex-col p-3 rounded-xl bg-muted/40 dark:bg-slate-950/60 border border-border dark:border-slate-800 hover:border-cyan-500/40 hover:bg-cyan-500/5 transition-all text-left group"
           >
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
+            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
               <span className="font-medium group-hover:text-cyan-500 dark:group-hover:text-cyan-400 transition-colors">Pré-Impressão</span>
-              <span className="font-mono-tech font-bold text-foreground text-xs">{sectorCounts.pre_impressao}</span>
+              <span className="font-mono-tech font-bold text-foreground text-sm">{sectorCounts.pre_impressao}</span>
             </div>
             <div className="w-full h-1.5 bg-muted dark:bg-slate-800 rounded-full overflow-hidden">
               <div
@@ -476,76 +473,28 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
           </button>
 
           <button
-            onClick={() => handleSelectSectorFilter("ctp")}
-            className="flex flex-col p-2.5 rounded-xl bg-muted/40 dark:bg-slate-950/60 border border-border dark:border-slate-800 hover:border-violet-500/40 hover:bg-violet-500/5 transition-all text-left group"
+            onClick={() => handleSelectSectorFilter("qualidade")}
+            className="flex flex-col p-3 rounded-xl bg-muted/40 dark:bg-slate-950/60 border border-border dark:border-slate-800 hover:border-violet-500/40 hover:bg-violet-500/5 transition-all text-left group"
           >
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
-              <span className="font-medium group-hover:text-violet-500 dark:group-hover:text-violet-400 transition-colors">CTP / Chapas</span>
-              <span className="font-mono-tech font-bold text-foreground text-xs">{sectorCounts.ctp}</span>
+            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+              <span className="font-medium group-hover:text-violet-500 dark:group-hover:text-violet-400 transition-colors">Qualidade</span>
+              <span className="font-mono-tech font-bold text-foreground text-sm">{sectorCounts.qualidade}</span>
             </div>
             <div className="w-full h-1.5 bg-muted dark:bg-slate-800 rounded-full overflow-hidden">
               <div
                 className="h-full bg-violet-500 dark:bg-violet-400 rounded-full transition-all duration-500"
-                style={{ width: `${total > 0 ? (sectorCounts.ctp / total) * 100 : 0}%` }}
-              />
-            </div>
-          </button>
-
-          <button
-            onClick={() => handleSelectSectorFilter("offset")}
-            className="flex flex-col p-2.5 rounded-xl bg-muted/40 dark:bg-slate-950/60 border border-border dark:border-slate-800 hover:border-blue-500/40 hover:bg-blue-500/5 transition-all text-left group"
-          >
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
-              <span className="font-medium group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">Off-Set</span>
-              <span className="font-mono-tech font-bold text-foreground text-xs">{sectorCounts.offset}</span>
-            </div>
-            <div className="w-full h-1.5 bg-muted dark:bg-slate-800 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-blue-500 dark:bg-blue-400 rounded-full transition-all duration-500"
-                style={{ width: `${total > 0 ? (sectorCounts.offset / total) * 100 : 0}%` }}
-              />
-            </div>
-          </button>
-
-          <button
-            onClick={() => handleSelectSectorFilter("digital")}
-            className="flex flex-col p-2.5 rounded-xl bg-muted/40 dark:bg-slate-950/60 border border-border dark:border-slate-800 hover:border-indigo-500/40 hover:bg-indigo-500/5 transition-all text-left group"
-          >
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
-              <span className="font-medium group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors">Digital</span>
-              <span className="font-mono-tech font-bold text-foreground text-xs">{sectorCounts.digital}</span>
-            </div>
-            <div className="w-full h-1.5 bg-muted dark:bg-slate-800 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-indigo-500 dark:bg-indigo-400 rounded-full transition-all duration-500"
-                style={{ width: `${total > 0 ? (sectorCounts.digital / total) * 100 : 0}%` }}
-              />
-            </div>
-          </button>
-
-          <button
-            onClick={() => handleSelectSectorFilter("acabamento")}
-            className="flex flex-col p-2.5 rounded-xl bg-muted/40 dark:bg-slate-950/60 border border-border dark:border-slate-800 hover:border-amber-500/40 hover:bg-amber-500/5 transition-all text-left group"
-          >
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
-              <span className="font-medium group-hover:text-amber-500 dark:group-hover:text-amber-400 transition-colors">Acabamento</span>
-              <span className="font-mono-tech font-bold text-foreground text-xs">{sectorCounts.acabamento}</span>
-            </div>
-            <div className="w-full h-1.5 bg-muted dark:bg-slate-800 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-amber-500 dark:bg-amber-400 rounded-full transition-all duration-500"
-                style={{ width: `${total > 0 ? (sectorCounts.acabamento / total) * 100 : 0}%` }}
+                style={{ width: `${total > 0 ? (sectorCounts.qualidade / total) * 100 : 0}%` }}
               />
             </div>
           </button>
 
           <button
             onClick={() => handleSelectSectorFilter("expedicao")}
-            className="flex flex-col p-2.5 rounded-xl bg-muted/40 dark:bg-slate-950/60 border border-border dark:border-slate-800 hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all text-left group"
+            className="flex flex-col p-3 rounded-xl bg-muted/40 dark:bg-slate-950/60 border border-border dark:border-slate-800 hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all text-left group"
           >
-            <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
+            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
               <span className="font-medium group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition-colors">Expedição</span>
-              <span className="font-mono-tech font-bold text-foreground text-xs">{sectorCounts.expedicao}</span>
+              <span className="font-mono-tech font-bold text-foreground text-sm">{sectorCounts.expedicao}</span>
             </div>
             <div className="w-full h-1.5 bg-muted dark:bg-slate-800 rounded-full overflow-hidden">
               <div
@@ -893,36 +842,12 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                 Pré-Imp ({sectorCounts.pre_impressao})
               </Button>
               <Button
-                variant={selectedSector === "ctp" ? "default" : "outline"}
+                variant={selectedSector === "qualidade" ? "default" : "outline"}
                 size="sm"
-                onClick={() => handleSelectSectorFilter("ctp")}
+                onClick={() => handleSelectSectorFilter("qualidade")}
                 className="h-8 text-xs rounded-xl px-3"
               >
-                CTP ({sectorCounts.ctp})
-              </Button>
-              <Button
-                variant={selectedSector === "offset" ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleSelectSectorFilter("offset")}
-                className="h-8 text-xs rounded-xl px-3"
-              >
-                Off-Set ({sectorCounts.offset})
-              </Button>
-              <Button
-                variant={selectedSector === "digital" ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleSelectSectorFilter("digital")}
-                className="h-8 text-xs rounded-xl px-3"
-              >
-                Digital ({sectorCounts.digital})
-              </Button>
-              <Button
-                variant={selectedSector === "acabamento" ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleSelectSectorFilter("acabamento")}
-                className="h-8 text-xs rounded-xl px-3"
-              >
-                Acabamento ({sectorCounts.acabamento})
+                Qualidade ({sectorCounts.qualidade})
               </Button>
               <Button
                 variant={selectedSector === "expedicao" ? "default" : "outline"}

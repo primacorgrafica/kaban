@@ -102,7 +102,7 @@ export default function EquipamentosPage() {
   const [filterSetor, setFilterSetor] = useState("");
   const [filterFabricante, setFilterFabricante] = useState("");
 
-  const SETORES_PRODUCAO = ["Pré-Impressão", "CTP", "Digital", "Off-Set", "Acabamento", "Expedição"];
+  const SETORES_PRODUCAO = ["Pré-Impressão", "Qualidade", "Expedição", "Manutenção"];
   const uniqueSetores = SETORES_PRODUCAO;
   const uniqueFabricantes = [...new Set(equipamentos.map((e) => e.fabricante).filter(Boolean))].sort() as string[];
 

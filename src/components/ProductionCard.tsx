@@ -176,9 +176,9 @@ function ProductionCardImpl({
   const isUrgent = order.urgente;
   const sectorUrgent = isSpecialOrder
     ? order.urgente
-    : (["ctp", "offset", "digital"].includes(department.id) && isUrgentImpressao) ||
-      (["acabamento", "terceiros"].includes(department.id) && isUrgentAcabamento) ||
-      (department.id === "expedicao" && isUrgentExpedicao);
+    : (department.id === "expedicao" && isUrgentExpedicao) ||
+      (department.id === "qualidade" && order.urgente) ||
+      order.urgente;
   const shouldBlink = sectorUrgent || isNearDeadline;
 
   // Slow-approval alert for Embalagens (desenvolvimento) when in Aguard. Aprovação
@@ -403,7 +403,7 @@ function ProductionCardImpl({
           </>
         )}
         {/* Standalone URGENTE banner - when sector is urgent but no specific banner is shown */}
-        {sectorUrgent && !((department.id as string) === "desenvolvimento" && (order.saida_direta || order.prova_digital || order.prova_email)) && !(["ctp", "offset", "digital"].includes(department.id) && order.processos && (order.processos.includes("CMYK") || order.processos.includes("CMYK+IR") || order.processos.includes("CMYK+VM") || order.processos.includes("PANTONE"))) && !(["acabamento", "terceiros"].includes(department.id) && order.processos && (order.processos.includes("Promocional") || order.processos.includes("Editorial") || order.processos.includes("Embalagem"))) && !(department.id === "expedicao" && order.tipo_entrega && (order.tipo_entrega.includes("CARRO") || order.tipo_entrega.includes("MOTO") || order.tipo_entrega.includes("RETIRA"))) && (
+        {sectorUrgent && !(department.id === "expedicao" && order.tipo_entrega && (order.tipo_entrega.includes("CARRO") || order.tipo_entrega.includes("MOTO") || order.tipo_entrega.includes("RETIRA"))) && (
           <div className={`bg-red-500 text-white text-[10px] font-bold text-center py-0.5 tracking-wide uppercase flex items-center justify-center gap-1 ${shouldBlink ? "animate-pulse" : ""}`}>
             <AlertTriangle className="h-3 w-3" /> Urgente
           </div>
@@ -452,67 +452,7 @@ function ProductionCardImpl({
             <span className="inline-flex items-center justify-center h-4 w-4 rounded-sm bg-red-600 text-white text-[9px] font-bold" title="Pendência Faturamento">F</span>
           </div>
         )}
-        {["ctp", "offset", "terceiros"].includes(department.id) && order.processos && order.processos.includes("EMB") && (
-          <div className="px-2 py-0.5 bg-amber-200 dark:bg-amber-900/30 text-center">
-            <span className="text-[10px] font-semibold text-amber-800 dark:text-amber-300 uppercase tracking-wide">Embalagem</span>
-          </div>
-        )}
-        {department.id === "acabamento" && order.processos && order.processos.includes("Promocional") && (
-          <div className="px-2 py-0.5 bg-pink-600 text-center">
-            <span className="text-[10px] font-semibold text-white uppercase tracking-wide">Promocional</span>
-            {isUrgentAcabamento && (
-              <span className={`ml-2 inline-block bg-red-600 text-white text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${order.status !== "arquivo_liberado" ? "animate-pulse" : ""}`}>URGENTE</span>
-            )}
-          </div>
-        )}
-        {department.id === "acabamento" && order.processos && order.processos.includes("Editorial") && (
-          <div className="px-2 py-0.5 bg-blue-600 text-center">
-            <span className="text-[10px] font-semibold text-white uppercase tracking-wide">Editorial</span>
-            {isUrgentAcabamento && !order.processos.includes("Promocional") && (
-              <span className={`ml-2 inline-block bg-red-600 text-white text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${order.status !== "arquivo_liberado" ? "animate-pulse" : ""}`}>URGENTE</span>
-            )}
-          </div>
-        )}
-        {department.id === "acabamento" && order.processos && order.processos.includes("Embalagem") && (
-          <div className="px-2 py-0.5 bg-yellow-500 text-center">
-            <span className="text-[10px] font-semibold text-black uppercase tracking-wide">Embalagem</span>
-            {isUrgentAcabamento && !order.processos.includes("Promocional") && !order.processos.includes("Editorial") && (
-              <span className={`ml-2 inline-block bg-red-600 text-white text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${order.status !== "arquivo_liberado" ? "animate-pulse" : ""}`}>URGENTE</span>
-            )}
-          </div>
-        )}
-        {department.id === "offset" && order.processos && order.processos.includes("CMYK") && (
-          <div className="px-2 py-0.5 bg-blue-600 text-center">
-            <span className="text-[10px] font-semibold text-white uppercase tracking-wide">CMYK</span>
-            {isUrgentImpressao && (
-              <span className={`ml-2 inline-block bg-red-600 text-white text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${order.status !== "arquivo_liberado" ? "animate-pulse" : ""}`}>URGENTE</span>
-            )}
-          </div>
-        )}
-        {department.id === "offset" && order.processos && order.processos.includes("CMYK+IR") && (
-          <div className="px-2 py-0.5 bg-yellow-500 text-center">
-            <span className="text-[10px] font-semibold text-black uppercase tracking-wide">CMYK+IR</span>
-            {isUrgentImpressao && !order.processos.includes("CMYK") && (
-              <span className={`ml-2 inline-block bg-red-600 text-white text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${order.status !== "arquivo_liberado" ? "animate-pulse" : ""}`}>URGENTE</span>
-            )}
-          </div>
-        )}
-        {department.id === "offset" && order.processos && order.processos.includes("CMYK+VM") && (
-          <div className="px-2 py-0.5 bg-orange-500 text-center">
-            <span className="text-[10px] font-semibold text-white uppercase tracking-wide">CMYK+VM</span>
-            {isUrgentImpressao && !order.processos.includes("CMYK") && !order.processos.includes("CMYK+IR") && (
-              <span className={`ml-2 inline-block bg-red-600 text-white text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${order.status !== "arquivo_liberado" ? "animate-pulse" : ""}`}>URGENTE</span>
-            )}
-          </div>
-        )}
-        {department.id === "offset" && order.processos && order.processos.includes("PANTONE") && (
-          <div className="px-2 py-0.5 bg-green-600 text-center">
-            <span className="text-[10px] font-semibold text-white uppercase tracking-wide">PANTONE</span>
-            {isUrgentImpressao && !order.processos.includes("CMYK") && !order.processos.includes("CMYK+IR") && !order.processos.includes("CMYK+VM") && (
-              <span className={`ml-2 inline-block bg-red-600 text-white text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${order.status !== "arquivo_liberado" ? "animate-pulse" : ""}`}>URGENTE</span>
-            )}
-          </div>
-        )}
+
 
         {!readOnly && dragHandleProps && (
           <div

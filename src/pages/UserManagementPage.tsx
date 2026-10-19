@@ -61,12 +61,10 @@ const ACCESS_MODULES: { id: string; label: string }[] = [
 
 const SECTOR_OPTIONS = [
   { id: "pre_impressao", label: "Pré-Impressão" },
-  { id: "ctp", label: "CTP" },
-  { id: "digital", label: "Digital" },
-  { id: "offset", label: "Off-Set" },
-  { id: "acabamento", label: "Acabamento" },
-  { id: "terceiros", label: "Terceiros" },
   { id: "qualidade", label: "Qualidade" },
+  { id: "expedicao", label: "Expedição" },
+  { id: "compras", label: "Compras" },
+  { id: "manutencao", label: "Manutenção" },
 ];
 
 interface PresenceInfo {

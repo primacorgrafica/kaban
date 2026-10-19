@@ -52,16 +52,17 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
     return acc;
   }, {} as Record<OrderStatus, Order[]>);
 
+  const DEPRECATED_SECTORS = ["ctp", "offset", "digital", "acabamento", "terceiros", "embalagens", "desenvolvimento"];
   orders.forEach((o) => {
     let s = o.status;
-    if (o.setor === "desenvolvimento" && (o as any).setor_status) {
+    if (o.setor && DEPRECATED_SECTORS.includes(o.setor) && (o as any).setor_status) {
       const ss = (o as any).setor_status;
       if (ss === "entrada") s = "fila_de_entrada";
-      else if (ss === "preparacao" || ss === "desenvolvendo") s = "preparando_arquivo";
-      else if (ss === "aguardando_novo_arquivo" || ss === "paralisado") s = "aguardando_novo_arquivo";
+      else if (ss === "preparacao" || ss === "desenvolvendo" || ss === "em_producao" || ss === "processando") s = "preparando_arquivo";
+      else if (ss === "aguardando_novo_arquivo" || ss === "paralisado" || ss === "pausado") s = "aguardando_novo_arquivo";
       else if (ss === "aguardando_prova") s = "aguardando_prova";
       else if (ss === "aguardando_aprovacao") s = "aguardando_aprovacao";
-      else if (ss === "saida") s = "arquivo_liberado";
+      else if (ss === "saida" || ss === "concluido") s = "arquivo_liberado";
     }
     if (s === "paralisado") {
       s = "aguardando_novo_arquivo";

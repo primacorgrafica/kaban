@@ -4,7 +4,7 @@ import { useProductionOrders } from "@/hooks/useProductionOrders";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useAuth } from "@/hooks/useAuth";
 import { useAddOrder } from "@/hooks/useAddOrder";
-import { DEPARTMENTS, FATURAMENTO_DEPARTMENT, COMPRAS_DEPARTMENT, MANUTENCAO_DEPARTMENT, Department, DEPARTMENT_MAP } from "@/types/production";
+import { DEPARTMENTS, COMPRAS_DEPARTMENT, MANUTENCAO_DEPARTMENT, Department, DEPARTMENT_MAP } from "@/types/production";
 import { ProductionKanbanBoard } from "@/components/ProductionKanbanBoard";
 import { ArchivedOrders } from "@/components/ArchivedOrders";
 import { Layout } from "@/components/Layout";
@@ -17,7 +17,7 @@ import { LayoutGrid, TableProperties } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProductionTable } from "@/components/ProductionTable";
 
-const VALID_DEPARTMENTS: Department[] = ["ctp", "digital", "offset", "acabamento", "terceiros", "faturamento", "compras", "manutencao", "qualidade"];
+const VALID_DEPARTMENTS: Department[] = ["qualidade", "compras", "manutencao"];
 
 export default function ProductionPage() {
   const { departamento } = useParams<{ departamento: string }>();
@@ -72,11 +72,12 @@ export default function ProductionPage() {
   };
 
   const PATH_TO_DEPT: Record<string, Department> = {
-    "/faturamento": "faturamento",
     "/compras": "compras",
     "/manutencao": "manutencao",
+    "/qualidade": "qualidade",
+    "/producao/qualidade": "qualidade",
   };
-  const activeDepartment: Department = PATH_TO_DEPT[location.pathname] || (departamento as Department) || "ctp";
+  const activeDepartment: Department = PATH_TO_DEPT[location.pathname] || (departamento as Department) || "qualidade";
 
   const currentDept = DEPARTMENT_MAP[activeDepartment];
   const isFaturamento = activeDepartment === "faturamento";
