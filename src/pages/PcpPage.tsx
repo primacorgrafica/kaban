@@ -132,17 +132,17 @@ function playFemaleVoice(text: string) {
 
     if (voice && !isMaleName) {
       utterance.voice = voice;
-      utterance.rate = 1.0;
+      utterance.rate = 1.18; // Ritmo mais acelerado e dinâmico para TV
       utterance.pitch = 1.0;
     } else {
       if (voice) utterance.voice = voice;
-      utterance.rate = 0.95;
+      utterance.rate = 1.15;
       utterance.pitch = 1.35; // Modulação aguda para afinar e soar feminina mesmo se o Windows só tiver voz masculina instalada
     }
 
     setTimeout(() => {
       window.speechSynthesis.speak(utterance);
-    }, 420);
+    }, 320);
   } catch (err) {
     console.warn("[Voz PCP] Erro ao reproduzir locução:", err);
   }
