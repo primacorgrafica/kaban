@@ -60,6 +60,49 @@ function playTvChime() {
   } catch {}
 }
 
+// Síntese de voz com Web Speech API em português (pt-BR)
+function speakOsLiberada(titulo: string) {
+  try {
+    // 1. Toca o sinal sonoro para chamar a atenção na TV
+    playTvChime();
+
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+
+    // Cancela qualquer fala pendente no navegador
+    window.speechSynthesis.cancel();
+
+    // Sanitiza o número da O.S. (ex: "OS 1045", "OS-1045", "1045" -> "1045")
+    const cleanNumber = titulo.replace(/^O\.?S\.?[\s._-]*/i, "").trim();
+
+    // Formata com "O. S." espaçado para garantir pronúncia correta de cada letra (Ó-Ésse) em todos os sintetizadores
+    const frase = cleanNumber
+      ? `Atenção: O. S. número ${cleanNumber} foi liberada.`
+      : `Atenção: O. S. ${titulo} foi liberada.`;
+
+    const utterance = new SpeechSynthesisUtterance(frase);
+    utterance.lang = "pt-BR";
+    utterance.rate = 0.95; // Velocidade ligeiramente compassada para perfeita compreensão na fábrica
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+
+    // Seleciona voz em português (pt-BR) se disponível no navegador
+    const voices = window.speechSynthesis.getVoices();
+    const ptVoice =
+      voices.find((v) => v.lang === "pt-BR" || v.lang === "pt_BR") ||
+      voices.find((v) => v.lang.startsWith("pt"));
+    if (ptVoice) {
+      utterance.voice = ptVoice;
+    }
+
+    // Inicia a fala 450ms após o chime de chamada
+    setTimeout(() => {
+      window.speechSynthesis.speak(utterance);
+    }, 450);
+  } catch (err) {
+    console.warn("Falha na síntese de voz:", err);
+  }
+}
+
 export default function PcpPage() {
   const { user, authReady } = useAuth();
   const permissions = usePermissions();
@@ -188,7 +231,9 @@ export default function PcpPage() {
         time: format(new Date(), "HH:mm:ss"),
         type: "liberada"
       });
-      if (soundEnabled) playTvChime();
+      if (soundEnabled) {
+        speakOsLiberada(newlyLiberada.titulo);
+      }
     }
     prevLiberadasCountRef.current = deduped.length;
 
@@ -374,14 +419,32 @@ export default function PcpPage() {
               onClick={() => {
                 const next = !soundEnabled;
                 setSoundEnabled(next);
-                if (next) playTvChime();
+                if (next) {
+                  playTvChime();
+                  if (typeof window !== "undefined" && "speechSynthesis" in window) {
+                    window.speechSynthesis.cancel();
+                    const testUtterance = new SpeechSynthesisUtterance("Som e aviso de voz do PCP ativados.");
+                    testUtterance.lang = "pt-BR";
+                    testUtterance.rate = 1.0;
+                    const voices = window.speechSynthesis.getVoices();
+                    const ptVoice =
+                      voices.find((v) => v.lang === "pt-BR" || v.lang === "pt_BR") ||
+                      voices.find((v) => v.lang.startsWith("pt"));
+                    if (ptVoice) testUtterance.voice = ptVoice;
+                    setTimeout(() => window.speechSynthesis.speak(testUtterance), 450);
+                  }
+                } else {
+                  if (typeof window !== "undefined" && "speechSynthesis" in window) {
+                    window.speechSynthesis.cancel();
+                  }
+                }
               }}
               className={`h-9 px-2.5 rounded-xl border text-xs gap-1.5 transition-all ${
                 soundEnabled
                   ? "bg-cyan-500/20 border-cyan-500/40 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.2)]"
                   : "bg-muted/60 dark:bg-slate-950/60 border-border dark:border-slate-800 text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
               }`}
-              title={soundEnabled ? "Som de nova OS ativado" : "Ativar som de nova OS na TV"}
+              title={soundEnabled ? "Som e voz de O.S. liberada ativados (Clique para silenciar)" : "Ativar som e voz de O.S. liberada na TV"}
             >
               {soundEnabled ? <Volume2 className="h-4 w-4 text-cyan-400" /> : <VolumeX className="h-4 w-4" />}
               <span className="hidden xl:inline">{soundEnabled ? "Som Ativo" : "Mudo"}</span>
