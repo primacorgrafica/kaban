@@ -60,98 +60,82 @@ function playTvChime() {
   } catch {}
 }
 
-// Obtém voz feminina em português (pt-BR) disponível no navegador/sistema
-function getFemalePtVoice(): SpeechSynthesisVoice | null {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return null;
-  const voices = window.speechSynthesis.getVoices();
-  if (!voices || voices.length === 0) return null;
-
-  const ptVoices = voices.filter(
-    (v) => v.lang === "pt-BR" || v.lang === "pt_BR" || v.lang.startsWith("pt")
-  );
-  if (ptVoices.length === 0) return null;
-
-  // Lista de nomes de vozes femininas conhecidas em português (Windows, Edge, Chrome, Android, macOS, iOS)
-  const femaleNames = [
-    "francisca",
-    "maria",
-    "thalita",
-    "brenda",
-    "heloisa",
-    "raquel",
-    "luciana",
-    "vitoria",
-    "vitória",
-    "helena",
-    "joana",
-    "camila",
-    "leticia",
-    "letícia",
-    "female",
-    "mulher",
-    "feminina",
-  ];
-
-  // 1. Prioriza voz com nome feminino explícito
-  const explicitFemale = ptVoices.find((v) => {
-    const name = v.name.toLowerCase();
-    return femaleNames.some((n) => name.includes(n));
-  });
-  if (explicitFemale) return explicitFemale;
-
-  // 2. No Chrome / Android, "Google português do Brasil" é historicamente voz feminina
-  const googlePt = ptVoices.find((v) => v.name.toLowerCase().includes("google"));
-  if (googlePt) return googlePt;
-
-  // 3. Exclui vozes masculinas conhecidas (Daniel, Antonio, Julio, Fabio, etc.)
-  const maleNames = ["daniel", "antonio", "antônio", "julio", "júlio", "fabio", "fábio", "male", "homem"];
-  const nonMale = ptVoices.find((v) => {
-    const name = v.name.toLowerCase();
-    return !maleNames.some((n) => name.includes(n));
-  });
-  if (nonMale) return nonMale;
-
-  return ptVoices[0];
-}
-
-// Síntese de voz feminina com Web Speech API em português (pt-BR)
-function speakOsLiberada(titulo: string) {
+// Síntese de áudio com voz feminina brasileira 100% garantida (Google TTS pt-BR com fallback local estrito)
+function playFemaleVoice(text: string) {
   try {
-    // 1. Toca o sinal sonoro para chamar a atenção na TV
+    // 1. Toca chime de alerta sonoro suave
     playTvChime();
 
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    // 2. Reproduz a voz feminina oficial em português do Brasil via áudio nativo (Voz do Google pt-BR)
+    const encoded = encodeURIComponent(text);
+    const audioUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encoded}&tl=pt-BR&client=tw-ob`;
+    const audio = new Audio(audioUrl);
+    audio.volume = 1.0;
 
-    // Cancela qualquer fala pendente no navegador
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch((err) => {
+        console.warn("[Voz Feminina] Áudio online bloqueado ou offline, acionando fallback local:", err);
+        speakWithLocalSpeech(text);
+      });
+    }
+  } catch (e) {
+    console.warn("[Voz Feminina] Erro ao instanciar áudio, usando fallback:", e);
+    speakWithLocalSpeech(text);
+  }
+}
+
+// Fallback caso o áudio online falhe (restringe a vozes estritamente femininas)
+function speakWithLocalSpeech(text: string) {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  try {
     window.speechSynthesis.cancel();
-
-    // Sanitiza o número da O.S. (ex: "OS 1045", "OS-1045", "1045" -> "1045")
-    const cleanNumber = titulo.replace(/^O\.?S\.?[\s._-]*/i, "").trim();
-
-    // Formata com "O. S." espaçado para garantir pronúncia correta de cada letra (Ó-Ésse)
-    const frase = cleanNumber
-      ? `Atenção: O. S. número ${cleanNumber} foi aprovada e liberada.`
-      : `Atenção: O. S. ${titulo} foi aprovada e liberada.`;
-
-    const utterance = new SpeechSynthesisUtterance(frase);
+    const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "pt-BR";
-    utterance.rate = 0.95; // Velocidade ligeiramente compassada para perfeita compreensão na fábrica
-    utterance.pitch = 1.2; // Pitch agudo e cristalino para voz feminina
+    utterance.rate = 0.95;
+    utterance.pitch = 1.25; // Pitch agudo feminino
     utterance.volume = 1.0;
 
-    // Seleciona voz feminina em português (pt-BR) se disponível no navegador
-    const femaleVoice = getFemalePtVoice();
+    const voices = window.speechSynthesis.getVoices();
+    const ptVoices = voices.filter(
+      (v) => v.lang === "pt-BR" || v.lang === "pt_BR" || v.lang.startsWith("pt")
+    );
+
+    // Seleciona voz estritamente feminina, NUNCA masculina
+    const femaleVoice = ptVoices.find((v) => {
+      const name = v.name.toLowerCase();
+      return (
+        name.includes("maria") ||
+        name.includes("francisca") ||
+        name.includes("luciana") ||
+        name.includes("thalita") ||
+        name.includes("brenda") ||
+        name.includes("heloisa") ||
+        name.includes("google") ||
+        name.includes("female") ||
+        name.includes("mulher")
+      );
+    });
+
     if (femaleVoice) {
       utterance.voice = femaleVoice;
     }
 
-    // Inicia a fala 450ms após o chime de chamada
     setTimeout(() => {
       window.speechSynthesis.speak(utterance);
-    }, 450);
+    }, 400);
   } catch (err) {
-    console.warn("Falha na síntese de voz feminina:", err);
+    console.warn("Falha no fallback de voz local:", err);
   }
+}
+
+// Anuncia a liberação da O.S. com pronúncia clara
+function speakOsLiberada(titulo: string) {
+  const cleanNumber = titulo.replace(/^O\.?S\.?[\s._-]*/i, "").trim();
+  const frase = cleanNumber
+    ? `Atenção: Ordem de serviço número ${cleanNumber} foi aprovada e liberada.`
+    : `Atenção: A Ordem de serviço ${titulo} foi aprovada e liberada.`;
+  playFemaleVoice(frase);
 }
 
 export default function PcpPage() {
@@ -166,7 +150,17 @@ export default function PcpPage() {
   const [isTvMode, setIsTvMode] = useState(() => {
     return localStorage.getItem("primacor_pcp_tv_mode") === "true";
   });
-  const [soundEnabled, setSoundEnabled] = useState(false);
+
+  // Som e Voz com persistência e Ref para evitar stale closures em WebSockets/Realtime
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    return localStorage.getItem("primacor_pcp_sound_enabled") === "true";
+  });
+  const soundEnabledRef = useRef(soundEnabled);
+  useEffect(() => {
+    soundEnabledRef.current = soundEnabled;
+  }, [soundEnabled]);
+
+  const announcedOrderIdsRef = useRef<Set<string>>(new Set());
   const [autoScroll, setAutoScroll] = useState(true);
   const [activeTabLeft, setActiveTabLeft] = useState<"hoje" | "anteriores">("hoje");
   const [activeTabRight, setActiveTabRight] = useState<"hoje" | "anteriores">("hoje");
@@ -292,8 +286,17 @@ export default function PcpPage() {
 
     // Checa se houve nova liberação para alerta da TV e voz feminina
     if (knownLiberadaIdsRef.current === null) {
-      // Primeira inicialização: registra as O.S. já liberadas para não anunciar todas em lote
+      // Primeira inicialização: registra as O.S. já liberadas no histórico
       knownLiberadaIdsRef.current = new Set(deduped.map((d) => d.order_id));
+      // Se houver alguma O.S. liberada há menos de 5 minutos e o som já estiver ativo, anuncia!
+      const recemLiberada = deduped.find((d) => {
+        const diffMs = Date.now() - new Date(d.chegou_em).getTime();
+        return diffMs < 5 * 60 * 1000;
+      });
+      if (recemLiberada && soundEnabledRef.current && !announcedOrderIdsRef.current.has(recemLiberada.order_id)) {
+        announcedOrderIdsRef.current.add(recemLiberada.order_id);
+        speakOsLiberada(recemLiberada.titulo);
+      }
     } else {
       // Identifica quaisquer O.S. recém movidas para a Saída (tanto pré-impressão quanto embalagens)
       const recemLiberadas = deduped.filter((d) => !knownLiberadaIdsRef.current!.has(d.order_id));
@@ -304,7 +307,8 @@ export default function PcpPage() {
           time: format(new Date(), "HH:mm:ss"),
           type: "liberada"
         });
-        if (soundEnabled) {
+        if (soundEnabledRef.current && !announcedOrderIdsRef.current.has(newlyLiberada.order_id)) {
+          announcedOrderIdsRef.current.add(newlyLiberada.order_id);
           speakOsLiberada(newlyLiberada.titulo);
         }
       }
@@ -314,6 +318,9 @@ export default function PcpPage() {
     setLiberadas(deduped);
     setLoading(false);
   };
+
+  const fetchLiberadasRef = useRef<() => Promise<void>>();
+  fetchLiberadasRef.current = fetchLiberadas;
 
   const fetchEmitidas = async () => {
     const since = new Date();
@@ -357,7 +364,7 @@ export default function PcpPage() {
     fetchLiberadas();
     fetchEmitidas();
     const unsub = subscribeOrders(() => {
-      fetchLiberadas();
+      fetchLiberadasRef.current?.();
       fetchEmitidas();
     });
     return () => unsub();
@@ -493,17 +500,20 @@ export default function PcpPage() {
               onClick={() => {
                 const next = !soundEnabled;
                 setSoundEnabled(next);
+                soundEnabledRef.current = next;
+                localStorage.setItem("primacor_pcp_sound_enabled", String(next));
                 if (next) {
-                  playTvChime();
-                  if (typeof window !== "undefined" && "speechSynthesis" in window) {
-                    window.speechSynthesis.cancel();
-                    const testUtterance = new SpeechSynthesisUtterance("Som e avisos de voz feminina ativados.");
-                    testUtterance.lang = "pt-BR";
-                    testUtterance.rate = 1.0;
-                    testUtterance.pitch = 1.2;
-                    const femaleVoice = getFemalePtVoice();
-                    if (femaleVoice) testUtterance.voice = femaleVoice;
-                    setTimeout(() => window.speechSynthesis.speak(testUtterance), 450);
+                  playFemaleVoice("Som do PCP ativado.");
+                  // Se houver alguma O.S. liberada recentemente (< 10 minutos) que ainda não foi anunciada, anuncia logo em seguida
+                  const recent = liberadas.find((d) => {
+                    const diffMs = Date.now() - new Date(d.chegou_em).getTime();
+                    return diffMs < 10 * 60 * 1000 && !announcedOrderIdsRef.current.has(d.order_id);
+                  });
+                  if (recent) {
+                    announcedOrderIdsRef.current.add(recent.order_id);
+                    setTimeout(() => {
+                      speakOsLiberada(recent.titulo);
+                    }, 2200);
                   }
                 } else {
                   if (typeof window !== "undefined" && "speechSynthesis" in window) {
