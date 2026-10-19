@@ -47,8 +47,9 @@ import { Progress } from "@/components/ui/progress";
 import {
   IMPRESSAO_TIPOS,
   IMPRESSAO_PROCESSOS,
-  ACABAMENTO_TIPOS,
-  ACABAMENTO_GROUPS,
+  SPECIAL_SUPPLIES,
+  isSpecialSupplyActive,
+  toggleSpecialSupplyActive,
 } from "@/lib/processos";
 import {
   getOrCreateOsFolder,
@@ -1107,95 +1108,56 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
           {/* ════════════ ETAPA 3: ACABAMENTO & LOGÍSTICA ════════════ */}
           {step === 3 && (
             <div className="space-y-4 animate-in fade-in-50 duration-200">
-              {/* ACABAMENTOS */}
+              {/* SUPRIMENTOS & PROCESSOS ESPECIAIS (PANTONE - FACA - CLICHÊ) */}
               <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-purple-500 shadow-[0_0_8px_#a855f7]" />
+                    <span className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_#f59e0b]" />
                     <Label className="text-xs font-bold text-foreground uppercase tracking-wider">
-                      Processos de Acabamento Gráfico
+                      Suprimentos & Processos Especiais
                     </Label>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setForm((f) => ({ ...f, urgente_acabamento: !f.urgente_acabamento }))
-                    }
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
-                      form.urgente_acabamento
-                        ? "bg-rose-500/20 border-rose-500/50 text-rose-600 dark:text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.3)] animate-pulse"
-                        : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
-                    }`}
-                  >
-                    <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />
-                    <span>Acabamento Urgente</span>
-                  </button>
+                  <span className="text-[11px] text-muted-foreground font-mono-tech">
+                    Quadros ficam amarelos por padrão no card
+                  </span>
                 </div>
 
-                {/* Categoria do Acabamento */}
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-mono-tech text-muted-foreground mr-2">Linha:</span>
-                  {ACABAMENTO_TIPOS.map((tipo) => {
-                    const isSelected = form.processos.includes(tipo);
+                {/* Seleção: PANTONE - FACA - CLICHÊ */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                  {SPECIAL_SUPPLIES.map((item) => {
+                    const active = isSpecialSupplyActive(form.processos, item.id);
                     return (
                       <button
                         type="button"
-                        key={tipo}
+                        key={item.id}
                         onClick={() => {
                           setForm((f) => ({
                             ...f,
-                            processos: [
-                              ...f.processos.filter(
-                                (p) => !(ACABAMENTO_TIPOS as readonly string[]).includes(p)
-                              ),
-                              tipo,
-                            ],
+                            processos: toggleSpecialSupplyActive(f.processos, item.id),
                           }));
                         }}
-                        className={`px-3 py-1 rounded-lg text-xs font-bold border transition-all ${
-                          isSelected
-                            ? tipo === "Promocional"
-                              ? "bg-blue-600 text-white border-blue-400 shadow-sm"
-                              : tipo === "Editorial"
-                              ? "bg-pink-600 text-white border-pink-400 shadow-sm"
-                              : "bg-amber-500 text-black border-amber-300 shadow-sm font-extrabold"
-                            : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
+                        className={`p-3.5 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 text-center cursor-pointer ${
+                          active
+                            ? "bg-amber-500/20 border-amber-500 text-amber-700 dark:text-amber-300 font-extrabold shadow-[0_0_15px_rgba(245,158,11,0.25)] scale-[1.02]"
+                            : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent hover:border-border/80"
                         }`}
                       >
-                        {tipo}
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`w-2.5 h-2.5 rounded-full transition-all ${
+                              active ? "bg-amber-500 shadow-[0_0_8px_#f59e0b]" : "bg-muted-foreground/30"
+                            }`}
+                          />
+                          <span className="font-mono-tech font-black text-sm tracking-wider">
+                            {item.label}
+                          </span>
+                        </div>
+                        <span className="text-[11px] font-medium opacity-80">
+                          {active ? "Marcado (Pendente no Card)" : "Clique para marcar"}
+                        </span>
                       </button>
                     );
                   })}
-                </div>
-
-                {/* Grid de Siglas de Acabamento Organizadas */}
-                <div className="space-y-1.5 pt-1">
-                  {ACABAMENTO_GROUPS.map((group, gi) => (
-                    <div
-                      key={gi}
-                      className={`flex flex-wrap gap-1.5 p-1.5 rounded-lg border border-border ${
-                        gi === 2 ? "bg-purple-500/10" : "bg-muted/40"
-                      }`}
-                    >
-                      {group.items.map((p) => {
-                        const active = form.processos.includes(p.sigla);
-                        return (
-                          <button
-                            type="button"
-                            key={p.sigla}
-                            onClick={() => toggleProcesso(p.sigla)}
-                            className={`px-2 py-1 rounded text-[11px] font-mono-tech font-bold border transition-all ${
-                              active
-                                ? `${p.cor} ring-2 ring-cyan-500/50 scale-105`
-                                : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
-                            }`}
-                          >
-                            {p.sigla}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  ))}
                 </div>
               </div>
 

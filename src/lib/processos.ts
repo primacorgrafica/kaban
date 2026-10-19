@@ -89,3 +89,72 @@ export function getProcessoCor(sigla: string): string {
   const found = ALL_PROCESSOS.find((p) => p.sigla === sigla);
   return found?.cor || "bg-muted text-muted-foreground border-border";
 }
+
+// ═══ SUPRIMENTOS & PROCESSOS ESPECIAIS (PANTONE - FACA - CLICHÊ) ═══
+export const SPECIAL_SUPPLIES = [
+  { id: "PANTONE", label: "PANTONE", alt: ["PANTONE", "pantone"] },
+  { id: "FACA", label: "FACA", alt: ["FACA", "faca"] },
+  { id: "CLICHE", label: "CLICHÊ", alt: ["CLICHE", "CLICHÊ", "cliche", "clichê"] },
+] as const;
+
+export type SpecialSupplyId = "PANTONE" | "FACA" | "CLICHE";
+
+export function isSpecialSupplyActive(processos: string[] | undefined | null, id: SpecialSupplyId): boolean {
+  if (!processos || !Array.isArray(processos)) return false;
+  const config = SPECIAL_SUPPLIES.find((s) => s.id === id);
+  if (!config) return false;
+  return config.alt.some((name) =>
+    processos.includes(name) ||
+    processos.includes(`${name}:enviado`) ||
+    processos.includes(`${name}:ok`)
+  );
+}
+
+export function isSpecialSupplySent(processos: string[] | undefined | null, id: SpecialSupplyId): boolean {
+  if (!processos || !Array.isArray(processos)) return false;
+  const config = SPECIAL_SUPPLIES.find((s) => s.id === id);
+  if (!config) return false;
+  return config.alt.some((name) =>
+    processos.includes(`${name}:enviado`) ||
+    processos.includes(`${name}:ok`)
+  );
+}
+
+export function toggleSpecialSupplyActive(processos: string[] | undefined | null, id: SpecialSupplyId): string[] {
+  const current = [...(processos || [])];
+  const config = SPECIAL_SUPPLIES.find((s) => s.id === id);
+  if (!config) return current;
+
+  const isActive = isSpecialSupplyActive(current, id);
+  const filtered = current.filter(
+    (p) => !config.alt.some((name) => p === name || p === `${name}:enviado` || p === `${name}:ok`)
+  );
+
+  if (isActive) {
+    return filtered;
+  } else {
+    return [...filtered, config.id];
+  }
+}
+
+export function toggleSpecialSupplySent(processos: string[] | undefined | null, id: SpecialSupplyId): string[] {
+  const current = [...(processos || [])];
+  const config = SPECIAL_SUPPLIES.find((s) => s.id === id);
+  if (!config) return current;
+
+  const isSent = isSpecialSupplySent(current, id);
+  const primaryName = config.id;
+
+  const filtered = current.filter(
+    (p) => !config.alt.some((name) => p === name || p === `${name}:enviado` || p === `${name}:ok`)
+  );
+
+  if (isSent) {
+    // Se estava enviado (verde), volta a pendente (amarelo)
+    return [...filtered, primaryName];
+  } else {
+    // Se estava pendente (amarelo), passa a enviado (verde)
+    return [...filtered, `${primaryName}:enviado`];
+  }
+}
+

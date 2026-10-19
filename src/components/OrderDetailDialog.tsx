@@ -17,8 +17,8 @@ import {
   Briefcase,
   Copy,
   Edit2,
-  X,
   Repeat,
+  Check,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -43,19 +43,28 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  PROCESSO_GROUPS,
   ALL_PROCESSOS,
   getProcessoCor,
   ACABAMENTO_TIPOS,
   IMPRESSAO_TIPOS,
   IMPRESSAO_PROCESSOS,
-  ACABAMENTO_GROUPS,
+  SPECIAL_SUPPLIES,
+  isSpecialSupplyActive,
+  isSpecialSupplySent,
+  toggleSpecialSupplySent,
+  toggleSpecialSupplyActive,
 } from "@/lib/processos";
 import { OrderAttachmentsSection } from "@/components/sharepoint/OrderAttachmentsSection";
 
+const SPECIAL_SUPPLY_NAMES = SPECIAL_SUPPLIES.flatMap((s) => [
+  ...s.alt,
+  ...s.alt.map((a) => `${a}:enviado`),
+  ...s.alt.map((a) => `${a}:ok`),
+]);
 const HIDDEN_PROCESSOS = [
   ...(ACABAMENTO_TIPOS as readonly string[]),
   ...IMPRESSAO_TIPOS.map((p) => p.sigla),
+  ...SPECIAL_SUPPLY_NAMES,
 ];
 const PROCESSO_ORDER = ALL_PROCESSOS.map((p) => p.sigla);
 
@@ -583,6 +592,43 @@ export function OrderDetailDialog({
                 </div>
               </div>
 
+              {/* ═══ SUPRIMENTOS & PROCESSOS ESPECIAIS ═══ */}
+              <div className="border rounded-lg p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                    Suprimentos & Processos Especiais
+                  </Label>
+                  <span className="text-[10px] text-muted-foreground font-mono-tech">
+                    Amarelos por padrão no card
+                  </span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {SPECIAL_SUPPLIES.map((item) => {
+                    const active = isSpecialSupplyActive(editData.processos, item.id);
+                    return (
+                      <button
+                        type="button"
+                        key={item.id}
+                        onClick={() => {
+                          setEditData((d) => ({
+                            ...d,
+                            processos: toggleSpecialSupplyActive(d.processos, item.id),
+                          }));
+                        }}
+                        className={`py-2 px-3 rounded-lg border text-xs font-bold font-mono-tech transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                          active
+                            ? "bg-amber-500/20 border-amber-500 text-amber-600 dark:text-amber-400 font-extrabold shadow-sm"
+                            : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
+                        }`}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${active ? "bg-amber-500" : "bg-muted-foreground/30"}`} />
+                        <span>{item.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* ═══ ANEXOS SHAREPOINT (MODO EDIÇÃO) ═══ */}
               <div className="border rounded-lg p-3">
                 <OrderAttachmentsSection
@@ -684,11 +730,48 @@ export function OrderDetailDialog({
                   {/* Bloco de Processos & Acabamentos */}
                   <div className="p-3.5 rounded-xl border border-border bg-slate-50/70 dark:bg-slate-900/50 space-y-2">
                     <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      <span className="h-2 w-2 rounded-full bg-purple-500" />
-                      <span>Processos & Acabamentos</span>
+                      <span className="h-2 w-2 rounded-full bg-amber-500" />
+                      <span>Suprimentos & Processos Especiais</span>
                     </div>
-                    {order.processos && order.processos.length > 0 ? (
-                      <div className="flex flex-wrap gap-1.5">
+
+                    {/* Quadros PANTONE - FACA - CLICHÊ */}
+                    {SPECIAL_SUPPLIES.some((s) => isSpecialSupplyActive(order.processos, s.id)) && (
+                      <div className="flex items-center gap-2 flex-wrap pb-1">
+                        {SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(order.processos, s.id)).map((item) => {
+                          const isSent = isSpecialSupplySent(order.processos, item.id);
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => {
+                                const updated = toggleSpecialSupplySent(order.processos, item.id);
+                                onUpdate(order.id, { processos: updated });
+                                if (!isSent) {
+                                  toast.success(`${item.label} marcado como ENVIADO!`);
+                                } else {
+                                  toast.info(`${item.label} desmarcado (pendente).`);
+                                }
+                              }}
+                              className={`px-3 py-1 rounded-lg text-xs font-black tracking-wider uppercase transition-all flex items-center gap-1.5 shadow-xs border cursor-pointer ${
+                                isSent
+                                  ? "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 shadow-[0_0_8px_rgba(16,185,129,0.35)]"
+                                  : "bg-amber-400 hover:bg-amber-500 text-amber-950 border-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.25)]"
+                              }`}
+                            >
+                              <span className={`w-2 h-2 rounded-full ${isSent ? "bg-white" : "bg-amber-950"}`} />
+                              <span>{item.label}</span>
+                              {isSent ? <Check className="h-3.5 w-3.5 stroke-[3]" /> : <span className="text-[10px]">⏳</span>}
+                              <span className="text-[10px] font-mono-tech ml-1 opacity-90">
+                                {isSent ? "(Enviado)" : "(Pendente)"}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {order.processos && order.processos.length > 0 && sortAndFilterProcessos(order.processos).length > 0 && (
+                      <div className="flex flex-wrap gap-1.5 pt-1 border-t border-border/50">
                         {sortAndFilterProcessos(order.processos).map((p) => (
                           <span
                             key={p}
@@ -700,8 +783,9 @@ export function OrderDetailDialog({
                           </span>
                         ))}
                       </div>
-                    ) : (
-                      <p className="text-xs text-muted-foreground italic">Nenhum processo informado.</p>
+                    )}
+                    {!SPECIAL_SUPPLIES.some((s) => isSpecialSupplyActive(order.processos, s.id)) && (!order.processos || sortAndFilterProcessos(order.processos).length === 0) && (
+                      <p className="text-xs text-muted-foreground italic">Nenhum processo ou suprimento especial informado.</p>
                     )}
                   </div>
                 </div>

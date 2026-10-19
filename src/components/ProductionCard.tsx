@@ -1,5 +1,5 @@
 import { useState, useEffect, memo } from "react";
-import { getProcessoCor } from "@/lib/processos";
+import { getProcessoCor, SPECIAL_SUPPLIES, isSpecialSupplyActive, isSpecialSupplySent, toggleSpecialSupplySent } from "@/lib/processos";
 import { Order } from "@/types/order";
 import { DepartmentConfig, DepartmentStatusConfig, DEPARTMENTS, Department } from "@/types/production";
 import { format } from "date-fns";
@@ -7,7 +7,7 @@ import { ptBR } from "date-fns/locale";
 import { businessHoursMs } from "@/lib/businessHours";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeApprovalEntry } from "@/lib/approvalEntryCache";
-import { Calendar, User, FileText, Archive, Trash2, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, GripVertical, UserCheck, Clock, AlertTriangle, Send, Undo2, Briefcase, Truck, Edit2 } from "lucide-react";
+import { Calendar, User, FileText, Archive, Trash2, ChevronRight, ChevronLeft, ChevronDown, ChevronUp, GripVertical, UserCheck, Clock, AlertTriangle, Send, Undo2, Briefcase, Truck, Edit2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -716,13 +716,59 @@ function ProductionCardImpl({
                 </div>
               )}
 
+              {/* Quadros Especiais: PANTONE - FACA - CLICHÊ (Sempre visíveis no card pronto na coluna) */}
+              {SPECIAL_SUPPLIES.some((s) => isSpecialSupplyActive(order.processos, s.id)) && (
+                <div
+                  className="flex items-center gap-1.5 mt-2 flex-wrap"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(order.processos, s.id)).map((item) => {
+                    const isSent = isSpecialSupplySent(order.processos, item.id);
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const updated = toggleSpecialSupplySent(order.processos, item.id);
+                          onUpdate(order.id, { processos: updated });
+                          if (!isSent) {
+                            toast.success(`${item.label} marcado como ENVIADO!`);
+                          } else {
+                            toast.info(`${item.label} alterado para PENDENTE.`);
+                          }
+                        }}
+                        title={
+                          isSent
+                            ? `${item.label}: ENVIADO (Clique para alterar para pendente)`
+                            : `${item.label}: PENDENTE (Clique para marcar como enviado)`
+                        }
+                        className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider uppercase transition-all flex items-center gap-1 shadow-xs cursor-pointer border ${
+                          isSent
+                            ? "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 shadow-[0_0_8px_rgba(16,185,129,0.35)] active:scale-95"
+                            : "bg-amber-400 hover:bg-amber-500 text-amber-950 border-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.25)] active:scale-95"
+                        }`}
+                      >
+                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isSent ? "bg-white" : "bg-amber-950"}`} />
+                        <span>{item.label}</span>
+                        {isSent ? (
+                          <Check className="h-3 w-3 stroke-[3]" />
+                        ) : (
+                          <span className="text-[9px] opacity-75">⏳</span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
               {/* Expandable details */}
               {expanded && (
                 <>
                   {order.processos && order.processos.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1.5">
                       {order.processos
-                        .filter((p) => !["Promocional", "Editorial", "Embalagem", "CMYK", "CMYK+IR", "CMYK+VM", "PANTONE"].includes(p))
+                        .filter((p) => !["Promocional", "Editorial", "Embalagem", "CMYK", "CMYK+IR", "CMYK+VM", "PANTONE", "PANTONE:enviado", "PANTONE:ok", "FACA", "FACA:enviado", "FACA:ok", "CLICHE", "CLICHÊ", "CLICHE:enviado", "CLICHÊ:enviado"].includes(p))
                         .map((p) => (
                           <span key={p} className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${getProcessoCor(p)}`}>{p}</span>
                         ))}

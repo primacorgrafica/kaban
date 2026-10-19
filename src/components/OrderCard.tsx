@@ -26,11 +26,31 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PROCESSO_GROUPS, ALL_PROCESSOS, getProcessoCor, ACABAMENTO_TIPOS, IMPRESSAO_TIPOS, IMPRESSAO_PROCESSOS, ACABAMENTO_GROUPS } from "@/lib/processos";
+import {
+  ALL_PROCESSOS,
+  getProcessoCor,
+  ACABAMENTO_TIPOS,
+  IMPRESSAO_TIPOS,
+  IMPRESSAO_PROCESSOS,
+  SPECIAL_SUPPLIES,
+  isSpecialSupplyActive,
+  isSpecialSupplySent,
+  toggleSpecialSupplySent,
+  toggleSpecialSupplyActive,
+} from "@/lib/processos";
 import { OrderAttachmentsSection } from "./sharepoint/OrderAttachmentsSection";
+import { Check } from "lucide-react";
 
-
-const HIDDEN_PROCESSOS = [...(ACABAMENTO_TIPOS as readonly string[]), ...IMPRESSAO_TIPOS.map((p) => p.sigla)];
+const SPECIAL_SUPPLY_NAMES = SPECIAL_SUPPLIES.flatMap((s) => [
+  ...s.alt,
+  ...s.alt.map((a) => `${a}:enviado`),
+  ...s.alt.map((a) => `${a}:ok`),
+]);
+const HIDDEN_PROCESSOS = [
+  ...(ACABAMENTO_TIPOS as readonly string[]),
+  ...IMPRESSAO_TIPOS.map((p) => p.sigla),
+  ...SPECIAL_SUPPLY_NAMES,
+];
 const PROCESSO_ORDER = ALL_PROCESSOS.map((p) => p.sigla);
 
 function sortAndFilterProcessos(processos: string[]): string[] {
@@ -568,8 +588,54 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
             <p className="text-xs font-bold text-foreground mt-1 truncate">{order.endereco_entrega}</p>
           )}
 
-          {/* Processos badges - show if relevant section visible */}
-          {(showAll || visibleSections.processos) && order.processos && order.processos.length > 0 && (
+          {/* Quadros Especiais: PANTONE - FACA - CLICHÊ (Sempre visíveis no card pronto na coluna) */}
+          {SPECIAL_SUPPLIES.some((s) => isSpecialSupplyActive(order.processos, s.id)) && (
+            <div
+              className="flex items-center gap-1.5 mt-2 flex-wrap"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(order.processos, s.id)).map((item) => {
+                const isSent = isSpecialSupplySent(order.processos, item.id);
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const updated = toggleSpecialSupplySent(order.processos, item.id);
+                      onUpdate(order.id, { processos: updated });
+                      if (!isSent) {
+                        toast.success(`${item.label} marcado como ENVIADO!`);
+                      } else {
+                        toast.info(`${item.label} alterado para PENDENTE.`);
+                      }
+                    }}
+                    title={
+                      isSent
+                        ? `${item.label}: ENVIADO (Clique para alterar para pendente)`
+                        : `${item.label}: PENDENTE (Clique para marcar como enviado)`
+                    }
+                    className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider uppercase transition-all flex items-center gap-1 shadow-xs cursor-pointer border ${
+                      isSent
+                        ? "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 shadow-[0_0_8px_rgba(16,185,129,0.35)] active:scale-95"
+                        : "bg-amber-400 hover:bg-amber-500 text-amber-950 border-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.25)] active:scale-95"
+                    }`}
+                  >
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isSent ? "bg-white" : "bg-amber-950"}`} />
+                    <span>{item.label}</span>
+                    {isSent ? (
+                      <Check className="h-3 w-3 stroke-[3]" />
+                    ) : (
+                      <span className="text-[9px] opacity-75">⏳</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Processos badges adicionais (se houver, ex: DIG, PLO, CMYK) */}
+          {order.processos && order.processos.length > 0 && sortAndFilterProcessos(order.processos).length > 0 && (
             <div className="flex flex-wrap gap-1 mt-1.5">
               {sortAndFilterProcessos(order.processos).map((p) => (
                 <span key={p} className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${getProcessoCor(p)}`}>{p}</span>
@@ -900,52 +966,42 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                     </Label>
                   </div>
                 </div>
-                <RadioGroup
-                  value={editData.processos.find((p) => (ACABAMENTO_TIPOS as readonly string[]).includes(p)) || ""}
-                  onValueChange={(v) => {
-                    setEditData((d) => ({
-                      ...d,
-                      processos: [
-                        ...d.processos.filter((p) => !(ACABAMENTO_TIPOS as readonly string[]).includes(p)),
-                        v,
-                      ],
-                    }));
-                  }}
-                  className="flex items-center gap-4"
-                >
-                  {ACABAMENTO_TIPOS.map((tipo) => {
-                    const selected = editData.processos.includes(tipo);
-                    const colorClass = tipo === "Promocional" ? "bg-blue-600 text-white" :
-                      tipo === "Editorial" ? "bg-pink-600 text-white" :
-                      "bg-yellow-500 text-black";
+                <div className="grid grid-cols-3 gap-2.5 pt-1">
+                  {SPECIAL_SUPPLIES.map((item) => {
+                    const active = isSpecialSupplyActive(editData.processos, item.id);
                     return (
-                      <div key={tipo} className="flex items-center gap-2">
-                        <RadioGroupItem value={tipo} id={`edit-acab-${tipo}`} />
-                        <Label htmlFor={`edit-acab-${tipo}`} className={`text-sm cursor-pointer font-semibold px-2 py-0.5 rounded text-xs ${selected ? colorClass : ""}`}>{tipo}</Label>
-                      </div>
+                      <button
+                        type="button"
+                        key={item.id}
+                        onClick={() => {
+                          setEditData((d) => ({
+                            ...d,
+                            processos: toggleSpecialSupplyActive(d.processos, item.id),
+                          }));
+                        }}
+                        className={`p-2.5 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1 text-center cursor-pointer ${
+                          active
+                            ? "bg-amber-500/20 border-amber-500 text-amber-700 dark:text-amber-300 font-extrabold shadow-[0_0_12px_rgba(245,158,11,0.25)]"
+                            : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent hover:border-border/80"
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`w-2 h-2 rounded-full ${
+                              active ? "bg-amber-500" : "bg-muted-foreground/30"
+                            }`}
+                          />
+                          <span className="font-mono-tech font-black text-xs tracking-wider">
+                            {item.label}
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-medium opacity-80">
+                          {active ? "Marcado (Pendente no Card)" : "Clique p/ marcar"}
+                        </span>
+                      </button>
                     );
                   })}
-                </RadioGroup>
-                {ACABAMENTO_GROUPS.map((group, gi) => (
-                  <div key={gi}>
-                    <div className={`flex flex-nowrap justify-between mt-0.5 ${gi === 2 ? "bg-purple-100 dark:bg-purple-900/40 rounded-md p-2 -mx-0.5" : ""}`}>
-                      {group.items.map((p) => (
-                        <Badge
-                          key={p.sigla}
-                          variant="outline"
-                          className={`cursor-pointer text-[11px] px-1.5 py-0.5 select-none transition-all font-bold border ${
-                            editData.processos.includes(p.sigla)
-                              ? `${p.cor} ring-2 ring-offset-1 ring-primary/40`
-                              : "bg-background text-muted-foreground border-border hover:bg-muted"
-                          }`}
-                          onClick={() => toggleEditProcesso(p.sigla)}
-                        >
-                          {p.sigla}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                </div>
               </div>
 
               {/* ═══ EXPEDIÇÃO ═══ */}
