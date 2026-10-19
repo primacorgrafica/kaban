@@ -45,8 +45,6 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import {
-  IMPRESSAO_TIPOS,
-  IMPRESSAO_PROCESSOS,
   SPECIAL_SUPPLIES,
   isSpecialSupplyActive,
   toggleSpecialSupplyActive,
@@ -979,128 +977,6 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                     />
                   </div>
                 )}
-              </div>
-
-              {/* BLOCO DE IMPRESSÃO */}
-              <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_#3b82f6]" />
-                    <Label className="text-xs font-bold text-foreground uppercase tracking-wider">
-                      Processos de Impressão & Cores
-                    </Label>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setForm((f) => ({ ...f, urgente_impressao: !f.urgente_impressao }))
-                    }
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
-                      form.urgente_impressao
-                        ? "bg-rose-500/20 border-rose-500/50 text-rose-600 dark:text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.3)] animate-pulse"
-                        : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
-                    }`}
-                  >
-                    <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />
-                    <span>Impressão Urgente</span>
-                  </button>
-                </div>
-
-                {/* Linha 1: CTP, OFF e Cores Principais */}
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-[11px] font-mono-tech text-muted-foreground mr-1">Off-Set:</span>
-                  {(["CTP", "OFF"] as const).map((sigla) => {
-                    const active = form.processos.includes(sigla);
-                    return (
-                      <button
-                        type="button"
-                        key={sigla}
-                        onClick={() => toggleProcesso(sigla)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                          active
-                            ? "bg-blue-600 text-white border-blue-400 shadow-[0_0_10px_rgba(37,99,235,0.4)]"
-                            : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
-                        }`}
-                      >
-                        {sigla}
-                      </button>
-                    );
-                  })}
-
-                  <div className="h-4 w-[1px] bg-border mx-1" />
-
-                  {IMPRESSAO_TIPOS.map((p) => {
-                    const active = form.processos.includes(p.sigla);
-                    return (
-                      <button
-                        type="button"
-                        key={p.sigla}
-                        onClick={() => toggleProcesso(p.sigla)}
-                        className={`px-2.5 py-1.5 rounded-lg text-xs font-bold border transition-all ${
-                          active
-                            ? p.sigla === "CMYK+IR"
-                              ? "bg-pink-600 text-white border-pink-400"
-                              : p.sigla === "CMYK+VM"
-                              ? "bg-amber-500 text-black border-amber-300 font-extrabold"
-                              : p.sigla === "PANTONE"
-                              ? "bg-emerald-600 text-white border-emerald-400"
-                              : "bg-cyan-600 text-white border-cyan-400"
-                            : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
-                        }`}
-                      >
-                        {p.sigla}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Linha 2: Impressão Digital & Plotter */}
-                <div className="flex items-center gap-2 flex-wrap pt-2 border-t border-border">
-                  <span className="text-[11px] font-mono-tech text-muted-foreground mr-1">Digital:</span>
-                  {(["DIG", "PLO"] as const).map((sigla) => {
-                    const active = form.processos.includes(sigla);
-                    return (
-                      <button
-                        type="button"
-                        key={sigla}
-                        onClick={() => toggleProcesso(sigla)}
-                        className={`px-3 py-1 rounded-lg text-xs font-bold border transition-all ${
-                          active
-                            ? "bg-emerald-600 text-white border-emerald-400 shadow-[0_0_10px_rgba(16,185,129,0.3)]"
-                            : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
-                        }`}
-                      >
-                        {sigla}
-                      </button>
-                    );
-                  })}
-
-                  <div className="h-4 w-[1px] bg-border mx-1" />
-
-                  <button
-                    type="button"
-                    onClick={() => setForm((f) => ({ ...f, digital_color: !f.digital_color }))}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${
-                      form.digital_color
-                        ? "bg-blue-600 text-white border-blue-400 font-bold"
-                        : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
-                    }`}
-                  >
-                    Color
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => setForm((f) => ({ ...f, digital_pb: !f.digital_pb }))}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold border transition-all ${
-                      form.digital_pb
-                        ? "bg-slate-500 text-white border-slate-300 font-bold"
-                        : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
-                    }`}
-                  >
-                    Preto & Branco (PB)
-                  </button>
-                </div>
               </div>
             </div>
           )}

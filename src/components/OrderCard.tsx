@@ -31,7 +31,6 @@ import {
   getProcessoCor,
   ACABAMENTO_TIPOS,
   IMPRESSAO_TIPOS,
-  IMPRESSAO_PROCESSOS,
   SPECIAL_SUPPLIES,
   isSpecialSupplyActive,
   isSpecialSupplySent,
@@ -855,90 +854,6 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                     )}
                   </div>
                 )}
-              </div>
-
-              {/* ═══ IMPRESSÃO ═══ */}
-              <div className="border rounded-lg p-3 space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Impressão</Label>
-                  <div className="flex items-center gap-2">
-                    <Checkbox id="edit-urgente-impressao" checked={editData.urgente_impressao} onCheckedChange={(v) => setEditData((d) => ({ ...d, urgente_impressao: !!v }))} />
-                    <Label htmlFor="edit-urgente-impressao" className={`text-sm font-medium cursor-pointer flex items-center gap-1.5 rounded px-1.5 py-0.5 transition-colors ${editData.urgente_impressao ? "bg-red-600 text-white animate-pulse" : "text-red-600 dark:text-red-400"}`}>
-                      <AlertTriangle className="h-4 w-4" /> Urgente
-                    </Label>
-                  </div>
-                </div>
-                {/* Linha 1: CTP - OFF - CMYK - CMYK+IR - CMYK+VM - PANTONE */}
-                <div className="flex items-center gap-1 flex-nowrap">
-                  {(["CTP", "OFF"] as const).map((sigla) => {
-                    const p = IMPRESSAO_PROCESSOS.find((ip) => ip.sigla === sigla)!;
-                    return (
-                      <Badge
-                        key={p.sigla}
-                        variant="outline"
-                        className={`cursor-pointer text-xs px-1.5 py-0.5 select-none transition-all font-bold border ${
-                          editData.processos.includes(p.sigla)
-                            ? `${p.cor} ring-2 ring-offset-1 ring-primary/40`
-                            : "bg-background text-muted-foreground border-border hover:bg-muted"
-                        }`}
-                        onClick={() => toggleEditProcesso(p.sigla)}
-                      >
-                        {p.sigla}
-                      </Badge>
-                    );
-                  })}
-                  {IMPRESSAO_TIPOS.map((p) => (
-                    <div key={p.sigla} className="flex items-center gap-0.5">
-                      <Checkbox
-                        id={`edit-imp-${p.sigla}`}
-                        checked={editData.processos.includes(p.sigla)}
-                        onCheckedChange={() => toggleEditProcesso(p.sigla)}
-                        className="h-3.5 w-3.5"
-                      />
-                      <Label
-                        htmlFor={`edit-imp-${p.sigla}`}
-                        className={`cursor-pointer px-1.5 py-0.5 rounded text-xs font-semibold ${
-                          editData.processos.includes(p.sigla)
-                            ? (p.sigla === "CMYK+IR" ? "bg-pink-600 text-white" :
-                               p.sigla === "CMYK+VM" ? "bg-yellow-500 text-black" :
-                               p.sigla === "PANTONE" ? "bg-green-600 text-white" :
-                               "bg-blue-600 text-white")
-                            : "bg-muted text-foreground"
-                        }`}
-                      >
-                        {p.sigla}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-                {/* Linha 2: DIG - PLO - Color - PB */}
-                <div className="flex items-center gap-1 flex-nowrap">
-                  {(["DIG", "PLO"] as const).map((sigla) => {
-                    const p = IMPRESSAO_PROCESSOS.find((ip) => ip.sigla === sigla)!;
-                    return (
-                      <Badge
-                        key={p.sigla}
-                        variant="outline"
-                        className={`cursor-pointer text-xs px-1.5 py-0.5 select-none transition-all font-bold border ${
-                          editData.processos.includes(p.sigla)
-                            ? `${p.cor} ring-2 ring-offset-1 ring-primary/40`
-                            : "bg-background text-muted-foreground border-border hover:bg-muted"
-                        }`}
-                        onClick={() => toggleEditProcesso(p.sigla)}
-                      >
-                        {p.sigla}
-                      </Badge>
-                    );
-                  })}
-                  <div className="flex items-center gap-2">
-                    <Checkbox id="edit-digital-color" checked={editData.digital_color} onCheckedChange={(v) => setEditData((d) => ({ ...d, digital_color: !!v }))} />
-                    <Label htmlFor="edit-digital-color" className={`text-sm cursor-pointer px-2 py-0.5 rounded text-xs font-semibold ${editData.digital_color ? "bg-blue-600 text-white" : "bg-muted text-foreground"}`}>Color</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox id="edit-digital-pb" checked={editData.digital_pb} onCheckedChange={(v) => setEditData((d) => ({ ...d, digital_pb: !!v }))} />
-                    <Label htmlFor="edit-digital-pb" className={`text-sm cursor-pointer px-2 py-0.5 rounded text-xs font-semibold ${editData.digital_pb ? "bg-gray-500 text-white" : "bg-muted text-foreground"}`}>PB</Label>
-                  </div>
-                </div>
               </div>
 
               {/* ═══ ACABAMENTO ═══ */}
