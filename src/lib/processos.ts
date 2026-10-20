@@ -129,14 +129,15 @@ export function getProcessoCor(sigla: string): string {
   return found?.cor || "bg-muted text-muted-foreground border-border";
 }
 
-// ═══ SUPRIMENTOS & PROCESSOS ESPECIAIS (PANTONE - FACA - CLICHÊ) ═══
+// ═══ SUPRIMENTOS & PROCESSOS ESPECIAIS (PANTONE - FACA - CLICHÊ - OUTROS) ═══
 export const SPECIAL_SUPPLIES = [
   { id: "PANTONE", label: "PANTONE", alt: ["PANTONE", "pantone"] },
   { id: "FACA", label: "FACA", alt: ["FACA", "faca"] },
   { id: "CLICHE", label: "CLICHÊ", alt: ["CLICHE", "CLICHÊ", "cliche", "clichê"] },
+  { id: "OUTROS", label: "OUTROS", alt: ["OUTROS", "outros"] },
 ] as const;
 
-export type SpecialSupplyId = "PANTONE" | "FACA" | "CLICHE";
+export type SpecialSupplyId = "PANTONE" | "FACA" | "CLICHE" | "OUTROS";
 
 export function isSpecialSupplyActive(processos: string[] | undefined | null, id: SpecialSupplyId): boolean {
   if (!processos || !Array.isArray(processos)) return false;
@@ -162,7 +163,74 @@ export function isSpecialSupplySent(processos: string[] | undefined | null, id: 
   );
 }
 
-export function toggleSpecialSupplyActive(processos: string[] | undefined | null, id: SpecialSupplyId): string[] {
+export function getSpecialSupplyCustomText(
+  processos: string[] | undefined | null,
+  id: SpecialSupplyId
+): string {
+  if (!processos || !Array.isArray(processos)) return "";
+  const config = SPECIAL_SUPPLIES.find((s) => s.id === id);
+  if (!config) return "";
+
+  const match = processos.find((p) =>
+    config.alt.some((name) => p === name || p.startsWith(`${name}:`))
+  );
+  if (!match) return "";
+
+  const infoIdx = match.indexOf(":info:");
+  if (infoIdx !== -1) {
+    const raw = match.slice(infoIdx + 6);
+    try {
+      return decodeURIComponent(raw);
+    } catch {
+      return raw;
+    }
+  }
+  return "";
+}
+
+export function setSpecialSupplyCustomText(
+  processos: string[] | undefined | null,
+  id: SpecialSupplyId,
+  text: string
+): string[] {
+  const current = [...(processos || [])];
+  const config = SPECIAL_SUPPLIES.find((s) => s.id === id);
+  if (!config) return current;
+
+  const match = current.find((p) =>
+    config.alt.some((name) => p === name || p.startsWith(`${name}:`))
+  );
+
+  const cleanText = text.trim();
+  const filtered = current.filter(
+    (p) => !config.alt.some((name) => p === name || p.startsWith(`${name}:`))
+  );
+
+  if (!match && !cleanText) {
+    return current;
+  }
+
+  const isSent = match ? isSpecialSupplySent(current, id) : false;
+  let base = "";
+  if (isSent && match) {
+    const infoIdx = match.indexOf(":info:");
+    base = infoIdx !== -1 ? match.slice(0, infoIdx) : match;
+  } else {
+    base = config.id;
+  }
+
+  if (cleanText) {
+    return [...filtered, `${base}:info:${encodeURIComponent(cleanText)}`];
+  } else {
+    return [...filtered, base];
+  }
+}
+
+export function toggleSpecialSupplyActive(
+  processos: string[] | undefined | null,
+  id: SpecialSupplyId,
+  initialCustomText?: string
+): string[] {
   const current = [...(processos || [])];
   const config = SPECIAL_SUPPLIES.find((s) => s.id === id);
   if (!config) return current;
@@ -175,6 +243,9 @@ export function toggleSpecialSupplyActive(processos: string[] | undefined | null
   if (isActive) {
     return filtered;
   } else {
+    if (initialCustomText && initialCustomText.trim()) {
+      return [...filtered, `${config.id}:info:${encodeURIComponent(initialCustomText.trim())}`];
+    }
     return [...filtered, config.id];
   }
 }
@@ -190,19 +261,20 @@ export function toggleSpecialSupplySent(
 
   const isSent = isSpecialSupplySent(current, id);
   const primaryName = config.id;
+  const customText = getSpecialSupplyCustomText(current, id);
 
   const filtered = current.filter(
     (p) => !config.alt.some((name) => p === name || p.startsWith(`${name}:`))
   );
 
+  const infoPart = customText ? `:info:${encodeURIComponent(customText)}` : "";
+
   if (isSent) {
-    // Se estava enviado (verde), volta a pendente (amarelo)
-    return [...filtered, primaryName];
+    return [...filtered, `${primaryName}${infoPart}`];
   } else {
-    // Se estava pendente (amarelo), passa a enviado (verde) gravando timestamp epoch e operador
     const nowEpoch = Date.now().toString();
     const op = operatorName && operatorName.trim() ? `:${encodeURIComponent(operatorName.trim())}` : "";
-    return [...filtered, `${primaryName}:enviado:${nowEpoch}${op}`];
+    return [...filtered, `${primaryName}:enviado:${nowEpoch}${op}${infoPart}`];
   }
 }
 
@@ -213,6 +285,53 @@ export interface SpecialSupplyDetails {
   sent: boolean;
   sentAt: string | null;
   operator: string | null;
+  customText: string | null;
+  displayLabel: string;
+}
+
+export function getSpecialSupplyDisplayLabel(
+  input:
+    | { id: SpecialSupplyId; label?: string; customText?: string | null }
+    | SpecialSupplyId,
+  customTextOrMaxLen?: string | null | number,
+  optionalMaxLen?: number
+): string {
+  let id: SpecialSupplyId;
+  let label: string;
+  let customText: string | null = null;
+  let maxLen = 22;
+
+  if (typeof input === "object" && input !== null) {
+    id = input.id;
+    label = input.label || SPECIAL_SUPPLIES.find((s) => s.id === id)?.label || id;
+    customText = input.customText || null;
+    if (typeof customTextOrMaxLen === "number") {
+      maxLen = customTextOrMaxLen;
+    }
+  } else {
+    id = input;
+    label = SPECIAL_SUPPLIES.find((s) => s.id === id)?.label || id;
+    if (typeof customTextOrMaxLen === "string") {
+      customText = customTextOrMaxLen;
+    }
+    if (typeof optionalMaxLen === "number") {
+      maxLen = optionalMaxLen;
+    }
+  }
+
+  if (!customText) return label;
+  const txt =
+    customText.length > maxLen
+      ? `${customText.slice(0, Math.max(0, maxLen - 2))}...`
+      : customText;
+
+  if (id === "PANTONE") {
+    return `PANTONE (${txt})`;
+  }
+  if (id === "OUTROS") {
+    return `OUTROS: ${txt}`;
+  }
+  return `${label} (${txt})`;
 }
 
 export function getSpecialSupplyDetails(
@@ -221,10 +340,28 @@ export function getSpecialSupplyDetails(
 ): SpecialSupplyDetails {
   const config = SPECIAL_SUPPLIES.find((s) => s.id === id);
   if (!config) {
-    return { id, label: id, active: false, sent: false, sentAt: null, operator: null };
+    return {
+      id,
+      label: id,
+      active: false,
+      sent: false,
+      sentAt: null,
+      operator: null,
+      customText: null,
+      displayLabel: id,
+    };
   }
   if (!processos || !Array.isArray(processos)) {
-    return { id, label: config.label, active: false, sent: false, sentAt: null, operator: null };
+    return {
+      id,
+      label: config.label,
+      active: false,
+      sent: false,
+      sentAt: null,
+      operator: null,
+      customText: null,
+      displayLabel: config.label,
+    };
   }
 
   const match = processos.find((p) =>
@@ -232,7 +369,16 @@ export function getSpecialSupplyDetails(
   );
 
   if (!match) {
-    return { id, label: config.label, active: false, sent: false, sentAt: null, operator: null };
+    return {
+      id,
+      label: config.label,
+      active: false,
+      sent: false,
+      sentAt: null,
+      operator: null,
+      customText: null,
+      displayLabel: config.label,
+    };
   }
 
   const isSent = config.alt.some((name) =>
@@ -260,8 +406,12 @@ export function getSpecialSupplyDetails(
       }
     }
 
+    const infoIdx = payload.indexOf(":info:");
+    if (infoIdx !== -1) {
+      payload = payload.slice(0, infoIdx);
+    }
+
     if (payload) {
-      // Caso 1: Timestamp numérico epoch (ex: "1729359670000" ou "1729359670000:Operador")
       const epochMatch = payload.match(/^(\d{10,})(?::(.*))?$/);
       if (epochMatch) {
         const parsed = parseSafeDate(epochMatch[1]);
@@ -276,7 +426,6 @@ export function getSpecialSupplyDetails(
           }
         }
       } else {
-        // Caso 2: Formato ISO ou string com colons (ex: "2026-10-19T17:40:00.000Z:Operador")
         const isoMatch = payload.match(/^(\d{4}-\d{2}-\d{2}T[0-9:.]+Z?)(?::(.*))?$/i);
         if (isoMatch) {
           const parsed = parseSafeDate(isoMatch[1]);
@@ -291,7 +440,6 @@ export function getSpecialSupplyDetails(
             }
           }
         } else {
-          // Caso 3: Fallback genérico testando partes
           const parts = payload.split(":");
           for (let i = parts.length; i >= 1; i--) {
             const candidate = parts.slice(0, i).join(":");
@@ -314,6 +462,13 @@ export function getSpecialSupplyDetails(
     }
   }
 
+  const customText = getSpecialSupplyCustomText(processos, id) || null;
+  const displayLabel = getSpecialSupplyDisplayLabel({
+    id,
+    label: config.label,
+    customText,
+  });
+
   return {
     id,
     label: config.label,
@@ -321,6 +476,8 @@ export function getSpecialSupplyDetails(
     sent: isSent,
     sentAt,
     operator,
+    customText,
+    displayLabel,
   };
 }
 

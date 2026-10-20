@@ -49,6 +49,8 @@ import {
   SPECIAL_SUPPLIES,
   isSpecialSupplyActive,
   toggleSpecialSupplyActive,
+  getSpecialSupplyCustomText,
+  setSpecialSupplyCustomText,
 } from "@/lib/processos";
 import {
   getOrCreateOsFolder,
@@ -1120,13 +1122,8 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                   </div>
                 )}
               </div>
-            </div>
-          )}
 
-          {/* ════════════ ETAPA 3: ACABAMENTO & LOGÍSTICA ════════════ */}
-          {step === 3 && (
-            <div className="space-y-4 animate-in fade-in-50 duration-200">
-              {/* SUPRIMENTOS & PROCESSOS ESPECIAIS (PANTONE - FACA - CLICHÊ) */}
+              {/* SUPRIMENTOS & PROCESSOS ESPECIAIS (PANTONE - FACA - CLICHÊ - OUTROS) */}
               <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -1140,8 +1137,8 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                   </span>
                 </div>
 
-                {/* Seleção: PANTONE - FACA - CLICHÊ */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                {/* Seleção: PANTONE - FACA - CLICHÊ - OUTROS */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
                   {SPECIAL_SUPPLIES.map((item) => {
                     const active = isSpecialSupplyActive(form.processos, item.id);
                     return (
@@ -1154,7 +1151,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                             processos: toggleSpecialSupplyActive(f.processos, item.id),
                           }));
                         }}
-                        className={`p-3.5 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 text-center cursor-pointer ${
+                        className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 text-center cursor-pointer ${
                           active
                             ? "bg-amber-500/20 border-amber-500 text-amber-700 dark:text-amber-300 font-extrabold shadow-[0_0_15px_rgba(245,158,11,0.25)] scale-[1.02]"
                             : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent hover:border-border/80"
@@ -1177,7 +1174,63 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                     );
                   })}
                 </div>
+
+                {/* CAMPO DE NÚMEROS DO PANTONE */}
+                {isSpecialSupplyActive(form.processos, "PANTONE") && (
+                  <div className="p-3 rounded-xl border border-amber-500/40 bg-amber-500/10 dark:bg-amber-950/20 space-y-1.5 animate-in fade-in-50 duration-200">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-bold text-amber-700 dark:text-amber-300 uppercase flex items-center gap-1.5">
+                        <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                        Números dos Pantones
+                      </Label>
+                      <span className="text-[10px] text-muted-foreground font-mono-tech">Ex: 485 C, Reflex Blue, 871 C</span>
+                    </div>
+                    <Input
+                      value={getSpecialSupplyCustomText(form.processos, "PANTONE")}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setForm((f) => ({
+                          ...f,
+                          processos: setSpecialSupplyCustomText(f.processos, "PANTONE", val),
+                        }));
+                      }}
+                      placeholder="Informe os números dos pantones desta O.S..."
+                      className="h-8.5 bg-background border-amber-500/40 text-xs text-foreground placeholder:text-muted-foreground rounded-lg font-mono-tech"
+                    />
+                  </div>
+                )}
+
+                {/* CAMPO DE PREENCHIMENTO MANUAL: OUTROS */}
+                {isSpecialSupplyActive(form.processos, "OUTROS") && (
+                  <div className="p-3 rounded-xl border border-amber-500/40 bg-amber-500/10 dark:bg-amber-950/20 space-y-1.5 animate-in fade-in-50 duration-200">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs font-bold text-amber-700 dark:text-amber-300 uppercase flex items-center gap-1.5">
+                        <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                        Especificação de Outros Suprimentos / Processos
+                      </Label>
+                      <span className="text-[10px] text-muted-foreground font-mono-tech">Preenchimento manual</span>
+                    </div>
+                    <Input
+                      value={getSpecialSupplyCustomText(form.processos, "OUTROS")}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setForm((f) => ({
+                          ...f,
+                          processos: setSpecialSupplyCustomText(f.processos, "OUTROS", val),
+                        }));
+                      }}
+                      placeholder="Descreva o suprimento ou processo especial necessário..."
+                      className="h-8.5 bg-background border-amber-500/40 text-xs text-foreground placeholder:text-muted-foreground rounded-lg"
+                    />
+                  </div>
+                )}
               </div>
+            </div>
+          )}
+
+          {/* ════════════ ETAPA 3: ACABAMENTO & LOGÍSTICA ════════════ */}
+          {step === 3 && (
+            <div className="space-y-4 animate-in fade-in-50 duration-200">
 
               {/* EXPEDIÇÃO & LOGÍSTICA */}
               <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-3">

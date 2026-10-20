@@ -19,6 +19,7 @@ import {
   Edit2,
   Repeat,
   Check,
+  Sparkles,
 } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -54,6 +55,8 @@ import {
   toggleSpecialSupplySent,
   toggleSpecialSupplyActive,
   getSpecialSupplyDetails,
+  getSpecialSupplyCustomText,
+  setSpecialSupplyCustomText,
   formatSafeDate,
 } from "@/lib/processos";
 import { OrderAttachmentsSection } from "@/components/sharepoint/OrderAttachmentsSection";
@@ -73,7 +76,11 @@ const PROCESSO_ORDER = ALL_PROCESSOS.map((p) => p.sigla);
 
 function sortAndFilterProcessos(processos: string[]): string[] {
   return processos
-    .filter((p) => !HIDDEN_PROCESSOS.includes(p))
+    .filter(
+      (p) =>
+        !HIDDEN_PROCESSOS.includes(p) &&
+        !SPECIAL_SUPPLIES.some((s) => s.alt.some((a) => p === a || p.startsWith(`${a}:`)))
+    )
     .sort((a, b) => {
       const ia = PROCESSO_ORDER.indexOf(a);
       const ib = PROCESSO_ORDER.indexOf(b);
@@ -605,7 +612,7 @@ export function OrderDetailDialog({
                     Amarelos por padrão no card
                   </span>
                 </div>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {SPECIAL_SUPPLIES.map((item) => {
                     const active = isSpecialSupplyActive(editData.processos, item.id);
                     return (
@@ -630,6 +637,47 @@ export function OrderDetailDialog({
                     );
                   })}
                 </div>
+
+                {/* Subcampos condicionais para PANTONE e OUTROS */}
+                {isSpecialSupplyActive(editData.processos, "PANTONE") && (
+                  <div className="p-2.5 rounded-lg border border-amber-500/40 bg-amber-500/10 space-y-1 animate-in fade-in-50 duration-200">
+                    <Label className="text-xs font-bold text-amber-700 dark:text-amber-300">
+                      Números dos Pantones
+                    </Label>
+                    <Input
+                      value={getSpecialSupplyCustomText(editData.processos, "PANTONE")}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditData((d) => ({
+                          ...d,
+                          processos: setSpecialSupplyCustomText(d.processos, "PANTONE", val),
+                        }));
+                      }}
+                      placeholder="Ex: 485 C, Reflex Blue, Warm Red..."
+                      className="text-xs bg-background h-8"
+                    />
+                  </div>
+                )}
+
+                {isSpecialSupplyActive(editData.processos, "OUTROS") && (
+                  <div className="p-2.5 rounded-lg border border-amber-500/40 bg-amber-500/10 space-y-1 animate-in fade-in-50 duration-200">
+                    <Label className="text-xs font-bold text-amber-700 dark:text-amber-300">
+                      Especificação de Outros Suprimentos / Processos
+                    </Label>
+                    <Input
+                      value={getSpecialSupplyCustomText(editData.processos, "OUTROS")}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditData((d) => ({
+                          ...d,
+                          processos: setSpecialSupplyCustomText(d.processos, "OUTROS", val),
+                        }));
+                      }}
+                      placeholder="Descreva o processo especial ou suprimento necessário..."
+                      className="text-xs bg-background h-8"
+                    />
+                  </div>
+                )}
               </div>
 
               {/* ═══ ANEXOS SHAREPOINT (MODO EDIÇÃO) ═══ */}
@@ -737,7 +785,7 @@ export function OrderDetailDialog({
                       <span>Suprimentos & Processos Especiais</span>
                     </div>
 
-                    {/* Quadros PANTONE - FACA - CLICHÊ */}
+                    {/* Quadros PANTONE - FACA - CLICHÊ - OUTROS */}
                     {SPECIAL_SUPPLIES.some((s) => isSpecialSupplyActive(order.processos, s.id)) && (
                       <div className="flex flex-col gap-2 pb-1">
                         <div className="flex items-center gap-2 flex-wrap">
@@ -746,6 +794,10 @@ export function OrderDetailDialog({
                             const isSent = details.sent;
                             const formattedTime = formatSafeDate(details.sentAt, "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR });
                             const op = details.operator || order.operador || null;
+                            const titleText = isSent
+                              ? `${details.displayLabel || item.label}: ENVIADO ${formattedTime ? `em ${formattedTime}` : ""}${op ? ` por ${op}` : ""} (Clique para alterar para pendente)`
+                              : `${details.displayLabel || item.label}: PENDENTE (Clique para marcar como enviado)`;
+
                             return (
                               <button
                                 key={item.id}
@@ -754,16 +806,12 @@ export function OrderDetailDialog({
                                   const updated = toggleSpecialSupplySent(order.processos, item.id, order.operador);
                                   onUpdate(order.id, { processos: updated });
                                   if (!isSent) {
-                                    toast.success(`${item.label} marcado como ENVIADO! Registrado com data e hora.`);
+                                    toast.success(`${details.displayLabel || item.label} marcado como ENVIADO! Registrado com data e hora.`);
                                   } else {
-                                    toast.info(`${item.label} desmarcado (pendente).`);
+                                    toast.info(`${details.displayLabel || item.label} desmarcado (pendente).`);
                                   }
                                 }}
-                                title={
-                                  isSent
-                                    ? `${item.label}: ENVIADO ${formattedTime ? `em ${formattedTime}` : ""}${op ? ` por ${op}` : ""} (Clique para alterar para pendente)`
-                                    : `${item.label}: PENDENTE (Clique para marcar como enviado)`
-                                }
+                                title={titleText}
                                 className={`px-3 py-1.5 rounded-lg text-xs font-black tracking-wider uppercase transition-all flex items-center gap-1.5 shadow-xs border cursor-pointer ${
                                   isSent
                                     ? "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 shadow-[0_0_8px_rgba(16,185,129,0.35)]"
@@ -771,7 +819,7 @@ export function OrderDetailDialog({
                                 }`}
                               >
                                 <span className={`w-2 h-2 rounded-full ${isSent ? "bg-white" : "bg-amber-950"}`} />
-                                <span>{item.label}</span>
+                                <span>{details.displayLabel || item.label}</span>
                                 {isSent ? <Check className="h-3.5 w-3.5 stroke-[3]" /> : <span className="text-[10px]">⏳</span>}
                                 <span className="text-[10px] font-mono-tech ml-1 opacity-90">
                                   {isSent ? "(Enviado)" : "(Pendente)"}
@@ -784,15 +832,27 @@ export function OrderDetailDialog({
                         <div className="space-y-1 pt-1">
                           {SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(order.processos, s.id)).map((item) => {
                             const details = getSpecialSupplyDetails(order.processos, item.id);
-                            if (!details.sent) return null;
+                            if (!details.sent && !details.customText) return null;
                             const formattedTime = formatSafeDate(details.sentAt, "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })
                               || formatSafeDate(order.updated_at, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
                               || "Registrado";
                             return (
-                              <p key={`info-${item.id}`} className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono-tech flex items-center gap-1.5">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                <strong className="font-bold">{item.label}:</strong> Aprovado/Enviado em {formattedTime}
-                                {details.operator && <span>por <u>{details.operator}</u></span>}
+                              <p key={`info-${item.id}`} className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono-tech flex items-center gap-1.5 flex-wrap">
+                                <span className={`w-1.5 h-1.5 rounded-full ${details.sent ? "bg-emerald-500" : "bg-amber-500"}`} />
+                                <strong className="font-bold">{item.label}:</strong>
+                                {details.sent ? (
+                                  <>
+                                    Aprovado/Enviado em {formattedTime}
+                                    {details.operator && <span>por <u>{details.operator}</u></span>}
+                                  </>
+                                ) : (
+                                  <span className="text-amber-600 dark:text-amber-400">Pendente de envio</span>
+                                )}
+                                {details.customText && (
+                                  <span className="text-foreground/90 font-sans font-medium text-xs ml-1">
+                                    — {details.customText}
+                                  </span>
+                                )}
                               </p>
                             );
                           })}

@@ -3,7 +3,7 @@ import { Order, OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
 import { DEPARTMENTS, Department } from "@/types/production";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar, User, FileText, Archive, Trash2, GripVertical, UserCheck, Clock, AlertTriangle, Send, Truck, Briefcase, Copy, Edit2, MessageSquarePlus, Repeat } from "lucide-react";
+import { Calendar, User, FileText, Archive, Trash2, GripVertical, UserCheck, Clock, AlertTriangle, Send, Truck, Briefcase, Copy, Edit2, MessageSquarePlus, Repeat, Sparkles, Check } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,12 +37,13 @@ import {
   toggleSpecialSupplySent,
   toggleSpecialSupplyActive,
   getSpecialSupplyDetails,
+  getSpecialSupplyCustomText,
+  setSpecialSupplyCustomText,
   formatSafeDate,
 } from "@/lib/processos";
 import { OrderAttachmentsSection } from "./sharepoint/OrderAttachmentsSection";
 import { OrderEmailCardNotice } from "./email/OrderEmailCardNotice";
 import { OrderEmailEventsSection } from "./email/OrderEmailEventsSection";
-import { Check } from "lucide-react";
 
 const SPECIAL_SUPPLY_NAMES = SPECIAL_SUPPLIES.flatMap((s) => [
   ...s.alt,
@@ -58,7 +59,11 @@ const PROCESSO_ORDER = ALL_PROCESSOS.map((p) => p.sigla);
 
 function sortAndFilterProcessos(processos: string[]): string[] {
   return processos
-    .filter((p) => !HIDDEN_PROCESSOS.includes(p))
+    .filter(
+      (p) =>
+        !HIDDEN_PROCESSOS.includes(p) &&
+        !SPECIAL_SUPPLIES.some((s) => s.alt.some((a) => p === a || p.startsWith(`${a}:`)))
+    )
     .sort((a, b) => {
       const ia = PROCESSO_ORDER.indexOf(a);
       const ib = PROCESSO_ORDER.indexOf(b);
@@ -695,6 +700,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                 const formattedTime = formatSafeDate(details.sentAt, "dd/MM 'às' HH:mm", { locale: ptBR });
                 const timeOnly = formatSafeDate(details.sentAt, "HH:mm");
                 const op = details.operator || order.operador || updatedByName || null;
+                const labelText = details.displayLabel || item.label;
                 return (
                   <button
                     key={item.id}
@@ -705,15 +711,15 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                       const updated = toggleSpecialSupplySent(order.processos, item.id, operatorToSave);
                       onUpdate(order.id, { processos: updated });
                       if (!isSent) {
-                        toast.success(`${item.label} marcado como ENVIADO! Registrado no sistema.`);
+                        toast.success(`${labelText} marcado como ENVIADO! Registrado no sistema.`);
                       } else {
-                        toast.info(`${item.label} alterado para PENDENTE.`);
+                        toast.info(`${labelText} alterado para PENDENTE.`);
                       }
                     }}
                     title={
                       isSent
-                        ? `${item.label}: ENVIADO ${formattedTime ? `em ${formattedTime}` : ""}${op ? ` por ${op}` : ""} (Clique para alterar para pendente)`
-                        : `${item.label}: PENDENTE (Clique para marcar como enviado)`
+                        ? `${labelText}: ENVIADO ${formattedTime ? `em ${formattedTime}` : ""}${op ? ` por ${op}` : ""} (Clique para alterar para pendente)`
+                        : `${labelText}: PENDENTE (Clique para marcar como enviado)`
                     }
                     className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider uppercase transition-all flex items-center gap-1 shadow-xs cursor-pointer border ${
                       isSent
@@ -722,7 +728,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                     }`}
                   >
                     <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isSent ? "bg-white" : "bg-amber-950"}`} />
-                    <span>{item.label}</span>
+                    <span>{labelText}</span>
                     {isSent ? (
                       <>
                         <Check className="h-3 w-3 stroke-[3]" />
@@ -1020,7 +1026,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                     </Label>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-2.5 pt-1">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
                   {SPECIAL_SUPPLIES.map((item) => {
                     const active = isSpecialSupplyActive(editData.processos, item.id);
                     return (
@@ -1056,6 +1062,50 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                     );
                   })}
                 </div>
+
+                {/* CAMPO DE NÚMEROS DO PANTONE */}
+                {isSpecialSupplyActive(editData.processos, "PANTONE") && (
+                  <div className="p-2.5 rounded-lg border border-amber-500/40 bg-amber-500/10 space-y-1">
+                    <Label className="text-[11px] font-bold text-amber-700 dark:text-amber-300 uppercase flex items-center gap-1">
+                      <Sparkles className="h-3 w-3 text-amber-500" />
+                      Números dos Pantones
+                    </Label>
+                    <Input
+                      value={getSpecialSupplyCustomText(editData.processos, "PANTONE")}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditData((d) => ({
+                          ...d,
+                          processos: setSpecialSupplyCustomText(d.processos, "PANTONE", val),
+                        }));
+                      }}
+                      placeholder="Ex: 485 C, Reflex Blue..."
+                      className="h-8 text-xs font-mono-tech bg-background"
+                    />
+                  </div>
+                )}
+
+                {/* CAMPO DE PREENCHIMENTO MANUAL: OUTROS */}
+                {isSpecialSupplyActive(editData.processos, "OUTROS") && (
+                  <div className="p-2.5 rounded-lg border border-amber-500/40 bg-amber-500/10 space-y-1">
+                    <Label className="text-[11px] font-bold text-amber-700 dark:text-amber-300 uppercase flex items-center gap-1">
+                      <Sparkles className="h-3 w-3 text-amber-500" />
+                      Especificação de Outros
+                    </Label>
+                    <Input
+                      value={getSpecialSupplyCustomText(editData.processos, "OUTROS")}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setEditData((d) => ({
+                          ...d,
+                          processos: setSpecialSupplyCustomText(d.processos, "OUTROS", val),
+                        }));
+                      }}
+                      placeholder="Descreva o processo / suprimento..."
+                      className="h-8 text-xs bg-background"
+                    />
+                  </div>
+                )}
               </div>
 
               {/* ═══ EXPEDIÇÃO ═══ */}
