@@ -139,6 +139,9 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
     prova_email: false,
     endereco_entrega: "",
     destinatario: "",
+    destinatario_email: "",
+    email_prova: "",
+    obs_prova_email: "",
     urgente: false,
     urgente_prova: false,
     urgente_impressao: false,
@@ -223,6 +226,9 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
       prova_email: false,
       endereco_entrega: "",
       destinatario: "",
+      destinatario_email: "",
+      email_prova: "",
+      obs_prova_email: "",
       urgente: false,
       urgente_prova: false,
       urgente_impressao: false,
@@ -340,18 +346,44 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
           tipo_trabalho: form.tipo_trabalho,
           os_anterior: form.tipo_trabalho === "repeticao" ? form.os_anterior.trim() || undefined : undefined,
           observacao: form.observacao.trim() || undefined,
-          obs_prova: form.obs_prova.trim() || undefined,
           saida_direta: form.saida_direta,
           prova_digital: form.prova_digital,
           prova_email: form.prova_email,
-          endereco_entrega:
-            form.prova_digital || form.prova_email
-              ? form.endereco_entrega.trim() || undefined
-              : undefined,
-          destinatario:
-            form.prova_digital || form.prova_email
-              ? form.destinatario.trim() || undefined
-              : undefined,
+          obs_prova: (() => {
+            if (form.prova_digital && form.prova_email) {
+              const parts = [];
+              if (form.obs_prova.trim()) parts.push(`Digital: ${form.obs_prova.trim()}`);
+              if (form.obs_prova_email.trim()) parts.push(`E-mail: ${form.obs_prova_email.trim()}`);
+              return parts.length > 0 ? parts.join(" | ") : undefined;
+            }
+            if (form.prova_digital) return form.obs_prova.trim() || undefined;
+            if (form.prova_email) return (form.obs_prova_email || form.obs_prova).trim() || undefined;
+            return undefined;
+          })(),
+          endereco_entrega: (() => {
+            if (form.prova_digital && form.prova_email) {
+              const parts = [];
+              if (form.endereco_entrega.trim()) parts.push(`Endereço: ${form.endereco_entrega.trim()}`);
+              if (form.email_prova.trim()) parts.push(`E-mail: ${form.email_prova.trim()}`);
+              return parts.length > 0 ? parts.join(" | ") : undefined;
+            }
+            if (form.prova_digital) return form.endereco_entrega.trim() || undefined;
+            if (form.prova_email) return (form.email_prova || form.endereco_entrega).trim() || undefined;
+            return undefined;
+          })(),
+          destinatario: (() => {
+            if (form.prova_digital && form.prova_email) {
+              const digitalAc = form.destinatario.trim();
+              const emailAc = form.destinatario_email.trim();
+              if (digitalAc && emailAc && digitalAc !== emailAc) {
+                return `Digital: ${digitalAc} | E-mail: ${emailAc}`;
+              }
+              return digitalAc || emailAc || undefined;
+            }
+            if (form.prova_digital) return form.destinatario.trim() || undefined;
+            if (form.prova_email) return (form.destinatario_email || form.destinatario).trim() || undefined;
+            return undefined;
+          })(),
           urgente:
             form.urgente_prova ||
             form.urgente_impressao ||
@@ -952,29 +984,67 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                   </button>
                 </div>
 
-                {/* Detalhes de entrega da prova (se Digital ou Email) */}
-                {(form.prova_digital || form.prova_email) && (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-2 border-t border-border">
-                    <Input
-                      value={form.destinatario}
-                      onChange={(e) => setForm((f) => ({ ...f, destinatario: e.target.value }))}
-                      placeholder="Aos Cuidados (A/C)..."
-                      className="h-8 bg-background border-input text-xs text-foreground placeholder:text-muted-foreground rounded-lg"
-                    />
-                    <Input
-                      value={form.endereco_entrega}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, endereco_entrega: e.target.value }))
-                      }
-                      placeholder="Endereço ou E-mail para envio..."
-                      className="h-8 bg-background border-input text-xs text-foreground placeholder:text-muted-foreground rounded-lg"
-                    />
-                    <Input
-                      value={form.obs_prova}
-                      onChange={(e) => setForm((f) => ({ ...f, obs_prova: e.target.value }))}
-                      placeholder="Obs específica de prova..."
-                      className="h-8 bg-background border-input text-xs text-foreground placeholder:text-muted-foreground rounded-lg"
-                    />
+                {/* Detalhes: PROVA DIGITAL */}
+                {form.prova_digital && (
+                  <div className="pt-2.5 border-t border-border space-y-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-sky-500 shadow-[0_0_6px_#0ea5e9]" />
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-sky-700 dark:text-sky-300 font-mono-tech">
+                        Prova Digital
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      <Input
+                        value={form.destinatario}
+                        onChange={(e) => setForm((f) => ({ ...f, destinatario: e.target.value }))}
+                        placeholder="Aos Cuidados (A/C)..."
+                        className="h-8 bg-background border-input text-xs text-foreground placeholder:text-muted-foreground rounded-lg"
+                      />
+                      <Input
+                        value={form.endereco_entrega}
+                        onChange={(e) => setForm((f) => ({ ...f, endereco_entrega: e.target.value }))}
+                        placeholder="Endereço..."
+                        className="h-8 bg-background border-input text-xs text-foreground placeholder:text-muted-foreground rounded-lg"
+                      />
+                      <Input
+                        value={form.obs_prova}
+                        onChange={(e) => setForm((f) => ({ ...f, obs_prova: e.target.value }))}
+                        placeholder="Obs específicas de prova..."
+                        className="h-8 bg-background border-input text-xs text-foreground placeholder:text-muted-foreground rounded-lg"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Detalhes: PROVA E-MAIL */}
+                {form.prova_email && (
+                  <div className="pt-2.5 border-t border-border space-y-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-pink-500 shadow-[0_0_6px_#ec4899]" />
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-pink-700 dark:text-pink-300 font-mono-tech">
+                        Prova E-mail
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                      <Input
+                        value={form.destinatario_email}
+                        onChange={(e) => setForm((f) => ({ ...f, destinatario_email: e.target.value }))}
+                        placeholder="Aos Cuidados (A/C)..."
+                        className="h-8 bg-background border-input text-xs text-foreground placeholder:text-muted-foreground rounded-lg"
+                      />
+                      <Input
+                        value={form.email_prova}
+                        onChange={(e) => setForm((f) => ({ ...f, email_prova: e.target.value }))}
+                        placeholder="E-mails..."
+                        className="h-8 bg-background border-input text-xs text-foreground placeholder:text-muted-foreground rounded-lg"
+                      />
+                      <Input
+                        value={form.obs_prova_email}
+                        onChange={(e) => setForm((f) => ({ ...f, obs_prova_email: e.target.value }))}
+                        placeholder="Obs específica de prova..."
+                        className="h-8 bg-background border-input text-xs text-foreground placeholder:text-muted-foreground rounded-lg"
+                      />
+                    </div>
                   </div>
                 )}
               </div>
@@ -1200,7 +1270,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                 onClick={handleNext}
                 className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-xl h-10 px-5 gap-1.5 shadow-md shadow-cyan-600/20"
               >
-                <span>Avançar para {step === 1 ? "Especificações" : "Acabamento"}</span>
+                <span>Avançar para {step === 1 ? "Especificações" : "Logística"}</span>
                 <ArrowRight className="h-4 w-4" />
               </Button>
             ) : (
