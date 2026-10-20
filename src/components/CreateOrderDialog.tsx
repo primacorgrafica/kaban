@@ -40,6 +40,7 @@ import {
   ShieldCheck,
   Loader2,
   Repeat,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -60,6 +61,16 @@ import {
   getSharePointAccessToken,
   type StoredMicrosoftUser,
 } from "@/lib/msalClient";
+
+function toLocalDatetimeString(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const y = date.getFullYear();
+  const m = pad(date.getMonth() + 1);
+  const d = pad(date.getDate());
+  const hh = pad(date.getHours());
+  const mm = pad(date.getMinutes());
+  return `${y}-${m}-${d}T${hh}:${mm}`;
+}
 
 
 interface CreateOrderDialogProps {
@@ -277,6 +288,10 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
   const validateStep2 = () => {
     if (!form.prova_email && !form.prova_digital && !form.saida_direta) {
       toast.error("Selecione ao menos uma opção de Prova (Digital, E-mail ou Saída Direta)");
+      return false;
+    }
+    if (form.urgente_prova && !form.prazo) {
+      toast.error("Informe o Prazo da Prova Urgente");
       return false;
     }
     return true;
@@ -928,7 +943,18 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                   </div>
                   <button
                     type="button"
-                    onClick={() => setForm((f) => ({ ...f, urgente_prova: !f.urgente_prova }))}
+                    onClick={() =>
+                      setForm((f) => {
+                        const nextUrgent = !f.urgente_prova;
+                        let nextPrazo = f.prazo;
+                        if (nextUrgent && !nextPrazo) {
+                          const d = new Date();
+                          d.setHours(d.getHours() + 2);
+                          nextPrazo = toLocalDatetimeString(d);
+                        }
+                        return { ...f, urgente_prova: nextUrgent, prazo: nextPrazo };
+                      })
+                    }
                     className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
                       form.urgente_prova
                         ? "bg-rose-500/20 border-rose-500/50 text-rose-600 dark:text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.3)] animate-pulse"
@@ -939,6 +965,52 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                     <span>Prova Urgente</span>
                   </button>
                 </div>
+
+                {/* CAMPO DE PRAZO PARA PROVA URGENTE */}
+                {form.urgente_prova && (
+                  <div className="p-3 rounded-xl border border-rose-500/40 bg-rose-500/10 dark:bg-rose-950/20 space-y-2 animate-in fade-in-50 duration-200">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-rose-600 dark:text-rose-300 uppercase tracking-wider">
+                        <Clock className="h-3.5 w-3.5 text-rose-500 animate-pulse" />
+                        <span>Prazo da Prova Urgente <span className="text-rose-500">*</span></span>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground font-medium">
+                        Contagem regressiva no card inicia ao criar a O.S.
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                      <Input
+                        type="datetime-local"
+                        value={form.prazo}
+                        onChange={(e) => setForm((f) => ({ ...f, prazo: e.target.value }))}
+                        className="h-9 text-xs bg-background/90 border-rose-500/40 focus-visible:ring-rose-500 font-mono-tech flex-1"
+                      />
+                      <div className="flex items-center gap-1 shrink-0 overflow-x-auto pb-0.5">
+                        {[
+                          { label: "+1h", hours: 1 },
+                          { label: "+2h", hours: 2 },
+                          { label: "+4h", hours: 4 },
+                          { label: "+6h", hours: 6 },
+                          { label: "+24h", hours: 24 },
+                        ].map((preset) => (
+                          <button
+                            key={preset.label}
+                            type="button"
+                            onClick={() => {
+                              const d = new Date();
+                              d.setHours(d.getHours() + preset.hours);
+                              setForm((f) => ({ ...f, prazo: toLocalDatetimeString(d) }));
+                            }}
+                            className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-card border border-rose-500/30 text-rose-600 dark:text-rose-300 hover:bg-rose-500/20 transition-all font-mono-tech shadow-2xs"
+                          >
+                            {preset.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-3 gap-3">
                   {/* Digital */}

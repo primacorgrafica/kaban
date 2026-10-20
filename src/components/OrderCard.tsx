@@ -94,22 +94,78 @@ interface OrderCardProps {
   isSlowAlert?: boolean;
 }
 
-function useDeadlineAlert(prazo: string | null) {
-  const [isNearDeadline, setIsNearDeadline] = useState(false);
+interface DeadlineStatus {
+  isNearDeadline: boolean;
+  isExpired: boolean;
+  remainingText: string | null;
+  diffMinutes: number;
+}
+
+function useDeadlineAlert(prazo: string | null): DeadlineStatus {
+  const [status, setStatus] = useState<DeadlineStatus>({
+    isNearDeadline: false,
+    isExpired: false,
+    remainingText: null,
+    diffMinutes: 0,
+  });
 
   useEffect(() => {
-    if (!prazo) { setIsNearDeadline(false); return; }
+    if (!prazo) {
+      setStatus({ isNearDeadline: false, isExpired: false, remainingText: null, diffMinutes: 0 });
+      return;
+    }
     const check = () => {
       const now = Date.now();
       const deadline = new Date(prazo).getTime();
-      setIsNearDeadline(deadline - now <= 0);
+      if (isNaN(deadline)) {
+        setStatus({ isNearDeadline: false, isExpired: false, remainingText: null, diffMinutes: 0 });
+        return;
+      }
+      const diffMs = deadline - now;
+      const diffMinutes = Math.round(diffMs / 60000);
+      const isExpired = diffMs <= 0;
+      // Near deadline if within 30 minutes or expired
+      const isNearDeadline = diffMs <= 30 * 60 * 1000;
+
+      let remainingText = "";
+      if (isExpired) {
+        const absMinutes = Math.abs(diffMinutes);
+        if (absMinutes < 60) {
+          remainingText = `Atrasado há ${absMinutes}m`;
+        } else {
+          const h = Math.floor(absMinutes / 60);
+          const m = absMinutes % 60;
+          remainingText = m > 0 ? `Atrasado há ${h}h ${m}m` : `Atrasado há ${h}h`;
+        }
+      } else {
+        if (diffMinutes < 60) {
+          remainingText = `${diffMinutes}m rest.`;
+        } else {
+          const h = Math.floor(diffMinutes / 60);
+          const m = diffMinutes % 60;
+          const d = Math.floor(h / 24);
+          if (d > 0) {
+            const remH = h % 24;
+            remainingText = remH > 0 ? `${d}d ${remH}h rest.` : `${d}d rest.`;
+          } else {
+            remainingText = m > 0 ? `${h}h ${m}m rest.` : `${h}h rest.`;
+          }
+        }
+      }
+
+      setStatus({
+        isNearDeadline,
+        isExpired,
+        remainingText,
+        diffMinutes,
+      });
     };
     check();
-    const interval = setInterval(check, 30000);
+    const interval = setInterval(check, 15000);
     return () => clearInterval(interval);
   }, [prazo]);
 
-  return isNearDeadline;
+  return status;
 }
 
 // Determine which sections to show based on department context
@@ -241,7 +297,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
   const config = STATUS_CONFIG[order.status];
   const statusIdx = STATUS_ORDER.indexOf(order.status);
   const isLastStatus = order.status === "arquivo_liberado";
-  const isNearDeadline = useDeadlineAlert(order.prazo);
+  const { isNearDeadline, isExpired, remainingText } = useDeadlineAlert(order.prazo);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [selectedDepts, setSelectedDepts] = useState<{ department: Department; machine?: string }[]>([]);
   const [currentDept, setCurrentDept] = useState<Department | "">("");
@@ -357,7 +413,8 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
       >
         {isNearDeadline && !isUrgent && (
           <div className="bg-red-600 text-white text-[10px] font-bold text-center py-0.5 tracking-wide uppercase flex items-center justify-center gap-1">
-            <Clock className="h-3 w-3" /> Atrasado
+            <Clock className="h-3 w-3" /> {isExpired ? "Atrasado" : "Prazo Próximo"}
+            {remainingText && <span className="opacity-90 font-mono-tech">({remainingText})</span>}
           </div>
         )}
         {order.saida_direta && (
@@ -365,7 +422,14 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
             {isSlowAlert && <Clock className="h-4 w-4 animate-pulse absolute left-1.5" fill="#facc15" color="#000" strokeWidth={2} />}
             <div className="flex-1 text-center flex items-center justify-center gap-1">
               {isUrgentProva && !order.prova_digital && !order.prova_email && (
-                <span className={`mr-1 inline-block bg-red-600 text-white text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${shouldBlinkUrgentBanner ? "animate-pulse" : ""}`}>URGENTE</span>
+                <span className={`mr-1 inline-flex items-center gap-1 bg-red-600 text-white text-[10px] font-black uppercase px-1.5 py-0.5 rounded shadow-2xs ${shouldBlinkUrgentBanner ? "animate-pulse" : ""}`}>
+                  <span>URGENTE</span>
+                  {remainingText && (
+                    <span className="font-mono-tech font-bold text-[9px] bg-black/25 px-1 py-0.2 rounded">
+                      {remainingText}
+                    </span>
+                  )}
+                </span>
               )}
               <span className="text-[10px] font-bold uppercase tracking-wide">Saída Direta</span>
             </div>
@@ -376,7 +440,14 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
             {isSlowAlert && <Clock className="h-4 w-4 animate-pulse absolute left-1.5" fill="#facc15" color="#000" strokeWidth={2} />}
             <div className="flex-1 text-center flex items-center justify-center gap-1">
               {isUrgentProva && (
-                <span className={`mr-1 inline-block bg-red-600 text-white text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${shouldBlinkUrgentBanner ? "animate-pulse" : ""}`}>URGENTE</span>
+                <span className={`mr-1 inline-flex items-center gap-1 bg-red-600 text-white text-[10px] font-black uppercase px-1.5 py-0.5 rounded shadow-2xs ${shouldBlinkUrgentBanner ? "animate-pulse" : ""}`}>
+                  <span>URGENTE</span>
+                  {remainingText && (
+                    <span className="font-mono-tech font-bold text-[9px] bg-black/25 px-1 py-0.2 rounded">
+                      {remainingText}
+                    </span>
+                  )}
+                </span>
               )}
               <span className="text-[10px] font-semibold text-sky-700 dark:text-sky-300 uppercase tracking-wide">Prova Digital</span>
             </div>
@@ -387,7 +458,14 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
             {isSlowAlert && !order.prova_digital && <Clock className="h-4 w-4 animate-pulse absolute left-1.5" fill="#facc15" color="#000" strokeWidth={2} />}
             <div className="flex-1 text-center flex items-center justify-center gap-1">
               {isUrgentProva && !order.prova_digital && (
-                <span className={`mr-1 inline-block bg-red-600 text-white text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${shouldBlinkUrgentBanner ? "animate-pulse" : ""}`}>URGENTE</span>
+                <span className={`mr-1 inline-flex items-center gap-1 bg-red-600 text-white text-[10px] font-black uppercase px-1.5 py-0.5 rounded shadow-2xs ${shouldBlinkUrgentBanner ? "animate-pulse" : ""}`}>
+                  <span>URGENTE</span>
+                  {remainingText && (
+                    <span className="font-mono-tech font-bold text-[9px] bg-black/25 px-1 py-0.2 rounded">
+                      {remainingText}
+                    </span>
+                  )}
+                </span>
               )}
               <span className="text-[10px] font-semibold text-pink-700 dark:text-pink-300 uppercase tracking-wide">Prova E-mail</span>
             </div>
@@ -527,9 +605,28 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
             </div>
           )}
           {order.prazo && (
-            <div className={`flex items-center gap-1 mt-1 text-[10px] font-semibold ${isNearDeadline ? "text-red-600 dark:text-red-400" : "text-muted-foreground"}`}>
-              <Clock className="h-3 w-3" />
-              Prazo: {format(new Date(order.prazo), "dd/MM HH:mm", { locale: ptBR })}
+            <div className="flex items-center justify-between gap-1.5 mt-1.5 pt-1 border-t border-border/40 text-[10px] font-semibold">
+              <span className={`flex items-center gap-1 ${
+                isExpired
+                  ? "text-rose-600 dark:text-rose-400 font-bold"
+                  : isNearDeadline
+                  ? "text-amber-600 dark:text-amber-400 font-bold"
+                  : "text-muted-foreground"
+              }`}>
+                <Clock className="h-3 w-3 shrink-0" />
+                Prazo: {format(new Date(order.prazo), "dd/MM HH:mm", { locale: ptBR })}
+              </span>
+              {remainingText && (
+                <span className={`px-1.5 py-0.5 rounded text-[9.5px] font-bold uppercase tracking-wider font-mono-tech shrink-0 ${
+                  isExpired
+                    ? "bg-rose-500/20 text-rose-600 dark:text-rose-300 border border-rose-500/30 animate-pulse"
+                    : isNearDeadline
+                    ? "bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30 animate-pulse"
+                    : "bg-muted text-foreground/80 border border-border"
+                }`}>
+                  {remainingText}
+                </span>
+              )}
             </div>
           )}
           {(order.status === "paralisado" || order.status === "aguardando_novo_arquivo") ? (
@@ -723,9 +820,20 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
               {order.prazo && (
                 <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-800/80 border border-slate-700/80 text-xs font-mono-tech text-slate-300">
                   <Clock className="h-3.5 w-3.5 text-cyan-400" />
-                  <span className={isNearDeadline ? "text-rose-400 font-bold" : ""}>
+                  <span className={isExpired ? "text-rose-400 font-bold" : isNearDeadline ? "text-amber-400 font-bold" : ""}>
                     {format(new Date(order.prazo), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                   </span>
+                  {remainingText && (
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${
+                      isExpired
+                        ? "bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse"
+                        : isNearDeadline
+                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                        : "bg-cyan-500/20 text-cyan-300"
+                    }`}>
+                      {remainingText}
+                    </span>
+                  )}
                 </div>
               )}
               {order.vendedor && (
@@ -826,12 +934,42 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                 <div className="flex items-center justify-between gap-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Prova *</Label>
                   <div className="flex items-center gap-2">
-                    <Checkbox id="edit-urgente-prova" checked={editData.urgente_prova} onCheckedChange={(v) => setEditData((d) => ({ ...d, urgente_prova: !!v }))} />
+                    <Checkbox
+                      id="edit-urgente-prova"
+                      checked={editData.urgente_prova}
+                      onCheckedChange={(v) => {
+                        const isUrg = !!v;
+                        setEditData((d) => {
+                          let nextPrazo = d.prazo;
+                          if (isUrg && !nextPrazo) {
+                            const date = new Date();
+                            date.setHours(date.getHours() + 2);
+                            const pad = (n: number) => String(n).padStart(2, "0");
+                            nextPrazo = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+                          }
+                          return { ...d, urgente_prova: isUrg, prazo: nextPrazo };
+                        });
+                      }}
+                    />
                     <Label htmlFor="edit-urgente-prova" className={`text-sm font-medium cursor-pointer flex items-center gap-1.5 rounded px-1.5 py-0.5 transition-colors ${editData.urgente_prova ? "bg-red-600 text-white animate-pulse" : "text-red-600 dark:text-red-400"}`}>
                       <AlertTriangle className="h-4 w-4" /> Urgente
                     </Label>
                   </div>
                 </div>
+                {editData.urgente_prova && (
+                  <div className="p-2.5 rounded-lg border border-rose-500/30 bg-rose-500/10 space-y-1.5">
+                    <Label className="text-xs font-bold text-rose-600 dark:text-rose-300 uppercase flex items-center gap-1.5">
+                      <Clock className="h-3.5 w-3.5 text-rose-500 animate-pulse" />
+                      Prazo da Prova Urgente
+                    </Label>
+                    <Input
+                      type="datetime-local"
+                      value={editData.prazo}
+                      onChange={(e) => setEditData((d) => ({ ...d, prazo: e.target.value }))}
+                      className="h-8 text-xs font-mono-tech bg-background"
+                    />
+                  </div>
+                )}
                 <div className="flex items-center gap-4 flex-wrap">
                   <div className="flex items-center gap-2">
                     <Checkbox id="edit-prova-digital" checked={editData.prova_digital} onCheckedChange={(v) => setEditData((d) => ({ ...d, prova_digital: !!v }))} />
@@ -1106,9 +1244,18 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                           <span>Prova Técnica</span>
                         </div>
                         {order.urgente_prova && (
-                          <Badge className="bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40 text-[10px] animate-pulse">
-                            Urgente
-                          </Badge>
+                          <div className="flex items-center gap-1.5">
+                            <Badge className="bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40 text-[10px] animate-pulse">
+                              Prova Urgente
+                            </Badge>
+                            {remainingText && (
+                              <Badge className={`text-[10px] font-mono-tech font-bold ${
+                                isExpired ? "bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40" : "bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border-cyan-500/40"
+                              }`}>
+                                {remainingText}
+                              </Badge>
+                            )}
+                          </div>
                         )}
                       </div>
                       <div className="flex gap-1.5 flex-wrap">
