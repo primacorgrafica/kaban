@@ -57,25 +57,35 @@ export function useOrderAttachments(orderId: string | null, orderTitulo?: string
 
     if (!orderId) return;
 
-    const channel = supabase
-      .channel(`order_attachments_${orderId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "order_attachments",
-          filter: `order_id=eq.${orderId}`,
-        },
-        () => {
-          void fetchAttachments();
-        }
-      )
-      .subscribe();
+    let channel: any = null;
+    try {
+      const uniqueChannelName = `order_attachments_${orderId}_${Math.random().toString(36).substring(2, 9)}`;
+      channel = supabase
+        .channel(uniqueChannelName)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "order_attachments",
+            filter: `order_id=eq.${orderId}`,
+          },
+          () => {
+            void fetchAttachments();
+          }
+        )
+        .subscribe();
+    } catch (subErr) {
+      console.warn("[useOrderAttachments] Falha ao registrar realtime:", subErr);
+    }
 
     return () => {
       isMountedRef.current = false;
-      void supabase.removeChannel(channel);
+      if (channel) {
+        try {
+          void supabase.removeChannel(channel);
+        } catch (_) {}
+      }
     };
   }, [orderId, fetchAttachments]);
 

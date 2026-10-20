@@ -53,25 +53,37 @@ export function useOrderEmails(orderId?: string | null): UseOrderEmailsReturn {
       });
 
       // Inscrição Realtime no Supabase para atualizações automáticas do card
-      const channel = supabase
-        .channel(`order-emails-${orderId}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "order_email_events",
-            filter: `order_id=eq.${orderId}`,
-          },
-          () => {
-            void fetchEvents();
-          }
-        )
-        .subscribe();
+      // Usamos um sufixo randômico único por instância do hook para evitar colisão
+      // quando múltiplos componentes montam o hook para a mesma OS (ex: Card + Modal)
+      let channel: any = null;
+      try {
+        const uniqueChannelName = `order-emails-${orderId}-${Math.random().toString(36).substring(2, 9)}`;
+        channel = supabase
+          .channel(uniqueChannelName)
+          .on(
+            "postgres_changes",
+            {
+              event: "*",
+              schema: "public",
+              table: "order_email_events",
+              filter: `order_id=eq.${orderId}`,
+            },
+            () => {
+              void fetchEvents();
+            }
+          )
+          .subscribe();
+      } catch (subErr) {
+        console.warn("[useOrderEmails] Falha ao registrar realtime:", subErr);
+      }
 
       return () => {
         isMounted = false;
-        supabase.removeChannel(channel);
+        if (channel) {
+          try {
+            void supabase.removeChannel(channel);
+          } catch (_) {}
+        }
       };
     } else {
       setEvents([]);
