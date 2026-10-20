@@ -290,17 +290,10 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
         <div className="px-5 py-4 border-b border-sidebar-border/60 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="p-1.5 rounded-xl bg-card border border-cyan-500/30 shadow-[0_0_15px_-3px_rgba(6,182,212,0.25)]">
-              <img src={logoImg} alt="Primacor Gráfica" className="w-7 h-7 object-contain" />
+              <img src={logoImg} alt="Primacor Gráfica" className="w-11 h-11 object-contain" />
             </div>
             <div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-sm font-bold tracking-tight text-sidebar-foreground">PRIMACOR</span>
-                <span className="text-[10px] px-1.5 py-0.2 rounded bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 font-mono-tech border border-cyan-500/25">v2.0</span>
-              </div>
-              <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground font-mono-tech">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399]" />
-                <span>ONLINE</span>
-              </div>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 font-mono-tech border border-cyan-500/25">v2.0</span>
             </div>
           </div>
           <button className="lg:hidden text-sidebar-foreground hover:text-foreground" onClick={() => setSidebarOpen(false)}>
