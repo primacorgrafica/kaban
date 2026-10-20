@@ -40,6 +40,8 @@ import {
   formatSafeDate,
 } from "@/lib/processos";
 import { OrderAttachmentsSection } from "./sharepoint/OrderAttachmentsSection";
+import { OrderEmailCardNotice } from "./email/OrderEmailCardNotice";
+import { OrderEmailEventsSection } from "./email/OrderEmailEventsSection";
 import { Check } from "lucide-react";
 
 const SPECIAL_SUPPLY_NAMES = SPECIAL_SUPPLIES.flatMap((s) => [
@@ -650,9 +652,8 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
               ))}
             </div>
           )}
-
-
-
+          {/* Aviso de E-mail (Enviado ao cliente ou Resposta recebida) */}
+          <OrderEmailCardNotice orderId={order.id} osNumber={order.titulo} />
 
 
 
@@ -1272,6 +1273,14 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                     orderTitulo={order.titulo}
                     readOnly={permissions.isViewOnly}
                     canDelete={permissions.canDelete}
+                  />
+                </div>
+
+                {/* ─── SEÇÃO DE HISTÓRICO DE E-MAILS DO OUTLOOK (2 COLUNAS) ─── */}
+                <div className="col-span-1 md:col-span-2 pt-2 border-t border-border/60">
+                  <OrderEmailEventsSection
+                    orderId={order.id}
+                    orderTitulo={order.titulo}
                   />
                 </div>
               </div>

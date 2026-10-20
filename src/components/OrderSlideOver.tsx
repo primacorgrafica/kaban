@@ -51,6 +51,7 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { exportSingleOrderPDF } from "@/lib/pdfExport";
 import { OrderAttachmentsSection } from "@/components/sharepoint/OrderAttachmentsSection";
+import { OrderEmailEventsSection } from "@/components/email/OrderEmailEventsSection";
 
 interface OrderSlideOverProps {
   order: Order | null;
@@ -265,10 +266,11 @@ export function OrderSlideOver({
         {/* Tabbed Content */}
         <div className="flex-1 overflow-y-auto p-5 scrollbar-tech">
           <Tabs defaultValue="geral" className="w-full">
-            <TabsList className="grid grid-cols-5 w-full h-9 rounded-xl bg-muted/40 p-1 mb-4">
+            <TabsList className="grid grid-cols-6 w-full h-9 rounded-xl bg-muted/40 p-1 mb-4">
               <TabsTrigger value="geral" className="text-xs rounded-lg">Visão Geral</TabsTrigger>
               <TabsTrigger value="processos" className="text-xs rounded-lg">Processos</TabsTrigger>
               <TabsTrigger value="anexos" className="text-xs rounded-lg">Anexos</TabsTrigger>
+              <TabsTrigger value="emails" className="text-xs rounded-lg">E-mails</TabsTrigger>
               <TabsTrigger value="entrega" className="text-xs rounded-lg">Entrega</TabsTrigger>
               <TabsTrigger value="auditoria" className="text-xs rounded-lg">Auditoria</TabsTrigger>
             </TabsList>
@@ -485,6 +487,14 @@ export function OrderSlideOver({
                 orderTitulo={order.titulo}
                 readOnly={false}
                 canDelete={true}
+              />
+            </TabsContent>
+
+            {/* TAB: E-MAILS (OUTLOOK) */}
+            <TabsContent value="emails" className="space-y-4">
+              <OrderEmailEventsSection
+                orderId={order.id}
+                orderTitulo={order.titulo}
               />
             </TabsContent>
 

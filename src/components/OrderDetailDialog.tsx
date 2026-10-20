@@ -57,6 +57,7 @@ import {
   formatSafeDate,
 } from "@/lib/processos";
 import { OrderAttachmentsSection } from "@/components/sharepoint/OrderAttachmentsSection";
+import { OrderEmailEventsSection } from "@/components/email/OrderEmailEventsSection";
 
 const SPECIAL_SUPPLY_NAMES = SPECIAL_SUPPLIES.flatMap((s) => [
   ...s.alt,
@@ -933,6 +934,16 @@ export function OrderDetailDialog({
                       orderTitulo={order.titulo}
                       readOnly={permissions.isViewOnly}
                       canDelete={permissions.canDelete || permissions.canEditCard}
+                    />
+                  </div>
+                </div>
+
+                {/* ─── SEÇÃO DE HISTÓRICO DE E-MAILS DO OUTLOOK ─── */}
+                <div className="col-span-1 md:col-span-2 pt-2">
+                  <div className="p-4 rounded-xl border border-border bg-slate-50/70 dark:bg-slate-900/50">
+                    <OrderEmailEventsSection
+                      orderId={order.id}
+                      orderTitulo={order.titulo}
                     />
                   </div>
                 </div>

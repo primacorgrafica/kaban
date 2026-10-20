@@ -350,6 +350,62 @@ export type Database = {
           },
         ]
       }
+      order_email_events: {
+        Row: {
+          id: string
+          order_id: string
+          direction: string
+          mailbox: string
+          message_id: string
+          conversation_id: string | null
+          subject: string
+          sender: string
+          recipients: string
+          body_preview: string | null
+          email_datetime: string
+          os_number: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          order_id: string
+          direction: string
+          mailbox: string
+          message_id: string
+          conversation_id?: string | null
+          subject: string
+          sender: string
+          recipients: string
+          body_preview?: string | null
+          email_datetime: string
+          os_number: string
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          order_id?: string
+          direction?: string
+          mailbox?: string
+          message_id?: string
+          conversation_id?: string | null
+          subject?: string
+          sender?: string
+          recipients?: string
+          body_preview?: string | null
+          email_datetime?: string
+          os_number?: string
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_email_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_time_summary: {
         Row: {
           created_at: string

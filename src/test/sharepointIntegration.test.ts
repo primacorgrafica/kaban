@@ -99,18 +99,20 @@ describe("Integração SharePoint - Resolução e Tratamento de Erros via Graph 
 
   it("deve resolver biblioteca padrão diretamente via endpoint /drive", async () => {
     global.fetch = vi.fn().mockImplementation((url: string) => {
-      if (url.includes("/sites/") && url.includes(":")) {
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          json: () => Promise.resolve({ id: "mock_site_id", displayName: "Produção Grupo" }),
-        });
-      }
+      // Match /drive endpoint BEFORE the generic /sites/ check to avoid
+      // https:// colon matching the site discovery pattern
       if (url.endsWith("/drive")) {
         return Promise.resolve({
           ok: true,
           status: 200,
           json: () => Promise.resolve({ id: "mock_default_drive_id", name: "Documentos Compartilhados" }),
+        });
+      }
+      if (url.includes("/sites/") && url.includes("sharepoint.com:")) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ id: "mock_site_id", displayName: "Produção Grupo" }),
         });
       }
       return Promise.reject(new Error("Not found"));
@@ -123,13 +125,7 @@ describe("Integração SharePoint - Resolução e Tratamento de Erros via Graph 
 
   it("deve lançar mensagem detalhada com AppId caso nenhuma biblioteca seja retornada", async () => {
     global.fetch = vi.fn().mockImplementation((url: string) => {
-      if (url.includes("/sites/") && url.includes(":")) {
-        return Promise.resolve({
-          ok: true,
-          status: 200,
-          json: () => Promise.resolve({ id: "mock_site_id", displayName: "Produção Grupo" }),
-        });
-      }
+      // Match specific endpoints BEFORE generic /sites/ check
       if (url.endsWith("/drive")) {
         return Promise.resolve({
           ok: false,
@@ -142,6 +138,13 @@ describe("Integração SharePoint - Resolução e Tratamento de Erros via Graph 
           ok: true,
           status: 200,
           json: () => Promise.resolve({ value: [] }),
+        });
+      }
+      if (url.includes("/sites/") && url.includes("sharepoint.com:")) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ id: "mock_site_id", displayName: "Produção Grupo" }),
         });
       }
       return Promise.reject(new Error("Not found"));
