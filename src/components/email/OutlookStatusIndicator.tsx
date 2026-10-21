@@ -106,9 +106,25 @@ export function OutlookStatusIndicator() {
           </div>
 
           {lastError && (
-            <p className="text-[10px] text-rose-500 bg-rose-500/10 p-1.5 rounded border border-rose-500/20 break-words mt-1">
-              {lastError}
-            </p>
+            <div className="mt-2 p-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-200 space-y-1.5">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-amber-400">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                <span>Autorização Necessária</span>
+              </div>
+              <p className="text-[10.5px] text-muted-foreground leading-snug">
+                {lastError.includes("não autenticada")
+                  ? "A sessão de e-mail precisa de autorização nesta conta. Clique no botão abaixo para conectar."
+                  : lastError}
+              </p>
+              <Button
+                size="sm"
+                onClick={() => void connectOutlook()}
+                className="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs h-7 rounded-lg flex items-center justify-center gap-1.5 shadow-xs"
+              >
+                <Mail className="h-3.5 w-3.5" />
+                <span>Autorizar Outlook Agora</span>
+              </Button>
+            </div>
           )}
 
           <div className="pt-1.5 border-t border-border/50">
@@ -130,7 +146,7 @@ export function OutlookStatusIndicator() {
 
         <DropdownMenuItem
           disabled={isSyncing}
-          onClick={() => void syncNow()}
+          onClick={() => void syncNow(true)}
           className="text-xs cursor-pointer flex items-center gap-2"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}`} />

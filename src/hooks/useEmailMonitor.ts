@@ -10,7 +10,7 @@ export interface UseEmailMonitorReturn {
   lastError: string | null;
   processedCount: number;
   newEventsCount: number;
-  syncNow: () => Promise<void>;
+  syncNow: (interactive?: boolean) => Promise<void>;
   connectOutlook: () => Promise<void>;
   hasMicrosoftAccount: boolean;
 }
@@ -46,13 +46,16 @@ export function useEmailMonitor(enabled = true): UseEmailMonitorReturn {
     return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
-  const syncNow = useCallback(async () => {
+  const syncNow = useCallback(async (interactive = false) => {
     if (isSyncingRef.current) return;
     isSyncingRef.current = true;
     setIsSyncing(true);
     setLastError(null);
 
     try {
+      if (interactive) {
+        await getEmailAccessToken(true);
+      }
       const result: SyncResult = await runEmailSync();
       setProcessedCount((prev) => prev + result.processed);
       setNewEventsCount((prev) => prev + result.newEvents);

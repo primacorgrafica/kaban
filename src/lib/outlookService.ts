@@ -70,6 +70,8 @@ export async function getEmailAccessToken(interactiveFallback = true): Promise<s
   try {
     const popupResponse = await pca.acquireTokenPopup({
       scopes: EMAIL_SCOPES,
+      account: account || undefined,
+      loginHint: account?.username,
     });
     if (popupResponse?.account) {
       pca.setActiveAccount(popupResponse.account);
