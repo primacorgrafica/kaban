@@ -19,7 +19,6 @@ export const SHAREPOINT_SCOPES = import.meta.env.VITE_SHAREPOINT_SCOPES
   : [
       "User.Read",
       "Sites.ReadWrite.All",
-      "Mail.Read",
       "Mail.Read.Shared",
     ];
 

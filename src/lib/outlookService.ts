@@ -18,7 +18,7 @@ import type { GraphMessage, GraphMessagesResponse, MonitoredMailbox } from "@/ty
  * Escopos necessários para ler e-mails de caixas compartilhadas.
  * Mail.Read.Shared permite ler e-mails de caixas delegadas sem permissão de aplicação.
  */
-export const EMAIL_SCOPES = ["User.Read", "Mail.Read", "Mail.Read.Shared"];
+export const EMAIL_SCOPES = ["User.Read", "Mail.Read.Shared"];
 
 /**
  * Obtém um access token para os escopos de e-mail.
