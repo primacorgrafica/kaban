@@ -165,7 +165,7 @@ export function OrderSlideOver({
                   </Badge>
                 )}
               </div>
-              <h2 className="text-lg font-bold text-foreground leading-tight">{order.cliente}</h2>
+              <h2 className="text-lg font-bold text-foreground leading-tight uppercase">{order.cliente}</h2>
               <p className="text-xs text-muted-foreground">{order.descricao}</p>
             </div>
 

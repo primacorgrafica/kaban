@@ -187,7 +187,7 @@ export function useOrders() {
       const insertPayload: any = {
         titulo: data.titulo,
         descricao: data.descricao,
-        cliente: data.cliente,
+        cliente: data.cliente ? data.cliente.trim().toUpperCase() : data.cliente,
         observacao: data.observacao || null,
         obs_prova: data.obs_prova || null,
         saida_direta: data.saida_direta || false,
@@ -316,6 +316,9 @@ export function useOrders() {
   const updateOrder = useCallback(
     async (id: string, data: Partial<Order>) => {
       let updatePayload: any = { ...data, atualizado_por: user?.id || null };
+      if (updatePayload.cliente && typeof updatePayload.cliente === "string") {
+        updatePayload.cliente = updatePayload.cliente.trim().toUpperCase();
+      }
       if (data.revisao !== undefined) {
         const currentOrder = orders.find(o => o.id === id);
         const targetObs = data.observacao !== undefined ? data.observacao : currentOrder?.observacao;

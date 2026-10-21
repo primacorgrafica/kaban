@@ -545,7 +545,7 @@ function ProductionCardImpl({
                 {order.parent_order_id && (
                   <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-red-600 text-white text-[10px] font-bold shrink-0" title="Sub-ordem de Não Conformidade">NC</span>
                 )}
-                <span className="text-sm text-muted-foreground min-w-0 font-bold break-words truncate">
+                <span className="text-sm text-muted-foreground min-w-0 font-bold break-words truncate uppercase">
                   {order.cliente}
                 </span>
               </div>
@@ -570,7 +570,7 @@ function ProductionCardImpl({
             {isUrgent && <span className="h-2.5 w-2.5 rounded-full shrink-0 bg-red-500 mt-0.5" />}
             <span className="flex items-center gap-1.5 text-sm text-foreground min-w-0 font-bold break-words leading-tight">
               <Briefcase className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-              <span className="break-words">{order.cliente}</span>
+              <span className="break-words uppercase">{order.cliente}</span>
             </span>
           </div>
 

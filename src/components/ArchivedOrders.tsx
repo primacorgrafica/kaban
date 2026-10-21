@@ -371,7 +371,7 @@ export function ArchivedOrders({ orders, onUnarchive, onDelete }: ArchivedOrders
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-semibold text-sm text-card-foreground">{titleDisplay}</span>
                       <span className="text-sm text-muted-foreground">—</span>
-                      <span className="text-sm font-medium text-card-foreground">{order.cliente}</span>
+                      <span className="text-sm font-medium text-card-foreground uppercase">{order.cliente}</span>
                       {order.descricao && order.descricao !== "-" && (
                         <>
                           <span className="text-sm text-muted-foreground">—</span>

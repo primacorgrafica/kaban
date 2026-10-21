@@ -359,7 +359,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
         onAdd({
           titulo: osTitulo,
           descricao: effectiveDescricao,
-          cliente: form.cliente.trim(),
+          cliente: form.cliente.trim().toUpperCase(),
           tipo_trabalho: form.tipo_trabalho,
           os_anterior: form.tipo_trabalho === "repeticao" ? form.os_anterior.trim() || undefined : undefined,
           observacao: form.observacao.trim() || undefined,
@@ -707,8 +707,8 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                   <Input
                     id="cliente"
                     value={form.cliente}
-                    onChange={(e) => setForm((f) => ({ ...f, cliente: e.target.value }))}
-                    className="h-10 bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 rounded-xl text-sm"
+                    onChange={(e) => setForm((f) => ({ ...f, cliente: e.target.value.toUpperCase() }))}
+                    className="h-10 bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 rounded-xl text-sm uppercase"
                   />
                 </div>
               </div>

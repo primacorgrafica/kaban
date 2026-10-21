@@ -357,7 +357,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
     onUpdate(order.id, {
       titulo: editData.titulo,
       descricao: editData.descricao,
-      cliente: editData.cliente,
+      cliente: editData.cliente.trim().toUpperCase(),
       observacao: editData.observacao || null,
       obs_prova: editData.obs_prova || null,
       saida_direta: editData.saida_direta,
@@ -565,7 +565,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
           {/* Linha 1: Cliente (Primeiro em cima) */}
           <div className="flex items-start gap-1.5 min-w-0">
             {isUrgent && <span className="h-2 w-2 rounded-full shrink-0 bg-rose-500 shadow-[0_0_8px_#f43f5e] mt-1" />}
-            <span className="text-sm font-bold text-foreground break-words leading-tight">
+            <span className="text-sm font-bold text-foreground break-words leading-tight uppercase">
               {order.cliente}
             </span>
           </div>
@@ -842,7 +842,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                     </Badge>
                   )}
                 </div>
-                <p className="text-xs text-slate-300 font-medium truncate max-w-md mt-0.5">
+                <p className="text-xs text-slate-300 font-medium truncate max-w-md mt-0.5 uppercase">
                   {order.cliente}
                 </p>
               </div>
@@ -882,7 +882,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                   </div>
                   <div>
                     <Label className="text-xs uppercase text-muted-foreground">Cliente *</Label>
-                    <Input value={editData.cliente} onChange={(e) => setEditData((d) => ({ ...d, cliente: e.target.value }))} className="h-9" />
+                    <Input value={editData.cliente} onChange={(e) => setEditData((d) => ({ ...d, cliente: e.target.value.toUpperCase() }))} className="h-9 uppercase" />
                   </div>
                 </div>
                 <div>

@@ -373,7 +373,7 @@ export function ProductionTable({
                     {/* Cliente */}
                     <TableCell>
                       <div className="flex flex-col">
-                        <span className="font-semibold text-foreground truncate max-w-[220px]">
+                        <span className="font-semibold text-foreground truncate max-w-[220px] uppercase">
                           {order.cliente}
                         </span>
                         {order.parent_order_id && (

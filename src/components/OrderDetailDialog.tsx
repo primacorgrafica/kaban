@@ -323,7 +323,7 @@ export function OrderDetailDialog({
     onUpdate(order.id, {
       titulo: editData.titulo,
       descricao: editData.descricao,
-      cliente: editData.cliente,
+      cliente: editData.cliente.trim().toUpperCase(),
       observacao: editData.observacao || null,
       obs_prova: editData.obs_prova || null,
       saida_direta: editData.saida_direta,
@@ -408,7 +408,7 @@ export function OrderDetailDialog({
                     </Badge>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground font-medium truncate max-w-md mt-0.5">
+                <p className="text-xs text-muted-foreground font-medium truncate max-w-md mt-0.5 uppercase">
                   {order.cliente}
                 </p>
               </div>
@@ -443,8 +443,8 @@ export function OrderDetailDialog({
                     <Label className="text-xs uppercase text-muted-foreground">Cliente *</Label>
                     <Input
                       value={editData.cliente}
-                      onChange={(e) => setEditData((d) => ({ ...d, cliente: e.target.value }))}
-                      className="h-9"
+                      onChange={(e) => setEditData((d) => ({ ...d, cliente: e.target.value.toUpperCase() }))}
+                      className="h-9 uppercase"
                     />
                   </div>
                 </div>
