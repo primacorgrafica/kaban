@@ -1,5 +1,5 @@
 ﻿import { describe, it, expect } from "vitest";
-import { getOrderRevision, setObservationRevision, isReturnToPreparation } from "@/lib/orderRevision";
+import { getOrderRevision, setObservationRevision, cleanObservationRevision, isReturnToPreparation } from "@/lib/orderRevision";
 
 describe("orderRevision logic", () => {
   it("should extract revision from explicit revisao field", () => {
@@ -15,10 +15,19 @@ describe("orderRevision logic", () => {
     expect(getOrderRevision(null)).toBe(1);
   });
 
+  it("should clean observation tag from text", () => {
+    expect(cleanObservationRevision("[REV2]")).toBe("");
+    expect(cleanObservationRevision("[REV2] Ajuste")).toBe("Ajuste");
+    expect(cleanObservationRevision("[REV:3] Ajuste")).toBe("Ajuste");
+    expect(cleanObservationRevision("Observação sem tag")).toBe("Observação sem tag");
+    expect(cleanObservationRevision(null)).toBe("");
+  });
+
   it("should correctly update observation tags", () => {
     expect(setObservationRevision("teste", 2)).toBe("[REV2] teste");
     expect(setObservationRevision("[REV2] teste anterior", 3)).toBe("[REV3] teste anterior");
     expect(setObservationRevision("[REV3] teste", 1)).toBe("teste");
+    expect(setObservationRevision("", 2)).toBe("[REV2]");
   });
 
   it("should detect return to preparation correctly", () => {

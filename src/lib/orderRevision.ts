@@ -23,11 +23,19 @@ export function getOrderRevision(order?: { revisao?: number | null; observacao?:
 }
 
 /**
+ * Limpa a tag de revisão do texto de observação para exibição limpa na interface.
+ */
+export function cleanObservationRevision(obs?: string | null): string {
+  if (!obs) return "";
+  return obs.replace(/\[REV:?\d+\]\s*/gi, "").trim();
+}
+
+/**
  * Atualiza ou insere a tag de revisão no texto de observação para persistência resiliente.
  */
 export function setObservationRevision(obs: string | null | undefined, rev: number): string {
   const current = obs || "";
-  const cleaned = current.replace(/\[REV:?\d+\]\s*/gi, "").trim();
+  const cleaned = cleanObservationRevision(current);
   if (rev <= 1) return cleaned;
   const tag = `[REV${rev}]`;
   return cleaned ? `${tag} ${cleaned}` : tag;

@@ -1,4 +1,4 @@
-import { getOrderRevision } from "@/lib/orderRevision";
+import { getOrderRevision, cleanObservationRevision } from "@/lib/orderRevision";
 import { useState, useEffect, memo } from "react";
 import { Order, OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
 import { DEPARTMENTS, Department } from "@/types/production";
@@ -537,14 +537,6 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
             <AlertTriangle className="h-3 w-3" /> Urgente
           </div>
         )}
-        {currentRevision >= 2 && order.status === "preparando_arquivo" && (
-          <div className="px-2 py-0.5 bg-amber-500/20 dark:bg-amber-950/40 border-b border-amber-500/30 text-center flex items-center justify-center gap-1.5">
-            <RotateCcw className="h-3 w-3 text-amber-500 animate-spin-slow" />
-            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide font-mono-tech">
-              Retorno para Preparação — REV{currentRevision}
-            </span>
-          </div>
-        )}
         {order.setor && order.setor !== "desenvolvimento" && (
           <div className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-center">
             <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">
@@ -612,13 +604,17 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
             )}
           </div>
           {/* Linha 2.5: Observação (esquerda) + Operador (direita, abaixo do vendedor) */}
-          {(order.operador || (order.observacao && !(order.status === "paralisado" || order.status === "aguardando_novo_arquivo"))) && (
-            <div className="flex items-center justify-between gap-2 mt-1 text-xs min-w-0">
-              <div className="min-w-0 flex-1">
-                {!(order.status === "paralisado" || order.status === "aguardando_novo_arquivo") && order.observacao && (
-                  <p className="text-xs text-muted-foreground line-clamp-1 italic">{order.observacao}</p>
-                )}
-              </div>
+          {(() => {
+            const cleanObs = cleanObservationRevision(order.observacao);
+            const showObs = !(order.status === "paralisado" || order.status === "aguardando_novo_arquivo") && !!cleanObs;
+            if (!order.operador && !showObs) return null;
+            return (
+              <div className="flex items-center justify-between gap-2 mt-1 text-xs min-w-0">
+                <div className="min-w-0 flex-1">
+                  {showObs && (
+                    <p className="text-xs text-muted-foreground line-clamp-1 italic">{cleanObs}</p>
+                  )}
+                </div>
               {order.operador && (
                 <span
                   className="shrink-0 ml-auto flex items-center gap-1 text-[11px] font-semibold text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 dark:bg-cyan-950/40 border border-cyan-500/30 px-1.5 py-0.5 rounded-md shadow-2xs"
@@ -629,7 +625,8 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                 </span>
               )}
             </div>
-          )}
+            );
+          })()}
           {order.prazo && (
             <div className="flex items-center justify-between gap-1.5 mt-1.5 pt-1 border-t border-border/40 text-[10px] font-semibold">
               <span className={`flex items-center gap-1 ${
@@ -1327,10 +1324,10 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                         </div>
                       </div>
                     )}
-                    {order.observacao && (
+                    {cleanObservationRevision(order.observacao) && (
                       <div className="pt-1.5 border-t border-border/60">
                         <p className="text-[10px] text-muted-foreground uppercase font-medium">Observações</p>
-                        <p className="text-xs text-foreground whitespace-pre-wrap">{order.observacao}</p>
+                        <p className="text-xs text-foreground whitespace-pre-wrap">{cleanObservationRevision(order.observacao)}</p>
                       </div>
                     )}
                   </div>

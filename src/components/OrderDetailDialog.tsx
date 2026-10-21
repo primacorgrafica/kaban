@@ -1,4 +1,4 @@
-import { getOrderRevision } from "@/lib/orderRevision";
+import { getOrderRevision, cleanObservationRevision } from "@/lib/orderRevision";
 import { useState, useEffect } from "react";
 import { Order, OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
 import { DEPARTMENTS, Department } from "@/types/production";
@@ -772,10 +772,10 @@ export function OrderDetailDialog({
                         </div>
                       </div>
                     )}
-                    {order.observacao && (
+                    {cleanObservationRevision(order.observacao) && (
                       <div className="pt-1.5 border-t border-border/60">
                         <p className="text-[10px] text-muted-foreground uppercase font-medium">Observações</p>
-                        <p className="text-xs text-foreground whitespace-pre-wrap">{order.observacao}</p>
+                        <p className="text-xs text-foreground whitespace-pre-wrap">{cleanObservationRevision(order.observacao)}</p>
                       </div>
                     )}
                   </div>
