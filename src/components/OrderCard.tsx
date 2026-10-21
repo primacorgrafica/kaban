@@ -842,12 +842,6 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                   )}
                 </div>
               )}
-              {order.vendedor && (
-                <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-xl bg-muted border border-border text-xs text-foreground font-medium">
-                  <User className="h-3 w-3 text-primary" />
-                  <span>{order.vendedor}</span>
-                </div>
-              )}
             </div>
           </div>
 
