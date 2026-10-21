@@ -520,7 +520,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
   const stepsConfig = [
     { id: 1, title: "Identificação", desc: "Nº O.S., Cliente & Serviço", icon: FileText },
     { id: 2, title: "Especificações", desc: "Prova & Impressão", icon: Printer },
-    { id: 3, title: "Acabamento & Logística", desc: "Processos & Entrega", icon: PackageCheck },
+    { id: 3, title: "Logística", desc: "Expedição & Entrega", icon: PackageCheck },
   ];
 
   return (
@@ -690,7 +690,6 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                     autoFocus
                     value={form.titulo}
                     onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
-                    placeholder="Ex: 71250"
                     className="h-10 bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 rounded-xl font-mono-tech text-sm font-semibold tracking-wider"
                   />
                 </div>
@@ -709,7 +708,6 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                     id="cliente"
                     value={form.cliente}
                     onChange={(e) => setForm((f) => ({ ...f, cliente: e.target.value }))}
-                    placeholder="Ex: Bioclin Química Básica Ltda"
                     className="h-10 bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 rounded-xl text-sm"
                   />
                 </div>
@@ -729,7 +727,6 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                   id="descricao"
                   value={form.descricao}
                   onChange={(e) => setForm((f) => ({ ...f, descricao: e.target.value }))}
-                  placeholder="Ex: Caixa Cartucho 350g com Laminação Fosca e Verniz UV Localizado"
                   className="h-10 bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 rounded-xl text-sm"
                 />
               </div>
@@ -1228,7 +1225,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
             </div>
           )}
 
-          {/* ════════════ ETAPA 3: ACABAMENTO & LOGÍSTICA ════════════ */}
+          {/* ════════════ ETAPA 3: LOGÍSTICA ════════════ */}
           {step === 3 && (
             <div className="space-y-4 animate-in fade-in-50 duration-200">
 

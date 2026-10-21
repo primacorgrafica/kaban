@@ -269,7 +269,6 @@ export function ConvertToOrderDialog({
                 autoFocus
                 value={form.titulo}
                 onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
-                placeholder="Ex: 71260"
                 className="h-10 rounded-xl font-mono-tech text-sm font-bold bg-background border-border"
                 required
               />
