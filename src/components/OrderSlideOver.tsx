@@ -51,6 +51,7 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { exportSingleOrderPDF } from "@/lib/pdfExport";
 import { OrderAttachmentsSection } from "@/components/sharepoint/OrderAttachmentsSection";
+import { CreateOrderDialog } from "./CreateOrderDialog";
 import { OrderEmailEventsSection } from "@/components/email/OrderEmailEventsSection";
 
 interface OrderSlideOverProps {
@@ -85,6 +86,7 @@ export function OrderSlideOver({
   if (!order) return null;
 
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     titulo: order.titulo,
     cliente: order.cliente,
@@ -412,7 +414,10 @@ export function OrderSlideOver({
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => setIsEditing(true)}
+                    onClick={() => {
+                      onOpenChange(false);
+                      setIsEditDialogOpen(true);
+                    }}
                     className="w-full text-xs"
                   >
                     Editar Informações Gerais
@@ -613,5 +618,15 @@ export function OrderSlideOver({
         </SheetFooter>
       </SheetContent>
     </Sheet>
+
+    {/* Modal de Edição no Fluxo Idêntico de Criação em 3 Etapas */}
+    {order && (
+      <CreateOrderDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        orderToEdit={order}
+        onUpdate={onUpdate}
+      />
+    )}
   );
 }

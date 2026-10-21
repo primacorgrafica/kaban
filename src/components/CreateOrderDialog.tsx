@@ -18,8 +18,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import type { Order } from "@/types/order";
 import {
   Plus,
+  Edit2,
   AlertTriangle,
   ArrowRight,
   ArrowLeft,
@@ -40,6 +42,7 @@ import {
   ShieldCheck,
   Loader2,
   Repeat,
+  RotateCcw,
   Clock,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -75,8 +78,8 @@ function toLocalDatetimeString(date: Date): string {
 }
 
 
-interface CreateOrderDialogProps {
-  onAdd: (data: {
+export interface CreateOrderDialogProps {
+  onAdd?: (data: {
     titulo: string;
     descricao: string;
     cliente: string;
@@ -111,10 +114,32 @@ interface CreateOrderDialogProps {
     status_destino?: string;
     setor_destino?: string;
   }) => Promise<any> | any;
+  onUpdate?: (id: string, data: Partial<Order>) => Promise<any> | any;
+  orderToEdit?: Order | null;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
+  trigger?: React.ReactNode;
 }
 
-export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
-  const [open, setOpen] = useState(false);
+export function CreateOrderDialog({
+  onAdd,
+  onUpdate,
+  orderToEdit,
+  open: controlledOpen,
+  onOpenChange,
+  trigger,
+}: CreateOrderDialogProps) {
+  const isEdit = Boolean(orderToEdit);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = typeof controlledOpen !== "undefined";
+  const open = isControlled ? controlledOpen : internalOpen;
+  const setOpen = (val: boolean) => {
+    if (isControlled) {
+      onOpenChange?.(val);
+    } else {
+      setInternalOpen(val);
+    }
+  };
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [isChecking, setIsChecking] = useState(false);
   const [vendedores, setVendedores] = useState<{ id: string; nome: string }[]>([]);
@@ -139,47 +164,144 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
 
 
 
-  const [form, setForm] = useState({
-    titulo: "",
-    descricao: "",
-    cliente: "",
-    tipo_trabalho: "novo",
-    os_anterior: "",
-    observacao: "",
-    obs_prova: "",
-    saida_direta: false,
-    prova_digital: false,
-    prova_email: false,
-    endereco_entrega: "",
-    destinatario: "",
-    destinatario_email: "",
-    email_prova: "",
-    obs_prova_email: "",
-    urgente: false,
-    urgente_prova: false,
-    urgente_impressao: false,
-    urgente_acabamento: false,
-    urgente_expedicao: false,
-    digital_color: false,
-    digital_pb: false,
-    prazo: "",
-    vendedor: "",
-    processos: [] as string[],
-    tem_nf: false,
-    tem_protocolo: false,
-    empresa_entrega: "PRIMACOR",
-    obs_entrega: "",
-    tipo_entrega: [] as string[],
-    entrega_para: "",
-    entrega_endereco: "",
-    entrega_ac: "",
-    entrega_data_limite: "",
-    status_destino: "",
-    setor_destino: "",
-  });
+  const getInitialForm = (order?: Order | null) => {
+    if (!order) {
+      return {
+        titulo: "",
+        descricao: "",
+        cliente: "",
+        tipo_trabalho: "novo",
+        os_anterior: "",
+        revisao: 1,
+        observacao: "",
+        obs_prova: "",
+        saida_direta: false,
+        prova_digital: false,
+        prova_email: false,
+        endereco_entrega: "",
+        destinatario: "",
+        destinatario_email: "",
+        email_prova: "",
+        obs_prova_email: "",
+        urgente: false,
+        urgente_prova: false,
+        urgente_impressao: false,
+        urgente_acabamento: false,
+        urgente_expedicao: false,
+        digital_color: false,
+        digital_pb: false,
+        prazo: "",
+        vendedor: "",
+        processos: [] as string[],
+        tem_nf: false,
+        tem_protocolo: false,
+        empresa_entrega: "PRIMACOR",
+        obs_entrega: "",
+        tipo_entrega: [] as string[],
+        entrega_para: "",
+        entrega_endereco: "",
+        entrega_ac: "",
+        entrega_data_limite: "",
+        status_destino: "",
+        setor_destino: "",
+      };
+    }
+
+    let destinatario = order.destinatario || "";
+    let destinatario_email = "";
+    let endereco_entrega = order.endereco_entrega || "";
+    let email_prova = "";
+    let obs_prova = order.obs_prova || "";
+    let obs_prova_email = "";
+
+    if (order.prova_digital && order.prova_email) {
+      if (destinatario.includes(" | ") || destinatario.includes("Digital:")) {
+        const dMatch = destinatario.match(/Digital:\s*(.*?)(?:\s*\|\s*E-mail:|$)/i);
+        const eMatch = destinatario.match(/E-mail:\s*(.*)/i);
+        if (dMatch) destinatario = dMatch[1].trim();
+        if (eMatch) destinatario_email = eMatch[1].trim();
+      } else {
+        destinatario_email = destinatario;
+      }
+      if (endereco_entrega.includes(" | ") || endereco_entrega.includes("Endereço:")) {
+        const endMatch = endereco_entrega.match(/Endereço:\s*(.*?)(?:\s*\|\s*E-mail:|$)/i);
+        const emMatch = endereco_entrega.match(/E-mail:\s*(.*)/i);
+        if (endMatch) endereco_entrega = endMatch[1].trim();
+        if (emMatch) email_prova = emMatch[1].trim();
+      } else {
+        email_prova = endereco_entrega;
+      }
+      if (obs_prova.includes(" | ") || obs_prova.includes("Digital:")) {
+        const dMatch = obs_prova.match(/Digital:\s*(.*?)(?:\s*\|\s*E-mail:|$)/i);
+        const eMatch = obs_prova.match(/E-mail:\s*(.*)/i);
+        if (dMatch) obs_prova = dMatch[1].trim();
+        if (eMatch) obs_prova_email = eMatch[1].trim();
+      } else {
+        obs_prova_email = obs_prova;
+      }
+    } else if (order.prova_email && !order.prova_digital) {
+      destinatario_email = destinatario;
+      email_prova = endereco_entrega;
+      obs_prova_email = obs_prova;
+      destinatario = "";
+      endereco_entrega = "";
+      obs_prova = "";
+    }
+
+    return {
+      titulo: order.titulo || "",
+      descricao: order.descricao || "",
+      cliente: order.cliente || "",
+      tipo_trabalho: order.tipo_trabalho || "novo",
+      os_anterior: order.os_anterior || "",
+      revisao: order.revisao || 1,
+      observacao: order.observacao || "",
+      obs_prova,
+      saida_direta: order.saida_direta || false,
+      prova_digital: order.prova_digital || false,
+      prova_email: order.prova_email || false,
+      endereco_entrega,
+      destinatario,
+      destinatario_email,
+      email_prova,
+      obs_prova_email,
+      urgente: order.urgente || false,
+      urgente_prova: order.urgente_prova || false,
+      urgente_impressao: order.urgente_impressao || false,
+      urgente_acabamento: order.urgente_acabamento || false,
+      urgente_expedicao: order.urgente_expedicao || false,
+      digital_color: order.digital_color || false,
+      digital_pb: order.digital_pb || false,
+      prazo: order.prazo ? toLocalDatetimeString(new Date(order.prazo)) : "",
+      vendedor: order.vendedor || "",
+      processos: order.processos ? [...order.processos] : [],
+      tem_nf: order.nf === "SIM" || !!order.nf,
+      tem_protocolo: order.protocolo === "SIM" || !!order.protocolo,
+      empresa_entrega: order.empresa_entrega || "PRIMACOR",
+      obs_entrega: order.obs_entrega || "",
+      tipo_entrega: order.tipo_entrega ? [...order.tipo_entrega] : [],
+      entrega_para: order.entrega_para || "",
+      entrega_endereco: order.entrega_endereco || "",
+      entrega_ac: order.entrega_ac || "",
+      entrega_data_limite: order.entrega_data_limite ? toLocalDatetimeString(new Date(order.entrega_data_limite)) : "",
+      status_destino: order.status || "",
+      setor_destino: order.setor || "",
+    };
+  };
+
+  const [form, setForm] = useState(() => getInitialForm(orderToEdit));
 
   useEffect(() => {
     if (open) {
+      setStep(1);
+      setStagedFiles([]);
+      setCurrentUploadFile(null);
+      setCurrentUploadProgress(0);
+      setCurrentUploadFileIndex(0);
+      setCurrentUploadTotalFiles(0);
+      setCurrentUploadSpeedOrBytes("");
+      setForm(getInitialForm(orderToEdit));
+
       supabase
         .from("vendedores")
         .select("id, nome")
@@ -188,7 +310,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
           if (data) setVendedores(data);
         });
     }
-  }, [open]);
+  }, [open, orderToEdit]);
 
   const toggleProcesso = (sigla: string) => {
     setForm((f) => {
@@ -225,45 +347,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
     setCurrentUploadFileIndex(0);
     setCurrentUploadTotalFiles(0);
     setCurrentUploadSpeedOrBytes("");
-    setForm({
-
-      titulo: "",
-      descricao: "",
-      cliente: "",
-      tipo_trabalho: "novo",
-      os_anterior: "",
-      observacao: "",
-      obs_prova: "",
-      saida_direta: false,
-      prova_digital: false,
-      prova_email: false,
-      endereco_entrega: "",
-      destinatario: "",
-      destinatario_email: "",
-      email_prova: "",
-      obs_prova_email: "",
-      urgente: false,
-      urgente_prova: false,
-      urgente_impressao: false,
-      urgente_acabamento: false,
-      urgente_expedicao: false,
-      digital_color: false,
-      digital_pb: false,
-      prazo: "",
-      vendedor: "",
-      processos: [],
-      tem_nf: false,
-      tem_protocolo: false,
-      empresa_entrega: "PRIMACOR",
-      obs_entrega: "",
-      tipo_entrega: [],
-      entrega_para: "",
-      entrega_endereco: "",
-      entrega_ac: "",
-      entrega_data_limite: "",
-      status_destino: "",
-      setor_destino: "",
-    });
+    setForm(getInitialForm(orderToEdit));
   };
 
   const validateStep1 = () => {
@@ -316,16 +400,175 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
     if (e) e.preventDefault();
     if (!validateStep1() || !validateStep2()) return;
 
+    const osTitulo = form.titulo.trim();
+
+    // MODO EDIÇÃO
+    if (isEdit && orderToEdit) {
+      if (osTitulo !== orderToEdit.titulo.trim()) {
+        setIsChecking(true);
+        const { data: existing } = await supabase
+          .from("orders")
+          .select("id")
+          .eq("titulo", osTitulo)
+          .neq("id", orderToEdit.id)
+          .limit(1);
+        setIsChecking(false);
+
+        if (existing && existing.length > 0) {
+          toast.error("Número de O.S. já existente em outra ordem: " + osTitulo);
+          setStep(1);
+          return;
+        }
+      }
+
+      const allProcessos = [...form.processos];
+      const effectiveDescricao = form.descricao.trim() || osTitulo || "Serviço";
+      const filesToUpload = [...stagedFiles];
+
+      setIsSubmitting(true);
+      setSubmitStatusText("Atualizando Ordem de Serviço...");
+
+      try {
+        if (filesToUpload.length > 0) {
+          setSubmitStatusText("Conectando ao SharePoint corporativo...");
+          try {
+            await getSharePointAccessToken(true);
+          } catch (authErr: any) {
+            console.error("Falha ao autenticar Microsoft 365:", authErr);
+            toast.error(`Falha na autenticação Microsoft 365: ${authErr?.message || authErr}`);
+            setIsSubmitting(false);
+            setSubmitStatusText("");
+            return;
+          }
+        }
+
+        const updatePayload: Partial<Order> = {
+          titulo: osTitulo,
+          descricao: effectiveDescricao,
+          cliente: form.cliente.trim().toUpperCase(),
+          tipo_trabalho: form.tipo_trabalho,
+          os_anterior: form.tipo_trabalho === "repeticao" ? form.os_anterior.trim() || null : null,
+          observacao: form.observacao.trim() || null,
+          saida_direta: form.saida_direta,
+          prova_digital: form.prova_digital,
+          prova_email: form.prova_email,
+          obs_prova: (() => {
+            if (form.prova_digital && form.prova_email) {
+              const parts = [];
+              if (form.obs_prova.trim()) parts.push(`Digital: ${form.obs_prova.trim()}`);
+              if (form.obs_prova_email.trim()) parts.push(`E-mail: ${form.obs_prova_email.trim()}`);
+              return parts.length > 0 ? parts.join(" | ") : null;
+            }
+            if (form.prova_digital) return form.obs_prova.trim() || null;
+            if (form.prova_email) return (form.obs_prova_email || form.obs_prova).trim() || null;
+            return null;
+          })(),
+          endereco_entrega: (() => {
+            if (form.prova_digital && form.prova_email) {
+              const parts = [];
+              if (form.endereco_entrega.trim()) parts.push(`Endereço: ${form.endereco_entrega.trim()}`);
+              if (form.email_prova.trim()) parts.push(`E-mail: ${form.email_prova.trim()}`);
+              return parts.length > 0 ? parts.join(" | ") : null;
+            }
+            if (form.prova_digital) return form.endereco_entrega.trim() || null;
+            if (form.prova_email) return (form.email_prova || form.endereco_entrega).trim() || null;
+            return null;
+          })(),
+          destinatario: (() => {
+            if (form.prova_digital && form.prova_email) {
+              const digitalAc = form.destinatario.trim();
+              const emailAc = form.destinatario_email.trim();
+              if (digitalAc && emailAc && digitalAc !== emailAc) {
+                return `Digital: ${digitalAc} | E-mail: ${emailAc}`;
+              }
+              return digitalAc || emailAc || null;
+            }
+            if (form.prova_digital) return form.destinatario.trim() || null;
+            if (form.prova_email) return (form.destinatario_email || form.destinatario).trim() || null;
+            return null;
+          })(),
+          urgente:
+            form.urgente_prova ||
+            form.urgente_impressao ||
+            form.urgente_acabamento ||
+            form.urgente_expedicao,
+          urgente_prova: form.urgente_prova,
+          urgente_impressao: form.urgente_impressao,
+          urgente_acabamento: form.urgente_acabamento,
+          urgente_expedicao: form.urgente_expedicao,
+          digital_color: form.digital_color,
+          digital_pb: form.digital_pb,
+          prazo: form.prazo ? new Date(form.prazo).toISOString() : null,
+          vendedor: form.vendedor || null,
+          processos: allProcessos.length > 0 ? allProcessos : [],
+          nf: form.tem_nf ? (orderToEdit.nf || "SIM") : null,
+          protocolo: form.tem_protocolo ? (orderToEdit.protocolo || "SIM") : null,
+          empresa_entrega: form.empresa_entrega || null,
+          obs_entrega: form.obs_entrega.trim() || null,
+          tipo_entrega: form.tipo_entrega.length > 0 ? form.tipo_entrega : [],
+          entrega_para: form.entrega_para.trim() || null,
+          entrega_endereco: form.entrega_endereco.trim() || null,
+          entrega_ac: form.entrega_ac.trim() || null,
+          entrega_data_limite: form.entrega_data_limite
+            ? new Date(form.entrega_data_limite).toISOString()
+            : null,
+        };
+
+        if (onUpdate) {
+          await Promise.resolve(onUpdate(orderToEdit.id, updatePayload));
+        }
+
+        if (filesToUpload.length > 0) {
+          setSubmitStatusText("Conectando ao SharePoint...");
+          const folder = await getOrCreateOsFolder(orderToEdit.id, osTitulo);
+          setCurrentUploadTotalFiles(filesToUpload.length);
+
+          for (let i = 0; i < filesToUpload.length; i++) {
+            const file = filesToUpload[i];
+            const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+            setCurrentUploadFileIndex(i + 1);
+            setCurrentUploadFile(file.name);
+            setCurrentUploadProgress(0);
+            setCurrentUploadSpeedOrBytes(`0.0 MB / ${sizeMb} MB (0%)`);
+            setSubmitStatusText(`Enviando anexo ${i + 1} de ${filesToUpload.length}: ${file.name}...`);
+
+            await uploadFileToSharePoint(
+              file,
+              folder,
+              ({ percent, loaded, total }) => {
+                const loadedMb = (loaded / (1024 * 1024)).toFixed(1);
+                const totalMb = (total / (1024 * 1024)).toFixed(1);
+                setCurrentUploadProgress(percent);
+                setCurrentUploadSpeedOrBytes(`${loadedMb} MB / ${totalMb} MB (${percent}%)`);
+              }
+            );
+          }
+        }
+
+        toast.success(`O.S. #${osTitulo} atualizada com sucesso!`);
+        setOpen(false);
+      } catch (err: any) {
+        console.error("Erro ao atualizar O.S.:", err);
+        toast.error(`Erro ao atualizar O.S.: ${err?.message || err}`);
+      } finally {
+        setIsSubmitting(false);
+        setSubmitStatusText("");
+        setCurrentUploadFile(null);
+      }
+      return;
+    }
+
+    // MODO CRIAÇÃO
     setIsChecking(true);
     const { data: existing } = await supabase
       .from("orders")
       .select("id")
-      .eq("titulo", form.titulo.trim())
+      .eq("titulo", osTitulo)
       .limit(1);
     setIsChecking(false);
 
     if (existing && existing.length > 0) {
-      toast.error("Número de O.S. já existente: " + form.titulo.trim());
+      toast.error("Número de O.S. já existente: " + osTitulo);
       setStep(1);
       return;
     }
@@ -333,7 +576,6 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
     const allProcessos = [...form.processos];
     const effectiveDescricao = form.descricao.trim() || form.titulo.trim() || "Serviço";
     const filesToUpload = [...stagedFiles];
-    const osTitulo = form.titulo.trim();
 
     setIsSubmitting(true);
     setSubmitStatusText("Iniciando criação da O.S....");
@@ -532,15 +774,19 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
         if (!v) resetForm();
       }}
     >
-      <DialogTrigger asChild>
-        <Button
-          size="sm"
-          className="gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium shadow-md shadow-cyan-500/20 border border-cyan-400/30 rounded-xl transition-all"
-        >
-          <Plus className="h-4 w-4" />
-          <span>Nova O.S.</span>
-        </Button>
-      </DialogTrigger>
+      {trigger ? (
+        <DialogTrigger asChild>{trigger}</DialogTrigger>
+      ) : !isEdit ? (
+        <DialogTrigger asChild>
+          <Button
+            size="sm"
+            className="gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium shadow-md shadow-cyan-500/20 border border-cyan-400/30 rounded-xl transition-all"
+          >
+            <Plus className="h-4 w-4" />
+            <span>Nova O.S.</span>
+          </Button>
+        </DialogTrigger>
+      ) : null}
 
       <DialogContent
         onPointerDownOutside={(e) => e.preventDefault()}
@@ -552,17 +798,19 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
               <div className="h-9 w-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
-                <Sparkles className="h-4 w-4" />
+                {isEdit ? <Edit2 className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
               </div>
               <div>
                 <DialogTitle className="text-base font-bold text-foreground tracking-tight flex items-center gap-2">
-                  Nova Ordem de Serviço
+                  {isEdit ? "Editar Ordem de Serviço" : "Nova Ordem de Serviço"}
                   <span className="text-[10px] font-mono-tech px-2 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-600 dark:text-cyan-400 font-normal">
-                    PRIMACOR OS v2.0
+                    {isEdit ? `O.S. #${orderToEdit?.titulo}` : "PRIMACOR OS v2.0"}
                   </span>
                 </DialogTitle>
                 <p className="text-xs text-muted-foreground">
-                  Preencha os dados técnicos da produção gráfica passo a passo
+                  {isEdit
+                    ? "Edite as especificações técnicas, processos ou dados de entrega da O.S."
+                    : "Preencha os dados técnicos da produção gráfica passo a passo"}
                 </p>
               </div>
             </div>
@@ -586,14 +834,15 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                   type="button"
                   key={s.id}
                   onClick={() => {
-                    if (s.id < step) setStep(s.id as 1 | 2 | 3);
+                    if (isEdit) setStep(s.id as 1 | 2 | 3);
+                    else if (s.id < step) setStep(s.id as 1 | 2 | 3);
                     else if (s.id === 2 && step === 1 && validateStep1()) setStep(2);
                     else if (s.id === 3 && step === 2 && validateStep2()) setStep(3);
                   }}
                   className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all text-left ${
                     isActive
                       ? "bg-cyan-500/10 border-cyan-500/40 text-foreground shadow-[0_0_15px_-3px_rgba(6,182,212,0.25)]"
-                      : isPast
+                      : isPast || isEdit
                       ? "bg-card border-emerald-500/30 text-foreground hover:bg-accent cursor-pointer"
                       : "bg-muted/40 border-border/60 text-muted-foreground cursor-not-allowed"
                   }`}
@@ -795,6 +1044,35 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                   <p className="text-[11px] text-muted-foreground">
                     Informe o número da O.S. anterior para referência da pré-impressão e produção.
                   </p>
+                </div>
+              )}
+
+              {/* Campo Revisão (em modo edição) */}
+              {isEdit && (
+                <div className="p-3.5 rounded-xl border border-cyan-500/30 bg-cyan-500/5 dark:bg-cyan-950/20 space-y-1.5 animate-in fade-in-50 duration-200">
+                  <div className="flex items-center justify-between">
+                    <Label
+                      htmlFor="revisao"
+                      className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wide"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5 text-cyan-500" />
+                      <span>Revisão da O.S. (REV)</span>
+                    </Label>
+                    <span className="text-[11px] font-mono-tech text-muted-foreground">
+                      Atual: Rev {form.revisao || 1}
+                    </span>
+                  </div>
+                  <Input
+                    id="revisao"
+                    type="number"
+                    min={1}
+                    value={form.revisao || 1}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      setForm((f) => ({ ...f, revisao: isNaN(val) ? 1 : Math.max(1, val) }));
+                    }}
+                    className="h-9 bg-background border-input text-foreground font-mono-tech text-sm font-bold rounded-lg w-32"
+                  />
                 </div>
               )}
 
@@ -1330,6 +1608,22 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                   </div>
                 </div>
 
+                {/* Destinatário & Observações de Entrega */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                  <Input
+                    value={form.entrega_para}
+                    onChange={(e) => setForm((f) => ({ ...f, entrega_para: e.target.value }))}
+                    placeholder="Entregar para (Nome da Empresa ou Local)..."
+                    className="h-8 bg-background border-input text-xs text-foreground placeholder:text-muted-foreground rounded-lg"
+                  />
+                  <Input
+                    value={form.obs_entrega}
+                    onChange={(e) => setForm((f) => ({ ...f, obs_entrega: e.target.value }))}
+                    placeholder="Observações de entrega (horário, restrições, etc.)..."
+                    className="h-8 bg-background border-input text-xs text-foreground placeholder:text-muted-foreground rounded-lg"
+                  />
+                </div>
+
                 {/* Endereço & Data Limite */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
                   <Input
@@ -1414,7 +1708,7 @@ export function CreateOrderDialog({ onAdd }: CreateOrderDialogProps) {
                 ) : (
                   <>
                     <Check className="h-4 w-4" />
-                    <span>{isChecking ? "Verificando O.S...." : "Criar Ordem de Serviço"}</span>
+                    <span>{isChecking ? "Verificando O.S...." : isEdit ? "Atualizar O.S." : "Criar Ordem de Serviço"}</span>
                   </>
                 )}
               </Button>

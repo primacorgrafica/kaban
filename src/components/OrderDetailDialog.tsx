@@ -60,6 +60,7 @@ import {
   formatSafeDate,
 } from "@/lib/processos";
 import { OrderAttachmentsSection } from "@/components/sharepoint/OrderAttachmentsSection";
+import { CreateOrderDialog } from "./CreateOrderDialog";
 import { OrderEmailEventsSection } from "@/components/email/OrderEmailEventsSection";
 
 // sortAndFilterProcessos importado de @/lib/processos
@@ -118,6 +119,7 @@ export function OrderDetailDialog({
   if (!order) return null;
 
   const [editing, setEditing] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [selectedDepts, setSelectedDepts] = useState<{ department: Department; machine?: string }[]>([]);
   const [currentDept, setCurrentDept] = useState<Department | "">("");
@@ -403,299 +405,6 @@ export function OrderDetailDialog({
             </div>
           </div>
 
-          {editing ? (
-            <div className="space-y-4 p-6 overflow-y-auto max-h-[75vh]">
-              {/* ═══ CABEÇALHO ═══ */}
-              <div className="border rounded-lg p-3 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs uppercase text-muted-foreground">Nº OS *</Label>
-                    <Input
-                      value={editData.titulo}
-                      onChange={(e) => setEditData((d) => ({ ...d, titulo: e.target.value }))}
-                      className="h-9"
-                    />
-                  </div>
-                  <div>
-                    <Label className="text-xs uppercase text-muted-foreground">Cliente *</Label>
-                    <Input
-                      value={editData.cliente}
-                      onChange={(e) => setEditData((d) => ({ ...d, cliente: e.target.value.toUpperCase() }))}
-                      className="h-9 uppercase"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-xs uppercase text-muted-foreground">Descrição do Serviço</Label>
-                  <Input
-                    value={editData.descricao}
-                    onChange={(e) => setEditData((d) => ({ ...d, descricao: e.target.value }))}
-                    className="h-9"
-                  />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs uppercase text-muted-foreground">Tipo de Trabalho</Label>
-                    <Select
-                      value={editData.tipo_trabalho || "novo"}
-                      onValueChange={(v) => setEditData((d) => ({ ...d, tipo_trabalho: v, os_anterior: v === "repeticao" ? d.os_anterior : "" }))}
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="novo">Trabalho Novo</SelectItem>
-                        <SelectItem value="repeticao">Repetição</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {editData.tipo_trabalho === "repeticao" && (
-                    <div>
-                      <Label className="text-xs uppercase text-amber-600 dark:text-amber-400 font-bold">N.º O.S ANTERIOR *</Label>
-                      <Input
-                        value={editData.os_anterior || ""}
-                        onChange={(e) => setEditData((d) => ({ ...d, os_anterior: e.target.value }))}
-                        placeholder="Ex: 69387"
-                        className="h-9 font-mono-tech font-bold border-amber-500/40"
-                      />
-                    </div>
-                  )}
-                  <div>
-                    <Label className="text-xs uppercase text-muted-foreground flex items-center gap-1">
-                      <RotateCcw className="h-3 w-3 text-amber-500" />
-                      Revisão (REV)
-                    </Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      value={editData.revisao ?? 1}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value, 10);
-                        setEditData((d) => ({ ...d, revisao: isNaN(val) ? 1 : val }));
-                      }}
-                      className="h-9 font-mono-tech font-bold"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-xs uppercase text-muted-foreground">Vendedor *</Label>
-                  <Select
-                    value={editData.vendedor}
-                    onValueChange={(v) => setEditData((d) => ({ ...d, vendedor: v }))}
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Nome" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {vendedoresList.map((v) => (
-                        <SelectItem key={v.id} value={v.nome}>
-                          {v.nome}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs uppercase text-muted-foreground">Operador Responsável</Label>
-                  <Select
-                    value={editData.operador || "__none__"}
-                    onValueChange={(v) => setEditData((d) => ({ ...d, operador: v === "__none__" ? "" : v }))}
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Selecionar operador..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__" className="text-muted-foreground italic">
-                        — Nenhum operador —
-                      </SelectItem>
-                      {operadoresList.map((op) => (
-                        <SelectItem key={op.id} value={op.nome}>
-                          {op.nome} {op.setor_vinculado ? `(${op.setor_vinculado})` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs uppercase text-muted-foreground">OBS</Label>
-                  <Textarea
-                    value={editData.observacao}
-                    onChange={(e) => setEditData((d) => ({ ...d, observacao: e.target.value }))}
-                    placeholder="Observações gerais..."
-                    className="min-h-[50px]"
-                  />
-                </div>
-              </div>
-
-              {/* ═══ PROVA ═══ */}
-              <div className="border rounded-lg p-3 space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Prova *
-                  </Label>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="edit-urgente-prova"
-                      checked={editData.urgente_prova}
-                      onCheckedChange={(v) => setEditData((d) => ({ ...d, urgente_prova: !!v }))}
-                    />
-                    <Label
-                      htmlFor="edit-urgente-prova"
-                      className={`text-sm font-medium cursor-pointer flex items-center gap-1.5 rounded px-1.5 py-0.5 transition-colors ${
-                        editData.urgente_prova
-                          ? "bg-red-600 text-white animate-pulse"
-                          : "text-red-600 dark:text-red-400"
-                      }`}
-                    >
-                      <AlertTriangle className="h-4 w-4" /> Urgente
-                    </Label>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="edit-prova-digital"
-                      checked={editData.prova_digital}
-                      onCheckedChange={(v) => setEditData((d) => ({ ...d, prova_digital: !!v }))}
-                    />
-                    <Label
-                      htmlFor="edit-prova-digital"
-                      className={`text-sm cursor-pointer px-2 py-0.5 rounded text-xs font-semibold ${
-                        editData.prova_digital ? "bg-sky-600 text-white" : "bg-muted text-foreground"
-                      }`}
-                    >
-                      Digital
-                    </Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="edit-prova-email"
-                      checked={editData.prova_email}
-                      onCheckedChange={(v) => setEditData((d) => ({ ...d, prova_email: !!v }))}
-                    />
-                    <Label
-                      htmlFor="edit-prova-email"
-                      className={`text-sm cursor-pointer px-2 py-0.5 rounded text-xs font-semibold ${
-                        editData.prova_email ? "bg-pink-600 text-white" : "bg-muted text-foreground"
-                      }`}
-                    >
-                      E-mail
-                    </Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="edit-saida-direta"
-                      checked={editData.saida_direta}
-                      onCheckedChange={(v) => setEditData((d) => ({ ...d, saida_direta: !!v }))}
-                    />
-                    <Label
-                      htmlFor="edit-saida-direta"
-                      className={`text-sm cursor-pointer px-2 py-0.5 rounded text-xs font-semibold ${
-                        editData.saida_direta ? "bg-yellow-500 text-black" : "bg-muted text-foreground"
-                      }`}
-                    >
-                      Saída Direta
-                    </Label>
-                  </div>
-                </div>
-              </div>
-
-              {/* ═══ SUPRIMENTOS & PROCESSOS ESPECIAIS ═══ */}
-              <div className="border rounded-lg p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Suprimentos & Processos Especiais
-                  </Label>
-                  <span className="text-[10px] text-muted-foreground font-mono-tech">
-                    Amarelos por padrão no card
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                  {SPECIAL_SUPPLIES.map((item) => {
-                    const active = isSpecialSupplyActive(editData.processos, item.id);
-                    return (
-                      <button
-                        type="button"
-                        key={item.id}
-                        onClick={() => {
-                          setEditData((d) => ({
-                            ...d,
-                            processos: toggleSpecialSupplyActive(d.processos, item.id),
-                          }));
-                        }}
-                        className={`py-2 px-3 rounded-lg border text-xs font-bold font-mono-tech transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                          active
-                            ? "bg-amber-500/20 border-amber-500 text-amber-600 dark:text-amber-400 font-extrabold shadow-sm"
-                            : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
-                        }`}
-                      >
-                        <span className={`w-2 h-2 rounded-full ${active ? "bg-amber-500" : "bg-muted-foreground/30"}`} />
-                        <span>{item.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Subcampos condicionais para PANTONE e OUTROS */}
-                {isSpecialSupplyActive(editData.processos, "PANTONE") && (
-                  <div className="p-2.5 rounded-lg border border-amber-500/40 bg-amber-500/10 space-y-1 animate-in fade-in-50 duration-200">
-                    <Label className="text-xs font-bold text-amber-700 dark:text-amber-300">
-                      Números dos Pantones
-                    </Label>
-                    <Input
-                      value={getSpecialSupplyCustomText(editData.processos, "PANTONE")}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setEditData((d) => ({
-                          ...d,
-                          processos: setSpecialSupplyCustomText(d.processos, "PANTONE", val),
-                        }));
-                      }}
-                      placeholder="Ex: 485 C, Reflex Blue, Warm Red..."
-                      className="text-xs bg-background h-8"
-                    />
-                  </div>
-                )}
-
-                {isSpecialSupplyActive(editData.processos, "OUTROS") && (
-                  <div className="p-2.5 rounded-lg border border-amber-500/40 bg-amber-500/10 space-y-1 animate-in fade-in-50 duration-200">
-                    <Label className="text-xs font-bold text-amber-700 dark:text-amber-300">
-                      Especificação de Outros Suprimentos / Processos
-                    </Label>
-                    <Input
-                      value={getSpecialSupplyCustomText(editData.processos, "OUTROS")}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setEditData((d) => ({
-                          ...d,
-                          processos: setSpecialSupplyCustomText(d.processos, "OUTROS", val),
-                        }));
-                      }}
-                      placeholder="Descreva o processo especial ou suprimento necessário..."
-                      className="text-xs bg-background h-8"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* ═══ ANEXOS SHAREPOINT (MODO EDIÇÃO) ═══ */}
-              <div className="border rounded-lg p-3">
-                <OrderAttachmentsSection
-                  orderId={order.id}
-                  orderTitulo={editData.titulo || order.titulo}
-                  readOnly={false}
-                  canDelete={true}
-                />
-              </div>
-
-              <div className="flex gap-2 justify-end pt-2">
-                <Button variant="outline" onClick={() => setEditing(false)}>
-                  Cancelar
-                </Button>
-                <Button onClick={handleSave}>Salvar Alterações</Button>
-              </div>
-            </div>
-          ) : (
             /* ═══ VIEW MODE (DUAL COLUMN SPLIT, CENTRALIZADO) ═══ */
             <div className="flex flex-col flex-1 overflow-hidden">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 overflow-y-auto px-6 py-4 max-h-[68vh] scrollbar-none">
@@ -1067,7 +776,10 @@ export function OrderDetailDialog({
                         size="sm"
                         variant="outline"
                         className="text-foreground text-xs rounded-xl h-9 px-3"
-                        onClick={() => setEditing(true)}
+                        onClick={() => {
+                          onOpenChange(false);
+                          setIsEditDialogOpen(true);
+                        }}
                       >
                         Editar
                       </Button>
@@ -1102,9 +814,16 @@ export function OrderDetailDialog({
                 )}
               </div>
             </div>
-          )}
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Edição no Fluxo Idêntico de Criação em 3 Etapas */}
+      <CreateOrderDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        orderToEdit={order}
+        onUpdate={onUpdate}
+      />
 
       {/* Send to Production Dialog */}
       <Dialog

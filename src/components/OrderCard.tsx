@@ -45,6 +45,7 @@ import {
 } from "@/lib/processos";
 import { OrderAttachmentsSection } from "./sharepoint/OrderAttachmentsSection";
 import { OrderEmailEventsSection } from "./email/OrderEmailEventsSection";
+import { CreateOrderDialog } from "./CreateOrderDialog";
 
 // sortAndFilterProcessos importado diretamente de @/lib/processos
 
@@ -167,6 +168,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
   const currentRevision = getOrderRevision(order);
   const cleanObs = cleanObservationRevision(order.observacao);
   const [open, setOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState({
     titulo: order.titulo,
@@ -859,408 +861,6 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
             </div>
           </div>
 
-          {editing ? (
-            <div className="space-y-4">
-              {/* ═══ CABEÇALHO ═══ */}
-              <div className="border rounded-lg p-3 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs uppercase text-muted-foreground">Nº OS *</Label>
-                    <Input value={editData.titulo} onChange={(e) => setEditData((d) => ({ ...d, titulo: e.target.value }))} className="h-9" />
-                  </div>
-                  <div>
-                    <Label className="text-xs uppercase text-muted-foreground">Cliente *</Label>
-                    <Input value={editData.cliente} onChange={(e) => setEditData((d) => ({ ...d, cliente: e.target.value.toUpperCase() }))} className="h-9 uppercase" />
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-xs uppercase text-muted-foreground">Descrição do Serviço</Label>
-                  <Input value={editData.descricao} onChange={(e) => setEditData((d) => ({ ...d, descricao: e.target.value }))} className="h-9" />
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs uppercase text-muted-foreground">Tipo de Trabalho</Label>
-                    <Select
-                      value={editData.tipo_trabalho || "novo"}
-                      onValueChange={(v) => setEditData((d) => ({ ...d, tipo_trabalho: v, os_anterior: v === "repeticao" ? d.os_anterior : "" }))}
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="novo">Trabalho Novo</SelectItem>
-                        <SelectItem value="repeticao">Repetição</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  {editData.tipo_trabalho === "repeticao" && (
-                    <div>
-                      <Label className="text-xs uppercase text-amber-600 dark:text-amber-400 font-bold">N.º O.S ANTERIOR *</Label>
-                      <Input
-                        value={editData.os_anterior || ""}
-                        onChange={(e) => setEditData((d) => ({ ...d, os_anterior: e.target.value }))}
-                        placeholder="Ex: 69387"
-                        className="h-9 font-mono-tech font-bold border-amber-500/40"
-                      />
-                    </div>
-                  )}
-                  <div>
-                    <Label className="text-xs uppercase text-muted-foreground flex items-center gap-1">
-                      <RotateCcw className="h-3 w-3 text-amber-500" />
-                      Revisão (REV)
-                    </Label>
-                    <Input
-                      type="number"
-                      min={1}
-                      value={editData.revisao ?? 1}
-                      onChange={(e) => {
-                        const val = parseInt(e.target.value, 10);
-                        setEditData((d) => ({ ...d, revisao: isNaN(val) ? 1 : val }));
-                      }}
-                      className="h-9 font-mono-tech font-bold"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <Label className="text-xs uppercase text-muted-foreground">Vendedor *</Label>
-                  <Select value={editData.vendedor} onValueChange={(v) => setEditData((d) => ({ ...d, vendedor: v }))}>
-                    <SelectTrigger className="h-9"><SelectValue placeholder="Nome" /></SelectTrigger>
-                    <SelectContent>
-                      {vendedoresList.map((v) => (
-                        <SelectItem key={v.id} value={v.nome}>{v.nome}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs uppercase text-muted-foreground">Operador Responsável</Label>
-                  <Select
-                    value={editData.operador || "__none__"}
-                    onValueChange={(v) => setEditData((d) => ({ ...d, operador: v === "__none__" ? "" : v }))}
-                  >
-                    <SelectTrigger className="h-9">
-                      <SelectValue placeholder="Selecionar operador..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__none__" className="text-muted-foreground italic">
-                        — Nenhum operador —
-                      </SelectItem>
-                      {operadoresList.map((op) => (
-                        <SelectItem key={op.id} value={op.nome}>
-                          {op.nome} {op.setor_vinculado ? `(${op.setor_vinculado})` : ""}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label className="text-xs uppercase text-muted-foreground">OBS</Label>
-                  <Textarea value={editData.observacao} onChange={(e) => setEditData((d) => ({ ...d, observacao: e.target.value }))} placeholder="Observações gerais..." className="min-h-[50px]" />
-                </div>
-              </div>
-
-              {/* ═══ PROVA ═══ */}
-              <div className="border rounded-lg p-3 space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Prova *</Label>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="edit-urgente-prova"
-                      checked={editData.urgente_prova}
-                      onCheckedChange={(v) => {
-                        const isUrg = !!v;
-                        setEditData((d) => {
-                          let nextPrazo = d.prazo;
-                          if (isUrg && !nextPrazo) {
-                            const date = new Date();
-                            date.setHours(date.getHours() + 2);
-                            const pad = (n: number) => String(n).padStart(2, "0");
-                            nextPrazo = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-                          }
-                          return { ...d, urgente_prova: isUrg, prazo: nextPrazo };
-                        });
-                      }}
-                    />
-                    <Label htmlFor="edit-urgente-prova" className={`text-sm font-medium cursor-pointer flex items-center gap-1.5 rounded px-1.5 py-0.5 transition-colors ${editData.urgente_prova ? "bg-red-600 text-white animate-pulse" : "text-red-600 dark:text-red-400"}`}>
-                      <AlertTriangle className="h-4 w-4" /> Urgente
-                    </Label>
-                  </div>
-                </div>
-                {editData.urgente_prova && (
-                  <div className="p-2.5 rounded-lg border border-rose-500/30 bg-rose-500/10 space-y-1.5">
-                    <Label className="text-xs font-bold text-rose-600 dark:text-rose-300 uppercase flex items-center gap-1.5">
-                      <Clock className="h-3.5 w-3.5 text-rose-500 animate-pulse" />
-                      Prazo da Prova Urgente
-                    </Label>
-                    <Input
-                      type="datetime-local"
-                      value={editData.prazo}
-                      onChange={(e) => setEditData((d) => ({ ...d, prazo: e.target.value }))}
-                      className="h-8 text-xs font-mono-tech bg-background"
-                    />
-                  </div>
-                )}
-                <div className="flex items-center gap-4 flex-wrap">
-                  <div className="flex items-center gap-2">
-                    <Checkbox id="edit-prova-digital" checked={editData.prova_digital} onCheckedChange={(v) => setEditData((d) => ({ ...d, prova_digital: !!v }))} />
-                    <Label htmlFor="edit-prova-digital" className={`text-sm cursor-pointer px-2 py-0.5 rounded text-xs font-semibold ${editData.prova_digital ? "bg-sky-600 text-white" : "bg-muted text-foreground"}`}>Digital</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox id="edit-prova-email" checked={editData.prova_email} onCheckedChange={(v) => setEditData((d) => ({ ...d, prova_email: !!v }))} />
-                    <Label htmlFor="edit-prova-email" className={`text-sm cursor-pointer px-2 py-0.5 rounded text-xs font-semibold ${editData.prova_email ? "bg-pink-600 text-white" : "bg-muted text-foreground"}`}>E-mail</Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox id="edit-saida-direta" checked={editData.saida_direta} onCheckedChange={(v) => setEditData((d) => ({ ...d, saida_direta: !!v }))} />
-                    <Label htmlFor="edit-saida-direta" className={`text-sm cursor-pointer px-2 py-0.5 rounded text-xs font-semibold ${editData.saida_direta ? "bg-yellow-500 text-black" : "bg-muted text-foreground"}`}>Saída Direta</Label>
-                  </div>
-                </div>
-                {(editData.prova_digital || editData.prova_email) && (
-                  <div className="space-y-2 pl-2 border-l-2 border-sky-200">
-                    <Input value={editData.destinatario} onChange={(e) => setEditData((d) => ({ ...d, destinatario: e.target.value }))} placeholder="A/C:" className="h-8 text-sm" />
-                    <Input value={editData.endereco_entrega} onChange={(e) => setEditData((d) => ({ ...d, endereco_entrega: e.target.value }))} placeholder="Endereço:" className="h-8 text-sm" />
-                    <Textarea value={editData.obs_prova} onChange={(e) => setEditData((d) => ({ ...d, obs_prova: e.target.value }))} placeholder="OBS prova..." className="text-sm min-h-[40px]" rows={2} />
-                    {editData.prova_digital && (
-                      <div className="grid grid-cols-3 gap-2 rounded-md p-2">
-                        <div>
-                          <Label className="text-xs uppercase text-muted-foreground">Entregue para</Label>
-                          <Input value={editData.entregue_para} onChange={(e) => setEditData((d) => ({ ...d, entregue_para: e.target.value }))} placeholder="Nome de quem recebeu" className="h-8 text-sm bg-muted-foreground/20 dark:bg-muted-foreground/30" />
-                        </div>
-                        <div>
-                          <Label className="text-xs uppercase text-muted-foreground">Entregue por</Label>
-                          <Input value={editData.entregue_por} onChange={(e) => setEditData((d) => ({ ...d, entregue_por: e.target.value }))} placeholder="Nome de quem entregou" className="h-8 text-sm bg-muted-foreground/20 dark:bg-muted-foreground/30" />
-                        </div>
-                        <div>
-                          <Label className="text-xs uppercase text-muted-foreground">Data</Label>
-                          <Input type="datetime-local" value={editData.entregue_em} onChange={(e) => setEditData((d) => ({ ...d, entregue_em: e.target.value }))} className="h-8 text-sm bg-muted-foreground/20 dark:bg-muted-foreground/30" />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* ═══ ACABAMENTO ═══ */}
-              <div className="border rounded-lg p-3 space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Acabamento</Label>
-                  <div className="flex items-center gap-2">
-                    <Checkbox id="edit-urgente-acabamento" checked={editData.urgente_acabamento} onCheckedChange={(v) => setEditData((d) => ({ ...d, urgente_acabamento: !!v }))} />
-                    <Label htmlFor="edit-urgente-acabamento" className={`text-sm font-medium cursor-pointer flex items-center gap-1.5 rounded px-1.5 py-0.5 transition-colors ${editData.urgente_acabamento ? "bg-red-600 text-white animate-pulse" : "text-red-600 dark:text-red-400"}`}>
-                      <AlertTriangle className="h-4 w-4" /> Urgente
-                    </Label>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-1">
-                  {SPECIAL_SUPPLIES.map((item) => {
-                    const active = isSpecialSupplyActive(editData.processos, item.id);
-                    return (
-                      <button
-                        type="button"
-                        key={item.id}
-                        onClick={() => {
-                          setEditData((d) => ({
-                            ...d,
-                            processos: toggleSpecialSupplyActive(d.processos, item.id),
-                          }));
-                        }}
-                        className={`p-2.5 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1 text-center cursor-pointer ${
-                          active
-                            ? "bg-amber-500/20 border-amber-500 text-amber-700 dark:text-amber-300 font-extrabold shadow-[0_0_12px_rgba(245,158,11,0.25)]"
-                            : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent hover:border-border/80"
-                        }`}
-                      >
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={`w-2 h-2 rounded-full ${
-                              active ? "bg-amber-500" : "bg-muted-foreground/30"
-                            }`}
-                          />
-                          <span className="font-mono-tech font-black text-xs tracking-wider">
-                            {item.label}
-                          </span>
-                        </div>
-                        <span className="text-[10px] font-medium opacity-80">
-                          {active ? "Marcado (Pendente no Card)" : "Clique p/ marcar"}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* CAMPO DE NÚMEROS DO PANTONE */}
-                {isSpecialSupplyActive(editData.processos, "PANTONE") && (
-                  <div className="p-2.5 rounded-lg border border-amber-500/40 bg-amber-500/10 space-y-1">
-                    <Label className="text-[11px] font-bold text-amber-700 dark:text-amber-300 uppercase flex items-center gap-1">
-                      <Sparkles className="h-3 w-3 text-amber-500" />
-                      Números dos Pantones
-                    </Label>
-                    <Input
-                      value={getSpecialSupplyCustomText(editData.processos, "PANTONE")}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setEditData((d) => ({
-                          ...d,
-                          processos: setSpecialSupplyCustomText(d.processos, "PANTONE", val),
-                        }));
-                      }}
-                      placeholder="Ex: 485 C, Reflex Blue..."
-                      className="h-8 text-xs font-mono-tech bg-background"
-                    />
-                  </div>
-                )}
-
-                {/* CAMPO DE PREENCHIMENTO MANUAL: OUTROS */}
-                {isSpecialSupplyActive(editData.processos, "OUTROS") && (
-                  <div className="p-2.5 rounded-lg border border-amber-500/40 bg-amber-500/10 space-y-1">
-                    <Label className="text-[11px] font-bold text-amber-700 dark:text-amber-300 uppercase flex items-center gap-1">
-                      <Sparkles className="h-3 w-3 text-amber-500" />
-                      Especificação de Outros
-                    </Label>
-                    <Input
-                      value={getSpecialSupplyCustomText(editData.processos, "OUTROS")}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setEditData((d) => ({
-                          ...d,
-                          processos: setSpecialSupplyCustomText(d.processos, "OUTROS", val),
-                        }));
-                      }}
-                      placeholder="Descreva o processo / suprimento..."
-                      className="h-8 text-xs bg-background"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* ═══ EXPEDIÇÃO ═══ */}
-              <div className="border rounded-lg p-3 space-y-1.5">
-                <div className="flex items-center justify-between gap-2">
-                  <Label className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Expedição</Label>
-                  <div className="flex items-center gap-2">
-                    <Checkbox id="edit-urgente-expedicao" checked={editData.urgente_expedicao} onCheckedChange={(v) => setEditData((d) => ({ ...d, urgente_expedicao: !!v }))} />
-                    <Label htmlFor="edit-urgente-expedicao" className={`text-sm font-medium cursor-pointer flex items-center gap-1.5 rounded px-1.5 py-0.5 transition-colors ${editData.urgente_expedicao ? "bg-red-600 text-white animate-pulse" : "text-red-600 dark:text-red-400"}`}>
-                      <AlertTriangle className="h-4 w-4" /> Urgente
-                    </Label>
-                  </div>
-                </div>
-
-                {/* Tipo Entrega: MOTO / CARRO / RETIRA */}
-                <div className="flex items-center gap-4 flex-wrap">
-                  {["MOTO", "CARRO", "RETIRA"].map((tipo) => (
-                    <div key={tipo} className="flex items-center gap-2">
-                      <Checkbox
-                        id={`edit-entrega-${tipo}`}
-                        checked={editData.tipo_entrega.includes(tipo)}
-                        onCheckedChange={() => toggleEditTipoEntrega(tipo)}
-                      />
-                      <Label htmlFor={`edit-entrega-${tipo}`} className={`text-sm cursor-pointer font-semibold px-2 py-0.5 rounded text-xs ${
-                        editData.tipo_entrega.includes(tipo)
-                          ? tipo === "CARRO" ? "bg-pink-600 text-white"
-                            : tipo === "MOTO" ? "bg-blue-600 text-white"
-                            : "bg-yellow-500 text-black"
-                          : ""
-                      }`}>
-                        {tipo.charAt(0) + tipo.slice(1).toLowerCase()}
-                      </Label>
-                    </div>
-                  ))}
-                </div>
-
-                {/* ENTREGAR COM: NF / PROTOCOLO */}
-                <div className="space-y-2">
-                  <Label className="text-xs uppercase text-muted-foreground">Entregar com</Label>
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="edit-tem-nf"
-                        checked={editData.tipo_documento === "NF"}
-                        onCheckedChange={(checked) => setEditData((d) => ({ ...d, tipo_documento: checked ? "NF" as const : "" as const, valor_documento: checked ? d.valor_documento : "" }))}
-                      />
-                      <Label htmlFor="edit-tem-nf" className="text-sm cursor-pointer font-semibold">NF</Label>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Checkbox
-                        id="edit-tem-protocolo"
-                        checked={editData.tipo_documento === "PROTOCOLO"}
-                        onCheckedChange={(checked) => setEditData((d) => ({ ...d, tipo_documento: checked ? "PROTOCOLO" as const : "" as const, valor_documento: checked ? d.valor_documento : "" }))}
-                      />
-                      <Label htmlFor="edit-tem-protocolo" className="text-sm cursor-pointer font-semibold">Protocolo</Label>
-                    </div>
-                  </div>
-                </div>
-
-                {/* DA: empresa */}
-                <div>
-                  <Label className="text-xs uppercase text-muted-foreground">Da</Label>
-                  <RadioGroup
-                    value={editData.empresa_entrega}
-                    onValueChange={(v) => setEditData((d) => ({ ...d, empresa_entrega: v }))}
-                    className="flex items-center gap-4 mt-1"
-                  >
-                    {["PRIMACOR", "IMPRIMASET", "CLIENTE"].map((emp) => (
-                      <div key={emp} className="flex items-center gap-2">
-                        <RadioGroupItem value={emp} id={`edit-empresa-${emp}`} />
-                        <Label htmlFor={`edit-empresa-${emp}`} className={`text-sm cursor-pointer font-semibold px-2 py-0.5 rounded text-xs ${
-                          editData.empresa_entrega === emp
-                            ? emp === "PRIMACOR" ? "bg-blue-600 text-white"
-                              : emp === "IMPRIMASET" ? "bg-pink-600 text-white"
-                              : emp === "CLIENTE" ? "bg-yellow-500 text-black"
-                              : ""
-                            : ""
-                        }`}>{emp === "IMPRIMASET" ? "Imprimaset" : emp.charAt(0) + emp.slice(1).toLowerCase()}</Label>
-                      </div>
-                    ))}
-                  </RadioGroup>
-                </div>
-
-                <div>
-                  <Label className="text-xs uppercase text-muted-foreground">Endereço</Label>
-                  <Input value={editData.entrega_endereco} onChange={(e) => setEditData((d) => ({ ...d, entrega_endereco: e.target.value }))} placeholder="Endereço de entrega" className="h-9" />
-                </div>
-                <div>
-                  <Label className="text-xs uppercase text-muted-foreground">A/C</Label>
-                  <Input value={editData.entrega_ac} onChange={(e) => setEditData((d) => ({ ...d, entrega_ac: e.target.value }))} placeholder="Aos cuidados de..." className="h-9" />
-                </div>
-                <div>
-                  <Label className="text-xs uppercase text-muted-foreground">Data Entrega</Label>
-                  <Input type="datetime-local" value={editData.entrega_data_limite} onChange={(e) => setEditData((d) => ({ ...d, entrega_data_limite: e.target.value }))} className="h-9" />
-                </div>
-                <div>
-                  <Label className="text-xs uppercase text-muted-foreground">OBS</Label>
-                  <Textarea value={editData.obs_entrega} onChange={(e) => setEditData((d) => ({ ...d, obs_entrega: e.target.value }))} placeholder="Observações da entrega..." className="min-h-[40px]" />
-                </div>
-
-                {/* Entregue para / por / data */}
-                <div className="grid grid-cols-3 gap-2">
-                  <div>
-                    <Label className="text-xs uppercase text-muted-foreground">Entregue para</Label>
-                    <Input value={editData.entregue_para} onChange={(e) => setEditData((d) => ({ ...d, entregue_para: e.target.value }))} placeholder="Nome de quem recebeu" className="h-9 bg-muted-foreground/20 dark:bg-muted-foreground/30" />
-                  </div>
-                  <div>
-                    <Label className="text-xs uppercase text-muted-foreground">Entregue por</Label>
-                    <Input value={editData.entregue_por} onChange={(e) => setEditData((d) => ({ ...d, entregue_por: e.target.value }))} placeholder="Nome de quem entregou" className="h-9 bg-muted-foreground/20 dark:bg-muted-foreground/30" />
-                  </div>
-                  <div>
-                    <Label className="text-xs uppercase text-muted-foreground">Data</Label>
-                    <Input type="datetime-local" value={editData.entregue_em} onChange={(e) => setEditData((d) => ({ ...d, entregue_em: e.target.value }))} className="h-9 bg-muted-foreground/20 dark:bg-muted-foreground/30" />
-                  </div>
-                </div>
-
-                {/* Prazo / Horário Limite */}
-                {(editData.urgente_prova || editData.urgente_impressao || editData.urgente_acabamento || editData.urgente_expedicao) && (
-                  <div>
-                    <Label className="text-xs font-medium">Horário Limite</Label>
-                    <Input type="datetime-local" value={editData.prazo} onChange={(e) => setEditData((d) => ({ ...d, prazo: e.target.value }))} className="mt-1 h-9" />
-                  </div>
-                )}
-              </div>
-
-              <div className="flex gap-2 justify-end">
-                <Button variant="outline" onClick={() => setEditing(false)}>Cancelar</Button>
-                <Button onClick={handleSave}>Salvar</Button>
-              </div>
-            </div>
-          ) : (
             /* ═══ VIEW MODE (DUAL COLUMN SPLIT, NO VERTICAL SCROLLBAR) ═══ */
             <div className="flex flex-col flex-1 overflow-hidden">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 overflow-y-auto px-6 py-4 max-h-[68vh] scrollbar-none">
@@ -1571,7 +1171,10 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                         size="sm"
                         variant="outline"
                         className="text-foreground text-xs rounded-xl h-9 px-3"
-                        onClick={() => setEditing(true)}
+                        onClick={() => {
+                          setOpen(false);
+                          setIsEditDialogOpen(true);
+                        }}
                       >
                         Editar
                       </Button>
@@ -1600,9 +1203,16 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                 )}
               </div>
             </div>
-          )}
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Edição no Fluxo Idêntico de Criação em 3 Etapas */}
+      <CreateOrderDialog
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        orderToEdit={order}
+        onUpdate={onUpdate}
+      />
 
       {/* Send to Production Dialog */}
       <Dialog open={sendDialogOpen} onOpenChange={(open) => {
