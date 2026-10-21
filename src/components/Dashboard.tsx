@@ -1,16 +1,17 @@
 import { Order, STATUS_CONFIG, STATUS_ORDER, OrderStatus } from "@/types/order";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
-  BarChart3, ClipboardList, Clock, TrendingUp, Archive, Timer, CheckCircle2,
+  BarChart3, ClipboardList, Clock, TrendingUp, Archive, Timer, CheckCircle2, ShoppingBag, RotateCcw,
   ArrowRight, FileDown, DatabaseBackup, Loader2, Upload, AlertTriangle,
   Printer, CalendarClock, History, Bell, Trash2, Info, Square,
   PrinterCheck, Layers, Truck, List, Eye, EyeOff, Search, Filter,
-  ChevronLeft, ChevronRight, Activity, ShieldCheck, Sparkles, RefreshCw, X, Download, Check
+  ChevronLeft, ChevronRight, Activity, ShieldCheck, Sparkles, RefreshCw, X, Download, Check, Palette, ShoppingCart
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PreImpressaoTab } from "./PreImpressaoTab";
+import { getOrderRevision, cleanObservationRevision } from "@/lib/orderRevision";
 import { OffsetIcon } from "./icons/OffsetIcon";
-import { DEPARTMENTS, EXPEDICAO_DEPARTMENT, Department, DEPARTMENT_MAP } from "@/types/production";
+import { DEPARTMENTS, EXPEDICAO_DEPARTMENT, COMPRAS_DEPARTMENT, Department, DEPARTMENT_MAP } from "@/types/production";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useOrderAnalytics, formatDuration } from "@/hooks/useOrderAnalytics";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,8 @@ import { Badge } from "@/components/ui/badge";
 import {
   SPECIAL_SUPPLIES,
   isSpecialSupplyActive,
+  isSpecialSupplySent,
+  getSpecialSupplyCustomText,
   getSpecialSupplyDetails,
   SpecialSupplyId,
   formatSafeDate,
@@ -56,6 +59,10 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
   const [supplySearch, setSupplySearch] = useState("");
   const [supplyTypeFilter, setSupplyTypeFilter] = useState<string>("all");
   const [supplyStatusFilter, setSupplyStatusFilter] = useState<string>("all");
+
+  // Governança e Auditoria das Mudanças Recentes (REVs, Compras, Trava de Saída)
+  const [governancaSubFilter, setGovernancaSubFilter] = useState<"all" | "revisoes" | "compras" | "saida_travas">("all");
+  const [governancaSearch, setGovernancaSearch] = useState("");
 
   // Avisos management
   const [avisos, setAvisos] = useState<any[]>([]);
@@ -247,6 +254,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
       pre_impressao: preImpressaoOrders.length,
       qualidade: activeNonArchived.filter((o) => o.setor === "qualidade" && o.setor_status !== "saida").length,
       expedicao: activeNonArchived.filter((o) => o.setor === "expedicao" && o.setor_status !== "saida").length,
+      compras: activeNonArchived.filter((o) => o.setor === "compras" && o.setor_status !== "saida").length,
     };
   }, [activeNonArchived, preImpressaoOrders]);
 
@@ -287,6 +295,9 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
   const filteredProductionOrders = useMemo(() => {
     let list = activeNonArchived.filter((o) => {
       // Must be a production order
+      if (o.setor === "compras") {
+        return o.setor_status !== "saida";
+      }
       if (o.setor) {
         return o.setor_status !== "saida" && !o.parent_order_id;
       } else {
@@ -453,6 +464,217 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
     toast.success("Relatório de suprimentos exportado com sucesso!");
   };
 
+  // ═══ GOVERNANÇA: CONTROLE DE REVISÕES (REVS - RETRABALHOS) ═══
+  const revisionOrders = useMemo(() => {
+    return orders
+      .filter((o) => !o.arquivado && getOrderRevision(o) >= 2)
+      .map((o) => {
+        const revNumber = getOrderRevision(o);
+        const cleanObs = cleanObservationRevision(o.observacao);
+        return {
+          order: o,
+          revNumber,
+          cleanObs,
+        };
+      })
+      .sort((a, b) => b.revNumber - a.revNumber || new Date(b.order.updated_at).getTime() - new Date(a.order.updated_at).getTime());
+  }, [orders]);
+
+  const rev2Count = useMemo(() => revisionOrders.filter((r) => r.revNumber === 2).length, [revisionOrders]);
+  const rev3PlusCount = useMemo(() => revisionOrders.filter((r) => r.revNumber >= 3).length, [revisionOrders]);
+
+  // ═══ GOVERNANÇA: CENTRAL DE COMPRAS INTEGRADA (PANTONES & OUTROS) ═══
+  const comprasOrders = useMemo(() => {
+    return orders
+      .filter((o) => !o.arquivado && o.setor === "compras")
+      .map((o) => {
+        const pantoneActive = isSpecialSupplyActive(o.processos, "PANTONE");
+        const pantoneSent = isSpecialSupplySent(o.processos, "PANTONE");
+        const pantoneText = getSpecialSupplyCustomText(o.processos, "PANTONE");
+
+        const outrosActive = isSpecialSupplyActive(o.processos, "OUTROS");
+        const outrosSent = isSpecialSupplySent(o.processos, "OUTROS");
+        const outrosText = getSpecialSupplyCustomText(o.processos, "OUTROS");
+
+        const facaActive = isSpecialSupplyActive(o.processos, "FACA");
+        const facaSent = isSpecialSupplySent(o.processos, "FACA");
+
+        const clicheActive = isSpecialSupplyActive(o.processos, "CLICHE");
+        const clicheSent = isSpecialSupplySent(o.processos, "CLICHE");
+
+        const hasItemsToBuy = pantoneActive || outrosActive;
+        const isExplicitComprado = o.processos?.some(
+          (p) => p === "COMPRADO" || p.startsWith("COMPRADO:") || p === "COMPRA:ok" || p.startsWith("COMPRA:ok:")
+        );
+        const isComprado = isExplicitComprado || (hasItemsToBuy && (!pantoneActive || pantoneSent) && (!outrosActive || outrosSent));
+
+        return {
+          order: o,
+          pantoneActive,
+          pantoneSent,
+          pantoneText,
+          outrosActive,
+          outrosSent,
+          outrosText,
+          facaActive,
+          facaSent,
+          clicheActive,
+          clicheSent,
+          isComprado,
+          isFinalizado: o.setor_status === "saida",
+        };
+      })
+      .sort((a, b) => new Date(b.order.updated_at).getTime() - new Date(a.order.updated_at).getTime());
+  }, [orders]);
+
+  const comprasStats = useMemo(() => {
+    const total = comprasOrders.length;
+    const comprados = comprasOrders.filter((c) => c.isComprado).length;
+    const pendentes = total - comprados;
+    const pantoneCount = comprasOrders.filter((c) => c.pantoneActive).length;
+    const outrosCount = comprasOrders.filter((c) => c.outrosActive).length;
+    return { total, comprados, pendentes, pantoneCount, outrosCount };
+  }, [comprasOrders]);
+
+  // ═══ GOVERNANÇA: AUDITORIA DA TRAVA DE SAÍDA (FACA & CLICHÊ) ═══
+  const saidaOrders = useMemo(() => {
+    return orders
+      .filter((o) => !o.arquivado && (o.status === "arquivo_liberado" || o.setor_status === "saida"))
+      .map((o) => {
+        const facaActive = isSpecialSupplyActive(o.processos, "FACA");
+        const facaSent = isSpecialSupplySent(o.processos, "FACA");
+        const clicheActive = isSpecialSupplyActive(o.processos, "CLICHE");
+        const clicheSent = isSpecialSupplySent(o.processos, "CLICHE");
+        const pantoneActive = isSpecialSupplyActive(o.processos, "PANTONE");
+        const pantoneSent = isSpecialSupplySent(o.processos, "PANTONE");
+
+        const requiredAny = facaActive || clicheActive;
+        const allSent = (!facaActive || facaSent) && (!clicheActive || clicheSent);
+
+        return {
+          order: o,
+          facaActive,
+          facaSent,
+          clicheActive,
+          clicheSent,
+          pantoneActive,
+          pantoneSent,
+          requiredAny,
+          allSent,
+        };
+      })
+      .sort((a, b) => new Date(b.order.updated_at).getTime() - new Date(a.order.updated_at).getTime());
+  }, [orders]);
+
+  const saidaWithToolsCount = useMemo(() => saidaOrders.filter((s) => s.requiredAny).length, [saidaOrders]);
+
+  // Filtros de busca da aba Governança
+  const filteredRevisionOrders = useMemo(() => {
+    let list = revisionOrders;
+    if (governancaSearch.trim()) {
+      const q = governancaSearch.toLowerCase();
+      list = list.filter((r) =>
+        r.order.titulo.toLowerCase().includes(q) ||
+        (r.order.cliente && r.order.cliente.toLowerCase().includes(q)) ||
+        (r.order.descricao && r.order.descricao.toLowerCase().includes(q)) ||
+        (r.cleanObs && r.cleanObs.toLowerCase().includes(q)) ||
+        (r.order.vendedor && r.order.vendedor.toLowerCase().includes(q)) ||
+        (r.order.operador && r.order.operador.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [revisionOrders, governancaSearch]);
+
+  const filteredComprasOrders = useMemo(() => {
+    let list = comprasOrders;
+    if (governancaSearch.trim()) {
+      const q = governancaSearch.toLowerCase();
+      list = list.filter((c) =>
+        c.order.titulo.toLowerCase().includes(q) ||
+        (c.order.cliente && c.order.cliente.toLowerCase().includes(q)) ||
+        (c.order.descricao && c.order.descricao.toLowerCase().includes(q)) ||
+        (c.pantoneText && c.pantoneText.toLowerCase().includes(q)) ||
+        (c.outrosText && c.outrosText.toLowerCase().includes(q)) ||
+        (c.order.responsavel_compra && String(c.order.responsavel_compra).toLowerCase().includes(q)) ||
+        (c.order.fornecedor_compra && String(c.order.fornecedor_compra).toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [comprasOrders, governancaSearch]);
+
+  const filteredSaidaOrders = useMemo(() => {
+    let list = saidaOrders;
+    if (governancaSearch.trim()) {
+      const q = governancaSearch.toLowerCase();
+      list = list.filter((s) =>
+        s.order.titulo.toLowerCase().includes(q) ||
+        (s.order.cliente && s.order.cliente.toLowerCase().includes(q)) ||
+        (s.order.descricao && s.order.descricao.toLowerCase().includes(q)) ||
+        (s.order.operador && s.order.operador.toLowerCase().includes(q))
+      );
+    }
+    return list;
+  }, [saidaOrders, governancaSearch]);
+
+  const handleExportGovernancaCSV = () => {
+    const rows: string[][] = [];
+    rows.push(["TIPO", "O.S.", "CLIENTE", "STATUS_OU_ETAPA", "DETALHES_MUDANCA", "OPERADOR_OU_RESPONSAVEL", "VENDEDOR", "DATA_ATUALIZACAO"]);
+
+    revisionOrders.forEach((r) => {
+      rows.push([
+        "RETRABALHO_REVISAO",
+        `#${r.order.titulo}`,
+        `"${(r.order.cliente || "").toUpperCase().replace(/"/g, '""')}"`,
+        r.order.status || r.order.setor_status || "—",
+        `"REV ${r.revNumber} - ${(r.cleanObs || "Sem observação").replace(/"/g, '""')}"`,
+        `"${(r.order.operador || "—").replace(/"/g, '""')}"`,
+        `"${(r.order.vendedor || "—").replace(/"/g, '""')}"`,
+        formatSafeDate(r.order.updated_at, "dd/MM/yyyy HH:mm") || "—",
+      ]);
+    });
+
+    comprasOrders.forEach((c) => {
+      const itens: string[] = [];
+      if (c.pantoneActive) itens.push(`Pantone: ${c.pantoneText || "Sim"}`);
+      if (c.outrosActive) itens.push(`Outros: ${c.outrosText || "Sim"}`);
+      rows.push([
+        "COMPRAS_INTEGRADA",
+        `#${c.order.titulo}`,
+        `"${(c.order.cliente || "").toUpperCase().replace(/"/g, '""')}"`,
+        c.isComprado ? "COMPRADO (VERDE)" : "PENDENTE DE COMPRA",
+        `"${itens.join(" | ") || "Sem itens específicos"}"`,
+        `"${(c.order.responsavel_compra || c.order.operador || "Compras").replace(/"/g, '""')}"`,
+        `"${(c.order.vendedor_compra || c.order.vendedor || "—").replace(/"/g, '""')}"`,
+        formatSafeDate(c.order.updated_at, "dd/MM/yyyy HH:mm") || "—",
+      ]);
+    });
+
+    saidaOrders.slice(0, 50).forEach((s) => {
+      rows.push([
+        "TRAVA_SAIDA_FERRAMENTAL",
+        `#${s.order.titulo}`,
+        `"${(s.order.cliente || "").toUpperCase().replace(/"/g, '""')}"`,
+        "SAIDA_LIBERADA",
+        `"Faca: ${s.facaActive ? (s.facaSent ? "Enviada" : "Pendente") : "N/A"} | Clichê: ${s.clicheActive ? (s.clicheSent ? "Enviado" : "N/A") : "N/A"}"`,
+        `"${(s.order.operador || "—").replace(/"/g, '""')}"`,
+        `"${(s.order.vendedor || "—").replace(/"/g, '""')}"`,
+        formatSafeDate(s.order.updated_at, "dd/MM/yyyy HH:mm") || "—",
+      ]);
+    });
+
+    const csvContent = "\uFEFF" + rows.map((row) => row.join(";")).join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `auditoria_governanca_mudancas_${format(new Date(), "yyyyMMdd_HHmm")}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("Relatório de Governança e Auditoria exportado com sucesso!");
+  };
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-in fade-in duration-300">
       {/* Executive Telemetry Header */}
@@ -585,7 +807,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
           <span className="text-[11px] text-muted-foreground">Clique para filtrar ordens no Chão de Fábrica</span>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <button
             onClick={() => handleSelectSectorFilter("pre_impressao")}
             className="flex flex-col p-3 rounded-xl bg-muted/40 dark:bg-slate-950/60 border border-border dark:border-slate-800 hover:border-cyan-500/40 hover:bg-cyan-500/5 transition-all text-left group"
@@ -633,6 +855,137 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
               />
             </div>
           </button>
+
+          <button
+            onClick={() => handleSelectSectorFilter("compras")}
+            className="flex flex-col p-3 rounded-xl bg-muted/40 dark:bg-slate-950/60 border border-border dark:border-slate-800 hover:border-pink-500/40 hover:bg-pink-500/5 transition-all text-left group"
+          >
+            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
+              <span className="font-medium group-hover:text-pink-500 dark:group-hover:text-pink-400 transition-colors flex items-center gap-1.5">
+                <ShoppingBag className="h-3.5 w-3.5 text-pink-500" /> Compras
+              </span>
+              <span className="font-mono-tech font-bold text-foreground text-sm">{sectorCounts.compras}</span>
+            </div>
+            <div className="w-full h-1.5 bg-muted dark:bg-slate-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-pink-500 dark:bg-pink-400 rounded-full transition-all duration-500"
+                style={{ width: `${total > 0 ? (sectorCounts.compras / total) * 100 : 0}%` }}
+              />
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* Row 2.5: Executive Governance & Recent System Changes Banner */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-pink-500/10 to-cyan-500/10 border border-amber-500/20 dark:border-amber-500/30 backdrop-blur-md shadow-xs space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-amber-500/20 text-amber-500 dark:text-amber-400 border border-amber-500/30">
+              <Sparkles className="h-4 w-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
+                  Radar de Governança & Mudanças Operacionais
+                </h3>
+                <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-500 dark:text-amber-400 border-amber-500/30 px-2 py-0">
+                  VISÃO ADMIN
+                </Badge>
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Auditoria em tempo real: Revisões (REVs), Trava de Saída (Faca/Clichê) e Compras Automáticas
+              </p>
+            </div>
+          </div>
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => { setActiveTab("governanca"); setGovernancaSubFilter("all"); }}
+            className="text-xs h-8 rounded-xl bg-card/70 hover:bg-card border-border gap-1.5 self-start sm:self-auto"
+          >
+            <span>Auditoria Completa</span>
+            <ArrowRight className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {/* Card 1: REVs / Retrabalhos */}
+          <div
+            onClick={() => { setActiveTab("governanca"); setGovernancaSubFilter("revisoes"); }}
+            className="p-3.5 rounded-xl bg-card/70 dark:bg-slate-950/70 border border-border dark:border-slate-800 hover:border-amber-500/40 hover:bg-amber-500/5 transition-all cursor-pointer group"
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-500 dark:text-amber-400">
+                <RotateCcw className="h-4 w-4" /> Controle de Revisões (REVs)
+              </span>
+              <span className="font-mono-tech font-extrabold text-base text-foreground">
+                {revisionOrders.length}
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Ordens com histórico de retrabalho na Preparação
+            </p>
+            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/40 text-[11px]">
+              <span className="text-muted-foreground">REV 2: <b className="text-foreground">{rev2Count}</b></span>
+              <span className="text-muted-foreground">•</span>
+              <span className={rev3PlusCount > 0 ? "text-rose-500 dark:text-rose-400 font-bold flex items-center gap-1 animate-pulse" : "text-muted-foreground"}>
+                REV 3+: <b className={rev3PlusCount > 0 ? "text-rose-500 dark:text-rose-400" : "text-foreground"}>{rev3PlusCount}</b> {rev3PlusCount > 0 && "⚠️"}
+              </span>
+            </div>
+          </div>
+
+          {/* Card 2: Trava de Saída Faca & Clichê */}
+          <div
+            onClick={() => { setActiveTab("governanca"); setGovernancaSubFilter("saida_travas"); }}
+            className="p-3.5 rounded-xl bg-card/70 dark:bg-slate-950/70 border border-border dark:border-slate-800 hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all cursor-pointer group"
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-500 dark:text-emerald-400">
+                <ShieldCheck className="h-4 w-4" /> Trava Faca & Clichê na Saída
+              </span>
+              <Badge variant="outline" className="font-mono-tech text-[10px] text-emerald-500 dark:text-emerald-400 border-emerald-500/30 bg-emerald-500/10">
+                100% AUDITADO
+              </Badge>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Saída bloqueada sem confirmação obrigatória de ferramental
+            </p>
+            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/40 text-[11px]">
+              <span className="text-muted-foreground">
+                Com Ferramental: <b className="text-foreground">{saidaWithToolsCount}</b> O.S.
+              </span>
+              <span className="text-muted-foreground">•</span>
+              <span className="text-emerald-500 dark:text-emerald-400 font-medium">Validado na Saída</span>
+            </div>
+          </div>
+
+          {/* Card 3: Central de Compras Integrada */}
+          <div
+            onClick={() => { setActiveTab("governanca"); setGovernancaSubFilter("compras"); }}
+            className="p-3.5 rounded-xl bg-card/70 dark:bg-slate-950/70 border border-border dark:border-slate-800 hover:border-pink-500/40 hover:bg-pink-500/5 transition-all cursor-pointer group"
+          >
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-pink-500 dark:text-pink-400">
+                <ShoppingBag className="h-4 w-4" /> Compras & Pantones
+              </span>
+              <span className="font-mono-tech font-extrabold text-base text-foreground">
+                {comprasStats.total} O.S.
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              Criação automática a partir da Saída da Pré-Impressão
+            </p>
+            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/40 text-[11px]">
+              <span className="text-emerald-500 dark:text-emerald-400 font-bold flex items-center gap-1">
+                <Check className="h-3 w-3 stroke-[3]" /> {comprasStats.comprados} Comprados (Verde)
+              </span>
+              <span className="text-muted-foreground">•</span>
+              <span className={comprasStats.pendentes > 0 ? "text-amber-500 dark:text-amber-400 font-bold" : "text-muted-foreground"}>
+                {comprasStats.pendentes} Pendentes
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -645,6 +998,23 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
               className="text-xs py-2 px-3.5 rounded-xl data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-300 data-[state=active]:font-bold transition-all"
             >
               Visão Geral & Gargalos
+            </TabsTrigger>
+            <TabsTrigger
+              value="governanca"
+              className="text-xs py-2 px-3.5 rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500/20 data-[state=active]:to-pink-500/20 data-[state=active]:text-amber-300 data-[state=active]:font-bold transition-all flex items-center gap-1.5 border border-transparent data-[state=active]:border-amber-500/30"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+              <span>Governança & Mudanças</span>
+              {revisionOrders.length > 0 && (
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-rose-500/30 text-rose-300 font-bold animate-pulse">
+                  {revisionOrders.length} REV
+                </span>
+              )}
+              {comprasStats.pendentes > 0 && (
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-amber-500/30 text-amber-300 font-bold">
+                  {comprasStats.pendentes} Compra
+                </span>
+              )}
             </TabsTrigger>
             <TabsTrigger
               value="producao"
@@ -716,6 +1086,128 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
               </Button>
             </div>
           )}
+
+          {/* Executive Overview: Governança das Mudanças Recentes */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* REVs Recentes */}
+            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl">
+              <CardHeader className="pb-3 border-b border-border">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <RotateCcw className="h-4 w-4 text-amber-500" /> Ordens em Revisão / Retrabalho ({revisionOrders.length})
+                  </CardTitle>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => { setActiveTab("governanca"); setGovernancaSubFilter("revisoes"); }}
+                    className="text-xs h-7 text-amber-500 hover:text-amber-400 hover:bg-amber-500/10 p-2 rounded-lg"
+                  >
+                    Ver Todas
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {revisionOrders.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-6">Nenhuma ordem com retrabalho ou revisão no momento.</p>
+                ) : (
+                  <div className="space-y-2.5">
+                    {revisionOrders.slice(0, 5).map((r) => (
+                      <div
+                        key={`home-rev-${r.order.id}`}
+                        className="p-3 rounded-xl bg-muted/40 border border-border flex items-center justify-between gap-3 hover:border-amber-500/30 transition-colors"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono-tech font-bold text-xs text-foreground">#{r.order.titulo}</span>
+                            <span className="text-[11px] font-bold text-foreground uppercase tracking-wide truncate">• {(r.order.cliente || "").toUpperCase()}</span>
+                            <Badge
+                              className={`text-[10px] font-mono-tech font-bold px-1.5 py-0 ${
+                                r.revNumber >= 3 ? "bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-pulse" : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                              }`}
+                            >
+                              REV {r.revNumber}
+                            </Badge>
+                          </div>
+                          <div className="text-[10px] text-muted-foreground mt-1 truncate">
+                            {r.cleanObs || "Motivo da revisão não especificado"}
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-[10px] font-medium text-muted-foreground">
+                            {r.order.operador || "—"}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Compras Recentes */}
+            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl">
+              <CardHeader className="pb-3 border-b border-border">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
+                    <ShoppingBag className="h-4 w-4 text-pink-500" /> Central de Compras Integrada ({comprasStats.total})
+                  </CardTitle>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => { setActiveTab("governanca"); setGovernancaSubFilter("compras"); }}
+                    className="text-xs h-7 text-pink-500 hover:text-pink-400 hover:bg-pink-500/10 p-2 rounded-lg"
+                  >
+                    Ver Todas
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-4">
+                {comprasOrders.length === 0 ? (
+                  <p className="text-xs text-muted-foreground text-center py-6">Nenhuma ordem enviada para Compras no momento.</p>
+                ) : (
+                  <div className="space-y-2.5">
+                    {comprasOrders.slice(0, 5).map((c) => (
+                      <div
+                        key={`home-compras-${c.order.id}`}
+                        className="p-3 rounded-xl bg-muted/40 border border-border flex items-center justify-between gap-3 hover:border-pink-500/30 transition-colors"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono-tech font-bold text-xs text-foreground">#{c.order.titulo}</span>
+                            <span className="text-[11px] font-bold text-foreground uppercase tracking-wide truncate">• {(c.order.cliente || "").toUpperCase()}</span>
+                            {c.pantoneActive && (
+                              <span className="text-[10px] px-1.5 py-0 rounded bg-blue-500/20 text-blue-400 font-bold border border-blue-500/30">
+                                PANTONE
+                              </span>
+                            )}
+                            {c.outrosActive && (
+                              <span className="text-[10px] px-1.5 py-0 rounded bg-purple-500/20 text-purple-400 font-medium border border-purple-500/30">
+                                INSUMO
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-muted-foreground mt-1 truncate">
+                            {c.pantoneText ? `Pantone: ${c.pantoneText}` : c.outrosText ? `Insumo: ${c.outrosText}` : (c.order.descricao || "Item em processo de compra")}
+                          </div>
+                        </div>
+                        <div className="text-right shrink-0">
+                          {c.isComprado ? (
+                            <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold">
+                              <Check className="h-3 w-3 mr-1 stroke-[3]" /> COMPRADO
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-amber-500/20 text-amber-400 border border-amber-500/40 text-[10px] font-bold">
+                              <Clock className="h-3 w-3 mr-1" /> PENDENTE
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Section: Status Breakdown & Average Stage Times */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1251,6 +1743,486 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
         </TabsContent>
 
         {/* TAB 2: CHÃO DE FÁBRICA (OS EM PRODUÇÃO) */}
+        {/* TAB: GOVERNANÇA OPERACIONAL & AUDITORIA DE MUDANÇAS */}
+        <TabsContent value="governanca" className="space-y-6 m-0">
+          {/* Header & Filter Controls */}
+          <div className="p-5 rounded-2xl bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-amber-500 dark:text-amber-400" />
+                <h2 className="text-base font-bold text-foreground">
+                  Painel de Governança Operacional & Auditoria
+                </h2>
+                <Badge variant="outline" className="font-mono-tech text-[10px] text-cyan-500 dark:text-cyan-400 border-cyan-500/30 bg-cyan-500/10">
+                  ADMIN VIEW
+                </Badge>
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                Rastreamento centralizado de Retrabalhos (REVs), Trava de Ferramental na Saída e Compras de Pantones/Insumos
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="relative w-full sm:w-64">
+                <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Filtrar por O.S. ou Cliente..."
+                  value={governancaSearch}
+                  onChange={(e) => setGovernancaSearch(e.target.value)}
+                  className="pl-9 h-9 text-xs rounded-xl bg-muted/40 border-border"
+                />
+                {governancaSearch && (
+                  <button
+                    onClick={() => setGovernancaSearch("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportGovernancaCSV}
+                className="gap-2 text-xs h-9 rounded-xl border-border bg-card hover:bg-muted text-foreground"
+              >
+                <Download className="h-3.5 w-3.5 text-emerald-500" />
+                Exportar Auditoria CSV
+              </Button>
+            </div>
+          </div>
+
+          {/* Subfilter Pills */}
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setGovernancaSubFilter("all")}
+              className={`text-xs px-3.5 py-1.5 rounded-xl font-medium transition-all ${
+                governancaSubFilter === "all"
+                  ? "bg-primary text-primary-foreground font-bold shadow-xs"
+                  : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+            >
+              Todos os Registros ({filteredRevisionOrders.length + filteredComprasOrders.length + filteredSaidaOrders.length})
+            </button>
+            <button
+              onClick={() => setGovernancaSubFilter("revisoes")}
+              className={`text-xs px-3.5 py-1.5 rounded-xl font-medium transition-all flex items-center gap-1.5 ${
+                governancaSubFilter === "revisoes"
+                  ? "bg-amber-500 text-white font-bold shadow-xs"
+                  : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span>Controle de Revisões (REVs)</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-black/20 text-white">
+                {filteredRevisionOrders.length}
+              </span>
+            </button>
+            <button
+              onClick={() => setGovernancaSubFilter("compras")}
+              className={`text-xs px-3.5 py-1.5 rounded-xl font-medium transition-all flex items-center gap-1.5 ${
+                governancaSubFilter === "compras"
+                  ? "bg-pink-600 text-white font-bold shadow-xs"
+                  : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+            >
+              <ShoppingBag className="h-3.5 w-3.5" />
+              <span>Central de Compras (Pantones & Outros)</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-black/20 text-white">
+                {filteredComprasOrders.length}
+              </span>
+            </button>
+            <button
+              onClick={() => setGovernancaSubFilter("saida_travas")}
+              className={`text-xs px-3.5 py-1.5 rounded-xl font-medium transition-all flex items-center gap-1.5 ${
+                governancaSubFilter === "saida_travas"
+                  ? "bg-emerald-600 text-white font-bold shadow-xs"
+                  : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
+            >
+              <ShieldCheck className="h-3.5 w-3.5" />
+              <span>Trava de Saída Faca & Clichê</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-black/20 text-white">
+                {filteredSaidaOrders.length}
+              </span>
+            </button>
+          </div>
+
+          {/* TABLE 1: REVISÕES & RETRABALHOS (REVs) */}
+          {(governancaSubFilter === "all" || governancaSubFilter === "revisoes") && (
+            <Card className="border border-border bg-card dark:bg-slate-900/60 backdrop-blur-md rounded-2xl overflow-hidden shadow-xl">
+              <CardHeader className="pb-3 border-b border-border bg-muted/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-amber-500/20 text-amber-500">
+                      <RotateCcw className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-sm font-semibold text-foreground">
+                        Controle de Revisões & Retrabalhos (REVs)
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Ordens que sofreram correções e retornaram para Preparação de Arquivo
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="font-mono-tech text-xs bg-amber-500/10 text-amber-500 border-amber-500/30">
+                      REV 2: {rev2Count}
+                    </Badge>
+                    {rev3PlusCount > 0 && (
+                      <Badge variant="outline" className="font-mono-tech text-xs bg-rose-500/15 text-rose-500 border-rose-500/40 animate-pulse font-bold">
+                        REV 3+: {rev3PlusCount} (CRÍTICO)
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-muted/40">
+                    <TableRow className="border-border hover:bg-transparent">
+                      <TableHead className="w-[120px] text-xs font-semibold text-muted-foreground">O.S.</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground">Cliente (Caixa Alta)</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground">Nível REV</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground">Motivo / Observação da Revisão</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground">Vendedor</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground">Operador</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground">Status / Etapa Atual</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground text-right">Última Atualização</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredRevisionOrders.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8 text-xs text-muted-foreground">
+                          Nenhuma ordem com revisão identificada no filtro atual.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredRevisionOrders.map((r) => {
+                        const isCritical = r.revNumber >= 3;
+                        const statusConfig = r.order.status ? STATUS_CONFIG[r.order.status as OrderStatus] : null;
+                        return (
+                          <TableRow key={`rev-${r.order.id}`} className="border-border/60 hover:bg-accent/40 transition-colors">
+                            <TableCell className="font-medium">
+                              <span className="font-mono-tech font-bold text-sm text-foreground">
+                                #{r.order.titulo}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col max-w-[220px]">
+                                <span className="text-xs font-bold text-foreground tracking-wide uppercase truncate">
+                                  {(r.order.cliente || "—").toUpperCase()}
+                                </span>
+                                {r.order.descricao && (
+                                  <span className="text-[11px] text-muted-foreground truncate">
+                                    {r.order.descricao}
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                className={`font-mono-tech font-bold text-xs px-2.5 py-0.5 rounded-md ${
+                                  isCritical
+                                    ? "bg-rose-500/20 text-rose-400 border border-rose-500/50 animate-pulse"
+                                    : "bg-amber-500/20 text-amber-400 border border-amber-500/40"
+                                }`}
+                              >
+                                {isCritical ? `REV ${r.revNumber} (ALERTA)` : `REV ${r.revNumber}`}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="max-w-[320px] text-xs text-foreground bg-muted/40 rounded-lg p-2 border border-border/50">
+                                {r.cleanObs || "Motivo não registrado na observação."}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-xs text-muted-foreground">
+                                {r.order.vendedor || "—"}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-xs font-medium text-foreground">
+                                {r.order.operador || "—"}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-[11px] font-medium border-border">
+                                {statusConfig?.label || r.order.setor_status || r.order.status || "—"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <span className="text-xs font-mono-tech text-muted-foreground">
+                                {formatSafeDate(r.order.updated_at, "dd/MM/yyyy HH:mm") || "—"}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
+          )}
+
+          {/* TABLE 2: CENTRAL DE COMPRAS INTEGRADA */}
+          {(governancaSubFilter === "all" || governancaSubFilter === "compras") && (
+            <Card className="border border-border bg-card dark:bg-slate-900/60 backdrop-blur-md rounded-2xl overflow-hidden shadow-xl">
+              <CardHeader className="pb-3 border-b border-border bg-muted/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-pink-600/20 text-pink-500">
+                      <ShoppingBag className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-sm font-semibold text-foreground">
+                        Central de Compras Integrada (Saída → Compras)
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Ordens enviadas para Compras para aquisição de Pantones, Insumos Especiais e Peças
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="font-mono-tech text-xs bg-emerald-500/15 text-emerald-500 border-emerald-500/30 font-semibold">
+                      Comprados: {comprasStats.comprados}
+                    </Badge>
+                    <Badge variant="outline" className="font-mono-tech text-xs bg-amber-500/15 text-amber-500 border-amber-500/30 font-semibold">
+                      Pendentes: {comprasStats.pendentes}
+                    </Badge>
+                  </div>
+                </div>
+              </CardHeader>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-muted/40">
+                    <TableRow className="border-border hover:bg-transparent">
+                      <TableHead className="w-[120px] text-xs font-semibold text-muted-foreground">O.S.</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground">Cliente (Caixa Alta)</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground">Pantones Requisitados</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground">Outros Insumos</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground">Ferramental</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground">Status da Compra</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground">Responsável / Comprador</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground">Etapa Kanban</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground text-right">Data/Hora</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredComprasOrders.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={9} className="text-center py-8 text-xs text-muted-foreground">
+                          Nenhuma ordem em compras encontrada com o filtro atual.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredComprasOrders.map((c) => {
+                        return (
+                          <TableRow key={`compras-${c.order.id}`} className="border-border/60 hover:bg-accent/40 transition-colors">
+                            <TableCell className="font-medium">
+                              <span className="font-mono-tech font-bold text-sm text-foreground">
+                                #{c.order.titulo}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col max-w-[220px]">
+                                <span className="text-xs font-bold text-foreground tracking-wide uppercase truncate">
+                                  {(c.order.cliente || "—").toUpperCase()}
+                                </span>
+                                {c.order.descricao && (
+                                  <span className="text-[11px] text-muted-foreground truncate">
+                                    {c.order.descricao}
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {c.pantoneActive ? (
+                                <Badge variant="outline" className="bg-blue-500/15 text-blue-500 dark:text-blue-400 border-blue-500/30 text-xs font-bold">
+                                  <Palette className="h-3 w-3 mr-1" />
+                                  {c.pantoneText ? `Pantone: ${c.pantoneText}` : "Pantone Ativo"}
+                                </Badge>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {c.outrosActive ? (
+                                <Badge variant="outline" className="bg-purple-500/15 text-purple-500 dark:text-purple-400 border-purple-500/30 text-xs font-medium">
+                                  {c.outrosText || "Insumo Especial"}
+                                </Badge>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">—</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1.5 text-xs">
+                                {c.facaActive && (
+                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${c.facaSent ? "bg-emerald-500/20 text-emerald-400" : "bg-muted text-muted-foreground"}`}>
+                                    FACA
+                                  </span>
+                                )}
+                                {c.clicheActive && (
+                                  <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${c.clicheSent ? "bg-emerald-500/20 text-emerald-400" : "bg-muted text-muted-foreground"}`}>
+                                    CLICHÊ
+                                  </span>
+                                )}
+                                {!c.facaActive && !c.clicheActive && (
+                                  <span className="text-muted-foreground">—</span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {c.isComprado ? (
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40">
+                                  <Check className="h-3.5 w-3.5 stroke-[3]" />
+                                  <span>COMPRADO (VERDE)</span>
+                                </div>
+                              ) : (
+                                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40">
+                                  <Clock className="h-3.5 w-3.5" />
+                                  <span>PENDENTE DE COMPRA</span>
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-xs font-medium text-foreground">
+                                {(c.order as any).responsavel_compra || c.order.operador || "Compras"}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-[11px] font-medium border-border uppercase">
+                                {c.order.setor_status || "entrada"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <span className="text-xs font-mono-tech text-muted-foreground">
+                                {formatSafeDate(c.order.updated_at, "dd/MM/yyyy HH:mm") || "—"}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
+          )}
+
+          {/* TABLE 3: AUDITORIA DA TRAVA DE SAÍDA (FACA & CLICHÊ) */}
+          {(governancaSubFilter === "all" || governancaSubFilter === "saida_travas") && (
+            <Card className="border border-border bg-card dark:bg-slate-900/60 backdrop-blur-md rounded-2xl overflow-hidden shadow-xl">
+              <CardHeader className="pb-3 border-b border-border bg-muted/20">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-500">
+                      <ShieldCheck className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-sm font-semibold text-foreground">
+                        Auditoria de Trava na Saída (Faca & Clichê)
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        Garantia de conformidade: nenhuma ordem é liberada para Saída sem verificação do envio de ferramental
+                      </CardDescription>
+                    </div>
+                  </div>
+                  <Badge variant="outline" className="font-mono-tech text-xs bg-emerald-500/15 text-emerald-500 border-emerald-500/30 font-semibold">
+                    100% de Saídas Auditadas
+                  </Badge>
+                </div>
+              </CardHeader>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-muted/40">
+                    <TableRow className="border-border hover:bg-transparent">
+                      <TableHead className="w-[120px] text-xs font-semibold text-muted-foreground">O.S.</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground">Cliente (Caixa Alta)</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground">Faca Especial</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground">Clichê</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground">Status da Trava</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground">Operador Liberador</TableHead>
+                      <TableHead className="text-xs font-semibold text-muted-foreground text-right">Data/Hora Saída</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredSaidaOrders.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8 text-xs text-muted-foreground">
+                          Nenhuma ordem finalizada ou em saída encontrada.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      filteredSaidaOrders.slice(0, 50).map((s) => {
+                        return (
+                          <TableRow key={`saida-${s.order.id}`} className="border-border/60 hover:bg-accent/40 transition-colors">
+                            <TableCell className="font-medium">
+                              <span className="font-mono-tech font-bold text-sm text-foreground">
+                                #{s.order.titulo}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col max-w-[240px]">
+                                <span className="text-xs font-bold text-foreground tracking-wide uppercase truncate">
+                                  {(s.order.cliente || "—").toUpperCase()}
+                                </span>
+                                {s.order.descricao && (
+                                  <span className="text-[11px] text-muted-foreground truncate">
+                                    {s.order.descricao}
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {s.facaActive ? (
+                                <Badge variant="outline" className={`text-xs font-bold ${s.facaSent ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/30" : "bg-amber-500/15 text-amber-500 border-amber-500/30"}`}>
+                                  {s.facaSent ? "Faca Enviada" : "Pendente"}
+                                </Badge>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">Não requer</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {s.clicheActive ? (
+                                <Badge variant="outline" className={`text-xs font-bold ${s.clicheSent ? "bg-emerald-500/15 text-emerald-500 border-emerald-500/30" : "bg-amber-500/15 text-amber-500 border-amber-500/30"}`}>
+                                  {s.clicheSent ? "Clichê Enviado" : "Pendente"}
+                                </Badge>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">Não requer</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                <ShieldCheck className="h-3.5 w-3.5" />
+                                <span>Verificado na Saída</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-xs font-medium text-foreground">
+                                {s.order.operador || "—"}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <span className="text-xs font-mono-tech text-muted-foreground">
+                                {formatSafeDate(s.order.updated_at, "dd/MM/yyyy HH:mm") || "—"}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
+          )}
+        </TabsContent>
+
         <TabsContent value="producao" className="space-y-4 m-0">
           {/* Controls Bar: Search + Sector Pills + Urgency Toggle */}
           <div className="p-4 rounded-2xl bg-card border border-border backdrop-blur-md flex flex-col md:flex-row items-center justify-between gap-3 shadow-xs">
