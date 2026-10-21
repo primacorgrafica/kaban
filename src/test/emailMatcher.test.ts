@@ -3,6 +3,7 @@ import {
   extractOsNumbers,
   validateOsCandidates,
   findOsInEmail,
+  isApprovalResponse,
 } from "../lib/emailMatcher";
 
 describe("emailMatcher - Extração e Validação de O.S. em E-mails", () => {
@@ -106,6 +107,52 @@ describe("emailMatcher - Extração e Validação de O.S. em E-mails", () => {
       const result = findOsInEmail(subject, body, activeOs);
       expect(result.osNumber).toBeNull();
       expect(result.ambiguous).toBe(false);
+    });
+  });
+  describe("isApprovalResponse - Detecção de Aprovação do Cliente", () => {
+    const approvalCases = [
+      "Aprovado",
+      "Aprovada",
+      "Aprovado pelo cliente",
+      "Aprovado para produção",
+      "Aprovação",
+      "Aprovado final",
+      "De acordo",
+      "Autorizado",
+      "Liberado",
+      "Validado",
+      "Confirmado",
+      "OK",
+      "Aceito",
+      "Aprovado sem ressalvas",
+      "Aprovação confirmada",
+      "Pode produzir",
+      "Produção liberada",
+      "Arte aprovada",
+      "Layout aprovado",
+      "Serviço aprovado",
+      "Bom dia, layout aprovado, pode rodar!",
+      "OK, de acordo com as cores",
+      "Confirmado, estamos de acordo",
+    ];
+
+    it.each(approvalCases)("deve reconhecer como aprovado: '%s'", (text) => {
+      expect(isApprovalResponse(text)).toBe(true);
+    });
+
+    const nonApprovalCases = [
+      "Não aprovado, favor alterar o texto",
+      "Não aprovada a cor, refazer prova",
+      "Reprovado",
+      "Rejeitado pelo cliente",
+      "Não está de acordo com a amostra",
+      "Não autorizo a impressão",
+      "Quando fica pronto?",
+      "Segue arquivo em anexo para orçamento",
+    ];
+
+    it.each(nonApprovalCases)("NÃO deve aprovar mensagens com negações ou dúvidas: '%s'", (text) => {
+      expect(isApprovalResponse(text)).toBe(false);
     });
   });
 });

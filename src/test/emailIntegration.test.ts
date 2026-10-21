@@ -43,21 +43,37 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
     // Mock do Supabase queries
     (supabase.from as any).mockImplementation((table: string) => {
       if (table === "orders") {
+        const createChainable = (resolvedData: any = mockActiveOrders) => {
+          const builder: any = {
+            data: resolvedData,
+            error: null,
+            neq: vi.fn().mockImplementation(() => builder),
+            eq: vi.fn().mockImplementation(() => builder),
+            limit: vi.fn().mockImplementation(() => builder),
+            maybeSingle: vi.fn().mockResolvedValue({ data: resolvedData[0] || null, error: null }),
+            single: vi.fn().mockResolvedValue({ data: resolvedData[0] || null, error: null }),
+            then: vi.fn().mockImplementation((cb) =>
+              Promise.resolve(cb ? cb({ data: resolvedData, error: null }) : { data: resolvedData, error: null })
+            ),
+          };
+          return builder;
+        };
+
         return {
-          select: vi.fn().mockReturnValue({
-            neq: vi.fn().mockResolvedValue({
-              data: mockActiveOrders,
-              error: null,
-            }),
-          }),
+          select: vi.fn().mockImplementation(() => createChainable(mockActiveOrders)),
           update: vi.fn().mockImplementation((updateData: any) => ({
             eq: vi.fn().mockImplementation((col: string, val: string) => ({
               neq: vi.fn().mockImplementation(() => {
                 mockUpdatedOrders.push({ id: val, ...updateData });
                 return Promise.resolve({ error: null });
               }),
+              then: vi.fn().mockImplementation((cb) => {
+                mockUpdatedOrders.push({ id: val, ...updateData });
+                return Promise.resolve(cb ? cb({ error: null }) : { error: null });
+              }),
             })),
           })),
+          insert: vi.fn().mockResolvedValue({ error: null }),
         };
       }
 
@@ -143,7 +159,7 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
     });
   });
 
-  it("2. Recebimento de resposta relacionada à mesma O.S.: deve identificar, gravar como 'recebido' e gerar aviso", async () => {
+  it("2. Recebimento de resposta de aprovação do cliente: deve mover CARD automaticamente para SAÍDA (arquivo_liberado)", async () => {
     const receivedReply: GraphMessage = {
       id: "msg-reply-002",
       subject: "Re: Envio de Prova Digital - OS 73210",
@@ -175,9 +191,12 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
       sender: "cliente@alpha.com.br",
     });
 
-    // Verifica que gerou notificação/aviso para resposta do cliente
+    // Verifica que gerou notificação comemorativa de aprovação
     expect(mockInsertedAvisos).toHaveLength(1);
-    expect(mockInsertedAvisos[0].titulo).toContain("73210");
+    expect(mockInsertedAvisos[0].titulo).toContain("APROVADA PELO CLIENTE");
+
+    // Valida que ao cliente responder com "Aprovado", o CARD foi movido para SAÍDA (arquivo_liberado)
+    expect(mockUpdatedOrders.some(o => o.id === "order-uuid-73210" && o.status === "arquivo_liberado")).toBe(true);
   });
 
   it("3. Resposta sem número explícito, mas vinculada à conversa original: deve associar via conversationId", async () => {
