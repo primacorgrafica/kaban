@@ -10,7 +10,7 @@
  * Reutiliza a autenticação MSAL existente adicionando apenas Mail.Read.Shared.
  */
 
-import { getMsalInstance, saveStoredMicrosoftAccount, clearMsalInteractions, MSAL_ACCOUNT_KEY } from "./msalClient";
+import { getMsalInstance, saveStoredMicrosoftAccount, clearMsalInteractions, MSAL_ACCOUNT_KEY, SHAREPOINT_SCOPES } from "./msalClient";
 import { InteractionRequiredAuthError } from "@azure/msal-browser";
 import type { GraphMessage, GraphMessagesResponse, MonitoredMailbox } from "@/types/email";
 
@@ -18,7 +18,7 @@ import type { GraphMessage, GraphMessagesResponse, MonitoredMailbox } from "@/ty
  * Escopos necessários para ler e-mails de caixas compartilhadas.
  * Mail.Read.Shared permite ler e-mails de caixas delegadas sem permissão de aplicação.
  */
-export const EMAIL_SCOPES = ["User.Read", "Mail.Read.Shared"];
+export const EMAIL_SCOPES = SHAREPOINT_SCOPES;
 
 /**
  * Obtém um access token para os escopos de e-mail.
@@ -131,30 +131,81 @@ export async function fetchMailboxMessages(
 
   const url = `${baseUrl}?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$orderby=${encodeURIComponent(orderByParam)}&$top=${top}`;
 
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: "application/json",
-      Prefer: 'outlook.body-content-type="text"',
-    },
-  });
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    Accept: "application/json",
+    Prefer: 'outlook.body-content-type="text"',
+  };
 
-  if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({}));
-    if (response.status === 403 || response.status === 401) {
-      throw new Error(
-        `Permissão negada para ler e-mails de ${mailbox} (${response.status}). ` +
-        `Verifique se a conta Microsoft tem acesso delegado (Full Access ou Read) à caixa "${mailbox}" ` +
-        `e se o scope "Mail.Read.Shared" está consentido no Entra ID.`
-      );
-    }
-    throw new Error(
-      `Falha ao consultar e-mails de ${mailbox}/${folder} (${response.status}): ${errorBody?.error?.message || response.statusText}`
-    );
+  const response = await fetch(url, { headers });
+
+  if (response.ok) {
+    const data: GraphMessagesResponse = await response.json();
+    return data.value || [];
   }
 
-  const data: GraphMessagesResponse = await response.json();
-  return data.value || [];
+  // Se retornou 404 (comum em caixas compartilhadas ou com pastas em português "Caixa de Entrada / Itens Enviados")
+  if (response.status === 404 && !isMe) {
+    console.info(`[OutlookService] Pasta padrão '${folder}' retornou 404 para ${mailbox}. Resolvendo pastas reais via Graph API...`);
+    try {
+      // 1. Tenta listar as pastas reais da caixa para encontrar o ID da pasta localizada (ex: "Caixa de Entrada", "Itens Enviados")
+      const foldersUrl = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/mailFolders?$top=50`;
+      const foldersRes = await fetch(foldersUrl, { headers });
+
+      if (foldersRes.ok) {
+        const foldersData = await foldersRes.json();
+        const folderList: Array<{ id: string; displayName?: string; wellKnownName?: string }> = foldersData?.value || [];
+
+        const targetFolder = folderList.find((f) => {
+          if (f.wellKnownName?.toLowerCase() === folder.toLowerCase()) return true;
+          const name = (f.displayName || "").toLowerCase();
+          if (folder === "inbox") {
+            return name === "inbox" || name.includes("entrada") || name.includes("caixa de entrada");
+          } else {
+            return name === "sentitems" || name.includes("enviad") || name.includes("itens enviados");
+          }
+        });
+
+        if (targetFolder?.id) {
+          console.info(`[OutlookService] Pasta '${targetFolder.displayName}' (${targetFolder.id}) identificada para ${mailbox}.`);
+          const customFolderUrl = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/mailFolders/${encodeURIComponent(targetFolder.id)}/messages?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$orderby=${encodeURIComponent(orderByParam)}&$top=${top}`;
+          const customFolderRes = await fetch(customFolderUrl, { headers });
+          if (customFolderRes.ok) {
+            const data: GraphMessagesResponse = await customFolderRes.json();
+            return data.value || [];
+          }
+        }
+      }
+
+      // 2. Fallback direto: consulta coleção geral de mensagens de /users/{mailbox}/messages sem depender de folder
+      console.info(`[OutlookService] Fallback direto: consultando mensagens de /users/${mailbox}/messages...`);
+      const directMessagesUrl = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/messages?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$orderby=${encodeURIComponent(orderByParam)}&$top=${top}`;
+      const directRes = await fetch(directMessagesUrl, { headers });
+      if (directRes.ok) {
+        const data: GraphMessagesResponse = await directRes.json();
+        const allMessages: GraphMessage[] = data.value || [];
+        if (folder === "sentitems") {
+          return allMessages.filter((m) => m.from?.emailAddress?.address?.toLowerCase() === mailbox.toLowerCase());
+        } else {
+          return allMessages.filter((m) => m.from?.emailAddress?.address?.toLowerCase() !== mailbox.toLowerCase());
+        }
+      }
+    } catch (fallbackErr) {
+      console.warn(`[OutlookService] Falha na resolução alternativa de pastas para ${mailbox}:`, fallbackErr);
+    }
+  }
+
+  const errorBody = await response.json().catch(() => ({}));
+  if (response.status === 403 || response.status === 401) {
+    throw new Error(
+      `Permissão negada para ler e-mails de ${mailbox} (${response.status}). ` +
+      `Verifique se a conta Microsoft tem acesso delegado (Full Access ou Read) à caixa "${mailbox}" ` +
+      `e se o scope "Mail.Read.Shared" está consentido no Entra ID.`
+    );
+  }
+  throw new Error(
+    `Falha ao consultar e-mails de ${mailbox}/${folder} (${response.status}): ${errorBody?.error?.message || response.statusText}`
+  );
 }
 
 /**
