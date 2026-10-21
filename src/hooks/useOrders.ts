@@ -546,6 +546,42 @@ export function useOrders() {
     }
   }, [user, orders]);
 
+  const sendToCompras = useCallback(async (orderId: string) => {
+    const originalOrder = orders.find(o => o.id === orderId);
+    if (!originalOrder) return null;
+
+    // Verificar se já existe uma cópia ativa desta OS em compras para não duplicar
+    const { data: existing } = await supabase
+      .from("orders")
+      .select("id")
+      .eq("setor", "compras")
+      .eq("parent_order_id", orderId)
+      .eq("arquivado", false)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      return existing[0].id;
+    }
+
+    const { data: created, error } = await supabase.from("orders").insert({
+      ...copyOrderFields(originalOrder),
+      criado_por: originalOrder.criado_por,
+      atualizado_por: user?.id || null,
+      setor: "compras",
+      setor_status: "entrada",
+      categoria_compra: "os",
+      parent_order_id: orderId,
+      posicao: originalOrder.urgente ? 0 : 9999,
+    } as any).select().single();
+
+    if (error) {
+      console.error("Erro ao criar card em compras:", error);
+    } else {
+      toast.success("Card da O.S. criado em Compras!");
+    }
+    return created?.id;
+  }, [user, orders]);
+
   const sendToExpedicao = useCallback(async (orderId: string) => {
     const originalOrder = orders.find(o => o.id === orderId);
     if (!originalOrder) return;
@@ -681,6 +717,7 @@ export function useOrders() {
     sendToProduction,
     sendToMultipleProduction,
     sendToExpedicao,
+    sendToCompras,
     loading,
   };
 }

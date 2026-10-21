@@ -49,7 +49,7 @@ interface KanbanBoardProps {
   slowAlertIds?: Set<string>;
 }
 
-export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onDuplicate, onSendToProduction, onSendToMultipleProduction, onSendToExpedicao, getProfileName, permissions, departmentContext, slowAlertIds }: KanbanBoardProps) {
+export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onDuplicate, onSendToProduction, onSendToMultipleProduction, onSendToExpedicao, onSendToCompras, getProfileName, permissions, departmentContext, slowAlertIds }: KanbanBoardProps) {
   const ordersByStatus = STATUS_ORDER.reduce((acc, status) => {
     acc[status] = [];
     return acc;
@@ -284,6 +284,10 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
 
         onUpdate(pendingMove.id, { processos: updatedProcessos });
         toast.success("Suprimentos especiais marcados como enviados!");
+      }
+
+      if (isTargetSaida && onSendToCompras) {
+        onSendToCompras(pendingMove.id);
       }
 
       if (pendingMove.toStatus === "aguardando_novo_arquivo" || pendingMove.toStatus === "paralisado") {

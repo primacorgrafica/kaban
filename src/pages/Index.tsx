@@ -34,6 +34,7 @@ const Index = () => {
     sendToProduction,
     sendToMultipleProduction,
     sendToExpedicao,
+    sendToCompras,
     getProfileName,
   } = useOrders();
 
@@ -158,6 +159,7 @@ const Index = () => {
                 onSendToProduction={sendToProduction}
                 onSendToMultipleProduction={sendToMultipleProduction}
                 onSendToExpedicao={sendToExpedicao}
+                onSendToCompras={sendToCompras}
                 getProfileName={getProfileName}
                 permissions={perms}
                 departmentContext="pre_impressao"

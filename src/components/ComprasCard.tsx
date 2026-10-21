@@ -3,7 +3,14 @@ import { Order } from "@/types/order";
 import { DepartmentConfig, DepartmentStatusConfig, Department } from "@/types/production";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { GripVertical, AlertTriangle, UserCheck, Clock, Trash2, Archive, Truck } from "lucide-react";
+import { GripVertical, AlertTriangle, UserCheck, Clock, Trash2, Archive, Truck, Palette, ShoppingCart, Check } from "lucide-react";
+import {
+  isSpecialSupplyActive,
+  isSpecialSupplySent,
+  getSpecialSupplyCustomText,
+  toggleSpecialSupplySent,
+} from "@/lib/processos";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -99,6 +106,85 @@ export function ComprasCard({
   const ocNumero = (order as any).oc_numero;
   const isPedido = currentStatus.id === "pedido";
 
+  const pantoneActive = isSpecialSupplyActive(order.processos, "PANTONE");
+  const pantoneSent = isSpecialSupplySent(order.processos, "PANTONE");
+  const pantoneText = getSpecialSupplyCustomText(order.processos, "PANTONE");
+
+  const outrosActive = isSpecialSupplyActive(order.processos, "OUTROS");
+  const outrosSent = isSpecialSupplySent(order.processos, "OUTROS");
+  const outrosText = getSpecialSupplyCustomText(order.processos, "OUTROS");
+
+  const hasItemsToBuy = pantoneActive || outrosActive;
+
+  const isExplicitComprado = order.processos?.some(
+    (p) => p === "COMPRADO" || p.startsWith("COMPRADO:") || p === "COMPRA:ok" || p.startsWith("COMPRA:ok:")
+  );
+  const isComprado = isExplicitComprado || (hasItemsToBuy && (!pantoneActive || pantoneSent) && (!outrosActive || outrosSent));
+
+  const toggleComprado = async (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    let currentProcessos = order.processos ? [...order.processos] : [];
+    const opName = (order as any).responsavel_compra || updatedByName || "Compras";
+
+    if (isComprado) {
+      currentProcessos = currentProcessos.filter(
+        (p) => !p.startsWith("COMPRADO") && !p.startsWith("COMPRA:ok")
+      );
+      if (pantoneActive && pantoneSent) {
+        currentProcessos = toggleSpecialSupplySent(currentProcessos, "PANTONE");
+      }
+      if (outrosActive && outrosSent) {
+        currentProcessos = toggleSpecialSupplySent(currentProcessos, "OUTROS");
+      }
+      onUpdate(order.id, { processos: currentProcessos });
+      if (order.parent_order_id) {
+        await supabase.from("orders").update({ processos: currentProcessos }).eq("id", order.parent_order_id);
+      }
+      toast.info("Status alterado para PENDENTE DE COMPRA");
+    } else {
+      currentProcessos = currentProcessos.filter(
+        (p) => !p.startsWith("COMPRADO") && !p.startsWith("COMPRA:ok")
+      );
+      currentProcessos.push(`COMPRADO:${Date.now()}:${encodeURIComponent(opName)}`);
+
+      if (pantoneActive && !pantoneSent) {
+        currentProcessos = toggleSpecialSupplySent(currentProcessos, "PANTONE", opName);
+      }
+      if (outrosActive && !outrosSent) {
+        currentProcessos = toggleSpecialSupplySent(currentProcessos, "OUTROS", opName);
+      }
+      onUpdate(order.id, { processos: currentProcessos });
+      if (order.parent_order_id) {
+        await supabase.from("orders").update({ processos: currentProcessos }).eq("id", order.parent_order_id);
+      }
+      toast.success("O.S. marcada como COMPRADO (Verde)!");
+    }
+  };
+
+  const toggleItemBought = async (itemId: "PANTONE" | "OUTROS", e: React.MouseEvent) => {
+    e.stopPropagation();
+    let currentProcessos = order.processos ? [...order.processos] : [];
+    const opName = (order as any).responsavel_compra || updatedByName || "Compras";
+    currentProcessos = toggleSpecialSupplySent(currentProcessos, itemId, opName);
+
+    const isP = itemId === "PANTONE" ? !pantoneSent : pantoneSent;
+    const isO = itemId === "OUTROS" ? !outrosSent : outrosSent;
+
+    if ((!pantoneActive || isP) && (!outrosActive || isO)) {
+      if (!currentProcessos.some((p) => p.startsWith("COMPRADO"))) {
+        currentProcessos.push(`COMPRADO:${Date.now()}:${encodeURIComponent(opName)}`);
+      }
+    } else {
+      currentProcessos = currentProcessos.filter((p) => !p.startsWith("COMPRADO"));
+    }
+
+    onUpdate(order.id, { processos: currentProcessos });
+    if (order.parent_order_id) {
+      await supabase.from("orders").update({ processos: currentProcessos }).eq("id", order.parent_order_id);
+    }
+    toast.success(`${itemId} atualizado!`);
+  };
+
   const handleSendToExpedicao = async () => {
     if (!selectedTipoEntrega) return;
     const { error } = await supabase.from("orders").insert({
@@ -157,14 +243,27 @@ export function ComprasCard({
     <>
       {/* Card compact view */}
       <div
-        className="group rounded-xl border shadow-sm hover:shadow-md overflow-hidden relative"
+        className="group rounded-xl border shadow-sm hover:shadow-md overflow-hidden relative transition-all"
         style={{
-          backgroundColor: isUrgent ? "hsl(0 84% 60% / 0.12)" : "hsl(var(--muted))",
-          borderColor: isUrgent ? "hsl(0 84% 60% / 0.4)" : "hsl(var(--border))",
+          backgroundColor: isComprado
+            ? "hsl(142 76% 36% / 0.12)"
+            : isUrgent
+            ? "hsl(0 84% 60% / 0.12)"
+            : "hsl(var(--muted))",
+          borderColor: isComprado
+            ? "hsl(142 71% 45% / 0.8)"
+            : isUrgent
+            ? "hsl(0 84% 60% / 0.4)"
+            : "hsl(var(--border))",
         }}
       >
-        {/* Categoria banner with optional URGENTE */}
-        {categoria ? (
+        {/* Banner de status / categoria */}
+        {isComprado ? (
+          <div className="px-2 py-0.5 text-center bg-emerald-600 text-white font-extrabold text-[10px] tracking-wide uppercase flex items-center justify-center gap-1.5 shadow-sm">
+            <Check className="h-3 w-3 stroke-[3]" />
+            <span>COMPRA CONCLUÍDA</span>
+          </div>
+        ) : categoria ? (
           <div className={`px-2 py-0.5 text-center ${categoria.color}`}>
             {isUrgent && (
               <span className="mr-2 inline-block bg-red-600 text-white text-[10px] font-black uppercase px-1.5 py-0.5 rounded animate-pulse">URGENTE</span>
@@ -189,11 +288,19 @@ export function ComprasCard({
         )}
 
         <div className="px-3.5 pb-3 pt-1.5 cursor-pointer" onClick={() => setOpen(true)}>
-          {/* Linha 1: OC Number + Responsável */}
-          <div className="flex items-center justify-between gap-2">
-            <h4 className={`font-semibold text-sm ${isUrgent ? "text-red-700 dark:text-red-400" : "text-card-foreground"}`}>
-              OC. {ocNumero ? String(ocNumero).padStart(4, "0") : "—"}
-            </h4>
+          {/* Linha 1: OC / OS Number + Cliente */}
+          <div className="flex items-start justify-between gap-2 min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+              {isUrgent && <span className="h-2 w-2 rounded-full shrink-0 bg-red-500 animate-pulse mt-0.5" />}
+              <span className="font-mono-tech text-[12px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 shrink-0">
+                {ocNumero ? `OC. ${String(ocNumero).padStart(4, "0")}` : `OS. #${order.titulo}`}
+              </span>
+              {order.cliente && (
+                <span className="text-xs font-bold text-foreground truncate uppercase max-w-[170px]" title={order.cliente}>
+                  {order.cliente}
+                </span>
+              )}
+            </div>
             {(order as any).responsavel_compra && (
               <span className="text-[10px] text-muted-foreground shrink-0">
                 {(order as any).responsavel_compra}
@@ -201,10 +308,84 @@ export function ComprasCard({
             )}
           </div>
 
-          {/* Linha 2: Descrição (campo maior) */}
-          <p className="text-xs text-muted-foreground line-clamp-3 mt-1">
+          {/* Linha 2: Descrição */}
+          <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
             {order.descricao}
           </p>
+
+          {/* Insumos para Compra: PANTONE & OUTROS */}
+          <div className="mt-2 p-2 rounded-lg border border-border/70 bg-background/60 space-y-1.5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Palette className="h-3 w-3 text-cyan-500" />
+                <span>Insumos para Compra</span>
+              </span>
+              <span className={isComprado ? "text-emerald-500 font-extrabold" : hasItemsToBuy ? "text-amber-500 font-extrabold" : "text-muted-foreground font-normal"}>
+                {isComprado ? "✓ COMPRADO" : hasItemsToBuy ? "⚠️ PENDENTE" : "Sem Especiais"}
+              </span>
+            </div>
+
+            {hasItemsToBuy ? (
+              <div className="flex flex-col gap-1 pt-0.5">
+                {pantoneActive && (
+                  <div
+                    onClick={(e) => toggleItemBought("PANTONE", e)}
+                    className={`flex items-center justify-between px-2 py-1 rounded text-[11px] font-bold border cursor-pointer transition-all ${
+                      pantoneSent
+                        ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/50 shadow-xs"
+                        : "bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/50 animate-pulse"
+                    }`}
+                    title={pantoneSent ? "Pantone Comprado (Clique para alterar)" : "Pantone Pendente (Clique para marcar como comprado)"}
+                  >
+                    <span className="truncate">PANTONE {pantoneText ? `(${pantoneText})` : ""}</span>
+                    <span className="shrink-0 font-mono-tech text-[10px]">{pantoneSent ? "COMPRADO ✓" : "COMPRAR ⏳"}</span>
+                  </div>
+                )}
+
+                {outrosActive && (
+                  <div
+                    onClick={(e) => toggleItemBought("OUTROS", e)}
+                    className={`flex items-center justify-between px-2 py-1 rounded text-[11px] font-bold border cursor-pointer transition-all ${
+                      outrosSent
+                        ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/50 shadow-xs"
+                        : "bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/50 animate-pulse"
+                    }`}
+                    title={outrosSent ? "Outros Comprado (Clique para alterar)" : "Outros Pendente (Clique para marcar como comprado)"}
+                  >
+                    <span className="truncate">OUTROS {outrosText ? `(${outrosText})` : ""}</span>
+                    <span className="shrink-0 font-mono-tech text-[10px]">{outrosSent ? "COMPRADO ✓" : "COMPRAR ⏳"}</span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-[10px] text-muted-foreground italic">
+                Nenhum Pantone ou Insumo Especial cadastrado nesta O.S.
+              </p>
+            )}
+          </div>
+
+          {/* Botão de Ação: MARCAR DE VERDE SE FOI COMPRADO */}
+          <button
+            type="button"
+            onClick={toggleComprado}
+            className={`w-full mt-2 px-2.5 py-1.5 rounded-lg text-xs font-black tracking-wide uppercase transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer border ${
+              isComprado
+                ? "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.35)] active:scale-95"
+                : "bg-amber-500/15 hover:bg-amber-500/25 text-amber-800 dark:text-amber-300 border-amber-500/40 active:scale-95"
+            }`}
+          >
+            {isComprado ? (
+              <>
+                <Check className="h-3.5 w-3.5 stroke-[3]" />
+                <span>COMPRA CONCLUÍDA (VERDE)</span>
+              </>
+            ) : (
+              <>
+                <ShoppingCart className="h-3.5 w-3.5" />
+                <span>MARCAR COMO COMPRADO</span>
+              </>
+            )}
+          </button>
 
           {/* Linha 3: Fornecedor + Vendedor + Endereço */}
           {((order as any).fornecedor_compra || (order as any).vendedor_compra || (order as any).endereco_compra) && (
@@ -236,7 +417,10 @@ export function ComprasCard({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>OC. {ocNumero ? String(ocNumero).padStart(4, "0") : "—"}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <span>{ocNumero ? `OC. ${String(ocNumero).padStart(4, "0")}` : `OS. #${order.titulo}`}</span>
+              {order.cliente && <span className="text-muted-foreground font-normal text-sm">— {order.cliente}</span>}
+            </DialogTitle>
           </DialogHeader>
 
           {!editing ? (
@@ -262,6 +446,61 @@ export function ComprasCard({
                   <AlertTriangle className="h-4 w-4" /> Urgente
                 </div>
               )}
+
+              <div className="p-3 rounded-xl border border-border bg-background space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
+                    <Palette className="h-3.5 w-3.5 text-cyan-500" />
+                    Insumos Especiais (Pantone / Outros)
+                  </span>
+                  <span className={isComprado ? "text-emerald-500 font-extrabold text-xs" : "text-amber-500 font-extrabold text-xs"}>
+                    {isComprado ? "COMPRA CONCLUÍDA ✓" : "PENDENTE DE COMPRA ⏳"}
+                  </span>
+                </div>
+                {hasItemsToBuy ? (
+                  <div className="space-y-1">
+                    {pantoneActive && (
+                      <div className="text-xs flex items-center justify-between p-1.5 rounded bg-muted/60">
+                        <span>PANTONE: <strong>{pantoneText || "Especificado no layout"}</strong></span>
+                        <span className={pantoneSent ? "text-emerald-600 font-bold" : "text-amber-600 font-bold"}>
+                          {pantoneSent ? "COMPRADO ✓" : "COMPRAR ⏳"}
+                        </span>
+                      </div>
+                    )}
+                    {outrosActive && (
+                      <div className="text-xs flex items-center justify-between p-1.5 rounded bg-muted/60">
+                        <span>OUTROS: <strong>{outrosText || "Insumo Especial"}</strong></span>
+                        <span className={outrosSent ? "text-emerald-600 font-bold" : "text-amber-600 font-bold"}>
+                          {outrosSent ? "COMPRADO ✓" : "COMPRAR ⏳"}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground italic">Nenhum Pantone ou Insumo Especial cadastrado nesta O.S.</p>
+                )}
+                <Button
+                  size="sm"
+                  className={`w-full font-bold uppercase ${
+                    isComprado
+                      ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                      : "bg-amber-500 hover:bg-amber-600 text-amber-950"
+                  }`}
+                  onClick={() => toggleComprado()}
+                >
+                  {isComprado ? (
+                    <>
+                      <Check className="h-4 w-4 mr-1.5 stroke-[3]" />
+                      COMPRA CONCLUÍDA (MARCADO DE VERDE)
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingCart className="h-4 w-4 mr-1.5" />
+                      MARCAR COMO COMPRADO
+                    </>
+                  )}
+                </Button>
+              </div>
 
               <div className="flex flex-wrap gap-2 pt-2 border-t">
                 {!readOnly && (
