@@ -31,12 +31,14 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
   let mockExistingEvents: any[] = [];
   let mockInsertedEvents: any[] = [];
   let mockInsertedAvisos: any[] = [];
+  let mockUpdatedOrders: any[] = [];
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockExistingEvents = [];
     mockInsertedEvents = [];
     mockInsertedAvisos = [];
+    mockUpdatedOrders = [];
 
     // Mock do Supabase queries
     (supabase.from as any).mockImplementation((table: string) => {
@@ -48,6 +50,14 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
               error: null,
             }),
           }),
+          update: vi.fn().mockImplementation((updateData: any) => ({
+            eq: vi.fn().mockImplementation((col: string, val: string) => ({
+              neq: vi.fn().mockImplementation(() => {
+                mockUpdatedOrders.push({ id: val, ...updateData });
+                return Promise.resolve({ error: null });
+              }),
+            })),
+          })),
         };
       }
 
@@ -61,6 +71,14 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
             mockInsertedEvents.push(data);
             return Promise.resolve({ error: null });
           }),
+          update: vi.fn().mockImplementation(() => ({
+            eq: vi.fn().mockReturnValue({
+              ilike: vi.fn().mockReturnValue({
+                then: vi.fn().mockImplementation((cb) => Promise.resolve(cb ? cb() : null)),
+                catch: vi.fn().mockResolvedValue(null),
+              }),
+            }),
+          })),
         };
       }
 
@@ -115,6 +133,13 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
       subject: "Envio de Prova Digital - OS 73210",
       sender: "preimpressao@primacorgrafica.com.br",
       recipients: "cliente@alpha.com.br",
+    });
+
+    // Valida que ao enviar o e-mail de prova, o CARD é automaticamente movido para AGUARDANDO APROVAÇÃO
+    expect(mockUpdatedOrders).toHaveLength(1);
+    expect(mockUpdatedOrders[0]).toMatchObject({
+      id: "order-uuid-73210",
+      status: "aguardando_aprovacao",
     });
   });
 

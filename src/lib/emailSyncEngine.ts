@@ -91,6 +91,15 @@ export async function runEmailSync(): Promise<SyncResult> {
     since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
   }
 
+  // Auto-correção para eventos gravados anteriormente como 'recebido' com remetente da Primacor
+  await supabase
+    .from("order_email_events")
+    .update({ direction: "enviado" })
+    .eq("direction", "recebido")
+    .ilike("sender", "%@primacorgrafica.com.br%")
+    .then(() => null)
+    .catch(() => null);
+
   // 4. Itera sobre cada caixa e pasta monitorada
   for (const mailbox of MONITORED_MAILBOXES) {
     const folders: Array<{ folder: "inbox" | "sentitems"; direction: "recebido" | "enviado" }> = [
@@ -139,19 +148,28 @@ export async function runEmailSync(): Promise<SyncResult> {
         // Se encontramos uma O.S. correspondente, grava o evento
         if (matchedOs && matchedOrderId) {
           const sender = msg.from?.emailAddress?.address || msg.from?.emailAddress?.name || mailbox;
+          const senderEmail = (msg.from?.emailAddress?.address || "").toLowerCase();
           const recipients = (msg.toRecipients || [])
             .map((r) => r.emailAddress.address || r.emailAddress.name)
             .filter(Boolean)
             .join(", ") || mailbox;
 
+          // Se o remetente for da própria Primacor ou caixas monitoradas, foi ENVIADO por nós
+          const isPrimacorSender =
+            senderEmail.includes("@primacorgrafica.com.br") ||
+            MONITORED_MAILBOXES.some((b) => senderEmail.includes(b.toLowerCase()));
+
+          const effectiveDirection: "enviado" | "recebido" =
+            folder === "sentitems" || isPrimacorSender ? "enviado" : "recebido";
+
           const emailDatetime =
-            direction === "enviado"
+            effectiveDirection === "enviado"
               ? msg.sentDateTime || new Date().toISOString()
               : msg.receivedDateTime || new Date().toISOString();
 
           const newEventData = {
             order_id: matchedOrderId,
-            direction,
+            direction: effectiveDirection,
             mailbox,
             message_id: msg.id,
             conversation_id: msg.conversationId || null,
@@ -181,8 +199,32 @@ export async function runEmailSync(): Promise<SyncResult> {
               });
             }
 
-            // Para respostas recebidas do cliente, gera aviso na central de notificações
-            if (direction === "recebido") {
+            if (effectiveDirection === "enviado") {
+              // 1. Move automaticamente o CARD para a coluna "AGUARDANDO APROVAÇÃO"
+              const { error: moveError } = await supabase
+                .from("orders")
+                .update({
+                  status: "aguardando_aprovacao",
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", matchedOrderId)
+                .neq("status", "arquivo_liberado"); // Não regride se a O.S. já estiver na Saída
+
+              if (moveError) {
+                console.warn(`[EmailSync] Erro ao mover O.S. #${matchedOs} para aguardando_aprovacao:`, moveError.message);
+              } else {
+                console.info(`[EmailSync] O.S. #${matchedOs} movida automaticamente para AGUARDANDO APROVAÇÃO`);
+              }
+
+              // 2. Registra notificação: E-mail enviado para aprovação
+              await supabase.from("avisos").insert({
+                titulo: `📤 E-mail enviado para aprovação - O.S. #${matchedOs}`,
+                mensagem: `E-mail de aprovação enviado pela Pré-Impressão.\nRemetente: ${sender}\nDestinatário: ${recipients}\nAssunto: ${msg.subject || "(Sem assunto)"}`,
+                tipo: "info",
+                criado_por: "00000000-0000-0000-0000-000000000000",
+              }).catch(() => null);
+            } else {
+              // Para respostas recebidas de clientes externos
               await supabase.from("avisos").insert({
                 titulo: `📩 Resposta de e-mail na O.S. #${matchedOs}`,
                 mensagem: `Cliente respondeu ao e-mail de ${mailbox}.\nRemetente: ${sender}\nAssunto: ${msg.subject || "(Sem assunto)"}`,

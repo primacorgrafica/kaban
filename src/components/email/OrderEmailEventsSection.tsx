@@ -98,11 +98,11 @@ export function OrderEmailEventsSection({ orderId, orderTitulo }: OrderEmailEven
                     >
                       {isReceived ? (
                         <>
-                          <CornerDownLeft className="h-3 w-3" /> Recebido
+                          <CornerDownLeft className="h-3 w-3" /> Resposta do Cliente Recebida
                         </>
                       ) : (
                         <>
-                          <Send className="h-3 w-3" /> Enviado
+                          <Send className="h-3 w-3" /> E-mail Enviado para Aprovação
                         </>
                       )}
                     </Badge>
