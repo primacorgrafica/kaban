@@ -18,7 +18,7 @@ import type { GraphMessage, GraphMessagesResponse, MonitoredMailbox } from "@/ty
  * Escopos necessários para ler e-mails de caixas compartilhadas.
  * Mail.Read.Shared permite ler e-mails de caixas delegadas sem permissão de aplicação.
  */
-export const EMAIL_SCOPES = ["User.Read", "Mail.Read.Shared"];
+export const EMAIL_SCOPES = ["User.Read", "Mail.Read", "Mail.Read.Shared"];
 
 /**
  * Obtém um access token para os escopos de e-mail.
@@ -119,7 +119,15 @@ export async function fetchMailboxMessages(
   const selectParam = "id,subject,bodyPreview,from,toRecipients,sentDateTime,receivedDateTime,conversationId,internetMessageId,parentFolderId,isRead";
   const orderByParam = "receivedDateTime desc";
 
-  const url = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/mailFolders/${folder}/messages?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$orderby=${encodeURIComponent(orderByParam)}&$top=${top}`;
+  const pca = await getMsalInstance();
+  const account = pca.getActiveAccount();
+  const isMe = Boolean(account?.username && account.username.toLowerCase() === mailbox.toLowerCase());
+
+  const baseUrl = isMe
+    ? `https://graph.microsoft.com/v1.0/me/mailFolders/${folder}/messages`
+    : `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/mailFolders/${folder}/messages`;
+
+  const url = `${baseUrl}?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$orderby=${encodeURIComponent(orderByParam)}&$top=${top}`;
 
   const response = await fetch(url, {
     headers: {
@@ -159,7 +167,13 @@ export async function fetchConversationMessages(
 
   const filterParam = `conversationId eq '${conversationId}'`;
   const selectParam = "id,subject,bodyPreview,from,toRecipients,sentDateTime,receivedDateTime,conversationId";
-  const url = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/messages?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$top=20&$orderby=${encodeURIComponent("receivedDateTime asc")}`;
+  const pca = await getMsalInstance();
+  const account = pca.getActiveAccount();
+  const isMe = Boolean(account?.username && account.username.toLowerCase() === mailbox.toLowerCase());
+
+  const url = isMe
+    ? `https://graph.microsoft.com/v1.0/me/messages?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$top=20&$orderby=${encodeURIComponent("receivedDateTime asc")}`
+    : `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/messages?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$top=20&$orderby=${encodeURIComponent("receivedDateTime asc")}`;
 
   const response = await fetch(url, {
     headers: {

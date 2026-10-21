@@ -12,8 +12,8 @@ export type MonitoredMailbox =
   | "preimpressao@primacorgrafica.com.br";
 
 export const MONITORED_MAILBOXES: MonitoredMailbox[] = [
-  "embalagens@primacorgrafica.com.br",
   "preimpressao@primacorgrafica.com.br",
+  "embalagens@primacorgrafica.com.br",
 ];
 
 /**
