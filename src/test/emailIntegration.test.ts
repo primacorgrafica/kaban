@@ -101,14 +101,16 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
             mockInsertedEvents.push(data);
             return Promise.resolve({ error: null });
           }),
-          update: vi.fn().mockImplementation(() => ({
-            eq: vi.fn().mockReturnValue({
-              ilike: vi.fn().mockReturnValue({
-                then: vi.fn().mockImplementation((cb) => Promise.resolve(cb ? cb() : null)),
-                catch: vi.fn().mockResolvedValue(null),
-              }),
-            }),
-          })),
+          update: vi.fn().mockImplementation(() => {
+            const updateBuilder: any = {
+              eq: vi.fn().mockImplementation(() => updateBuilder),
+              or: vi.fn().mockImplementation(() => updateBuilder),
+              ilike: vi.fn().mockImplementation(() => updateBuilder),
+              then: vi.fn().mockImplementation((cb) => Promise.resolve(cb ? cb() : null)),
+              catch: vi.fn().mockResolvedValue(null),
+            };
+            return updateBuilder;
+          }),
         };
       }
 

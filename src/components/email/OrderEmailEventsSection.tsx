@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Mail, Send, CornerDownLeft, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { Mail, Send, CornerDownLeft, CheckCircle2, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useOrderEmails } from "@/hooks/useOrderEmails";
+import { isApprovalResponse } from "@/lib/emailMatcher";
 import type { OrderEmailEvent } from "@/types/email";
 
 interface OrderEmailEventsSectionProps {
@@ -19,6 +20,34 @@ export function OrderEmailEventsSection({ orderId, orderTitulo }: OrderEmailEven
   const toggleExpand = (id: string) => {
     setExpandedId((prev) => (prev === id ? null : id));
   };
+
+  // Deduplicação inteligente de eventos na visualização
+  // Remove eventos duplicados criados quando múltiplas caixas monitoradas registraram a mesma mensagem
+  const deduplicatedEvents = useMemo(() => {
+    const seen = new Set<string>();
+    const result: OrderEmailEvent[] = [];
+
+    for (const evt of events) {
+      const isReply =
+        evt.direction === "recebido" ||
+        /^\s*(re|res|enc|fwd)\s*[:]/i.test(evt.subject || "") ||
+        isApprovalResponse(evt.body_preview || "");
+
+      const normSub = (evt.subject || "").trim().toLowerCase().replace(/^(re|res|fwd|enc)\s*:\s*/i, "");
+      const normBody = (evt.body_preview || "").trim().toLowerCase().slice(0, 50).replace(/\s+/g, " ");
+      const timeMin = (evt.email_datetime || "").slice(0, 16);
+
+      // Chave única de mensagem
+      const key = `${isReply ? "resp" : "env"}|${normSub}|${normBody}|${timeMin}`;
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      result.push(evt);
+    }
+
+    return result;
+  }, [events]);
 
   return (
     <div className="space-y-3">
@@ -52,11 +81,11 @@ export function OrderEmailEventsSection({ orderId, orderTitulo }: OrderEmailEven
       </div>
 
       {/* Lista de eventos de e-mail */}
-      {loading && events.length === 0 ? (
+      {loading && deduplicatedEvents.length === 0 ? (
         <div className="p-4 text-center text-xs text-muted-foreground">
           Carregando histórico de e-mails...
         </div>
-      ) : events.length === 0 ? (
+      ) : deduplicatedEvents.length === 0 ? (
         <div className="p-4 rounded-lg border border-dashed border-border text-center text-xs text-muted-foreground space-y-1">
           <p>Nenhum e-mail registrado para esta O.S. até o momento.</p>
           <p className="text-[10px] opacity-75">
@@ -65,8 +94,16 @@ export function OrderEmailEventsSection({ orderId, orderTitulo }: OrderEmailEven
         </div>
       ) : (
         <div className="space-y-2">
-          {events.map((evt) => {
-            const isReceived = evt.direction === "recebido";
+          {deduplicatedEvents.map((evt) => {
+            const isReply =
+              evt.direction === "recebido" ||
+              /^\s*(re|res|enc|fwd)\s*[:]/i.test(evt.subject || "") ||
+              isApprovalResponse(evt.body_preview || "");
+
+            const isApproval =
+              isApprovalResponse(evt.subject || "") ||
+              isApprovalResponse(evt.body_preview || "");
+
             const isExpanded = expandedId === evt.id;
 
             const formattedDate = (() => {
@@ -81,31 +118,39 @@ export function OrderEmailEventsSection({ orderId, orderTitulo }: OrderEmailEven
               <div
                 key={evt.id}
                 className={`p-3 rounded-xl border transition-all text-xs space-y-1.5 ${
-                  isReceived
-                    ? "border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-950/20"
+                  isReply
+                    ? isApproval
+                      ? "border-emerald-500/40 bg-emerald-500/10 dark:bg-emerald-950/30 shadow-xs"
+                      : "border-teal-500/30 bg-teal-500/5 dark:bg-teal-950/20"
                     : "border-sky-500/30 bg-sky-500/5 dark:bg-sky-950/20"
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <Badge
-                      variant="outline"
-                      className={`text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${
-                        isReceived
-                          ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
-                          : "bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30"
-                      }`}
-                    >
-                      {isReceived ? (
-                        <>
-                          <CornerDownLeft className="h-3 w-3" /> Resposta do Cliente Recebida
-                        </>
+                    {isReply ? (
+                      isApproval ? (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40"
+                        >
+                          <CheckCircle2 className="h-3 w-3 text-emerald-500" /> Resposta de Aprovação Recebida
+                        </Badge>
                       ) : (
-                        <>
-                          <Send className="h-3 w-3" /> E-mail Enviado para Aprovação
-                        </>
-                      )}
-                    </Badge>
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 bg-teal-500/15 text-teal-700 dark:text-teal-300 border-teal-500/30"
+                        >
+                          <CornerDownLeft className="h-3 w-3 text-teal-500" /> Resposta do Cliente Recebida
+                        </Badge>
+                      )
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 bg-sky-500/15 text-sky-700 dark:text-sky-300 border-sky-500/30"
+                      >
+                        <Send className="h-3 w-3 text-sky-500" /> E-mail Enviado para Aprovação
+                      </Badge>
+                    )}
 
                     <span className="font-semibold text-foreground text-[11px]">
                       {evt.subject}
@@ -119,8 +164,8 @@ export function OrderEmailEventsSection({ orderId, orderTitulo }: OrderEmailEven
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-[11px] text-muted-foreground pt-0.5">
                   <div>
-                    <strong>{isReceived ? "Remetente:" : "Destinatário:"}</strong>{" "}
-                    <span className="text-foreground">{isReceived ? evt.sender : evt.recipients}</span>
+                    <strong>{isReply ? "Remetente:" : "Destinatário:"}</strong>{" "}
+                    <span className="text-foreground">{isReply ? evt.sender : evt.recipients}</span>
                   </div>
                   <div>
                     <strong>Caixa:</strong>{" "}

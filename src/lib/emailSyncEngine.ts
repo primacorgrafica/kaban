@@ -82,7 +82,7 @@ export async function runEmailSync(): Promise<SyncResult> {
   // 2. Carrega eventos já gravados para mapear conversation_ids e evitar duplicatas
   const { data: existingEvents, error: eventsError } = await supabase
     .from("order_email_events")
-    .select("message_id, conversation_id, order_id, os_number");
+    .select("id, message_id, conversation_id, order_id, os_number, subject, body_preview, email_datetime, direction");
 
   if (eventsError) {
     console.warn("[EmailSync] Aviso ao consultar eventos existentes:", eventsError.message);
@@ -94,6 +94,9 @@ export async function runEmailSync(): Promise<SyncResult> {
 
   // Mapeamento: conversation_id -> { orderId, osNumber } para rastrear threads
   const conversationMap = new Map<string, { orderId: string; osNumber: string }>();
+  // Fingerprints para deduplicação entre caixas monitoradas (preimpressao e embalagens)
+  const existingFingerprints = new Set<string>();
+
   for (const evt of existingEvents || []) {
     if (evt.conversation_id && !conversationMap.has(evt.conversation_id)) {
       conversationMap.set(evt.conversation_id, {
@@ -101,9 +104,15 @@ export async function runEmailSync(): Promise<SyncResult> {
         osNumber: evt.os_number,
       });
     }
+
+    const isReply = evt.direction === "recebido" || /^\s*(re|res|enc|fwd)\s*[:]/i.test(evt.subject || "");
+    const normSub = (evt.subject || "").trim().toLowerCase().replace(/^(re|res|fwd|enc)\s*:\s*/i, "");
+    const normBody = (evt.body_preview || "").trim().toLowerCase().slice(0, 50).replace(/\s+/g, " ");
+    const timeMin = (evt.email_datetime || "").slice(0, 16);
+    existingFingerprints.add(`${evt.order_id}|${isReply ? "resp" : "env"}|${normSub}|${normBody}|${timeMin}`);
   }
 
-  // 3. Define janela temporal: sempre busca as últimas 24h para garantir que nenhuma mensagem seja perdida por atrasos na sincronização
+  // 3. Define janela temporal: busca as últimas 24h
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
   // Carrega avisos recentes para evitar duplicar avisos na mesma O.S.
@@ -113,16 +122,24 @@ export async function runEmailSync(): Promise<SyncResult> {
     .gte("created_at", since);
   const existingAvisoTitles = new Set<string>((recentAvisosData || []).map((a) => a.titulo));
 
-  // Conjunto para evitar processamento duplicado se o mesmo e-mail estiver em mais de uma caixa (preimpressao / embalagens)
+  // Conjunto para evitar processamento duplicado durante a execução
   const processedEventKeys = new Set<string>();
   const notifiedOsNumbers = new Set<string>();
 
-  // Auto-correção para eventos gravados anteriormente como 'recebido' com remetente da Primacor
+  // Auto-correção: mensagens de resposta com prefixo RES: ou RE: devem ter direction: 'recebido'
   await supabase
     .from("order_email_events")
-    .update({ direction: "enviado" })
-    .eq("direction", "recebido")
-    .ilike("sender", "%@primacorgrafica.com.br%")
+    .update({ direction: "recebido" })
+    .ilike("subject", "res:%")
+    .eq("direction", "enviado")
+    .then(() => null)
+    .catch(() => null);
+
+  await supabase
+    .from("order_email_events")
+    .update({ direction: "recebido" })
+    .ilike("subject", "re:%")
+    .eq("direction", "enviado")
     .then(() => null)
     .catch(() => null);
 
@@ -174,31 +191,39 @@ export async function runEmailSync(): Promise<SyncResult> {
         // Se encontramos uma O.S. correspondente, grava o evento
         if (matchedOs && matchedOrderId) {
           const sender = msg.from?.emailAddress?.address || msg.from?.emailAddress?.name || mailbox;
-          const senderEmail = (msg.from?.emailAddress?.address || "").toLowerCase();
           const recipients = (msg.toRecipients || [])
             .map((r) => r.emailAddress.address || r.emailAddress.name)
             .filter(Boolean)
             .join(", ") || mailbox;
 
-          // Se o remetente for da própria Primacor ou caixas monitoradas, foi ENVIADO por nós
-          const isPrimacorSender =
-            senderEmail.includes("@primacorgrafica.com.br") ||
-            MONITORED_MAILBOXES.some((b) => senderEmail.includes(b.toLowerCase()));
+          // Detecção de resposta: se o assunto começa com RES: ou RE:, ou se contém expressões de aprovação, é RESPOSTA (recebido)!
+          const isReplyOrApproval =
+            /^\s*(re|res|enc|fwd)\s*[:]/i.test(msg.subject || "") ||
+            isApprovalResponse(msg.subject || "") ||
+            isApprovalResponse(msg.bodyPreview || "");
 
+          // Se está na Caixa de Entrada (inbox) OU é uma resposta/aprovação, foi RECEBIDO!
+          // Somente mensagens iniciadas em sentitems sem prefixo de resposta são 'enviado'.
           const effectiveDirection: "enviado" | "recebido" =
-            folder === "sentitems" || isPrimacorSender ? "enviado" : "recebido";
+            isReplyOrApproval || folder === "inbox" ? "recebido" : "enviado";
 
           const emailDatetime =
             effectiveDirection === "enviado"
               ? msg.sentDateTime || new Date().toISOString()
               : msg.receivedDateTime || new Date().toISOString();
 
-          // Deduplicação entre caixas para evitar duplicar o mesmo e-mail (presente em preimpressao e embalagens)
-          const contentDedupeKey = `${matchedOrderId}:${effectiveDirection}:${msg.conversationId || msg.subject || ''}:${(emailDatetime || '').slice(0, 16)}`;
-          if (processedEventKeys.has(contentDedupeKey)) {
+          // Deduplicação cruzada robusta entre caixas (evita duplicar evento se a mesma mensagem foi sincronizada por preimpressao e embalagens)
+          const normSub = (msg.subject || "").trim().toLowerCase().replace(/^(re|res|fwd|enc)\s*:\s*/i, "");
+          const normBody = (msg.bodyPreview || "").trim().toLowerCase().slice(0, 50).replace(/\s+/g, " ");
+          const timeMin = (emailDatetime || "").slice(0, 16);
+          const eventFingerprint = `${matchedOrderId}|${effectiveDirection === "recebido" ? "resp" : "env"}|${normSub}|${normBody}|${timeMin}`;
+
+          if (existingFingerprints.has(eventFingerprint) || processedEventKeys.has(eventFingerprint)) {
+            // Se já foi registrado na outra caixa, ignora a duplicata
             continue;
           }
-          processedEventKeys.add(contentDedupeKey);
+          processedEventKeys.add(eventFingerprint);
+          existingFingerprints.add(eventFingerprint);
 
           const newEventData = {
             order_id: matchedOrderId,
