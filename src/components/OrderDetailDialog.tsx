@@ -1,10 +1,10 @@
+import { getOrderRevision } from "@/lib/orderRevision";
 import { useState, useEffect } from "react";
 import { Order, OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
 import { DEPARTMENTS, Department } from "@/types/production";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import {
-  Calendar,
+import { RotateCcw, Calendar,
   User,
   FileText,
   Archive,
@@ -19,8 +19,7 @@ import {
   Edit2,
   Repeat,
   Check,
-  Sparkles,
-} from "lucide-react";
+  Sparkles, } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -115,6 +114,8 @@ export interface OrderDetailDialogProps {
 }
 
 export function OrderDetailDialog({
+  // OrderDetailDialog
+
   order,
   open,
   onOpenChange,
@@ -136,6 +137,7 @@ export function OrderDetailDialog({
   departmentContext,
   getProfileName,
 }: OrderDetailDialogProps) {
+  const currentRevision = getOrderRevision(order);
   if (!order) return null;
 
   const [editing, setEditing] = useState(false);
@@ -174,6 +176,7 @@ export function OrderDetailDialog({
     operador: order.operador || "",
     tipo_trabalho: order.tipo_trabalho || "novo",
     os_anterior: order.os_anterior || "",
+    revisao: getOrderRevision(order),
     processos: order.processos || ([] as string[]),
     tipo_documento: (order.nf ? "NF" : order.protocolo ? "PROTOCOLO" : "") as "NF" | "PROTOCOLO" | "",
     valor_documento: order.nf || order.protocolo || "",
@@ -214,6 +217,7 @@ export function OrderDetailDialog({
         operador: order.operador || "",
         tipo_trabalho: order.tipo_trabalho || "novo",
         os_anterior: order.os_anterior || "",
+        revisao: getOrderRevision(order),
         processos: order.processos || [],
         tipo_documento: (order.nf ? "NF" : order.protocolo ? "PROTOCOLO" : "") as "NF" | "PROTOCOLO" | "",
         valor_documento: order.nf || order.protocolo || "",
@@ -346,6 +350,7 @@ export function OrderDetailDialog({
       operador: editData.operador || null,
       tipo_trabalho: editData.tipo_trabalho || null,
       os_anterior: editData.tipo_trabalho === "repeticao" ? (editData.os_anterior || null) : null,
+      revisao: editData.revisao || 1,
       processos: editData.processos.length > 0 ? editData.processos : [],
       nf: editData.tipo_documento === "NF" ? editData.valor_documento || null : null,
       protocolo: editData.tipo_documento === "PROTOCOLO" ? editData.valor_documento || null : null,
@@ -375,6 +380,12 @@ export function OrderDetailDialog({
                   <span className="font-mono-tech text-base font-bold text-foreground tracking-wide">
                     O.S. #{order.titulo}
                   </span>
+                  {currentRevision >= 2 && (
+                    <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/40 text-[11px] font-bold font-mono-tech flex items-center gap-1">
+                      <RotateCcw className="h-3 w-3" />
+                      <span>REV{currentRevision}</span>
+                    </Badge>
+                  )}
                   {(order.tipo_trabalho === "repeticao" || order.os_anterior) && (
                     <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40 text-[11px] font-bold flex items-center gap-1">
                       <Repeat className="h-3 w-3" />
@@ -472,6 +483,22 @@ export function OrderDetailDialog({
                       />
                     </div>
                   )}
+                  <div>
+                    <Label className="text-xs uppercase text-muted-foreground flex items-center gap-1">
+                      <RotateCcw className="h-3 w-3 text-amber-500" />
+                      Revisão (REV)
+                    </Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={editData.revisao ?? 1}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        setEditData((d) => ({ ...d, revisao: isNaN(val) ? 1 : val }));
+                      }}
+                      className="h-9 font-mono-tech font-bold"
+                    />
+                  </div>
                 </div>
                 <div>
                   <Label className="text-xs uppercase text-muted-foreground">Vendedor *</Label>
@@ -716,6 +743,19 @@ export function OrderDetailDialog({
                           <User className="h-3 w-3 text-primary" />
                           {order.vendedor}
                         </p>
+                      </div>
+                    )}
+                    {currentRevision >= 2 && (
+                      <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 font-bold text-xs">
+                          <RotateCcw className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                          <span>REVISÃO DO ARQUIVO</span>
+                        </div>
+                        <div className="text-xs">
+                          <span className="font-mono-tech font-bold text-foreground text-sm">
+                            REV{currentRevision}
+                          </span>
+                        </div>
                       </div>
                     )}
                     {(order.tipo_trabalho === "repeticao" || order.os_anterior) && (

@@ -533,6 +533,7 @@ export type Database = {
           tipo_entrega: string[] | null
           tipo_trabalho: string | null
           os_anterior?: string | null
+          revisao?: number | null
           titulo: string
           updated_at: string
           urgente: boolean
@@ -630,6 +631,7 @@ export type Database = {
           tipo_entrega?: string[] | null
           tipo_trabalho?: string | null
           os_anterior?: string | null
+          revisao?: number | null
           titulo: string
           updated_at?: string
           urgente?: boolean
@@ -726,6 +728,7 @@ export type Database = {
           tipo_entrega?: string[] | null
           tipo_trabalho?: string | null
           os_anterior?: string | null
+          revisao?: number | null
           titulo?: string
           updated_at?: string
           urgente?: boolean

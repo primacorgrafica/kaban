@@ -1,3 +1,4 @@
+import { getOrderRevision, setObservationRevision, isReturnToPreparation } from "@/lib/orderRevision";
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -52,7 +53,7 @@ export function useOrders() {
       }
 
       const rows = (data as Order[]) || [];
-      all.push(...rows);
+      all.push(...rows.map(r => ({ ...r, revisao: getOrderRevision(r) })));
       if (rows.length < PAGE_SIZE) break;
       from += PAGE_SIZE;
     }
@@ -79,6 +80,7 @@ export function useOrders() {
       return;
     }
     if (!newRow?.id) return;
+    const normalizedRow: Order = { ...newRow, revisao: getOrderRevision(newRow) };
 
     if (oldRow?.status !== newRow.status) {
       invalidateApprovalEntry(newRow.id);
@@ -87,11 +89,11 @@ export function useOrders() {
     setOrders((prev) => {
       const idx = prev.findIndex((o) => o.id === newRow.id);
       if (idx === -1) {
-        if (eventType === "INSERT") return [...prev, newRow];
+        if (eventType === "INSERT") return [...prev, normalizedRow];
         return prev;
       }
       const copy = [...prev];
-      copy[idx] = { ...copy[idx], ...newRow };
+      copy[idx] = { ...copy[idx], ...normalizedRow };
       return copy;
     });
   }, []);
@@ -314,9 +316,21 @@ export function useOrders() {
   const updateOrder = useCallback(
     async (id: string, data: Partial<Order>) => {
       let updatePayload: any = { ...data, atualizado_por: user?.id || null };
+      if (data.revisao !== undefined) {
+        const currentOrder = orders.find(o => o.id === id);
+        const targetObs = data.observacao !== undefined ? data.observacao : currentOrder?.observacao;
+        updatePayload.observacao = setObservationRevision(targetObs, data.revisao || 1);
+      }
+      setOrders(prev => prev.map(o => o.id === id ? { ...o, ...data, ...(updatePayload.observacao !== undefined ? { observacao: updatePayload.observacao } : {}) } : o));
+
       let { error } = await supabase.from("orders").update(updatePayload as any).eq("id", id);
       if (error && (error.message?.includes("os_anterior") || error.details?.includes("os_anterior") || (error as any).code === "PGRST204" || (error as any).code === "42703")) {
         delete updatePayload.os_anterior;
+        const retry = await supabase.from("orders").update(updatePayload as any).eq("id", id);
+        error = retry.error;
+      }
+      if (error && (error.message?.includes("revisao") || error.details?.includes("revisao") || (error as any).code === "PGRST204" || (error as any).code === "42703")) {
+        delete updatePayload.revisao;
         const retry = await supabase.from("orders").update(updatePayload as any).eq("id", id);
         error = retry.error;
       }
@@ -325,22 +339,39 @@ export function useOrders() {
         console.error(error);
       }
     },
-    [user]
+    [user, orders]
   );
 
-  const moveOrder = useCallback(async (id: string, newStatus: OrderStatus, newIndex?: number) => {
+  const moveOrder = useCallback(async (id: string, newStatus: OrderStatus, newIndex?: number, newRevisao?: number) => {
     const currentOrder = orders.find(o => o.id === id);
     if (!currentOrder) return;
     const oldStatus = currentOrder.status;
     const oldPos = currentOrder.posicao;
     const previousSnapshot = [...orders];
 
+    let effectiveRevisao = newRevisao;
+    if (effectiveRevisao === undefined && isReturnToPreparation(oldStatus, newStatus)) {
+      effectiveRevisao = getOrderRevision(currentOrder) + 1;
+    }
+    if (effectiveRevisao === undefined) {
+      effectiveRevisao = getOrderRevision(currentOrder);
+    }
+    const effectiveObservacao = effectiveRevisao !== getOrderRevision(currentOrder)
+      ? setObservationRevision(currentOrder.observacao, effectiveRevisao)
+      : currentOrder.observacao;
+
     const destOrders = orders
       .filter(o => o.status === newStatus && !o.arquivado && o.id !== id)
       .sort((a, b) => a.posicao - b.posicao);
 
     const idx = newIndex !== undefined ? newIndex : destOrders.length;
-    destOrders.splice(idx, 0, { ...currentOrder, status: newStatus, posicao: idx });
+    destOrders.splice(idx, 0, {
+      ...currentOrder,
+      status: newStatus,
+      posicao: idx,
+      revisao: effectiveRevisao,
+      observacao: effectiveObservacao
+    });
 
     const orderIds = destOrders.map(o => o.id);
 
@@ -348,7 +379,13 @@ export function useOrders() {
     setOrders(prev =>
       prev.map(o => {
         if (o.id === id) {
-          return { ...o, status: newStatus, posicao: idx };
+          return {
+            ...o,
+            status: newStatus,
+            posicao: idx,
+            revisao: effectiveRevisao,
+            observacao: effectiveObservacao,
+          };
         }
         const foundIdx = destOrders.findIndex(d => d.id === o.id);
         if (foundIdx !== -1) {
@@ -366,6 +403,9 @@ export function useOrders() {
 
     if (currentOrder.setor === "desenvolvimento") {
       void supabase.from("orders").update({ setor: null, setor_status: null }).eq("id", id);
+    }
+    if (effectiveRevisao !== getOrderRevision(currentOrder)) {
+      void updateOrder(id, { revisao: effectiveRevisao, observacao: effectiveObservacao });
     }
 
     if (rpcErr) {
@@ -395,13 +435,15 @@ export function useOrders() {
     }
 
     // Feedback com ação rápida de Desfazer (Undo)
-    if (oldStatus && oldStatus !== newStatus) {
+    if (effectiveRevisao && effectiveRevisao >= 2 && isReturnToPreparation(oldStatus, newStatus)) {
+      toast.success(`OS retornou para Preparação (REV${effectiveRevisao})!`);
+    } else if (oldStatus && oldStatus !== newStatus) {
       const targetLabel = STATUS_CONFIG[newStatus]?.label || newStatus;
       toast.success(`OS movida para ${targetLabel}`, {
         action: {
           label: "Desfazer",
           onClick: () => {
-            moveOrder(id, oldStatus, oldPos);
+            moveOrder(id, oldStatus, oldPos, currentOrder.revisao || 1);
           },
         },
       });
@@ -458,6 +500,7 @@ export function useOrders() {
     vendedor: o.vendedor,
     tipo_trabalho: o.tipo_trabalho,
     os_anterior: o.os_anterior,
+    revisao: o.revisao,
     equipamentos: o.equipamentos,
     acabamentos: o.acabamentos,
     processos: o.processos,

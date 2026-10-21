@@ -2175,3 +2175,9 @@ ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS os_anterior TEXT;
 
 
 
+
+-- ------------------------------------------------------------------
+-- Migration: 20261021_add_revisao_to_orders.sql
+-- ------------------------------------------------------------------
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS revisao INTEGER DEFAULT 1;
+

@@ -1,9 +1,10 @@
+import { getOrderRevision } from "@/lib/orderRevision";
 import { useState, useEffect, memo } from "react";
 import { Order, OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
 import { DEPARTMENTS, Department } from "@/types/production";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Calendar, User, FileText, Archive, Trash2, GripVertical, UserCheck, Clock, AlertTriangle, Send, Truck, Briefcase, Copy, Edit2, MessageSquarePlus, Repeat, Sparkles, Check } from "lucide-react";
+import { RotateCcw, Calendar, User, FileText, Archive, Trash2, GripVertical, UserCheck, Clock, AlertTriangle, Send, Truck, Briefcase, Copy, Edit2, MessageSquarePlus, Repeat, Sparkles, Check } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -186,6 +187,7 @@ function getVisibleSections(departmentContext?: string): { general: boolean; pro
 }
 
 function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplicate, onSendToProduction, onSendToMultipleProduction, onSendToExpedicao, dragHandleProps, updatedByName, createdByName, permissions, departmentContext, isSlowAlert }: OrderCardProps) {
+  const currentRevision = getOrderRevision(order);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState({
@@ -284,6 +286,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
         operador: order.operador || "",
         tipo_trabalho: order.tipo_trabalho || "novo",
         os_anterior: order.os_anterior || "",
+        revisao: getOrderRevision(order),
         processos: order.processos || [] as string[],
         tipo_documento: ((order.nf ? "NF" : order.protocolo ? "PROTOCOLO" : "") as "NF" | "PROTOCOLO" | ""),
         valor_documento: order.nf || order.protocolo || "",
@@ -376,6 +379,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
       operador: editData.operador || null,
       tipo_trabalho: editData.tipo_trabalho || null,
       os_anterior: editData.tipo_trabalho === "repeticao" ? (editData.os_anterior || null) : null,
+      revisao: editData.revisao || 1,
       processos: editData.processos.length > 0 ? editData.processos : [],
       nf: editData.tipo_documento === "NF" ? (editData.valor_documento || null) : null,
       protocolo: editData.tipo_documento === "PROTOCOLO" ? (editData.valor_documento || null) : null,
@@ -533,6 +537,14 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
             <AlertTriangle className="h-3 w-3" /> Urgente
           </div>
         )}
+        {currentRevision >= 2 && order.status === "preparando_arquivo" && (
+          <div className="px-2 py-0.5 bg-amber-500/20 dark:bg-amber-950/40 border-b border-amber-500/30 text-center flex items-center justify-center gap-1.5">
+            <RotateCcw className="h-3 w-3 text-amber-500 animate-spin-slow" />
+            <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide font-mono-tech">
+              Retorno para Preparação — REV{currentRevision}
+            </span>
+          </div>
+        )}
         {order.setor && order.setor !== "desenvolvimento" && (
           <div className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-center">
             <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">
@@ -563,6 +575,15 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
             <span className="font-mono-tech text-[11px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 shrink-0">
               #{order.titulo}
             </span>
+            {currentRevision >= 2 && (
+              <span
+                className="font-mono-tech text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 shrink-0 flex items-center gap-1 shadow-xs animate-pulse"
+                title={`Revisão ${currentRevision} (Retornou para Preparação)`}
+              >
+                <RotateCcw className="h-2.5 w-2.5" />
+                <span>REV{currentRevision}</span>
+              </span>
+            )}
             {(order.tipo_trabalho === "repeticao" || order.os_anterior) && (
               <span
                 className="font-mono-tech text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shrink-0 flex items-center gap-1"
@@ -794,6 +815,12 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                   <span className="font-mono-tech text-base font-bold text-foreground tracking-wide">
                     O.S. #{order.titulo}
                   </span>
+                  {currentRevision >= 2 && (
+                    <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/40 text-[11px] font-bold font-mono-tech flex items-center gap-1">
+                      <RotateCcw className="h-3 w-3" />
+                      <span>REV{currentRevision}</span>
+                    </Badge>
+                  )}
                   {(order.tipo_trabalho === "repeticao" || order.os_anterior) && (
                     <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40 text-[11px] font-bold flex items-center gap-1">
                       <Repeat className="h-3 w-3" />
@@ -890,6 +917,22 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                       />
                     </div>
                   )}
+                  <div>
+                    <Label className="text-xs uppercase text-muted-foreground flex items-center gap-1">
+                      <RotateCcw className="h-3 w-3 text-amber-500" />
+                      Revisão (REV)
+                    </Label>
+                    <Input
+                      type="number"
+                      min={1}
+                      value={editData.revisao ?? 1}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        setEditData((d) => ({ ...d, revisao: isNaN(val) ? 1 : val }));
+                      }}
+                      className="h-9 font-mono-tech font-bold"
+                    />
+                  </div>
                 </div>
                 <div>
                   <Label className="text-xs uppercase text-muted-foreground">Vendedor *</Label>
@@ -1255,6 +1298,19 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                           <User className="h-3 w-3 text-primary" />
                           {order.vendedor}
                         </p>
+                      </div>
+                    )}
+                    {currentRevision >= 2 && (
+                      <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 font-bold text-xs">
+                          <RotateCcw className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                          <span>REVISÃO DO ARQUIVO</span>
+                        </div>
+                        <div className="text-xs">
+                          <span className="font-mono-tech font-bold text-foreground text-sm">
+                            REV{currentRevision}
+                          </span>
+                        </div>
                       </div>
                     )}
                     {(order.tipo_trabalho === "repeticao" || order.os_anterior) && (

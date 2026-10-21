@@ -1,3 +1,4 @@
+import { getOrderRevision } from "@/lib/orderRevision";
 import { useState, useEffect, memo } from "react";
 import { getProcessoCor, SPECIAL_SUPPLIES, isSpecialSupplyActive, isSpecialSupplySent, toggleSpecialSupplySent, getSpecialSupplyDetails, formatSafeDate } from "@/lib/processos";
 import { Order } from "@/types/order";
@@ -7,7 +8,7 @@ import { ptBR } from "date-fns/locale";
 import { businessHoursMs } from "@/lib/businessHours";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeApprovalEntry } from "@/lib/approvalEntryCache";
-import { Calendar, User, FileText, Archive, Trash2, ChevronRight, ChevronLeft, GripVertical, UserCheck, Clock, AlertTriangle, Send, Undo2, Briefcase, Truck, Edit2, Check } from "lucide-react";
+import { RotateCcw, Calendar, User, FileText, Archive, Trash2, ChevronRight, ChevronLeft, GripVertical, UserCheck, Clock, AlertTriangle, Send, Undo2, Briefcase, Truck, Edit2, Check } from "lucide-react";
 import { toast } from "sonner";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -570,6 +571,15 @@ function ProductionCardImpl({
             <h4 className={`font-semibold text-sm shrink-0 ${isUrgent ? "text-red-700 dark:text-red-400" : "text-card-foreground"}`}>
               OS. {order.titulo}
             </h4>
+            {getOrderRevision(order) >= 2 && (
+              <span
+                className="font-mono-tech text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 shrink-0 flex items-center gap-1 shadow-xs"
+                title={`Revisão ${getOrderRevision(order)}`}
+              >
+                <RotateCcw className="h-2.5 w-2.5" />
+                <span>REV{getOrderRevision(order)}</span>
+              </span>
+            )}
             {(order.tipo_trabalho === "repeticao" || order.os_anterior) && (
               <span
                 className="font-mono-tech text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shrink-0 flex items-center gap-1"

@@ -1,3 +1,4 @@
+import { getOrderRevision } from "@/lib/orderRevision";
 import { useState, useMemo } from "react";
 import { Order, OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
 import { Department, DepartmentConfig, DEPARTMENTS } from "@/types/production";
@@ -22,8 +23,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Clock,
+import { RotateCcw, Clock,
   User,
   FileText,
   Archive,
@@ -38,8 +38,7 @@ import {
   Layers,
   Sparkles,
   ChevronRight,
-  Filter,
-} from "lucide-react";
+  Filter, } from "lucide-react";
 import { toast } from "sonner";
 import { OrderDetailDialog } from "./OrderDetailDialog";
 import { getProcessoCor } from "@/lib/processos";
@@ -357,6 +356,15 @@ export function ProductionTable({
                             title={order.os_anterior ? `Repetição da O.S. Anterior: ${order.os_anterior}` : "Repetição"}
                           >
                             REP {order.os_anterior ? `#${order.os_anterior}` : ""}
+                          </span>
+                        )}
+                        {getOrderRevision(order) >= 2 && (
+                          <span
+                            className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 text-[10px] font-extrabold flex items-center gap-1 shadow-xs ml-1"
+                            title={`Revisão ${getOrderRevision(order)}`}
+                          >
+                            <RotateCcw className="h-2.5 w-2.5" />
+                            REV{getOrderRevision(order)}
                           </span>
                         )}
                       </div>

@@ -1,3 +1,4 @@
+import { getOrderRevision, isReturnToPreparation } from "@/lib/orderRevision";
 import { Order, OrderStatus, STATUS_ORDER, STATUS_CONFIG } from "@/types/order";
 import { Department } from "@/types/production";
 import { KanbanColumn } from "./KanbanColumn";
@@ -17,7 +18,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Truck, AlertTriangle } from "lucide-react";
+import { Truck, AlertTriangle, RotateCcw } from "lucide-react";
 
 interface Permissions {
   canEditCard: boolean;
@@ -33,7 +34,7 @@ interface Permissions {
 interface KanbanBoardProps {
   orders: Order[];
   onUpdate: (id: string, data: Partial<Order>) => void;
-  onMove: (id: string, status: OrderStatus, newIndex?: number) => void;
+  onMove: (id: string, status: OrderStatus, newIndex?: number, newRevisao?: number) => void;
   onArchive: (id: string) => void;
   onDelete: (id: string) => void;
   onDuplicate?: (order: Order) => void;
@@ -222,6 +223,7 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
   } | null>(null);
   const [sendToExpedicao, setSendToExpedicao] = useState(false);
   const [motivoParada, setMotivoParada] = useState("");
+  const [applyRevision, setApplyRevision] = useState(true);
 
   const handleDragEnd = (result: DropResult) => {
     setIsDndActive(false);
@@ -239,6 +241,7 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
     if (sourceStatus !== newStatus || result.source.index !== newIndex) {
       // Ao arrastar card para paralisado ou qualquer coluna, sempre vir zerado
       setMotivoParada("");
+      setApplyRevision(true);
 
       setPendingMove({
         id: result.draggableId,
@@ -252,15 +255,22 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
 
   const confirmMove = () => {
     if (pendingMove) {
+      const isReturn = isReturnToPreparation(pendingMove.fromStatus, pendingMove.toStatus);
+      const currentOrder = orders.find(o => o.id === pendingMove.id);
+      const currentRev = getOrderRevision(currentOrder);
+      const nextRev = currentRev + 1;
+      const targetRev = isReturn && applyRevision ? nextRev : undefined;
+
       if (pendingMove.toStatus === "aguardando_novo_arquivo" || pendingMove.toStatus === "paralisado") {
         onUpdate(pendingMove.id, { observacao: motivoParada.trim() || null });
       }
-      onMove(pendingMove.id, pendingMove.toStatus, pendingMove.newIndex);
+      onMove(pendingMove.id, pendingMove.toStatus, pendingMove.newIndex, targetRev);
       if (sendToExpedicao && pendingMove.toStatus === "aguardando_prova" && onSendToExpedicao) {
         onSendToExpedicao(pendingMove.id);
       }
       setSendToExpedicao(false);
       setMotivoParada("");
+      setApplyRevision(true);
       setPendingMove(null);
     }
   };
@@ -268,6 +278,7 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
   const cancelMove = () => {
     setSendToExpedicao(false);
     setMotivoParada("");
+    setApplyRevision(true);
     setPendingMove(null);
   };
 
@@ -354,6 +365,39 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
                       <strong>{STATUS_CONFIG[pendingMove.toStatus].label}</strong>
                       {pendingMove.fromStatus === pendingMove.toStatus && " (reordenar)"}?
                     </p>
+                    {isReturnToPreparation(pendingMove.fromStatus, pendingMove.toStatus) && (() => {
+                      const currentOrder = orders.find(o => o.id === pendingMove.id);
+                      const currentRev = getOrderRevision(currentOrder);
+                      const nextRev = currentRev + 1;
+                      return (
+                        <div className="mt-4 p-3.5 rounded-xl border border-amber-500/40 bg-amber-500/10 space-y-2 text-left">
+                          <div className="flex items-center gap-2">
+                            <RotateCcw className="h-4 w-4 text-amber-500 shrink-0" />
+                            <Label className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-wide">
+                              Retorno para Preparação Detectado
+                            </Label>
+                          </div>
+                          <p className="text-xs text-foreground font-medium leading-relaxed">
+                            Esta O.S. está retornando para Preparação. Ela será sinalizada com o flag{" "}
+                            <span className="font-mono-tech font-extrabold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40">
+                              REV{nextRev}
+                            </span>{" "}
+                            (Revisão {nextRev}).
+                          </p>
+                          <div className="flex items-center gap-2 pt-1">
+                            <Checkbox
+                              id="apply-rev"
+                              checked={applyRevision}
+                              onCheckedChange={(v) => setApplyRevision(!!v)}
+                            />
+                            <Label htmlFor="apply-rev" className="text-xs cursor-pointer font-medium">
+                              Atualizar revisão para <strong>REV{nextRev}</strong>
+                            </Label>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     {(pendingMove.toStatus === "aguardando_novo_arquivo" || pendingMove.toStatus === "paralisado") && (
                       <div className="mt-4 p-3 rounded-xl border border-amber-500/40 bg-amber-500/10 space-y-2 text-left">
                         <Label className="text-xs font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5 uppercase">
