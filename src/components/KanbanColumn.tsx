@@ -56,6 +56,7 @@ interface KanbanColumnProps {
     departments: { department: Department; machine?: string }[]
   ) => void;
   onSendToExpedicao?: (id: string) => void;
+  onSendToCompras?: (id: string, processos?: string[]) => void;
   getProfileName: (userId: string | null) => string | null;
   permissions: Permissions;
   departmentContext?: string;
@@ -180,6 +181,7 @@ export function KanbanColumn({
                         onSendToProduction={onSendToProduction}
                         onSendToMultipleProduction={onSendToMultipleProduction}
                         onSendToExpedicao={onSendToExpedicao}
+                        onSendToCompras={onSendToCompras}
                         dragHandleProps={
                           canDrag
                             ? (provided.dragHandleProps as unknown as Record<

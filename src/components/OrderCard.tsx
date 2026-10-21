@@ -4,7 +4,7 @@ import { Order, OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
 import { DEPARTMENTS, Department } from "@/types/production";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { RotateCcw, Calendar, User, FileText, Archive, Trash2, GripVertical, UserCheck, Clock, AlertTriangle, Send, Truck, Briefcase, Copy, Edit2, MessageSquarePlus, Repeat, Sparkles, Check } from "lucide-react";
+import { RotateCcw, ShoppingBag, Calendar, User, FileText, Archive, Trash2, GripVertical, UserCheck, Clock, AlertTriangle, Send, Truck, Briefcase, Copy, Edit2, MessageSquarePlus, Repeat, Sparkles, Check } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -92,6 +92,7 @@ interface OrderCardProps {
   onSendToProduction?: (id: string, department: Department, machine?: string) => void;
   onSendToMultipleProduction?: (id: string, departments: { department: Department; machine?: string }[]) => void;
   onSendToExpedicao?: (id: string) => void;
+  onSendToCompras?: (id: string, processos?: string[]) => void;
   dragHandleProps?: Record<string, unknown>;
   updatedByName?: string | null;
   createdByName?: string | null;
@@ -186,7 +187,7 @@ function getVisibleSections(departmentContext?: string): { general: boolean; pro
   }
 }
 
-function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplicate, onSendToProduction, onSendToMultipleProduction, onSendToExpedicao, dragHandleProps, updatedByName, createdByName, permissions, departmentContext, isSlowAlert }: OrderCardProps) {
+function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplicate, onSendToProduction, onSendToMultipleProduction, onSendToExpedicao, onSendToCompras, dragHandleProps, updatedByName, createdByName, permissions, departmentContext, isSlowAlert }: OrderCardProps) {
   const currentRevision = getOrderRevision(order);
   const cleanObs = cleanObservationRevision(order.observacao);
   const [open, setOpen] = useState(false);
@@ -790,13 +791,26 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
           )}
         </div>
 
-        {permissions.canSendToProduction && isLastStatus && onSendToProduction && (
-          <button
-            onClick={(e) => { e.stopPropagation(); setSendDialogOpen(true); }}
-            className="w-full py-2.5 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all rounded-b-2xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-md font-mono-tech"
-          >
-            <Send className="h-3.5 w-3.5" /> Enviar para Produção →
-          </button>
+        {isLastStatus && (permissions.canSendToProduction || onSendToCompras) && (
+          <div className="flex items-center gap-1.5 p-1.5 rounded-b-2xl bg-muted/40 border-t border-border/40">
+            {permissions.canSendToProduction && onSendToProduction && (
+              <button
+                onClick={(e) => { e.stopPropagation(); setSendDialogOpen(true); }}
+                className="flex-1 py-2 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-md font-mono-tech"
+              >
+                <Send className="h-3.5 w-3.5" /> Produção →
+              </button>
+            )}
+            {onSendToCompras && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onSendToCompras(order.id); }}
+                className="py-2 px-3 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all rounded-xl border border-pink-500/50 bg-pink-500/15 hover:bg-pink-500/25 text-pink-600 dark:text-pink-300 shadow-sm"
+                title="Criar ou sincronizar card em Compras"
+              >
+                <ShoppingBag className="h-3.5 w-3.5" /> Compras
+              </button>
+            )}
+          </div>
         )}
       </div>
 
@@ -1552,6 +1566,16 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                       onClick={() => { onSendToExpedicao(order.id); setOpen(false); }}
                     >
                       <Truck className="h-3.5 w-3.5" /> Enviar → Expedição
+                    </Button>
+                  )}
+                  {isLastStatus && onSendToCompras && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-xs text-pink-600 dark:text-pink-400 border-pink-500/40 hover:bg-pink-500/10 rounded-xl h-9 px-3 gap-1.5 shadow-sm font-semibold"
+                      onClick={() => { onSendToCompras(order.id); }}
+                    >
+                      <ShoppingBag className="h-3.5 w-3.5" /> Enviar p/ Compras
                     </Button>
                   )}
                 </div>

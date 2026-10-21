@@ -345,6 +345,109 @@ export function useOrders() {
     [user, orders]
   );
 
+    const copyOrderFields = (o: Order) => ({
+    titulo: o.titulo,
+    descricao: o.descricao,
+    cliente: o.cliente,
+    observacao: o.observacao,
+    status: o.status,
+    saida_direta: o.saida_direta,
+    prova_digital: o.prova_digital,
+    prova_email: o.prova_email,
+    prioridade: o.prioridade,
+    urgente: o.urgente,
+    prazo: o.prazo,
+    vendedor: o.vendedor,
+    tipo_trabalho: o.tipo_trabalho,
+    revisao: o.revisao,
+    equipamentos: o.equipamentos,
+    acabamentos: o.acabamentos,
+    processos: o.processos,
+    nf: o.nf,
+    protocolo: o.protocolo,
+    empresa_entrega: o.empresa_entrega,
+    obs_entrega: o.obs_entrega,
+    endereco_entrega: o.endereco_entrega,
+    destinatario: o.destinatario,
+    tipo_entrega: o.tipo_entrega || [],
+    entrega_para: o.entrega_para,
+    entrega_endereco: o.entrega_endereco,
+    entrega_ac: o.entrega_ac,
+    entrega_data_limite: o.entrega_data_limite,
+  });
+
+  const sendToCompras = useCallback(async (orderId: string, customProcessos?: string[]) => {
+    let originalOrder = orders.find(o => o.id === orderId);
+    if (!originalOrder) {
+      const { data } = await supabase.from("orders").select("*").eq("id", orderId).maybeSingle();
+      if (data) {
+        originalOrder = data as Order;
+      }
+    }
+    if (!originalOrder) {
+      console.warn("OS não encontrada para envio a compras:", orderId);
+      return null;
+    }
+
+    // Verificar se já existe uma cópia ativa desta OS em compras para não duplicar
+    const { data: existing } = await supabase
+      .from("orders")
+      .select("id")
+      .eq("setor", "compras")
+      .eq("parent_order_id", orderId)
+      .eq("arquivado", false)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      console.log("Card em Compras já existente para esta OS:", existing[0].id);
+      return existing[0].id;
+    }
+
+    const copied = copyOrderFields(originalOrder);
+    delete (copied as any).os_anterior;
+
+    const insertPayload: any = {
+      ...copied,
+      status: "fila_de_entrada",
+      setor: "compras",
+      setor_status: "entrada",
+      categoria_compra: "os",
+      parent_order_id: orderId,
+      posicao: originalOrder.urgente ? 0 : 9999,
+      processos: customProcessos || originalOrder.processos || [],
+      criado_por: originalOrder.criado_por || user?.id || null,
+      atualizado_por: user?.id || null,
+    };
+
+    let { data: created, error } = await supabase
+      .from("orders")
+      .insert(insertPayload)
+      .select("id");
+
+    if (error && (error.message?.includes("os_anterior") || (error as any).code === "42703" || (error as any).code === "PGRST204")) {
+      delete insertPayload.os_anterior;
+      const retry = await supabase.from("orders").insert(insertPayload).select("id");
+      created = retry.data;
+      error = retry.error;
+    }
+
+    if (error && (error.message?.includes("revisao") || (error as any).code === "42703" || (error as any).code === "PGRST204")) {
+      delete insertPayload.revisao;
+      const retry = await supabase.from("orders").insert(insertPayload).select("id");
+      created = retry.data;
+      error = retry.error;
+    }
+
+    if (error) {
+      console.error("Erro ao criar card em compras:", error);
+      toast.error("Erro ao criar card em compras: " + (error.message || "Falha na inserção"));
+      return null;
+    } else {
+      toast.success("Card da O.S. criado em Compras!");
+      return created?.[0]?.id;
+    }
+  }, [user, orders]);
+
   const moveOrder = useCallback(async (id: string, newStatus: OrderStatus, newIndex?: number, newRevisao?: number) => {
     const currentOrder = orders.find(o => o.id === id);
     if (!currentOrder) return;
@@ -451,7 +554,11 @@ export function useOrders() {
         },
       });
     }
-  }, [orders, user]);
+
+    if (newStatus === "arquivo_liberado") {
+      void sendToCompras(id);
+    }
+  }, [orders, user, sendToCompras]);
 
   const archiveOrder = useCallback(async (id: string) => {
     const { error } = await supabase.from("orders").update({ arquivado: true, atualizado_por: user?.id || null }).eq("id", id);
@@ -488,37 +595,7 @@ export function useOrders() {
     }
   }, []);
 
-  const copyOrderFields = (o: Order) => ({
-    titulo: o.titulo,
-    descricao: o.descricao,
-    cliente: o.cliente,
-    observacao: o.observacao,
-    status: o.status,
-    saida_direta: o.saida_direta,
-    prova_digital: o.prova_digital,
-    prova_email: o.prova_email,
-    prioridade: o.prioridade,
-    urgente: o.urgente,
-    prazo: o.prazo,
-    vendedor: o.vendedor,
-    tipo_trabalho: o.tipo_trabalho,
-    os_anterior: o.os_anterior,
-    revisao: o.revisao,
-    equipamentos: o.equipamentos,
-    acabamentos: o.acabamentos,
-    processos: o.processos,
-    nf: o.nf,
-    protocolo: o.protocolo,
-    empresa_entrega: o.empresa_entrega,
-    obs_entrega: o.obs_entrega,
-    endereco_entrega: o.endereco_entrega,
-    destinatario: o.destinatario,
-    tipo_entrega: o.tipo_entrega || [],
-    entrega_para: o.entrega_para,
-    entrega_endereco: o.entrega_endereco,
-    entrega_ac: o.entrega_ac,
-    entrega_data_limite: o.entrega_data_limite,
-  });
+
 
   const sendToProduction = useCallback(async (orderId: string, department: Department, machine?: string) => {
     const order = orders.find(o => o.id === orderId);
@@ -546,41 +623,7 @@ export function useOrders() {
     }
   }, [user, orders]);
 
-  const sendToCompras = useCallback(async (orderId: string) => {
-    const originalOrder = orders.find(o => o.id === orderId);
-    if (!originalOrder) return null;
-
-    // Verificar se já existe uma cópia ativa desta OS em compras para não duplicar
-    const { data: existing } = await supabase
-      .from("orders")
-      .select("id")
-      .eq("setor", "compras")
-      .eq("parent_order_id", orderId)
-      .eq("arquivado", false)
-      .limit(1);
-
-    if (existing && existing.length > 0) {
-      return existing[0].id;
-    }
-
-    const { data: created, error } = await supabase.from("orders").insert({
-      ...copyOrderFields(originalOrder),
-      criado_por: originalOrder.criado_por,
-      atualizado_por: user?.id || null,
-      setor: "compras",
-      setor_status: "entrada",
-      categoria_compra: "os",
-      parent_order_id: orderId,
-      posicao: originalOrder.urgente ? 0 : 9999,
-    } as any).select().single();
-
-    if (error) {
-      console.error("Erro ao criar card em compras:", error);
-    } else {
-      toast.success("Card da O.S. criado em Compras!");
-    }
-    return created?.id;
-  }, [user, orders]);
+  
 
   const sendToExpedicao = useCallback(async (orderId: string) => {
     const originalOrder = orders.find(o => o.id === orderId);

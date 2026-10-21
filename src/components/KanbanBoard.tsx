@@ -43,6 +43,7 @@ interface KanbanBoardProps {
   onSendToProduction?: (id: string, department: Department, machine?: string) => void;
   onSendToMultipleProduction?: (id: string, departments: { department: Department; machine?: string }[]) => void;
   onSendToExpedicao?: (id: string) => void;
+  onSendToCompras?: (id: string, processos?: string[]) => void;
   getProfileName: (userId: string | null) => string | null;
   permissions: Permissions;
   departmentContext?: string;
@@ -287,7 +288,17 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
       }
 
       if (isTargetSaida && onSendToCompras) {
-        onSendToCompras(pendingMove.id);
+        let procs = currentOrder?.processos ? [...currentOrder.processos] : [];
+        if (markFacaSent || markClicheSent) {
+          const opName = currentOrder?.operador || undefined;
+          if (markFacaSent && !isSpecialSupplySent(procs, "FACA")) {
+            procs = toggleSpecialSupplySent(procs, "FACA", opName);
+          }
+          if (markClicheSent && !isSpecialSupplySent(procs, "CLICHE")) {
+            procs = toggleSpecialSupplySent(procs, "CLICHE", opName);
+          }
+        }
+        onSendToCompras(pendingMove.id, procs);
       }
 
       if (pendingMove.toStatus === "aguardando_novo_arquivo" || pendingMove.toStatus === "paralisado") {
