@@ -18,7 +18,9 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Truck, AlertTriangle, RotateCcw } from "lucide-react";
+import { Truck, AlertTriangle, RotateCcw, ShieldAlert, Check } from "lucide-react";
+import { isSpecialSupplySent, isSpecialSupplyActive, toggleSpecialSupplySent } from "@/lib/processos";
+import { toast } from "sonner";
 
 interface Permissions {
   canEditCard: boolean;
@@ -224,6 +226,9 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
   const [sendToExpedicao, setSendToExpedicao] = useState(false);
   const [motivoParada, setMotivoParada] = useState("");
   const [applyRevision, setApplyRevision] = useState(true);
+  const [agreedSaidaSupplies, setAgreedSaidaSupplies] = useState(false);
+  const [markFacaSent, setMarkFacaSent] = useState(false);
+  const [markClicheSent, setMarkClicheSent] = useState(false);
 
   const handleDragEnd = (result: DropResult) => {
     setIsDndActive(false);
@@ -242,6 +247,9 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
       // Ao arrastar card para paralisado ou qualquer coluna, sempre vir zerado
       setMotivoParada("");
       setApplyRevision(true);
+      setAgreedSaidaSupplies(false);
+      setMarkFacaSent(false);
+      setMarkClicheSent(false);
 
       setPendingMove({
         id: result.draggableId,
@@ -261,6 +269,23 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
       const nextRev = currentRev + 1;
       const targetRev = isReturn && applyRevision ? nextRev : undefined;
 
+      const isTargetSaida = pendingMove.toStatus === "arquivo_liberado" || (pendingMove.toStatus as string) === "saida";
+
+      if (isTargetSaida && (markFacaSent || markClicheSent)) {
+        let updatedProcessos = currentOrder?.processos ? [...currentOrder.processos] : [];
+        const opName = currentOrder?.operador || undefined;
+
+        if (markFacaSent && !isSpecialSupplySent(updatedProcessos, "FACA")) {
+          updatedProcessos = toggleSpecialSupplySent(updatedProcessos, "FACA", opName);
+        }
+        if (markClicheSent && !isSpecialSupplySent(updatedProcessos, "CLICHE")) {
+          updatedProcessos = toggleSpecialSupplySent(updatedProcessos, "CLICHE", opName);
+        }
+
+        onUpdate(pendingMove.id, { processos: updatedProcessos });
+        toast.success("Suprimentos especiais marcados como enviados!");
+      }
+
       if (pendingMove.toStatus === "aguardando_novo_arquivo" || pendingMove.toStatus === "paralisado") {
         onUpdate(pendingMove.id, { observacao: motivoParada.trim() || null });
       }
@@ -271,6 +296,9 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
       setSendToExpedicao(false);
       setMotivoParada("");
       setApplyRevision(true);
+      setAgreedSaidaSupplies(false);
+      setMarkFacaSent(false);
+      setMarkClicheSent(false);
       setPendingMove(null);
     }
   };
@@ -279,6 +307,9 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
     setSendToExpedicao(false);
     setMotivoParada("");
     setApplyRevision(true);
+    setAgreedSaidaSupplies(false);
+    setMarkFacaSent(false);
+    setMarkClicheSent(false);
     setPendingMove(null);
   };
 
@@ -428,6 +459,123 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
                         </Label>
                       </div>
                     )}
+
+                    {(() => {
+                      const isTargetSaida = pendingMove.toStatus === "arquivo_liberado" || (pendingMove.toStatus as string) === "saida";
+                      if (!isTargetSaida) return null;
+
+                      const currentOrder = orders.find((o) => o.id === pendingMove.id);
+                      const processos = currentOrder?.processos || [];
+                      const facaSent = isSpecialSupplySent(processos, "FACA");
+                      const clicheSent = isSpecialSupplySent(processos, "CLICHE");
+                      const facaActive = isSpecialSupplyActive(processos, "FACA");
+                      const clicheActive = isSpecialSupplyActive(processos, "CLICHE");
+
+                      if (facaSent && clicheSent) {
+                        return (
+                          <div className="mt-4 p-3 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 flex items-center gap-2 text-xs font-semibold">
+                            <Check className="h-4 w-4 shrink-0 text-emerald-500" />
+                            <span>FACA e CLICHÊ já foram registrados como enviados ao fornecedor.</span>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="mt-4 p-3.5 rounded-xl border-2 border-rose-500/60 bg-rose-500/10 dark:bg-rose-950/25 space-y-3 text-left animate-in fade-in-50 duration-200">
+                          <div className="flex items-center gap-2">
+                            <ShieldAlert className="h-5 w-5 text-rose-500 shrink-0" />
+                            <div>
+                              <Label className="text-xs font-black text-rose-800 dark:text-rose-400 uppercase tracking-wider block">
+                                Aviso de Envio Obrigatório: Faca & Clichê
+                              </Label>
+                              <span className="text-[11px] text-muted-foreground">
+                                Liberação bloqueada até concordar com o status de envio.
+                              </span>
+                            </div>
+                          </div>
+
+                          <p className="text-xs text-foreground font-medium leading-relaxed">
+                            A O.S. está sendo movida para a coluna <strong>SAÍDA</strong>. Verifique o envio de <strong>FACA</strong> e <strong>CLICHÊ</strong> aos fornecedores para não travar o acabamento da produção.
+                          </p>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                            {/* Faca box */}
+                            <div className={`p-2.5 rounded-lg border text-xs flex flex-col justify-between gap-1.5 transition-colors ${
+                              facaSent || markFacaSent
+                                ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-800 dark:text-emerald-300"
+                                : facaActive
+                                ? "bg-amber-500/20 border-amber-500/50 text-amber-900 dark:text-amber-200"
+                                : "bg-card/70 border-border text-muted-foreground"
+                            }`}>
+                              <div className="flex items-center justify-between font-bold">
+                                <span className="flex items-center gap-1 font-mono-tech">
+                                  <span>FACA</span>
+                                  {facaActive && <span className="text-[10px] opacity-75 font-normal">(Cadastrada)</span>}
+                                </span>
+                                <span className="text-[11px]">
+                                  {facaSent || markFacaSent ? "ENVIADA ✓" : facaActive ? "⚠️ PENDENTE" : "NÃO MARCADA"}
+                                </span>
+                              </div>
+                              {!facaSent && (
+                                <div className="flex items-center gap-2 pt-1 border-t border-border/50">
+                                  <Checkbox
+                                    id="saida-faca-sent"
+                                    checked={markFacaSent}
+                                    onCheckedChange={(v) => setMarkFacaSent(!!v)}
+                                  />
+                                  <Label htmlFor="saida-faca-sent" className="text-[11px] font-semibold text-foreground cursor-pointer">
+                                    Marcar FACA como enviada
+                                  </Label>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Clichê box */}
+                            <div className={`p-2.5 rounded-lg border text-xs flex flex-col justify-between gap-1.5 transition-colors ${
+                              clicheSent || markClicheSent
+                                ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-800 dark:text-emerald-300"
+                                : clicheActive
+                                ? "bg-amber-500/20 border-amber-500/50 text-amber-900 dark:text-amber-200"
+                                : "bg-card/70 border-border text-muted-foreground"
+                            }`}>
+                              <div className="flex items-center justify-between font-bold">
+                                <span className="flex items-center gap-1 font-mono-tech">
+                                  <span>CLICHÊ</span>
+                                  {clicheActive && <span className="text-[10px] opacity-75 font-normal">(Cadastrado)</span>}
+                                </span>
+                                <span className="text-[11px]">
+                                  {clicheSent || markClicheSent ? "ENVIADO ✓" : clicheActive ? "⚠️ PENDENTE" : "NÃO MARCADO"}
+                                </span>
+                              </div>
+                              {!clicheSent && (
+                                <div className="flex items-center gap-2 pt-1 border-t border-border/50">
+                                  <Checkbox
+                                    id="saida-cliche-sent"
+                                    checked={markClicheSent}
+                                    onCheckedChange={(v) => setMarkClicheSent(!!v)}
+                                  />
+                                  <Label htmlFor="saida-cliche-sent" className="text-[11px] font-semibold text-foreground cursor-pointer">
+                                    Marcar CLICHÊ como enviado
+                                  </Label>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-start gap-2 pt-2 border-t border-rose-500/30">
+                            <Checkbox
+                              id="saida-agree-supplies"
+                              checked={agreedSaidaSupplies}
+                              onCheckedChange={(v) => setAgreedSaidaSupplies(!!v)}
+                              className="mt-0.5 border-rose-500 data-[state=checked]:bg-rose-600 data-[state=checked]:border-rose-600"
+                            />
+                            <Label htmlFor="saida-agree-supplies" className="text-xs font-bold text-foreground cursor-pointer leading-snug">
+                              Concordo e confirmo que verifiquei se enviou ou não a FACA e o CLICHÊ (enviados ou não aplicáveis para esta O.S.) para liberar para SAÍDA.
+                            </Label>
+                          </div>
+                        </div>
+                      );
+                    })()}
                   </>
                 )}
               </div>
@@ -435,7 +583,24 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={cancelMove}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmMove}>Confirmar</AlertDialogAction>
+            {(() => {
+              const isTargetSaida = pendingMove?.toStatus === "arquivo_liberado" || (pendingMove?.toStatus as string) === "saida";
+              const currentOrder = orders.find((o) => o.id === pendingMove?.id);
+              const facaSent = isSpecialSupplySent(currentOrder?.processos, "FACA");
+              const clicheSent = isSpecialSupplySent(currentOrder?.processos, "CLICHE");
+              const requiresAgreement = isTargetSaida && (!facaSent || !clicheSent);
+              const isDisabled = requiresAgreement && !agreedSaidaSupplies;
+
+              return (
+                <AlertDialogAction
+                  onClick={confirmMove}
+                  disabled={isDisabled}
+                  className={isDisabled ? "opacity-50 cursor-not-allowed" : ""}
+                >
+                  Confirmar
+                </AlertDialogAction>
+              );
+            })()}
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
