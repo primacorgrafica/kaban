@@ -44,7 +44,6 @@ import {
   formatSafeDate,
 } from "@/lib/processos";
 import { OrderAttachmentsSection } from "./sharepoint/OrderAttachmentsSection";
-import { OrderEmailCardNotice } from "./email/OrderEmailCardNotice";
 import { OrderEmailEventsSection } from "./email/OrderEmailEventsSection";
 
 // sortAndFilterProcessos importado diretamente de @/lib/processos
@@ -753,8 +752,6 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
               ))}
             </div>
           )}
-          {/* Aviso de E-mail (Enviado ao cliente ou Resposta recebida) */}
-          <OrderEmailCardNotice orderId={order.id} osNumber={order.titulo} />
 
 
 
