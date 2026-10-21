@@ -96,6 +96,7 @@ export function KanbanColumn({
   onSendToProduction,
   onSendToMultipleProduction,
   onSendToExpedicao,
+  onSendToCompras,
   getProfileName,
   permissions,
   departmentContext,
