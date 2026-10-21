@@ -41,7 +41,7 @@ import { RotateCcw, Clock,
   Filter, } from "lucide-react";
 import { toast } from "sonner";
 import { OrderDetailDialog } from "./OrderDetailDialog";
-import { getProcessoCor } from "@/lib/processos";
+import { getProcessoCor, sortAndFilterProcessos } from "@/lib/processos";
 
 interface Permissions {
   canEditCard: boolean;

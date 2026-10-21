@@ -481,3 +481,59 @@ export function getSpecialSupplyDetails(
   };
 }
 
+
+export const SPECIAL_SUPPLY_NAMES = SPECIAL_SUPPLIES.flatMap((s) => [
+  ...s.alt,
+  ...s.alt.map((a) => `${a}:enviado`),
+  ...s.alt.map((a) => `${a}:ok`),
+]);
+
+export function isInternalProcessTag(p: string): boolean {
+  if (!p || typeof p !== "string") return true;
+  const trimmed = p.trim();
+  if (!trimmed) return true;
+
+  // Metadata de compras e controle interno (COMPRADO, COMPRA:ok, COMPRADO:timestamp:user, etc.)
+  if (
+    trimmed.startsWith("COMPRADO") ||
+    trimmed.startsWith("COMPRA:") ||
+    trimmed.includes("COMPRADO") ||
+    trimmed.includes("COMPRA:")
+  ) {
+    return true;
+  }
+
+  // Suprimentos especiais tratados em quadros próprios (PANTONE, FACA, CLICHÊ, OUTROS)
+  if (SPECIAL_SUPPLIES.some((s) => s.alt.some((a) => trimmed === a || trimmed.startsWith(`${a}:`)))) {
+    return true;
+  }
+
+  // Tipos de acabamento
+  if ((ACABAMENTO_TIPOS as readonly string[]).includes(trimmed)) {
+    return true;
+  }
+
+  // Tipos de impressão
+  if (IMPRESSAO_TIPOS.some((t) => t.sigla === trimmed)) {
+    return true;
+  }
+
+  // Tags internas contendo ":" (ex: chave:valor ou id:timestamp:user)
+  if (trimmed.includes(":")) {
+    return true;
+  }
+
+  return false;
+}
+
+export function sortAndFilterProcessos(processos?: string[] | null): string[] {
+  if (!processos || !Array.isArray(processos)) return [];
+  const PROCESSO_ORDER = ALL_PROCESSOS.map((p) => p.sigla);
+  return processos
+    .filter((p) => !isInternalProcessTag(p))
+    .sort((a, b) => {
+      const ia = PROCESSO_ORDER.indexOf(a);
+      const ib = PROCESSO_ORDER.indexOf(b);
+      return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+    });
+}

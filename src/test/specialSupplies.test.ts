@@ -9,6 +9,8 @@ import {
   getSpecialSupplyCustomText,
   setSpecialSupplyCustomText,
   getSpecialSupplyDisplayLabel,
+  sortAndFilterProcessos,
+  isInternalProcessTag,
 } from "@/lib/processos";
 
 describe("Suprimentos e Processos Especiais (PANTONE, FACA, CLICHÊ, OUTROS)", () => {
@@ -90,5 +92,35 @@ describe("Suprimentos e Processos Especiais (PANTONE, FACA, CLICHÊ, OUTROS)", (
     expect(getSpecialSupplyDisplayLabel("OUTROS", "Hot Stamping Dourado")).toBe("OUTROS: Hot Stamping Dourado");
     expect(getSpecialSupplyDisplayLabel("FACA", "")).toBe("FACA");
     expect(getSpecialSupplyDisplayLabel("CLICHE", "")).toBe("CLICHÊ");
+  });
+
+  it("deve filtrar tags de compras e dados de quem comprou (COMPRADO:...) impedindo exibição no card", () => {
+    const rawProcessos = [
+      "DIG",
+      "PLO",
+      "COMPRADO:1792599338602:Leonardo",
+      "COMPRADO",
+      "COMPRA:ok",
+      "PANTONE:info:7256",
+      "FACA:enviado:11:53",
+      "CMYK",
+      "Promocional",
+      "HOT",
+    ];
+
+    expect(isInternalProcessTag("COMPRADO:1792599338602:Leonardo")).toBe(true);
+    expect(isInternalProcessTag("COMPRA:ok")).toBe(true);
+    expect(isInternalProcessTag("COMPRADO")).toBe(true);
+    expect(isInternalProcessTag("DIG")).toBe(false);
+    expect(isInternalProcessTag("HOT")).toBe(false);
+
+    const filtered = sortAndFilterProcessos(rawProcessos);
+    expect(filtered).not.toContain("COMPRADO:1792599338602:Leonardo");
+    expect(filtered).not.toContain("COMPRADO");
+    expect(filtered).not.toContain("COMPRA:ok");
+    expect(filtered).not.toContain("PANTONE:info:7256");
+    expect(filtered).toContain("DIG");
+    expect(filtered).toContain("PLO");
+    expect(filtered).toContain("HOT");
   });
 });

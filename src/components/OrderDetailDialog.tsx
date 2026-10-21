@@ -45,6 +45,7 @@ import {
 import {
   ALL_PROCESSOS,
   getProcessoCor,
+  sortAndFilterProcessos,
   ACABAMENTO_TIPOS,
   IMPRESSAO_TIPOS,
   IMPRESSAO_PROCESSOS,
@@ -61,31 +62,7 @@ import {
 import { OrderAttachmentsSection } from "@/components/sharepoint/OrderAttachmentsSection";
 import { OrderEmailEventsSection } from "@/components/email/OrderEmailEventsSection";
 
-const SPECIAL_SUPPLY_NAMES = SPECIAL_SUPPLIES.flatMap((s) => [
-  ...s.alt,
-  ...s.alt.map((a) => `${a}:enviado`),
-  ...s.alt.map((a) => `${a}:ok`),
-]);
-const HIDDEN_PROCESSOS = [
-  ...(ACABAMENTO_TIPOS as readonly string[]),
-  ...IMPRESSAO_TIPOS.map((p) => p.sigla),
-  ...SPECIAL_SUPPLY_NAMES,
-];
-const PROCESSO_ORDER = ALL_PROCESSOS.map((p) => p.sigla);
-
-function sortAndFilterProcessos(processos: string[]): string[] {
-  return processos
-    .filter(
-      (p) =>
-        !HIDDEN_PROCESSOS.includes(p) &&
-        !SPECIAL_SUPPLIES.some((s) => s.alt.some((a) => p === a || p.startsWith(`${a}:`)))
-    )
-    .sort((a, b) => {
-      const ia = PROCESSO_ORDER.indexOf(a);
-      const ib = PROCESSO_ORDER.indexOf(b);
-      return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
-    });
-}
+// sortAndFilterProcessos importado de @/lib/processos
 
 export interface OrderDetailDialogPermissions {
   canEditCard?: boolean;

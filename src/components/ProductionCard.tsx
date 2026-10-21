@@ -1,6 +1,6 @@
 import { getOrderRevision } from "@/lib/orderRevision";
 import { useState, useEffect, memo } from "react";
-import { getProcessoCor, SPECIAL_SUPPLIES, isSpecialSupplyActive, isSpecialSupplySent, toggleSpecialSupplySent, getSpecialSupplyDetails, formatSafeDate } from "@/lib/processos";
+import { getProcessoCor, sortAndFilterProcessos, SPECIAL_SUPPLIES, isSpecialSupplyActive, isSpecialSupplySent, toggleSpecialSupplySent, getSpecialSupplyDetails, formatSafeDate } from "@/lib/processos";
 import { Order } from "@/types/order";
 import { DepartmentConfig, DepartmentStatusConfig, DEPARTMENTS, Department } from "@/types/production";
 import { format } from "date-fns";
@@ -795,9 +795,7 @@ function ProductionCardImpl({
               {/* Processos badges adicionais */}
               {order.processos && order.processos.length > 0 && (
                 <div className="flex flex-wrap gap-1 mt-1.5">
-                  {order.processos
-                    .filter((p) => !["Promocional", "Editorial", "Embalagem", "CMYK", "CMYK+IR", "CMYK+VM", "PANTONE", "PANTONE:enviado", "PANTONE:ok", "FACA", "FACA:enviado", "FACA:ok", "CLICHE", "CLICHÊ", "CLICHE:enviado", "CLICHÊ:enviado"].includes(p))
-                    .map((p) => (
+                  {sortAndFilterProcessos(order.processos).map((p) => (
                       <span key={p} className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${getProcessoCor(p)}`}>{p}</span>
                     ))}
                 </div>
