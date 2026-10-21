@@ -565,10 +565,18 @@ function ProductionCardImpl({
             </>
           ) : (
             <>
-          {/* Linha 1: OS + Cliente */}
-          <div className="flex items-start gap-2 min-w-0">
-            {isUrgent && <span className="h-2.5 w-2.5 rounded-full shrink-0 bg-red-500" />}
-            <h4 className={`font-semibold text-sm shrink-0 ${isUrgent ? "text-red-700 dark:text-red-400" : "text-card-foreground"}`}>
+          {/* Linha 1: Cliente (Primeiro em cima) */}
+          <div className="flex items-start gap-1.5 min-w-0">
+            {isUrgent && <span className="h-2.5 w-2.5 rounded-full shrink-0 bg-red-500 mt-0.5" />}
+            <span className="flex items-center gap-1.5 text-sm text-foreground min-w-0 font-bold break-words leading-tight">
+              <Briefcase className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+              <span className="break-words">{order.cliente}</span>
+            </span>
+          </div>
+
+          {/* Linha 2: OS + Badges */}
+          <div className="flex items-center gap-2 mt-1.5 min-w-0">
+            <h4 className={`font-semibold text-[15px] shrink-0 ${isUrgent ? "text-red-700 dark:text-red-400" : "text-card-foreground"}`}>
               OS. {order.titulo}
             </h4>
             {getOrderRevision(order) >= 2 && (
@@ -595,9 +603,6 @@ function ProductionCardImpl({
             {department.id === "expedicao" && order.parent_order_id && !isOM && !isOC && !isNC && (
               <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-blue-600 text-white text-[10px] font-bold shrink-0" title="Prova — enviada da Pré-Impressão">P</span>
             )}
-            <span className="flex items-start gap-1 text-sm text-muted-foreground min-w-0 font-bold break-words">
-              <Briefcase className="h-3 w-3 shrink-0 mt-[3px]" /><span className="break-words">{order.cliente}</span>
-            </span>
           </div>
           {/* Linha 2: Descrição (largura completa) */}
           {order.descricao && order.descricao !== "-" && (

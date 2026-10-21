@@ -562,10 +562,17 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
         )}
 
         <div className="px-3.5 pb-3 cursor-pointer" onClick={() => setOpen(true)}>
-          {/* Linha 1: OS + Cliente */}
-          <div className="flex items-start gap-2 min-w-0">
+          {/* Linha 1: Cliente (Primeiro em cima) */}
+          <div className="flex items-start gap-1.5 min-w-0">
             {isUrgent && <span className="h-2 w-2 rounded-full shrink-0 bg-rose-500 shadow-[0_0_8px_#f43f5e] mt-1" />}
-            <span className="font-mono-tech text-[11px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 shrink-0">
+            <span className="text-sm font-bold text-foreground break-words leading-tight">
+              {order.cliente}
+            </span>
+          </div>
+
+          {/* Linha 2: O.S. + Badges (REV, REP) */}
+          <div className="flex items-center gap-1.5 mt-1.5 min-w-0">
+            <span className="font-mono-tech text-[13px] font-bold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 shrink-0 tracking-wide">
               #{order.titulo}
             </span>
             {currentRevision >= 2 && (
@@ -586,9 +593,6 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                 {order.os_anterior && <span className="opacity-90">#{order.os_anterior}</span>}
               </span>
             )}
-            <span className="flex items-start gap-1 text-sm text-foreground min-w-0 font-semibold break-words leading-tight">
-              <span className="break-words">{order.cliente}</span>
-            </span>
           </div>
           {/* Linha 2: Descrição (largura completa) */}
           {order.descricao && (
