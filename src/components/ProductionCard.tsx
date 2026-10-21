@@ -599,26 +599,30 @@ function ProductionCardImpl({
               <Briefcase className="h-3 w-3 shrink-0 mt-[3px]" /><span className="break-words">{order.cliente}</span>
             </span>
           </div>
-          {/* Linha 2: Descrição + Vendedor */}
-          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground min-w-0">
-            {order.descricao && order.descricao !== "-" && (
+          {/* Linha 2: Descrição (largura completa) */}
+          {order.descricao && order.descricao !== "-" && (
+            <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground min-w-0">
               <span className="truncate min-w-0">{order.descricao}</span>
-            )}
-            {order.vendedor && (
-              <span className="shrink-0 ml-auto flex items-center gap-1">
-                <User className="h-3 w-3" />
-                {order.vendedor}
-              </span>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* Linha 3: Vendedor (abaixo, alinhado à esquerda) */}
+          {order.vendedor && (
+            <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground min-w-0">
+              <User className="h-3 w-3 text-muted-foreground/80 shrink-0" />
+              <span className="truncate">{order.vendedor}</span>
+            </div>
+          )}
+
+          {/* Linha 4: Operador (abaixo, alinhado à esquerda) */}
           {order.operador && (
-            <div className="flex justify-end mt-1">
+            <div className="flex items-center mt-1">
               <span
-                className="shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 dark:bg-cyan-950/40 border border-cyan-500/30 px-1.5 py-0.5 rounded-md shadow-2xs"
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 dark:bg-cyan-950/40 border border-cyan-500/30 px-1.5 py-0.5 rounded-md shadow-2xs"
                 title={`Operador responsável: ${order.operador}`}
               >
-                <UserCheck className="h-3 w-3 text-cyan-500" />
-                {order.operador}
+                <UserCheck className="h-3 w-3 text-cyan-500 shrink-0" />
+                <span>{order.operador}</span>
               </span>
             </div>
           )}

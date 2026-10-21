@@ -188,6 +188,7 @@ function getVisibleSections(departmentContext?: string): { general: boolean; pro
 
 function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplicate, onSendToProduction, onSendToMultipleProduction, onSendToExpedicao, dragHandleProps, updatedByName, createdByName, permissions, departmentContext, isSlowAlert }: OrderCardProps) {
   const currentRevision = getOrderRevision(order);
+  const cleanObs = cleanObservationRevision(order.observacao);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [editData, setEditData] = useState({
@@ -589,44 +590,41 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
               <span className="break-words">{order.cliente}</span>
             </span>
           </div>
-          {/* Linha 2: Descrição + Vendedor */}
-          <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground min-w-0">
-            {order.descricao && (
-              <span className="truncate min-w-0">
-                <FileText className="h-3 w-3 inline mr-1" />{order.descricao}
-              </span>
-            )}
-            {order.vendedor && (
-              <span className="shrink-0 ml-auto flex items-center gap-1">
-                <User className="h-3 w-3" />
-                {order.vendedor}
-              </span>
-            )}
-          </div>
-          {/* Linha 2.5: Observação (esquerda) + Operador (direita, abaixo do vendedor) */}
-          {(() => {
-            const cleanObs = cleanObservationRevision(order.observacao);
-            const showObs = !(order.status === "paralisado" || order.status === "aguardando_novo_arquivo") && !!cleanObs;
-            if (!order.operador && !showObs) return null;
-            return (
-              <div className="flex items-center justify-between gap-2 mt-1 text-xs min-w-0">
-                <div className="min-w-0 flex-1">
-                  {showObs && (
-                    <p className="text-xs text-muted-foreground line-clamp-1 italic">{cleanObs}</p>
-                  )}
-                </div>
-              {order.operador && (
-                <span
-                  className="shrink-0 ml-auto flex items-center gap-1 text-[11px] font-semibold text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 dark:bg-cyan-950/40 border border-cyan-500/30 px-1.5 py-0.5 rounded-md shadow-2xs"
-                  title={`Operador responsável: ${order.operador}`}
-                >
-                  <UserCheck className="h-3 w-3 text-cyan-500" />
-                  {order.operador}
-                </span>
-              )}
+          {/* Linha 2: Descrição (largura completa) */}
+          {order.descricao && (
+            <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground min-w-0">
+              <FileText className="h-3 w-3 inline shrink-0" />
+              <span className="truncate min-w-0">{order.descricao}</span>
             </div>
-            );
-          })()}
+          )}
+
+          {/* Linha 2.5: Observação (se houver e não estiver em paralisado) */}
+          {cleanObs && !(order.status === "paralisado" || order.status === "aguardando_novo_arquivo") && (
+            <p className="text-xs text-muted-foreground line-clamp-1 italic mt-1">
+              {cleanObs}
+            </p>
+          )}
+
+          {/* Linha 3: Vendedor (abaixo, alinhado à esquerda) */}
+          {order.vendedor && (
+            <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground min-w-0">
+              <User className="h-3 w-3 text-muted-foreground/80 shrink-0" />
+              <span className="truncate">{order.vendedor}</span>
+            </div>
+          )}
+
+          {/* Linha 4: Operador (abaixo, alinhado à esquerda) */}
+          {order.operador && (
+            <div className="flex items-center mt-1">
+              <span
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 dark:bg-cyan-950/40 border border-cyan-500/30 px-1.5 py-0.5 rounded-md shadow-2xs"
+                title={`Operador responsável: ${order.operador}`}
+              >
+                <UserCheck className="h-3 w-3 text-cyan-500 shrink-0" />
+                <span>{order.operador}</span>
+              </span>
+            </div>
+          )}
           {order.prazo && (
             <div className="flex items-center justify-between gap-1.5 mt-1.5 pt-1 border-t border-border/40 text-[10px] font-semibold">
               <span className={`flex items-center gap-1 ${
