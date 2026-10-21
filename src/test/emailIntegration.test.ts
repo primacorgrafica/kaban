@@ -159,7 +159,7 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
     });
   });
 
-  it("2. Recebimento de resposta de aprovação do cliente: deve mover CARD automaticamente para SAÍDA (arquivo_liberado)", async () => {
+  it("2. Recebimento de resposta do cliente: deve registrar aviso de e-mail respondido e NÃO mover CARD para SAÍDA", async () => {
     const receivedReply: GraphMessage = {
       id: "msg-reply-002",
       subject: "Re: Envio de Prova Digital - OS 73210",
@@ -191,12 +191,12 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
       sender: "cliente@alpha.com.br",
     });
 
-    // Verifica que gerou notificação comemorativa de aprovação
+    // Verifica que gerou aviso de e-mail respondido
     expect(mockInsertedAvisos).toHaveLength(1);
-    expect(mockInsertedAvisos[0].titulo).toContain("APROVADA PELO CLIENTE");
+    expect(mockInsertedAvisos[0].titulo).toContain("E-mail Respondido");
 
-    // Valida que ao cliente responder com "Aprovado", o CARD foi movido para SAÍDA (arquivo_liberado)
-    expect(mockUpdatedOrders.some(o => o.id === "order-uuid-73210" && o.status === "arquivo_liberado")).toBe(true);
+    // Valida que o CARD NÃO foi movido para SAÍDA (permanece na coluna atual)
+    expect(mockUpdatedOrders.some(o => o.status === "arquivo_liberado")).toBe(false);
   });
 
   it("3. Resposta sem número explícito, mas vinculada à conversa original: deve associar via conversationId", async () => {

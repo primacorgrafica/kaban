@@ -223,90 +223,30 @@ export async function runEmailSync(): Promise<SyncResult> {
                 criado_por: "00000000-0000-0000-0000-000000000000",
               }).catch(() => null);
             } else {
-              // Para respostas recebidas de clientes externos
+              // Resposta de e-mail recebida do cliente
+              // Conforme especificação: NÃO move mais o card para Saída, apenas gera o aviso de que o e-mail foi respondido!
               const isApproval =
                 isApprovalResponse(msg.subject || "") ||
                 isApprovalResponse(msg.bodyPreview || "");
 
-              if (isApproval) {
-                // CLIENTE APROVOU: Move o CARD automaticamente para a coluna "SAÍDA" (arquivo_liberado)
-                const { error: moveError } = await supabase
-                  .from("orders")
-                  .update({
-                    status: "arquivo_liberado",
-                    updated_at: new Date().toISOString(),
-                  })
-                  .eq("id", matchedOrderId);
+              const previewSnippet = msg.bodyPreview ? msg.bodyPreview.slice(0, 250) : "(Sem prévia)";
 
-                if (moveError) {
-                  console.warn(`[EmailSync] Erro ao mover O.S. #${matchedOs} para SAÍDA:`, moveError.message);
-                } else {
-                  console.info(`[EmailSync] O.S. #${matchedOs} APROVADA PELO CLIENTE! Movida para SAÍDA (arquivo_liberado).`);
-                }
+              const avisoTitulo = isApproval
+                ? `📩 E-mail Respondido (Aprovação) - O.S. #${matchedOs}`
+                : `📩 E-mail Respondido pelo Cliente - O.S. #${matchedOs}`;
 
-                // Cria card em Compras se ainda não existir
-                const { data: existingCompras } = await supabase
-                  .from("orders")
-                  .select("id")
-                  .eq("setor", "compras")
-                  .eq("parent_order_id", matchedOrderId)
-                  .eq("arquivado", false)
-                  .limit(1);
+              const avisoMensagem = isApproval
+                ? `O cliente respondeu ao e-mail da O.S. #${matchedOs} com confirmação/aprovação!\nRemetente: ${sender}\nAssunto: ${msg.subject || "(Sem assunto)"}\nMensagem: "${previewSnippet}"`
+                : `O cliente respondeu ao e-mail referente à O.S. #${matchedOs}.\nRemetente: ${sender}\nAssunto: ${msg.subject || "(Sem assunto)"}\nMensagem: "${previewSnippet}"`;
 
-                if (!existingCompras || existingCompras.length === 0) {
-                  const { data: origOrder } = await supabase
-                    .from("orders")
-                    .select("*")
-                    .eq("id", matchedOrderId)
-                    .maybeSingle();
+              await supabase.from("avisos").insert({
+                titulo: avisoTitulo,
+                mensagem: avisoMensagem,
+                tipo: isApproval ? "urgente" : "info",
+                criado_por: "00000000-0000-0000-0000-000000000000",
+              }).catch(() => null);
 
-                  if (origOrder) {
-                    const comprasPayload = {
-                      titulo: origOrder.titulo,
-                      cliente: origOrder.cliente,
-                      descricao: origOrder.descricao || "",
-                      observacao: origOrder.observacao || null,
-                      status: "fila_de_entrada",
-                      setor: "compras",
-                      setor_status: "entrada",
-                      categoria_compra: "os",
-                      parent_order_id: matchedOrderId,
-                      posicao: origOrder.urgente ? 0 : 9999,
-                      processos: origOrder.processos || [],
-                      criado_por: origOrder.criado_por || null,
-                      atualizado_por: null,
-                      arquivado: false,
-                      urgente: origOrder.urgente || false,
-                      prioridade: origOrder.prioridade || "normal",
-                      saida_direta: false,
-                      prova_digital: false,
-                      prova_email: false,
-                      tipo_entrega: [],
-                      equipamentos: [],
-                      acabamentos: [],
-                    };
-                    await supabase.from("orders").insert(comprasPayload).catch((e: any) => {
-                      console.warn("[EmailSync] Aviso ao criar card em compras:", e);
-                    });
-                  }
-                }
-
-                // Notificação comemorativa de aprovação
-                await supabase.from("avisos").insert({
-                  titulo: `🎉 O.S. #${matchedOs} APROVADA PELO CLIENTE! (MOVIDA PARA SAÍDA)`,
-                  mensagem: `O cliente respondeu aprovando a prova da O.S. #${matchedOs}!\nRemetente: ${sender}\nAssunto: ${msg.subject || "(Sem assunto)"}\nTexto: "${msg.bodyPreview ? msg.bodyPreview.slice(0, 150) : "Aprovado"}"\n\n✅ Card movido automaticamente para a coluna SAÍDA!`,
-                  tipo: "success",
-                  criado_por: "00000000-0000-0000-0000-000000000000",
-                }).catch(() => null);
-              } else {
-                // Resposta comum do cliente (dúvida, ajuste ou comentário)
-                await supabase.from("avisos").insert({
-                  titulo: `📩 Resposta de e-mail na O.S. #${matchedOs}`,
-                  mensagem: `Cliente respondeu ao e-mail de ${mailbox}.\nRemetente: ${sender}\nAssunto: ${msg.subject || "(Sem assunto)"}\nMensagem: "${msg.bodyPreview ? msg.bodyPreview.slice(0, 200) : ""}"`,
-                  tipo: "info",
-                  criado_por: "00000000-0000-0000-0000-000000000000",
-                }).catch(() => null);
-              }
+              console.info(`[EmailSync] O.S. #${matchedOs}: E-mail respondido pelo cliente. Aviso gerado (Card mantido na coluna atual).`);
             }
           }
         }
