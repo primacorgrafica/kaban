@@ -17,6 +17,34 @@ export interface UseEmailMonitorReturn {
 
 const DEFAULT_POLL_INTERVAL_MS = 2 * 60 * 1000; // 2 minutos
 
+// Chime sintetizado via Web Audio API para notificação de e-mail respondido
+function playEmailChime() {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    if (ctx.state === "suspended") { void ctx.resume(); }
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = "sine";
+    // Tom de e-mail agradável e nítido: C5 -> G5 (523.25Hz -> 783.99Hz)
+    osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(783.99, ctx.currentTime + 0.15);
+
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.4);
+  } catch {
+    // silencioso caso o navegador bloqueie áudio
+  }
+}
+
+
 /**
  * Hook para monitoramento contínuo em segundo plano das caixas de e-mail corporativas.
  */
@@ -65,7 +93,32 @@ export function useEmailMonitor(enabled = true): UseEmailMonitorReturn {
         setLastError(result.errors.join("; "));
       }
 
-      if (result.newEvents > 0) {
+      if (result.newReceivedReplies && result.newReceivedReplies.length > 0) {
+        for (const reply of result.newReceivedReplies) {
+          playEmailChime();
+          const title = reply.isApproval
+            ? `✅ Resposta de Aprovação — O.S. #${reply.osNumber}`
+            : `📩 E-mail Respondido — O.S. #${reply.osNumber}`;
+
+          toast.success(title, {
+            description: `${reply.sender}: "${reply.bodyPreview || reply.subject}"`,
+            duration: 15000,
+          });
+
+          if (typeof window !== "undefined" && "Notification" in window) {
+            if (Notification.permission === "granted") {
+              try {
+                new Notification(title, {
+                  body: `${reply.sender}: "${reply.bodyPreview || reply.subject}"`,
+                  icon: "/favicon.ico",
+                });
+              } catch {}
+            } else if (Notification.permission === "default") {
+              void Notification.requestPermission();
+            }
+          }
+        }
+      } else if (result.newEvents > 0) {
         toast.info(
           `Outlook: ${result.newEvents} novo(s) e-mail(s) sincronizado(s) com as Ordens de Serviço!`
         );

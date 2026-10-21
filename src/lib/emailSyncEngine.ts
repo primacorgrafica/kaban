@@ -33,12 +33,24 @@ export async function runEmailSync(): Promise<SyncResult> {
     newEvents: 0,
     errors: [],
     lastSyncAt: new Date().toISOString(),
+    newReceivedReplies: [],
   };
+
+  // Obtém o ID do usuário autenticado no Supabase para satisfazer as políticas de RLS da tabela 'avisos'
+  let currentUserId: string | null = null;
+  try {
+    const { data: authData } = await supabase.auth.getUser();
+    currentUserId = authData?.user?.id || null;
+    if (!currentUserId) {
+      const { data: sessData } = await supabase.auth.getSession();
+      currentUserId = sessData?.session?.user?.id || null;
+    }
+  } catch {}
 
   // 1. Carrega todas as O.S. ativas para cruzamento rápido
   const { data: activeOrders, error: ordersError } = await supabase
     .from("orders")
-    .select("id, titulo")
+    .select("id, titulo, criado_por")
     .neq("status", "arquivado");
 
   if (ordersError || !activeOrders || activeOrders.length === 0) {
@@ -48,8 +60,9 @@ export async function runEmailSync(): Promise<SyncResult> {
     return result;
   }
 
-  // Mapeamento: numero_os (titulo normalizado) -> order_id
+  // Mapeamento: numero_os (titulo normalizado) -> order_id & autor
   const osToOrderId = new Map<string, string>();
+  const orderAuthorMap = new Map<string, string>();
   const activeOsNumbers = new Set<string>();
 
   for (const ord of activeOrders) {
@@ -58,6 +71,9 @@ export async function runEmailSync(): Promise<SyncResult> {
       const clean = trimmed.replace(/^[#\s]+/, "");
       osToOrderId.set(trimmed, ord.id);
       osToOrderId.set(clean, ord.id);
+      if (ord.criado_por) {
+        orderAuthorMap.set(ord.id, ord.criado_por);
+      }
       activeOsNumbers.add(trimmed);
       activeOsNumbers.add(clean);
     }
@@ -216,12 +232,18 @@ export async function runEmailSync(): Promise<SyncResult> {
               }
 
               // 2. Registra notificação: E-mail enviado para aprovação
-              await supabase.from("avisos").insert({
+              const authorId = currentUserId || orderAuthorMap.get(matchedOrderId) || "00000000-0000-0000-0000-000000000000";
+              const { error: sendAvisoErr } = await supabase.from("avisos").insert({
                 titulo: `📤 E-mail enviado para aprovação - O.S. #${matchedOs}`,
                 mensagem: `E-mail de aprovação enviado pela Pré-Impressão.\nRemetente: ${sender}\nDestinatário: ${recipients}\nAssunto: ${msg.subject || "(Sem assunto)"}`,
                 tipo: "info",
-                criado_por: "00000000-0000-0000-0000-000000000000",
-              }).catch(() => null);
+                criado_por: authorId,
+              });
+              if (sendAvisoErr) {
+                console.warn(`[EmailSync] Erro ao gravar aviso de envio para O.S. #${matchedOs}:`, sendAvisoErr.message);
+              } else {
+                console.info(`[EmailSync] Aviso de e-mail enviado gravado para O.S. #${matchedOs}`);
+              }
             } else {
               // Resposta de e-mail recebida do cliente
               // Conforme especificação: NÃO move mais o card para Saída, apenas gera o aviso de que o e-mail foi respondido!
@@ -239,19 +261,98 @@ export async function runEmailSync(): Promise<SyncResult> {
                 ? `O cliente respondeu ao e-mail da O.S. #${matchedOs} com confirmação/aprovação!\nRemetente: ${sender}\nAssunto: ${msg.subject || "(Sem assunto)"}\nMensagem: "${previewSnippet}"`
                 : `O cliente respondeu ao e-mail referente à O.S. #${matchedOs}.\nRemetente: ${sender}\nAssunto: ${msg.subject || "(Sem assunto)"}\nMensagem: "${previewSnippet}"`;
 
-              await supabase.from("avisos").insert({
+              const authorId = currentUserId || orderAuthorMap.get(matchedOrderId) || "00000000-0000-0000-0000-000000000000";
+              const { error: recAvisoErr } = await supabase.from("avisos").insert({
                 titulo: avisoTitulo,
                 mensagem: avisoMensagem,
                 tipo: isApproval ? "urgente" : "info",
-                criado_por: "00000000-0000-0000-0000-000000000000",
-              }).catch(() => null);
+                criado_por: authorId,
+              });
 
-              console.info(`[EmailSync] O.S. #${matchedOs}: E-mail respondido pelo cliente. Aviso gerado (Card mantido na coluna atual).`);
+              if (recAvisoErr) {
+                console.warn(`[EmailSync] Erro ao gravar aviso de resposta para O.S. #${matchedOs}:`, recAvisoErr.message);
+              } else {
+                console.info(`[EmailSync] Aviso gravado no Supabase para O.S. #${matchedOs}`);
+              }
+
+              // Adiciona ao resultado para disparo imediato de toast/notificação em tela
+              result.newReceivedReplies.push({
+                osNumber: matchedOs,
+                sender,
+                subject: msg.subject || "(Sem assunto)",
+                bodyPreview: previewSnippet,
+                isApproval,
+              });
             }
           }
         }
       }
     }
+  }
+
+  // 5. Verificação retroativa de avisos para respostas recebidas nas últimas 24h
+  // Garante que mesmo e-mails já gravados em 'order_email_events' tenham seus devidos avisos e notificações emitidos
+  try {
+    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: recentReceivedEvents } = await supabase
+      .from("order_email_events")
+      .select("id, os_number, sender, subject, body_preview, created_at, order_id")
+      .eq("direction", "recebido")
+      .gte("created_at", twentyFourHoursAgo);
+
+    if (recentReceivedEvents && recentReceivedEvents.length > 0) {
+      const { data: existingAvisos } = await supabase
+        .from("avisos")
+        .select("id, titulo, created_at")
+        .gte("created_at", twentyFourHoursAgo);
+
+      const existingAvisoTitles = new Set((existingAvisos || []).map((a) => a.titulo));
+
+      for (const revt of recentReceivedEvents) {
+        const isApproval =
+          isApprovalResponse(revt.subject || "") ||
+          isApprovalResponse(revt.body_preview || "");
+
+        const previewSnippet = revt.body_preview ? revt.body_preview.slice(0, 250) : "(Sem prévia)";
+
+        const avisoTitulo = isApproval
+          ? `📩 E-mail Respondido (Aprovação) - O.S. #${revt.os_number}`
+          : `📩 E-mail Respondido pelo Cliente - O.S. #${revt.os_number}`;
+
+        if (!existingAvisoTitles.has(avisoTitulo)) {
+          const authorId = currentUserId || orderAuthorMap.get(revt.order_id) || "00000000-0000-0000-0000-000000000000";
+          const avisoMensagem = isApproval
+            ? `O cliente respondeu ao e-mail da O.S. #${revt.os_number} com confirmação/aprovação!\nRemetente: ${revt.sender}\nAssunto: ${revt.subject || "(Sem assunto)"}\nMensagem: "${previewSnippet}"`
+            : `O cliente respondeu ao e-mail referente à O.S. #${revt.os_number}.\nRemetente: ${revt.sender}\nAssunto: ${revt.subject || "(Sem assunto)"}\nMensagem: "${previewSnippet}"`;
+
+          const { error: insErr } = await supabase.from("avisos").insert({
+            titulo: avisoTitulo,
+            mensagem: avisoMensagem,
+            tipo: isApproval ? "urgente" : "info",
+            criado_por: authorId,
+          });
+
+          if (!insErr) {
+            existingAvisoTitles.add(avisoTitulo);
+            const alreadyInList = result.newReceivedReplies.some((r) => r.osNumber === revt.os_number);
+            if (!alreadyInList) {
+              result.newReceivedReplies.push({
+                osNumber: revt.os_number,
+                sender: revt.sender,
+                subject: revt.subject || "(Sem assunto)",
+                bodyPreview: previewSnippet,
+                isApproval,
+              });
+            }
+            console.info(`[EmailSync] Aviso retroativo gerado com sucesso para O.S. #${revt.os_number}`);
+          } else {
+            console.warn(`[EmailSync] Erro ao gravar aviso retroativo para O.S. #${revt.os_number}:`, insErr.message);
+          }
+        }
+      }
+    }
+  } catch (recovErr) {
+    console.warn("[EmailSync] Erro na verificação retroativa de avisos:", recovErr);
   }
 
   // Atualiza timestamp da última sincronização bem-sucedida

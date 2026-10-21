@@ -9,6 +9,10 @@ vi.mock("@/integrations/supabase/client", () => {
   return {
     supabase: {
       from: vi.fn(),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "mock-user-uuid" } }, error: null }),
+        getSession: vi.fn().mockResolvedValue({ data: { session: { user: { id: "mock-user-uuid" } } }, error: null }),
+      },
     },
   };
 });
@@ -78,11 +82,21 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
       }
 
       if (table === "order_email_events") {
-        return {
-          select: vi.fn().mockResolvedValue({
-            data: mockExistingEvents,
+        const createEventsQuery = (dataToReturn: any) => {
+          const builder: any = {
+            data: dataToReturn,
             error: null,
-          }),
+            eq: vi.fn().mockImplementation(() => builder),
+            gte: vi.fn().mockImplementation(() => builder),
+            then: vi.fn().mockImplementation((cb) =>
+              Promise.resolve(cb ? cb({ data: dataToReturn, error: null }) : { data: dataToReturn, error: null })
+            ),
+          };
+          return builder;
+        };
+
+        return {
+          select: vi.fn().mockImplementation(() => createEventsQuery(mockExistingEvents)),
           insert: vi.fn().mockImplementation((data: any) => {
             mockInsertedEvents.push(data);
             return Promise.resolve({ error: null });
@@ -99,7 +113,20 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
       }
 
       if (table === "avisos") {
+        const createAvisosQuery = (dataToReturn: any) => {
+          const builder: any = {
+            data: dataToReturn,
+            error: null,
+            gte: vi.fn().mockImplementation(() => builder),
+            then: vi.fn().mockImplementation((cb) =>
+              Promise.resolve(cb ? cb({ data: dataToReturn, error: null }) : { data: dataToReturn, error: null })
+            ),
+          };
+          return builder;
+        };
+
         return {
+          select: vi.fn().mockImplementation(() => createAvisosQuery(mockInsertedAvisos)),
           insert: vi.fn().mockImplementation((aviso: any) => {
             mockInsertedAvisos.push(aviso);
             return Promise.resolve({ error: null });
