@@ -118,10 +118,6 @@ export function useEmailMonitor(enabled = true): UseEmailMonitorReturn {
             }
           }
         }
-      } else if (result.newEvents > 0) {
-        toast.info(
-          `Outlook: ${result.newEvents} novo(s) e-mail(s) sincronizado(s) com as Ordens de Serviço!`
-        );
       }
     } catch (err: any) {
       console.warn("[useEmailMonitor] Falha no ciclo de sincronização:", err);

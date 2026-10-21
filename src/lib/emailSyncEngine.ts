@@ -106,6 +106,17 @@ export async function runEmailSync(): Promise<SyncResult> {
   // 3. Define janela temporal: sempre busca as últimas 24h para garantir que nenhuma mensagem seja perdida por atrasos na sincronização
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
+  // Carrega avisos recentes para evitar duplicar avisos na mesma O.S.
+  const { data: recentAvisosData } = await supabase
+    .from("avisos")
+    .select("titulo")
+    .gte("created_at", since);
+  const existingAvisoTitles = new Set<string>((recentAvisosData || []).map((a) => a.titulo));
+
+  // Conjunto para evitar processamento duplicado se o mesmo e-mail estiver em mais de uma caixa (preimpressao / embalagens)
+  const processedEventKeys = new Set<string>();
+  const notifiedOsNumbers = new Set<string>();
+
   // Auto-correção para eventos gravados anteriormente como 'recebido' com remetente da Primacor
   await supabase
     .from("order_email_events")
@@ -182,6 +193,13 @@ export async function runEmailSync(): Promise<SyncResult> {
               ? msg.sentDateTime || new Date().toISOString()
               : msg.receivedDateTime || new Date().toISOString();
 
+          // Deduplicação entre caixas para evitar duplicar o mesmo e-mail (presente em preimpressao e embalagens)
+          const contentDedupeKey = `${matchedOrderId}:${effectiveDirection}:${msg.conversationId || msg.subject || ''}:${(emailDatetime || '').slice(0, 16)}`;
+          if (processedEventKeys.has(contentDedupeKey)) {
+            continue;
+          }
+          processedEventKeys.add(contentDedupeKey);
+
           const newEventData = {
             order_id: matchedOrderId,
             direction: effectiveDirection,
@@ -216,6 +234,7 @@ export async function runEmailSync(): Promise<SyncResult> {
 
             if (effectiveDirection === "enviado") {
               // 1. Move automaticamente o CARD para a coluna "AGUARDANDO APROVAÇÃO"
+              // Conforme solicitado: ao enviar e-mail, NÃO gera aviso/notificação algum, apenas move o card!
               const { error: moveError } = await supabase
                 .from("orders")
                 .update({
@@ -223,66 +242,62 @@ export async function runEmailSync(): Promise<SyncResult> {
                   updated_at: new Date().toISOString(),
                 })
                 .eq("id", matchedOrderId)
-                .neq("status", "arquivo_liberado"); // Não regride se a O.S. já estiver na Saída
+                .neq("status", "arquivo_liberado");
 
               if (moveError) {
                 console.warn(`[EmailSync] Erro ao mover O.S. #${matchedOs} para aguardando_aprovacao:`, moveError.message);
               } else {
-                console.info(`[EmailSync] O.S. #${matchedOs} movida automaticamente para AGUARDANDO APROVAÇÃO`);
-              }
-
-              // 2. Registra notificação: E-mail enviado para aprovação
-              const authorId = currentUserId || orderAuthorMap.get(matchedOrderId) || "00000000-0000-0000-0000-000000000000";
-              const { error: sendAvisoErr } = await supabase.from("avisos").insert({
-                titulo: `📤 E-mail enviado para aprovação - O.S. #${matchedOs}`,
-                mensagem: `E-mail de aprovação enviado pela Pré-Impressão.\nRemetente: ${sender}\nDestinatário: ${recipients}\nAssunto: ${msg.subject || "(Sem assunto)"}`,
-                tipo: "info",
-                criado_por: authorId,
-              });
-              if (sendAvisoErr) {
-                console.warn(`[EmailSync] Erro ao gravar aviso de envio para O.S. #${matchedOs}:`, sendAvisoErr.message);
-              } else {
-                console.info(`[EmailSync] Aviso de e-mail enviado gravado para O.S. #${matchedOs}`);
+                console.info(`[EmailSync] O.S. #${matchedOs} movida automaticamente para AGUARDANDO APROVAÇÃO (sem aviso)`);
               }
             } else {
-              // Resposta de e-mail recebida do cliente
-              // Conforme especificação: NÃO move mais o card para Saída, apenas gera o aviso de que o e-mail foi respondido!
+              // 2. Resposta de e-mail recebida do cliente
+              // Conforme especificação: NÃO move o card para Saída, apenas gera o aviso com a mensagem do cliente!
               const isApproval =
                 isApprovalResponse(msg.subject || "") ||
                 isApprovalResponse(msg.bodyPreview || "");
 
-              const previewSnippet = msg.bodyPreview ? msg.bodyPreview.slice(0, 250) : "(Sem prévia)";
+              const previewSnippet = msg.bodyPreview ? msg.bodyPreview.slice(0, 300) : "(Sem prévia)";
 
               const avisoTitulo = isApproval
                 ? `📩 E-mail Respondido (Aprovação) - O.S. #${matchedOs}`
                 : `📩 E-mail Respondido pelo Cliente - O.S. #${matchedOs}`;
 
               const avisoMensagem = isApproval
-                ? `O cliente respondeu ao e-mail da O.S. #${matchedOs} com confirmação/aprovação!\nRemetente: ${sender}\nAssunto: ${msg.subject || "(Sem assunto)"}\nMensagem: "${previewSnippet}"`
-                : `O cliente respondeu ao e-mail referente à O.S. #${matchedOs}.\nRemetente: ${sender}\nAssunto: ${msg.subject || "(Sem assunto)"}\nMensagem: "${previewSnippet}"`;
+                ? `O cliente respondeu ao e-mail da O.S. #${matchedOs} com confirmação/aprovação!\n\nRemetente: ${sender}\nAssunto: ${msg.subject || "(Sem assunto)"}\n\nMensagem do Cliente:\n"${previewSnippet}"`
+                : `O cliente respondeu ao e-mail referente à O.S. #${matchedOs}.\n\nRemetente: ${sender}\nAssunto: ${msg.subject || "(Sem assunto)"}\n\nMensagem do Cliente:\n"${previewSnippet}"`;
 
-              const authorId = currentUserId || orderAuthorMap.get(matchedOrderId) || "00000000-0000-0000-0000-000000000000";
-              const { error: recAvisoErr } = await supabase.from("avisos").insert({
-                titulo: avisoTitulo,
-                mensagem: avisoMensagem,
-                tipo: isApproval ? "urgente" : "info",
-                criado_por: authorId,
-              });
+              // Verifica se já não foi notificado nesta rodada ou se já existe aviso com esse número de O.S.
+              const alreadyHasAviso =
+                notifiedOsNumbers.has(matchedOs) ||
+                Array.from(existingAvisoTitles).some((t) => t.includes(`O.S. #${matchedOs}`));
 
-              if (recAvisoErr) {
-                console.warn(`[EmailSync] Erro ao gravar aviso de resposta para O.S. #${matchedOs}:`, recAvisoErr.message);
-              } else {
-                console.info(`[EmailSync] Aviso gravado no Supabase para O.S. #${matchedOs}`);
+              if (!alreadyHasAviso) {
+                notifiedOsNumbers.add(matchedOs);
+                existingAvisoTitles.add(avisoTitulo);
+
+                const authorId = currentUserId || orderAuthorMap.get(matchedOrderId) || "00000000-0000-0000-0000-000000000000";
+                const { error: recAvisoErr } = await supabase.from("avisos").insert({
+                  titulo: avisoTitulo,
+                  mensagem: avisoMensagem,
+                  tipo: isApproval ? "urgente" : "info",
+                  criado_por: authorId,
+                });
+
+                if (recAvisoErr) {
+                  console.warn(`[EmailSync] Erro ao gravar aviso de resposta para O.S. #${matchedOs}:`, recAvisoErr.message);
+                } else {
+                  console.info(`[EmailSync] Aviso gravado no Supabase para O.S. #${matchedOs}`);
+                }
+
+                // Adiciona ao resultado para disparo imediato de toast/notificação (apenas 1 por O.S.)
+                result.newReceivedReplies.push({
+                  osNumber: matchedOs,
+                  sender,
+                  subject: msg.subject || "(Sem assunto)",
+                  bodyPreview: previewSnippet,
+                  isApproval,
+                });
               }
-
-              // Adiciona ao resultado para disparo imediato de toast/notificação em tela
-              result.newReceivedReplies.push({
-                osNumber: matchedOs,
-                sender,
-                subject: msg.subject || "(Sem assunto)",
-                bodyPreview: previewSnippet,
-                isApproval,
-              });
             }
           }
         }
@@ -291,7 +306,7 @@ export async function runEmailSync(): Promise<SyncResult> {
   }
 
   // 5. Verificação retroativa de avisos para respostas recebidas nas últimas 24h
-  // Garante que mesmo e-mails já gravados em 'order_email_events' tenham seus devidos avisos e notificações emitidos
+  // Garante que mesmo e-mails já gravados em 'order_email_events' em sincronização anterior tenham seus devidos avisos emitidos
   try {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const { data: recentReceivedEvents } = await supabase
@@ -301,53 +316,55 @@ export async function runEmailSync(): Promise<SyncResult> {
       .gte("created_at", twentyFourHoursAgo);
 
     if (recentReceivedEvents && recentReceivedEvents.length > 0) {
-      const { data: existingAvisos } = await supabase
-        .from("avisos")
-        .select("id, titulo, created_at")
-        .gte("created_at", twentyFourHoursAgo);
-
-      const existingAvisoTitles = new Set((existingAvisos || []).map((a) => a.titulo));
-
       for (const revt of recentReceivedEvents) {
+        if (!revt.os_number) continue;
+
+        // Se já foi notificado nesta rodada ou se já existe aviso para esta O.S., NÃO duplica
+        const alreadyHasAviso =
+          notifiedOsNumbers.has(revt.os_number) ||
+          Array.from(existingAvisoTitles).some((t) => t.includes(`O.S. #${revt.os_number}`));
+
+        if (alreadyHasAviso) {
+          continue;
+        }
+
+        notifiedOsNumbers.add(revt.os_number);
+
         const isApproval =
           isApprovalResponse(revt.subject || "") ||
           isApprovalResponse(revt.body_preview || "");
 
-        const previewSnippet = revt.body_preview ? revt.body_preview.slice(0, 250) : "(Sem prévia)";
+        const previewSnippet = revt.body_preview ? revt.body_preview.slice(0, 300) : "(Sem prévia)";
 
         const avisoTitulo = isApproval
           ? `📩 E-mail Respondido (Aprovação) - O.S. #${revt.os_number}`
           : `📩 E-mail Respondido pelo Cliente - O.S. #${revt.os_number}`;
 
-        if (!existingAvisoTitles.has(avisoTitulo)) {
-          const authorId = currentUserId || orderAuthorMap.get(revt.order_id) || "00000000-0000-0000-0000-000000000000";
-          const avisoMensagem = isApproval
-            ? `O cliente respondeu ao e-mail da O.S. #${revt.os_number} com confirmação/aprovação!\nRemetente: ${revt.sender}\nAssunto: ${revt.subject || "(Sem assunto)"}\nMensagem: "${previewSnippet}"`
-            : `O cliente respondeu ao e-mail referente à O.S. #${revt.os_number}.\nRemetente: ${revt.sender}\nAssunto: ${revt.subject || "(Sem assunto)"}\nMensagem: "${previewSnippet}"`;
+        existingAvisoTitles.add(avisoTitulo);
 
-          const { error: insErr } = await supabase.from("avisos").insert({
-            titulo: avisoTitulo,
-            mensagem: avisoMensagem,
-            tipo: isApproval ? "urgente" : "info",
-            criado_por: authorId,
+        const authorId = currentUserId || orderAuthorMap.get(revt.order_id) || "00000000-0000-0000-0000-000000000000";
+        const avisoMensagem = isApproval
+          ? `O cliente respondeu ao e-mail da O.S. #${revt.os_number} com confirmação/aprovação!\n\nRemetente: ${revt.sender}\nAssunto: ${revt.subject || "(Sem assunto)"}\n\nMensagem do Cliente:\n"${previewSnippet}"`
+          : `O cliente respondeu ao e-mail referente à O.S. #${revt.os_number}.\n\nRemetente: ${revt.sender}\nAssunto: ${revt.subject || "(Sem assunto)"}\n\nMensagem do Cliente:\n"${previewSnippet}"`;
+
+        const { error: insErr } = await supabase.from("avisos").insert({
+          titulo: avisoTitulo,
+          mensagem: avisoMensagem,
+          tipo: isApproval ? "urgente" : "info",
+          criado_por: authorId,
+        });
+
+        if (!insErr) {
+          result.newReceivedReplies.push({
+            osNumber: revt.os_number,
+            sender: revt.sender,
+            subject: revt.subject || "(Sem assunto)",
+            bodyPreview: previewSnippet,
+            isApproval,
           });
-
-          if (!insErr) {
-            existingAvisoTitles.add(avisoTitulo);
-            const alreadyInList = result.newReceivedReplies.some((r) => r.osNumber === revt.os_number);
-            if (!alreadyInList) {
-              result.newReceivedReplies.push({
-                osNumber: revt.os_number,
-                sender: revt.sender,
-                subject: revt.subject || "(Sem assunto)",
-                bodyPreview: previewSnippet,
-                isApproval,
-              });
-            }
-            console.info(`[EmailSync] Aviso retroativo gerado com sucesso para O.S. #${revt.os_number}`);
-          } else {
-            console.warn(`[EmailSync] Erro ao gravar aviso retroativo para O.S. #${revt.os_number}:`, insErr.message);
-          }
+          console.info(`[EmailSync] Aviso retroativo gerado com sucesso para O.S. #${revt.os_number}`);
+        } else {
+          console.warn(`[EmailSync] Erro ao gravar aviso retroativo para O.S. #${revt.os_number}:`, insErr.message);
         }
       }
     }
