@@ -11,10 +11,7 @@ import {
   Mail,
   Eye,
   EyeOff,
-  CheckCircle2,
   Activity,
-  Layers,
-  Sparkles,
   Cpu,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -22,7 +19,7 @@ import logoImg from "@/assets/logo-sidebar.png";
 
 /**
  * Minimalist, ultra-modern drifting particles canvas
- * Runs smoothly in the background matching the Nordic Slate palette
+ * Rendered at z-0 with crisp Nordic Slate tones (#CCD0CF / #9BA8AB)
  */
 function MinimalParticles() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -44,14 +41,18 @@ function MinimalParticles() {
     };
     window.addEventListener("resize", handleResize);
 
-    const count = Math.min(Math.floor((width * height) / 24000), 50);
-    const particles = Array.from({ length: count }, () => ({
+    // Responsive particle count with pleasant density
+    const count = Math.min(Math.floor((width * height) / 16000), 75);
+    const particles = Array.from({ length: Math.max(count, 45) }, () => ({
       x: Math.random() * width,
       y: Math.random() * height,
-      vx: (Math.random() - 0.5) * 0.35,
-      vy: (Math.random() - 0.5) * 0.35,
-      radius: Math.random() * 1.6 + 0.8,
-      baseAlpha: Math.random() * 0.45 + 0.2,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4,
+      radius: Math.random() * 1.8 + 1.2,
+      baseAlpha: Math.random() * 0.35 + 0.45,
+      color: Math.random() > 0.35 ? "204, 208, 207" : "155, 168, 171",
+      pulseSpeed: Math.random() * 0.02 + 0.01,
+      pulse: Math.random() * Math.PI * 2,
     }));
 
     let mouseX = -1000;
@@ -65,16 +66,16 @@ function MinimalParticles() {
     const render = () => {
       ctx.clearRect(0, 0, width, height);
 
-      // Faint constellation links between close particles
+      // Minimalist constellation links
       for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
           const dx = particles[i].x - particles[j].x;
           const dy = particles[i].y - particles[j].y;
           const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 115) {
-            const alpha = (1 - dist / 115) * 0.12;
+          if (dist < 125) {
+            const alpha = (1 - dist / 125) * 0.22;
             ctx.strokeStyle = `rgba(155, 168, 171, ${alpha})`;
-            ctx.lineWidth = 0.6;
+            ctx.lineWidth = 0.75;
             ctx.beginPath();
             ctx.moveTo(particles[i].x, particles[i].y);
             ctx.lineTo(particles[j].x, particles[j].y);
@@ -83,27 +84,29 @@ function MinimalParticles() {
         }
       }
 
-      // Draw drifting particles
+      // Draw floating minimalist particles
       for (const p of particles) {
         p.x += p.vx;
         p.y += p.vy;
+        p.pulse += p.pulseSpeed;
 
         if (p.x < 0) p.x = width;
         else if (p.x > width) p.x = 0;
         if (p.y < 0) p.y = height;
         else if (p.y > height) p.y = 0;
 
-        // Subtle mouse repulsion
+        // Gentle interactive mouse drift
         const mdx = p.x - mouseX;
         const mdy = p.y - mouseY;
         const mdist = Math.sqrt(mdx * mdx + mdy * mdy);
-        if (mdist < 110 && mdist > 0) {
-          const force = (1 - mdist / 110) * 0.7;
+        if (mdist < 120 && mdist > 0) {
+          const force = (1 - mdist / 120) * 0.9;
           p.x += (mdx / mdist) * force;
           p.y += (mdy / mdist) * force;
         }
 
-        ctx.fillStyle = `rgba(204, 208, 207, ${p.baseAlpha})`;
+        const currentAlpha = Math.min(1, Math.max(0.25, p.baseAlpha + Math.sin(p.pulse) * 0.15));
+        ctx.fillStyle = `rgba(${p.color}, ${currentAlpha})`;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
         ctx.fill();
@@ -124,7 +127,7 @@ function MinimalParticles() {
   return (
     <canvas
       ref={canvasRef}
-      className="pointer-events-none fixed inset-0 -z-10 h-full w-full opacity-65"
+      className="pointer-events-none fixed inset-0 z-0 h-full w-full"
     />
   );
 }
@@ -188,17 +191,17 @@ export default function AuthPage() {
 
   return (
     <div className="relative min-h-screen w-full flex items-center justify-center p-3 sm:p-6 lg:p-10 overflow-hidden bg-[#06141B] selection:bg-[#253745] selection:text-[#CCD0CF]">
-      {/* Background Interactive Minimalist Particle Network */}
+      {/* Background Interactive Minimalist Particle Network (at z-0) */}
       <MinimalParticles />
 
-      {/* Deep ambient glow orbs matching Nordic Slate palette */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden select-none -z-10">
-        <div className="absolute -top-32 left-1/4 h-[500px] w-[500px] rounded-full bg-[#253745]/30 blur-[140px] opacity-70" />
-        <div className="absolute bottom-10 right-1/4 h-[460px] w-[460px] rounded-full bg-[#11212D]/80 blur-[130px] opacity-75" />
-        <div className="absolute top-1/2 -right-20 h-[380px] w-[380px] rounded-full bg-[#4A5C6A]/20 blur-[120px] opacity-50" />
+      {/* Deep ambient glow orbs at z-0 matching Nordic Slate palette */}
+      <div className="pointer-events-none fixed inset-0 overflow-hidden select-none z-0">
+        <div className="absolute -top-32 left-1/4 h-[520px] w-[520px] rounded-full bg-[#253745]/25 blur-[140px]" />
+        <div className="absolute bottom-10 right-1/4 h-[480px] w-[480px] rounded-full bg-[#11212D]/60 blur-[130px]" />
+        <div className="absolute top-1/2 -right-20 h-[380px] w-[380px] rounded-full bg-[#4A5C6A]/20 blur-[120px]" />
       </div>
 
-      {/* Main Split Screen Container */}
+      {/* Main Split Screen Container (at z-10) */}
       <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 14 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -211,13 +214,13 @@ export default function AuthPage() {
         {/* LEFT COLUMN: Clean, Elegant Login Form */}
         <div className="lg:col-span-7 p-7 sm:p-10 lg:p-12 flex flex-col justify-between">
           <div>
-            {/* Logo SEM CONTORNO, BEM DESTACADA */}
+            {/* Logo SEM CONTORNO, BEM DESTACADA E MAIOR */}
             <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center">
                 <img
                   src={logoImg}
                   alt="Primacor Gráfica"
-                  className="h-14 sm:h-16 w-auto object-contain filter drop-shadow-[0_8px_24px_rgba(0,0,0,0.65)] hover:scale-105 transition-transform"
+                  className="h-24 sm:h-28 md:h-32 w-auto object-contain filter drop-shadow-[0_12px_36px_rgba(0,0,0,0.85)] hover:scale-105 transition-transform duration-300"
                 />
               </div>
 
@@ -231,7 +234,7 @@ export default function AuthPage() {
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-sans">
                 Acessar Sistema
               </h1>
-              <p className="text-xs sm:text-sm text-[#9BA8AB] mt-1.5 leading-relaxed">
+              <p className="text-xs sm:text-sm text-[#9BA8AB] mt-1.5 leading-relaxed font-sans">
                 Insira suas credenciais operacionais para gerenciar o fluxo gráfico.
               </p>
             </div>
@@ -242,7 +245,7 @@ export default function AuthPage() {
               <div className="space-y-1.5">
                 <Label
                   htmlFor="email"
-                  className="text-xs font-medium text-[#CCD0CF] flex items-center gap-1.5"
+                  className="text-xs font-medium text-[#CCD0CF] flex items-center gap-1.5 font-sans"
                 >
                   <Mail className="h-3.5 w-3.5 text-[#9BA8AB]" />
                   <span>E-mail Operacional</span>
@@ -265,7 +268,7 @@ export default function AuthPage() {
               <div className="space-y-1.5">
                 <Label
                   htmlFor="password"
-                  className="text-xs font-medium text-[#CCD0CF] flex items-center gap-1.5"
+                  className="text-xs font-medium text-[#CCD0CF] flex items-center gap-1.5 font-sans"
                 >
                   <Lock className="h-3.5 w-3.5 text-[#9BA8AB]" />
                   <span>Senha de Acesso</span>
@@ -291,31 +294,11 @@ export default function AuthPage() {
                 </div>
               </div>
 
-              {/* Security Trust Badges Grid (matching the reference layout) */}
-              <div className="grid grid-cols-2 gap-2 pt-1 pb-1">
-                <div className="flex items-center gap-1.5 text-[11px] font-mono-tech text-[#9BA8AB]">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-[#CCD0CF] shrink-0" />
-                  <span>Criptografia SSL 256-bit</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-[11px] font-mono-tech text-[#9BA8AB]">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-[#CCD0CF] shrink-0" />
-                  <span>Telemetria em Tempo Real</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-[11px] font-mono-tech text-[#9BA8AB]">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-[#CCD0CF] shrink-0" />
-                  <span>Acesso por Perfil Operacional</span>
-                </div>
-                <div className="flex items-center gap-1.5 text-[11px] font-mono-tech text-[#9BA8AB]">
-                  <CheckCircle2 className="h-3.5 w-3.5 text-[#CCD0CF] shrink-0" />
-                  <span>Sincronização Instantânea</span>
-                </div>
-              </div>
-
               {/* Submit Button */}
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 rounded-xl font-extrabold text-sm bg-[#CCD0CF] hover:bg-white text-[#06141B] shadow-[0_8px_24px_rgba(204,208,207,0.2)] transition-all cursor-pointer mt-2"
+                className="w-full h-12 rounded-xl font-extrabold text-sm bg-[#CCD0CF] hover:bg-white text-[#06141B] shadow-[0_8px_24px_rgba(204,208,207,0.2)] transition-all cursor-pointer mt-4"
               >
                 {loading ? (
                   <span className="flex items-center gap-2">
@@ -333,7 +316,7 @@ export default function AuthPage() {
 
           {/* Form Footer */}
           <div className="pt-6 mt-6 border-t border-[#4A5C6A]/40 flex items-center justify-between text-xs text-[#9BA8AB]">
-            <span className="flex items-center gap-1.5 text-[11px]">
+            <span className="flex items-center gap-1.5 text-[11px] font-sans">
               <ShieldCheck className="h-3.5 w-3.5 text-[#CCD0CF]" />
               Acessos gerenciados pela Administração
             </span>
@@ -432,14 +415,6 @@ export default function AuthPage() {
                 />
               ))}
             </div>
-          </div>
-
-          {/* Bottom security assurance */}
-          <div className="z-10 text-center">
-            <span className="text-[11px] font-mono-tech text-[#9BA8AB] flex items-center gap-1.5">
-              <Sparkles className="h-3 w-3 text-[#CCD0CF]" />
-              Plataforma SaaS 100% Otimizada
-            </span>
           </div>
         </div>
       </motion.div>
