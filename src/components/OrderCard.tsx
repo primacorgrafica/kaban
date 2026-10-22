@@ -854,7 +854,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
             </div>
           </div>
 
-            /* ═══ VIEW MODE (DUAL COLUMN SPLIT, NO VERTICAL SCROLLBAR) ═══ */
+          {/* ═══ VIEW MODE (DUAL COLUMN SPLIT, NO VERTICAL SCROLLBAR) ═══ */}
             <div className="flex flex-col flex-1 overflow-hidden">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 overflow-y-auto px-6 py-4 max-h-[68vh] scrollbar-none">
                 {/* ─── COLUNA 1: ESPECIFICAÇÕES, PROVA & PROCESSOS ─── */}
