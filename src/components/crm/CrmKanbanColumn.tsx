@@ -85,7 +85,7 @@ export function CrmKanbanColumn({
             {...provided.droppableProps}
             className={`flex-1 space-y-2.5 p-2.5 pb-6 transition-colors duration-200 ${
               snapshot.isDraggingOver
-                ? "bg-cyan-500/5 ring-1 ring-cyan-500/30 rounded-b-2xl"
+                ? "bg-[#253745]/20 ring-1 ring-[#4A5C6A]/60 rounded-b-2xl"
                 : ""
             }`}
             style={{ minHeight: "140px" }}

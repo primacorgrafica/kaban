@@ -437,7 +437,7 @@ export function OrderSlideOver({
                         key={idx}
                         className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-background border border-border/70 text-xs font-mono-tech"
                       >
-                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#CCD0CF]" />
                         <span>{p}</span>
                       </div>
                     ))}
@@ -461,8 +461,8 @@ export function OrderSlideOver({
               )}
 
               {onSendToProduction && (
-                <div className="p-3.5 rounded-xl bg-cyan-950/20 border border-cyan-500/30 space-y-2.5">
-                  <span className="text-xs font-bold text-cyan-300 flex items-center gap-1.5">
+                <div className="p-3.5 rounded-xl bg-card border border-border space-y-2.5">
+                  <span className="text-xs font-bold text-foreground dark:text-[#CCD0CF] flex items-center gap-1.5">
                     <Send className="w-3.5 h-3.5" /> Encaminhar para Setor Produtivo
                   </span>
                   <div className="grid grid-cols-2 gap-2">
@@ -475,7 +475,7 @@ export function OrderSlideOver({
                           onSendToProduction(order.id, dept.id);
                           toast.success(`O.S. enviada para ${dept.label}`);
                         }}
-                        className="text-xs justify-start h-8 hover:bg-cyan-500/10 hover:border-cyan-500/40"
+                        className="text-xs justify-start h-8 hover:bg-accent hover:border-[#9BA8AB]/40"
                       >
                         {dept.label}
                       </Button>

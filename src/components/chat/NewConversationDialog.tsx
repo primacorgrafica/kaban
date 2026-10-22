@@ -53,7 +53,7 @@ export function NewConversationDialog({
       <DialogContent className="max-w-md bg-card border-border text-foreground rounded-2xl shadow-2xl p-5">
         <DialogHeader>
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-600 dark:text-cyan-400">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#253745] border border-[#4A5C6A]/50 text-[#CCD0CF]">
               <UserPlus className="h-4 w-4" />
             </div>
             <div>
@@ -96,7 +96,7 @@ export function NewConversationDialog({
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="relative">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-600/30 to-blue-600/30 border border-cyan-500/30 flex items-center justify-center font-bold text-sm text-cyan-600 dark:text-cyan-300">
+                    <div className="w-9 h-9 rounded-xl bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center font-bold text-sm text-[#CCD0CF]">
                       {user.nome.charAt(0).toUpperCase()}
                     </div>
                     {user.online && (
@@ -128,7 +128,7 @@ export function NewConversationDialog({
                 </div>
 
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span className="p-1.5 rounded-lg bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 text-xs flex items-center gap-1">
+                  <span className="p-1.5 rounded-lg bg-[#253745] text-[#CCD0CF] text-xs flex items-center gap-1">
                     <MessageSquare className="h-3 w-3" />
                   </span>
                 </div>

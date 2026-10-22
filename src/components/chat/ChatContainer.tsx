@@ -271,14 +271,14 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
         {/* Header da lista de conversas */}
         <div className="p-3.5 border-b border-border flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-500 dark:text-cyan-400">
+            <div className="p-1.5 rounded-xl bg-[#253745] border border-[#4A5C6A]/50 text-[#CCD0CF]">
               <MessageSquare className="h-4 w-4" />
             </div>
             <div>
               <h2 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
                 Chat Privado
                 {totalUnreadCount > 0 && (
-                  <Badge className="bg-cyan-500 text-slate-950 text-[10px] font-bold px-1.5 py-0 rounded-full font-mono-tech">
+                  <Badge className="bg-[#CCD0CF] text-[#06141B] text-[10px] font-bold px-1.5 py-0 rounded-full font-mono-tech">
                     {totalUnreadCount}
                   </Badge>
                 )}
@@ -292,7 +292,7 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
           <Button
             size="sm"
             onClick={() => setNewConvOpen(true)}
-            className="h-8 px-2.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold rounded-xl shadow-md font-mono-tech flex items-center gap-1.5"
+            className="h-8 px-2.5 bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] text-xs font-bold rounded-xl shadow-md font-mono-tech flex items-center gap-1.5 transition-all"
             title="Nova conversa privada"
           >
             <Plus className="h-3.5 w-3.5" />
@@ -332,12 +332,12 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                   title={`${onlineUser.nome} (${onlineUser.role || onlineUser.setor || "Colaborador"}) — Online agora. Clique para conversar.`}
                 >
                   <div className="relative">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-600/30 to-blue-600/30 border border-cyan-500/40 flex items-center justify-center font-bold text-xs text-cyan-600 dark:text-cyan-300 group-hover:scale-105 transition-transform shadow-sm">
+                    <div className="w-9 h-9 rounded-xl bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center font-bold text-xs text-[#CCD0CF] group-hover:scale-105 transition-transform shadow-sm">
                       {onlineUser.nome.charAt(0).toUpperCase()}
                     </div>
                     <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-card shadow-[0_0_6px_#34d399]" />
                   </div>
-                  <span className="text-[10px] text-foreground truncate w-full text-center group-hover:text-cyan-600 dark:group-hover:text-cyan-300 font-medium">
+                  <span className="text-[10px] text-foreground truncate w-full text-center group-hover:text-[#CCD0CF] font-medium">
                     {onlineUser.nome.split(" ")[0]}
                   </span>
                 </button>
@@ -377,7 +377,7 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
         <div className="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-thin">
           {loading ? (
             <div className="flex flex-col items-center justify-center h-48 gap-2 text-muted-foreground text-xs">
-              <div className="w-5 h-5 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+              <div className="w-5 h-5 border-2 border-[#CCD0CF] border-t-transparent rounded-full animate-spin" />
               <span>Carregando conversas...</span>
             </div>
           ) : filteredConversations.length === 0 && filteredOnlineWithoutConv.length === 0 ? (
@@ -392,7 +392,7 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                 variant="ghost"
                 size="sm"
                 onClick={() => setNewConvOpen(true)}
-                className="mt-3 text-cyan-600 dark:text-cyan-400 hover:bg-cyan-500/10 text-xs rounded-xl"
+                className="mt-3 text-[#CCD0CF] hover:bg-[#253745] text-xs rounded-xl"
               >
                 Iniciar uma conversa
               </Button>
@@ -427,24 +427,24 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                           onClick={() => handleStartWithOnlineUser(u)}
                           className={`group flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-all border ${
                             isSelected
-                              ? "bg-cyan-500/15 border-cyan-500/40 shadow-sm"
+                              ? "bg-[#253745] border-[#4A5C6A]/60 shadow-sm"
                               : "hover:bg-accent border-transparent hover:border-border"
                           }`}
                         >
                           <div className="flex items-center gap-3 min-w-0 flex-1">
                             <div className="relative shrink-0">
-                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-600/30 to-cyan-600/30 border border-emerald-500/40 flex items-center justify-center font-bold text-sm text-emerald-600 dark:text-emerald-300 shadow-sm">
+                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#253745] to-[#11212D] border border-[#4A5C6A]/50 flex items-center justify-center font-bold text-sm text-[#CCD0CF] shadow-sm">
                                 {u.nome.charAt(0).toUpperCase()}
                               </div>
                               <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-card shadow-[0_0_6px_#34d399]" />
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center justify-between gap-1 mb-0.5">
-                                <span className="text-xs font-bold truncate text-foreground group-hover:text-cyan-600 dark:group-hover:text-cyan-300">
+                                <span className="text-xs font-bold truncate text-foreground group-hover:text-[#CCD0CF]">
                                   {u.nome}
                                 </span>
                                 {u.role && (
-                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-muted text-cyan-600 dark:text-cyan-400 font-mono-tech uppercase border border-border shrink-0">
+                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-muted text-[#CCD0CF] font-mono-tech uppercase border border-border shrink-0">
                                     {u.role}
                                   </span>
                                 )}
@@ -488,7 +488,7 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
 
                 {/* Avatar */}
                 <div className="relative">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-600 to-blue-600 border border-cyan-400/30 flex items-center justify-center font-bold text-sm text-white shadow-md">
+                  <div className="w-9 h-9 rounded-xl bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center font-bold text-sm text-[#CCD0CF] shadow-md">
                     {activeConversation.otherUser.nome.charAt(0).toUpperCase()}
                   </div>
                   {activeConversation.otherUser.online && (
@@ -503,7 +503,7 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                       {activeConversation.otherUser.nome}
                     </span>
                     {activeConversation.otherUser.role && (
-                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-muted text-cyan-600 dark:text-cyan-400 font-mono-tech uppercase border border-border">
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-muted text-[#9BA8AB] font-mono-tech uppercase border border-border">
                         {activeConversation.otherUser.role}
                       </span>
                     )}
@@ -512,8 +512,8 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                   {/* Status / Digitando */}
                   <div className="text-[10px] text-muted-foreground font-mono-tech truncate">
                     {typingUsers.length > 0 ? (
-                      <span className="text-cyan-600 dark:text-cyan-400 font-semibold flex items-center gap-1 animate-pulse">
-                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-500" />
+                      <span className="text-[#CCD0CF] font-semibold flex items-center gap-1 animate-pulse">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#CCD0CF]" />
                         {typingUsers.join(", ")} está digitando...
                       </span>
                     ) : activeConversation.otherUser.online ? (
@@ -561,12 +561,12 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
             <div className="flex-1 overflow-y-auto p-4 space-y-1 scrollbar-thin">
               {messagesLoading ? (
                 <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground text-xs">
-                  <div className="w-5 h-5 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-[#CCD0CF] border-t-transparent rounded-full animate-spin" />
                   <span>Carregando mensagens...</span>
                 </div>
               ) : messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center px-4 text-muted-foreground text-xs">
-                  <Sparkles className="h-8 w-8 mb-2 text-cyan-500/40" />
+                  <Sparkles className="h-8 w-8 mb-2 text-[#CCD0CF]/40" />
                   <p className="font-semibold text-foreground">Inicie a conversa!</p>
                   <p className="text-[11px] text-muted-foreground mt-1 max-w-xs">
                     Esta é uma conversa privada segura com {activeConversation.otherUser.nome}. Envie a primeira mensagem abaixo.
@@ -604,7 +604,7 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
 
             {/* Compositor de mensagem */}
             <div className="p-3 border-t border-border bg-card/90 backdrop-blur-xl shrink-0">
-              <div className="flex items-end gap-2 bg-background border border-border rounded-2xl p-2 focus-within:border-cyan-500/60 focus-within:ring-1 focus-within:ring-cyan-500/40 transition-all">
+              <div className="flex items-end gap-2 bg-background border border-border rounded-2xl p-2 focus-within:border-[#4A5C6A] focus-within:ring-1 focus-within:ring-[#9BA8AB]/40 transition-all">
                 {/* Emoji Picker Popover */}
                 <EmojiPickerPopover onSelectEmoji={handleSelectEmoji} />
 
@@ -624,7 +624,7 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                   size="icon"
                   onClick={handleSend}
                   disabled={!inputText.trim()}
-                  className="h-8 w-8 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:opacity-30 disabled:pointer-events-none text-white shadow-md transition-all shrink-0"
+                  className="h-8 w-8 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] disabled:opacity-30 disabled:pointer-events-none shadow-md transition-all shrink-0"
                   title="Enviar mensagem"
                 >
                   <Send className="h-4 w-4" />
@@ -633,7 +633,7 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
               <div className="flex items-center justify-between px-2 pt-1 text-[9px] text-muted-foreground font-mono-tech">
                 <span>Shift + Enter para quebra de linha</span>
                 <span className="flex items-center gap-1">
-                  <Shield className="h-2.5 w-2.5 text-cyan-500 dark:text-cyan-400" /> Conversa Privada Primacor
+                  <Shield className="h-2.5 w-2.5 text-[#9BA8AB]" /> Conversa Privada Primacor
                 </span>
               </div>
             </div>
@@ -641,7 +641,7 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
         ) : (
           /* Estado sem conversa selecionada */
           <div className="flex-1 flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
-            <div className="w-16 h-16 rounded-2xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center text-cyan-600 dark:text-cyan-400 mb-4 shadow-lg shadow-cyan-500/5">
+            <div className="w-16 h-16 rounded-2xl bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center text-[#CCD0CF] mb-4 shadow-lg">
               <MessageSquare className="h-8 w-8" />
             </div>
             <h3 className="text-base font-bold text-foreground mb-1">
@@ -652,7 +652,7 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
             </p>
             <Button
               onClick={() => setNewConvOpen(true)}
-              className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xs font-bold rounded-xl shadow-md font-mono-tech"
+              className="bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] text-xs font-bold rounded-xl shadow-md font-mono-tech transition-all"
             >
               <Plus className="h-3.5 w-3.5 mr-1.5" /> Iniciar Nova Conversa
             </Button>

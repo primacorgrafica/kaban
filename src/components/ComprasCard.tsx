@@ -292,7 +292,7 @@ export function ComprasCard({
           <div className="flex items-start justify-between gap-2 min-w-0">
             <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
               {isUrgent && <span className="h-2 w-2 rounded-full shrink-0 bg-red-500 animate-pulse mt-0.5" />}
-              <span className="font-mono-tech text-[12px] font-bold px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 shrink-0">
+              <span className="font-mono-tech text-[12px] font-bold px-1.5 py-0.5 rounded bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/50 shrink-0">
                 {ocNumero ? `OC. ${String(ocNumero).padStart(4, "0")}` : `OS. #${order.titulo}`}
               </span>
               {order.cliente && (
@@ -317,7 +317,7 @@ export function ComprasCard({
           <div className="mt-2 p-2 rounded-lg border border-border/70 bg-background/60 space-y-1.5" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
               <span className="flex items-center gap-1">
-                <Palette className="h-3 w-3 text-cyan-500" />
+                <Palette className="h-3.5 w-3.5 text-[#CCD0CF]" />
                 <span>Insumos para Compra</span>
               </span>
               <span className={isComprado ? "text-emerald-500 font-extrabold" : hasItemsToBuy ? "text-amber-500 font-extrabold" : "text-muted-foreground font-normal"}>
@@ -450,7 +450,7 @@ export function ComprasCard({
               <div className="p-3 rounded-xl border border-border bg-background space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold uppercase text-muted-foreground flex items-center gap-1">
-                    <Palette className="h-3.5 w-3.5 text-cyan-500" />
+                    <Palette className="h-3.5 w-3.5 text-[#CCD0CF]" />
                     Insumos Especiais (Pantone / Outros)
                   </span>
                   <span className={isComprado ? "text-emerald-500 font-extrabold text-xs" : "text-amber-500 font-extrabold text-xs"}>

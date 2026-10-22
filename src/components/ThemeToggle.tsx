@@ -22,7 +22,7 @@ export function ThemeToggle() {
           title={`Tema atual: ${isDark ? "Escuro" : "Claro"}. Clique para alterar.`}
         >
           <Sun className="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-amber-400" />
-          <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-cyan-400" />
+          <Moon className="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-[#CCD0CF]" />
           <span className="sr-only">Alternar tema</span>
         </Button>
       </DropdownMenuTrigger>
@@ -42,7 +42,7 @@ export function ThemeToggle() {
           className={`flex items-center justify-between cursor-pointer text-xs font-medium py-2 px-3 rounded-lg hover:bg-accent hover:text-accent-foreground ${isDark ? "bg-accent/50 font-semibold" : ""}`}
         >
           <div className="flex items-center gap-2">
-            <Moon className="h-4 w-4 text-cyan-400" />
+            <Moon className="h-4 w-4 text-[#CCD0CF]" />
             <span>Tema Escuro</span>
           </div>
           {isDark && <Check className="h-3.5 w-3.5 text-primary" />}

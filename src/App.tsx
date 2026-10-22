@@ -42,8 +42,8 @@ function PageLoadingFallback() {
   return (
     <div className="flex min-h-[60vh] w-full items-center justify-center bg-transparent">
       <div className="flex flex-col items-center gap-3">
-        <div className="h-7 w-7 rounded-full border-2 border-cyan-500/20 border-t-cyan-400 animate-spin" />
-        <span className="text-[11px] font-mono-tech text-slate-400 tracking-wider uppercase">
+        <div className="h-7 w-7 rounded-full border-2 border-[#4A5C6A]/30 border-t-[#CCD0CF] animate-spin" />
+        <span className="text-[11px] font-mono-tech text-muted-foreground tracking-wider uppercase">
           Carregando...
         </span>
       </div>

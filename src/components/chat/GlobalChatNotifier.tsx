@@ -350,7 +350,7 @@ export function GlobalChatNotifier({ children }: { children?: ReactNode }) {
           toast.custom(
             (t) => (
               <div
-                className="flex items-center gap-3 p-3.5 bg-card text-card-foreground border-2 border-cyan-500/40 shadow-2xl rounded-2xl cursor-pointer hover:border-cyan-500 transition-all w-full max-w-sm pointer-events-auto backdrop-blur-md"
+                className="flex items-center gap-3 p-3.5 bg-card text-card-foreground border border-[#4A5C6A] shadow-2xl rounded-2xl cursor-pointer hover:border-[#CCD0CF] transition-all w-full max-w-sm pointer-events-auto backdrop-blur-md"
                 onClick={() => {
                   toast.dismiss(t);
                   void markConversationAsViewed(newMsg.conversation_id);
@@ -358,7 +358,7 @@ export function GlobalChatNotifier({ children }: { children?: ReactNode }) {
                 }}
               >
                 <div className="relative">
-                  <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 text-white font-black text-sm flex items-center justify-center shrink-0 shadow-md">
+                  <div className="h-10 w-10 rounded-xl bg-[#253745] border border-[#4A5C6A]/60 text-[#CCD0CF] font-black text-sm flex items-center justify-center shrink-0 shadow-md">
                     {senderName.charAt(0).toUpperCase()}
                   </div>
                   <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-500 rounded-full border-2 border-background animate-pulse" />
@@ -366,7 +366,7 @@ export function GlobalChatNotifier({ children }: { children?: ReactNode }) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-1">
                     <span className="font-bold text-xs text-foreground truncate">{senderName}</span>
-                    <span className="text-[10px] text-cyan-600 dark:text-cyan-400 font-mono-tech bg-cyan-500/10 px-1.5 py-0.5 rounded-md shrink-0">
+                    <span className="text-[10px] text-[#CCD0CF] font-mono-tech bg-[#253745] border border-[#4A5C6A]/60 px-1.5 py-0.5 rounded-md shrink-0">
                       Chat Privado
                     </span>
                   </div>

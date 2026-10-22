@@ -73,7 +73,7 @@ function getFileIcon(fileName: string) {
   if (["ai", "cdr", "eps", "psd"].includes(ext)) {
     return <FileText className="h-5 w-5 text-purple-400 shrink-0" />;
   }
-  return <FileText className="h-5 w-5 text-cyan-400 shrink-0" />;
+  return <FileText className="h-5 w-5 text-[#CCD0CF] shrink-0" />;
 }
 
 export function OrderAttachmentsSection({
@@ -161,13 +161,13 @@ export function OrderAttachmentsSection({
       {/* ─── CABEÇALHO DO COMPONENTE ─── */}
       <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-border/80">
         <div className="flex items-center gap-2">
-          <Cloud className="h-4 w-4 text-cyan-400" />
+          <Cloud className="h-4 w-4 text-[#9BA8AB]" />
           <h4 className="text-xs font-bold uppercase tracking-wider text-foreground">
             Anexos da O.S. (SharePoint Primacor)
           </h4>
           <Badge
             variant="outline"
-            className="text-[10px] font-mono-tech border-cyan-500/30 text-cyan-400 bg-cyan-500/10"
+            className="text-[10px] font-mono-tech border-[#4A5C6A] text-[#CCD0CF] bg-[#253745]"
           >
             {attachments.length} {attachments.length === 1 ? "arquivo" : "arquivos"}
           </Badge>
@@ -215,8 +215,8 @@ export function OrderAttachmentsSection({
             onClick={() => fileInputRef.current?.click()}
             className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all ${
               isDragOver
-                ? "border-cyan-400 bg-cyan-500/10 scale-[0.99]"
-                : "border-slate-700/80 hover:border-cyan-500/50 bg-slate-900/40 hover:bg-slate-900/70"
+                ? "border-[#CCD0CF] bg-[#253745]/30 scale-[0.99]"
+                : "border-slate-700/80 hover:border-[#9BA8AB] bg-slate-900/40 hover:bg-slate-900/70"
             }`}
           >
             <input
@@ -227,7 +227,7 @@ export function OrderAttachmentsSection({
               onChange={(e) => handleFileSelect(e.target.files)}
             />
             <div className="flex flex-col items-center justify-center gap-1.5 pointer-events-none">
-              <div className="h-9 w-9 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+              <div className="h-9 w-9 rounded-full bg-[#253745] border border-[#4A5C6A] flex items-center justify-center text-[#CCD0CF]">
                 <Upload className="h-4 w-4" />
               </div>
               <p className="text-xs font-semibold text-foreground">
@@ -251,7 +251,7 @@ export function OrderAttachmentsSection({
                   size="sm"
                   disabled={isUploading}
                   onClick={handleStartUpload}
-                  className="h-8 px-3 text-xs font-semibold bg-gradient-to-r from-cyan-500 to-blue-600 hover:opacity-90 text-slate-950 rounded-lg gap-1.5 shadow-sm"
+                  className="h-8 px-3 text-xs font-bold bg-[#CCD0CF] hover:bg-white text-[#06141B] rounded-lg gap-1.5 shadow-sm transition-all"
                 >
                   {isUploading ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -315,7 +315,7 @@ export function OrderAttachmentsSection({
 
                   <div className="flex items-center gap-2">
                     {item.status === "uploading" && (
-                      <span className="text-cyan-400 font-mono text-[11px] font-bold">
+                      <span className="text-[#CCD0CF] font-mono text-[11px] font-bold">
                         {item.progress}%
                       </span>
                     )}
@@ -363,10 +363,10 @@ export function OrderAttachmentsSection({
 
                 {item.status === "uploading" && (
                   <div className="space-y-1 pt-1">
-                    <Progress value={item.progress} className="h-2.5 bg-slate-900 border border-cyan-500/25 rounded-full" />
+                    <Progress value={item.progress} className="h-2.5 bg-slate-900 border border-[#4A5C6A]/50 rounded-full" />
                     <div className="flex items-center justify-between text-[10px] font-mono-tech text-muted-foreground">
                       <span>Enviando para o SharePoint...</span>
-                      <span className="text-cyan-400 font-bold">{item.progress}%</span>
+                      <span className="text-[#CCD0CF] font-bold">{item.progress}%</span>
                     </div>
                   </div>
                 )}
@@ -384,7 +384,7 @@ export function OrderAttachmentsSection({
       <div className="space-y-2">
         {loading && (
           <div className="flex items-center justify-center py-6 gap-2 text-xs text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin text-cyan-400" />
+            <Loader2 className="h-4 w-4 animate-spin text-[#9BA8AB]" />
             Carregando anexos...
           </div>
         )}
@@ -444,7 +444,7 @@ export function OrderAttachmentsSection({
                     href={att.sharepoint_web_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 transition-colors"
+                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#253745] hover:bg-[#253745]/80 text-[#CCD0CF] border border-[#4A5C6A] transition-colors"
                   >
                     <ExternalLink className="h-3 w-3" />
                     Abrir no SharePoint

@@ -398,7 +398,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
             ? "bg-card/85 dark:bg-[#11212D]/85 border-amber-400/60 dark:border-amber-500/40 hover:border-amber-500 text-card-foreground border-l-[4px] border-l-amber-500 shadow-amber-500/5 dark:shadow-[0_8px_32px_rgba(6,20,27,0.5)]"
             : isNearDeadline
             ? "bg-card/85 dark:bg-[#11212D]/85 border-amber-400/60 dark:border-amber-500/40 hover:border-amber-500 text-card-foreground border-l-[4px] border-l-amber-500 shadow-amber-500/5 dark:shadow-[0_8px_32px_rgba(6,20,27,0.5)]"
-            : "bg-card/85 dark:bg-[#11212D]/85 border-border/80 dark:border-[#4A5C6A]/35 text-card-foreground hover:border-cyan-500/50 hover:shadow-lg dark:hover:shadow-[0_12px_36px_rgba(6,20,27,0.65)] border-l-[4px] border-l-transparent hover:border-l-cyan-500"
+            : "bg-card/85 dark:bg-[#11212D]/85 border-border/80 dark:border-[#4A5C6A]/35 text-card-foreground hover:border-[#9BA8AB]/60 hover:shadow-lg dark:hover:shadow-[0_12px_36px_rgba(6,20,27,0.65)] border-l-[4px] border-l-transparent hover:border-l-[#CCD0CF]"
         }`}
       >
         {/* Deadline alert ribbon if near deadline */}
@@ -450,7 +450,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
 
               {/* Prova Digital */}
               {order.prova_digital && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30">
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/60">
                   <span>Prova Digital</span>
                 </span>
               )}
@@ -544,7 +544,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
 
           {/* Linha 2: O.S. + Badges (REV, REP) */}
           <div className="flex items-center gap-1.5 mt-1.5 min-w-0">
-            <span className="font-mono-tech text-[13px] font-bold px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/25 shrink-0 tracking-wide">
+            <span className="font-mono-tech text-[13px] font-bold px-2 py-0.5 rounded bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/60 shrink-0 tracking-wide">
               #{order.titulo}
             </span>
             {currentRevision >= 2 && (
@@ -593,10 +593,10 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
           {order.operador && (
             <div className="flex items-center mt-1">
               <span
-                className="inline-flex items-center gap-1 text-[11px] font-semibold text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 dark:bg-cyan-950/40 border border-cyan-500/30 px-1.5 py-0.5 rounded-md shadow-2xs"
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#CCD0CF] bg-[#253745] border border-[#4A5C6A]/60 px-1.5 py-0.5 rounded-md shadow-2xs"
                 title={`Operador responsável: ${order.operador}`}
               >
-                <UserCheck className="h-3 w-3 text-cyan-500 shrink-0" />
+                <UserCheck className="h-3 w-3 text-[#9BA8AB] shrink-0" />
                 <span>{order.operador}</span>
               </span>
             </div>
@@ -765,7 +765,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
             {permissions.canSendToProduction && onSendToProduction && (
               <button
                 onClick={(e) => { e.stopPropagation(); setSendDialogOpen(true); }}
-                className="flex-1 py-2 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white shadow-md font-mono-tech"
+                className="flex-1 py-2 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] shadow-md font-mono-tech"
               >
                 <Send className="h-3.5 w-3.5" /> Produção →
               </button>
@@ -789,7 +789,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
           {/* Header Fixo */}
           <div className="px-6 py-4 border-b border-border bg-muted/40 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-500 dark:text-cyan-400">
+              <div className="h-9 w-9 rounded-xl bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center text-[#CCD0CF]">
                 <FileText className="h-4 w-4" />
               </div>
               <div>
@@ -833,8 +833,8 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
 
             <div className="flex items-center gap-3">
               {order.prazo && (
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-800/80 border border-slate-700/80 text-xs font-mono-tech text-slate-300">
-                  <Clock className="h-3.5 w-3.5 text-cyan-400" />
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-muted/80 border border-border text-xs font-mono-tech text-foreground">
+                  <Clock className="h-3.5 w-3.5 text-[#9BA8AB]" />
                   <span className={isExpired ? "text-rose-400 font-bold" : isNearDeadline ? "text-amber-400 font-bold" : ""}>
                     {format(new Date(order.prazo), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                   </span>
@@ -844,7 +844,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                         ? "bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse"
                         : isNearDeadline
                         ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
-                        : "bg-cyan-500/20 text-cyan-300"
+                        : "bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/60"
                     }`}>
                       {remainingText}
                     </span>
@@ -920,7 +920,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                     <div className="p-3.5 rounded-xl border border-border/80 bg-muted/40 dark:bg-[#253745]/25 backdrop-blur-md space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                          <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]" />
+                          <span className="w-2 h-2 rounded-full bg-[#CCD0CF] shadow-[0_0_8px_rgba(204,208,207,0.6)]" />
                           <span>Prova Técnica</span>
                         </div>
                         {order.urgente_prova && (
@@ -930,7 +930,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                             </Badge>
                             {remainingText && (
                               <Badge className={`text-[10px] font-mono-tech font-bold ${
-                                isExpired ? "bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40" : "bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border-cyan-500/40"
+                                isExpired ? "bg-rose-500/20 text-rose-700 dark:text-rose-300 border-rose-500/40" : "bg-[#253745] text-[#CCD0CF] border-[#4A5C6A]/60"
                               }`}>
                                 {remainingText}
                               </Badge>
@@ -940,9 +940,9 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                       </div>
                       <div className="flex gap-1.5 flex-wrap">
                         {order.prova_email && <Badge className="bg-pink-500/20 text-pink-700 dark:text-pink-300 border-pink-500/40 font-semibold text-xs">E-mail</Badge>}
-                        {order.prova_digital && <Badge className="bg-sky-500/20 text-sky-700 dark:text-sky-300 border-sky-500/40 font-semibold text-xs">Digital</Badge>}
+                        {order.prova_digital && <Badge className="bg-[#253745] text-[#CCD0CF] border-[#4A5C6A]/60 font-semibold text-xs">Digital</Badge>}
                         {order.saida_direta && <Badge className="bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/40 font-semibold text-xs">Saída Direta</Badge>}
-                        {(order as any).digital_color && <Badge className="bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/40 font-semibold text-xs">Color</Badge>}
+                        {(order as any).digital_color && <Badge className="bg-[#253745] text-[#CCD0CF] border-[#4A5C6A]/60 font-semibold text-xs">Color</Badge>}
                         {(order as any).digital_pb && <Badge className="bg-slate-500/20 text-slate-700 dark:text-slate-300 border-slate-500/40 font-semibold text-xs">PB</Badge>}
                       </div>
                       {order.prova_digital && order.destinatario && (
@@ -1035,7 +1035,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                   <div className="p-3 rounded-xl border border-border/80 bg-muted/40 space-y-1 font-mono-tech text-[11px] text-muted-foreground">
                     {createdByName && (
                       <div className="flex items-center gap-2">
-                        <User className="h-3 w-3 text-cyan-600 dark:text-cyan-400" />
+                        <User className="h-3 w-3 text-[#9BA8AB]" />
                         <span>Criado por <strong className="text-foreground">{createdByName}</strong> em {format(new Date(order.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}</span>
                       </div>
                     )}
@@ -1048,10 +1048,10 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                   </div>
 
                   {/* Bloco de Atribuição de Operador (SELECIONAR O USUARIO QUE VAI TRABALHAR NA O.S) */}
-                  <div className="p-3.5 rounded-xl border border-cyan-500/30 bg-cyan-500/5 dark:bg-cyan-950/20 space-y-2.5">
+                  <div className="p-3.5 rounded-xl border border-border/80 bg-muted/40 dark:bg-[#253745]/25 space-y-2.5">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <div className="h-7 w-7 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
+                        <div className="h-7 w-7 rounded-lg bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center text-[#CCD0CF]">
                           <UserCheck className="h-4 w-4" />
                         </div>
                         <div>
@@ -1064,7 +1064,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                         </div>
                       </div>
                       {order.operador && (
-                        <Badge variant="outline" className="text-[10px] bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/30">
+                        <Badge variant="outline" className="text-[10px] bg-[#253745] text-[#CCD0CF] border-[#4A5C6A]/60">
                           Atribuído
                         </Badge>
                       )}

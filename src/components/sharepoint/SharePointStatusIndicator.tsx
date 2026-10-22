@@ -78,10 +78,10 @@ export function SharePointStatusIndicator() {
         size="sm"
         disabled={loading}
         onClick={handleConnect}
-        className="h-9 px-2.5 text-xs text-muted-foreground hover:text-cyan-400 hover:bg-cyan-500/10 border border-border rounded-xl flex items-center gap-1.5 font-mono-tech transition-all"
+        className="h-9 px-2.5 text-xs text-muted-foreground hover:text-[#CCD0CF] hover:bg-[#253745]/50 border border-border rounded-xl flex items-center gap-1.5 font-mono-tech transition-all"
         title="Conectar ao SharePoint corporativo da Primacor Gráfica"
       >
-        <Cloud className="h-3.5 w-3.5 text-cyan-400" />
+        <Cloud className="h-3.5 w-3.5 text-[#9BA8AB]" />
         <span className="hidden lg:inline text-[11px]">Conectar SharePoint</span>
       </Button>
     );
@@ -130,7 +130,7 @@ export function SharePointStatusIndicator() {
           onClick={handleConnect}
           className="text-xs text-foreground cursor-pointer rounded-lg hover:bg-accent"
         >
-          <LogIn className="h-3.5 w-3.5 mr-2 text-cyan-400" />
+          <LogIn className="h-3.5 w-3.5 mr-2 text-[#9BA8AB]" />
           <span>Renovar Permissões</span>
         </DropdownMenuItem>
         <DropdownMenuItem

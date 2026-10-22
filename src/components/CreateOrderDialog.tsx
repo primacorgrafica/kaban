@@ -780,7 +780,7 @@ export function CreateOrderDialog({
         <DialogTrigger asChild>
           <Button
             size="sm"
-            className="gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium shadow-md shadow-cyan-500/20 border border-cyan-400/30 rounded-xl transition-all"
+            className="gap-2 bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] dark:border-[#CCD0CF] font-bold shadow-md shadow-[#06141B]/20 rounded-xl transition-all"
           >
             <Plus className="h-4 w-4" />
             <span>Nova O.S.</span>
@@ -797,13 +797,13 @@ export function CreateOrderDialog({
         <div className="px-6 pt-5 pb-4 border-b border-border bg-muted/30 shrink-0">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2.5">
-              <div className="h-9 w-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
+              <div className="h-9 w-9 rounded-xl bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center text-[#CCD0CF]">
                 {isEdit ? <Edit2 className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
               </div>
               <div>
                 <DialogTitle className="text-base font-bold text-foreground tracking-tight flex items-center gap-2">
                   {isEdit ? "Editar Ordem de Serviço" : "Nova Ordem de Serviço"}
-                  <span className="text-[10px] font-mono-tech px-2 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-600 dark:text-cyan-400 font-normal">
+                  <span className="text-[10px] font-mono-tech px-2 py-0.5 rounded-full bg-[#253745] border border-[#4A5C6A]/60 text-[#CCD0CF] font-normal">
                     {isEdit ? `O.S. #${orderToEdit?.titulo}` : "PRIMACOR OS v2.0"}
                   </span>
                 </DialogTitle>
@@ -817,7 +817,7 @@ export function CreateOrderDialog({
 
             {/* Step Counter Badge */}
             <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted border border-border text-xs font-mono-tech text-foreground">
-              <span className="text-cyan-600 dark:text-cyan-400 font-bold">Passo {step}</span>
+              <span className="text-[#CCD0CF] font-bold">Passo {step}</span>
               <span className="text-muted-foreground">/</span>
               <span>3</span>
             </div>
@@ -841,7 +841,7 @@ export function CreateOrderDialog({
                   }}
                   className={`flex items-center gap-3 p-2.5 rounded-xl border transition-all text-left ${
                     isActive
-                      ? "bg-cyan-500/10 border-cyan-500/40 text-foreground shadow-[0_0_15px_-3px_rgba(6,182,212,0.25)]"
+                      ? "bg-[#253745] border-[#4A5C6A] text-foreground shadow-xs"
                       : isPast || isEdit
                       ? "bg-card border-emerald-500/30 text-foreground hover:bg-accent cursor-pointer"
                       : "bg-muted/40 border-border/60 text-muted-foreground cursor-not-allowed"
@@ -850,7 +850,7 @@ export function CreateOrderDialog({
                   <div
                     className={`h-7 w-7 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold transition-all ${
                       isActive
-                        ? "bg-cyan-500 text-slate-950 font-black shadow-[0_0_10px_#06b6d4]"
+                        ? "bg-[#CCD0CF] text-[#06141B] font-black shadow-xs"
                         : isPast
                         ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
                         : "bg-muted text-muted-foreground"
@@ -861,7 +861,7 @@ export function CreateOrderDialog({
                   <div className="min-w-0">
                     <p
                       className={`text-xs font-semibold truncate ${
-                        isActive ? "text-cyan-600 dark:text-cyan-400" : isPast ? "text-foreground" : "text-muted-foreground"
+                        isActive ? "text-[#CCD0CF]" : isPast ? "text-foreground" : "text-muted-foreground"
                       }`}
                     >
                       {s.title}
@@ -878,17 +878,17 @@ export function CreateOrderDialog({
 
         {/* Barra de Progresso Real-time de Upload para o SharePoint */}
         {isSubmitting && (currentUploadTotalFiles > 0 || stagedFiles.length > 0) && (
-          <div className="mx-6 mt-4 p-4 rounded-2xl bg-cyan-950/40 border border-cyan-500/30 shadow-xl space-y-3 animate-in fade-in-50 duration-200">
+          <div className="mx-6 mt-4 p-4 rounded-2xl bg-[#11212D] border border-[#4A5C6A] shadow-xl space-y-3 animate-in fade-in-50 duration-200">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
-                <div className="h-9 w-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                <div className="h-9 w-9 rounded-xl bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center text-[#CCD0CF]">
                   <Cloud className="h-5 w-5 animate-pulse" />
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-foreground flex items-center gap-2">
                     <span>Enviando anexo para o SharePoint Corporativo</span>
                     {currentUploadTotalFiles > 0 && (
-                      <Badge variant="outline" className="text-[10px] font-mono-tech border-cyan-500/40 text-cyan-400 bg-cyan-500/10">
+                      <Badge variant="outline" className="text-[10px] font-mono-tech border-[#4A5C6A] text-[#CCD0CF] bg-[#253745]">
                         Arquivo {currentUploadFileIndex} de {currentUploadTotalFiles}
                       </Badge>
                     )}
@@ -898,7 +898,7 @@ export function CreateOrderDialog({
                   </p>
                 </div>
               </div>
-              <span className="text-base font-mono-tech font-bold text-cyan-400">
+              <span className="text-base font-mono-tech font-bold text-[#CCD0CF]">
                 {currentUploadProgress}%
               </span>
             </div>
@@ -906,10 +906,10 @@ export function CreateOrderDialog({
             <div className="space-y-1.5">
               <Progress
                 value={currentUploadProgress}
-                className="h-2.5 bg-slate-900 border border-cyan-500/20"
+                className="h-2.5 bg-slate-900 border border-[#4A5C6A]/40"
               />
               <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono-tech">
-                <span className="text-cyan-300 font-medium">
+                <span className="text-[#9BA8AB] font-medium">
                   {currentUploadSpeedOrBytes || "Transmitindo dados..."}
                 </span>
                 <span>SharePoint Primacor</span>
@@ -930,7 +930,7 @@ export function CreateOrderDialog({
                     htmlFor="titulo"
                     className="text-xs font-medium text-foreground flex items-center gap-1.5"
                   >
-                    <Hash className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
+                    <Hash className="h-3.5 w-3.5 text-[#9BA8AB] dark:text-[#CCD0CF]" />
                     <span>Nº da O.S.</span>
                     <span className="text-rose-500">*</span>
                   </Label>
@@ -939,7 +939,7 @@ export function CreateOrderDialog({
                     autoFocus
                     value={form.titulo}
                     onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
-                    className="h-10 bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 rounded-xl font-mono-tech text-sm font-semibold tracking-wider"
+                    className="h-10 bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-[#4A5C6A] focus:ring-1 focus:ring-[#9BA8AB]/40 rounded-xl font-mono-tech text-sm font-semibold tracking-wider"
                   />
                 </div>
 
@@ -949,7 +949,7 @@ export function CreateOrderDialog({
                     htmlFor="cliente"
                     className="text-xs font-medium text-foreground flex items-center gap-1.5"
                   >
-                    <Building className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
+                    <Building className="h-3.5 w-3.5 text-[#9BA8AB] dark:text-[#CCD0CF]" />
                     <span>Cliente / Razão Social</span>
                     <span className="text-rose-500">*</span>
                   </Label>
@@ -957,7 +957,7 @@ export function CreateOrderDialog({
                     id="cliente"
                     value={form.cliente}
                     onChange={(e) => setForm((f) => ({ ...f, cliente: e.target.value.toUpperCase() }))}
-                    className="h-10 bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 rounded-xl text-sm uppercase"
+                    className="h-10 bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-[#4A5C6A] focus:ring-1 focus:ring-[#9BA8AB]/40 rounded-xl text-sm uppercase"
                   />
                 </div>
               </div>
@@ -968,7 +968,7 @@ export function CreateOrderDialog({
                   htmlFor="descricao"
                   className="text-xs font-medium text-foreground flex items-center gap-1.5"
                 >
-                  <FileText className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
+                  <FileText className="h-3.5 w-3.5 text-[#9BA8AB] dark:text-[#CCD0CF]" />
                   <span>Descrição do Serviço / Produto</span>
                   <span className="text-rose-500">*</span>
                 </Label>
@@ -976,7 +976,7 @@ export function CreateOrderDialog({
                   id="descricao"
                   value={form.descricao}
                   onChange={(e) => setForm((f) => ({ ...f, descricao: e.target.value }))}
-                  className="h-10 bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 rounded-xl text-sm"
+                  className="h-10 bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-[#4A5C6A] focus:ring-1 focus:ring-[#9BA8AB]/40 rounded-xl text-sm"
                 />
               </div>
 
@@ -984,7 +984,7 @@ export function CreateOrderDialog({
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-medium text-foreground flex items-center gap-1.5">
-                    <Sparkles className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
+                    <Sparkles className="h-3.5 w-3.5 text-[#9BA8AB]" />
                     <span>Tipo de Trabalho</span>
                   </Label>
                   {form.tipo_trabalho === "repeticao" && (
@@ -999,7 +999,7 @@ export function CreateOrderDialog({
                     onClick={() => setForm((f) => ({ ...f, tipo_trabalho: "novo", os_anterior: "" }))}
                     className={`h-full rounded-xl text-xs font-semibold border transition-all flex items-center justify-center gap-2 ${
                       form.tipo_trabalho !== "repeticao"
-                        ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-700 dark:text-cyan-300 shadow-sm font-bold"
+                        ? "bg-[#253745] border-[#4A5C6A] text-[#CCD0CF] shadow-sm font-bold"
                         : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                     }`}
                   >
@@ -1049,13 +1049,13 @@ export function CreateOrderDialog({
 
               {/* Campo Revisão (em modo edição) */}
               {isEdit && (
-                <div className="p-3.5 rounded-xl border border-cyan-500/30 bg-cyan-500/5 dark:bg-cyan-950/20 space-y-1.5 animate-in fade-in-50 duration-200">
+                <div className="p-3.5 rounded-xl border border-[#4A5C6A]/60 bg-[#253745]/20 space-y-1.5 animate-in fade-in-50 duration-200">
                   <div className="flex items-center justify-between">
                     <Label
                       htmlFor="revisao"
                       className="text-xs font-bold text-foreground flex items-center gap-1.5 uppercase tracking-wide"
                     >
-                      <RotateCcw className="h-3.5 w-3.5 text-cyan-500" />
+                      <RotateCcw className="h-3.5 w-3.5 text-[#9BA8AB]" />
                       <span>Revisão da O.S. (REV)</span>
                     </Label>
                     <span className="text-[11px] font-mono-tech text-muted-foreground">
@@ -1080,7 +1080,7 @@ export function CreateOrderDialog({
                 {/* Vendedor */}
                 <div className="md:col-span-12 space-y-1.5">
                   <Label className="text-xs font-medium text-foreground flex items-center gap-1.5">
-                    <User className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
+                    <User className="h-3.5 w-3.5 text-[#9BA8AB] dark:text-[#CCD0CF]" />
                     <span>Vendedor Responsável</span>
                     <span className="text-rose-500">*</span>
                   </Label>
@@ -1088,7 +1088,7 @@ export function CreateOrderDialog({
                     value={form.vendedor}
                     onValueChange={(v) => setForm((f) => ({ ...f, vendedor: v }))}
                   >
-                    <SelectTrigger className="h-10 bg-background border-input text-foreground rounded-xl focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40">
+                    <SelectTrigger className="h-10 bg-background border-input text-foreground rounded-xl focus:border-[#4A5C6A] focus:ring-1 focus:ring-[#9BA8AB]/40">
                       <SelectValue placeholder="Selecione o vendedor" />
                     </SelectTrigger>
                     <SelectContent className="bg-popover border-border text-popover-foreground rounded-xl shadow-xl">
@@ -1116,15 +1116,15 @@ export function CreateOrderDialog({
                   value={form.observacao}
                   onChange={(e) => setForm((f) => ({ ...f, observacao: e.target.value }))}
                   placeholder="Informações adicionais, detalhes de faca, arquivos recebidos..."
-                  className="min-h-[70px] bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/40 rounded-xl text-xs"
+                  className="min-h-[70px] bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-[#4A5C6A] focus:ring-1 focus:ring-[#9BA8AB]/40 rounded-xl text-xs"
                 />
               </div>
 
               {/* Anexos da O.S. para o SharePoint Corporativo */}
-              <div className="p-3.5 rounded-xl border border-cyan-500/25 bg-cyan-500/5 space-y-2">
+              <div className="p-3.5 rounded-xl border border-border bg-muted/30 space-y-2">
                 <div className="flex items-center justify-between">
                   <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                    <Cloud className="h-3.5 w-3.5 text-cyan-500" />
+                    <Cloud className="h-3.5 w-3.5 text-[#9BA8AB]" />
                     <span>Anexos da O.S. (SharePoint)</span>
                   </Label>
                   <div className="flex items-center gap-2">
@@ -1149,7 +1149,7 @@ export function CreateOrderDialog({
                     e.stopPropagation();
                     fileInputRef.current?.click();
                   }}
-                  className="border border-dashed border-cyan-500/30 hover:border-cyan-500/60 bg-background/60 hover:bg-background/90 rounded-xl p-3.5 text-center cursor-pointer transition-all"
+                  className="border border-dashed border-[#4A5C6A]/50 hover:border-[#9BA8AB] bg-background/60 hover:bg-background/90 rounded-xl p-3.5 text-center cursor-pointer transition-all"
                 >
                   <input
                     ref={fileInputRef}
@@ -1168,7 +1168,7 @@ export function CreateOrderDialog({
                     }}
                   />
                   <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
-                    <Upload className="h-4 w-4 text-cyan-500" />
+                    <Upload className="h-4 w-4 text-[#9BA8AB]" />
                     <span>Clique ou arraste arquivos para enviar ao SharePoint ao criar a O.S.</span>
                   </div>
                 </div>
@@ -1213,7 +1213,7 @@ export function CreateOrderDialog({
               <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-cyan-500 shadow-[0_0_8px_#22d3ee]" />
+                    <span className="w-2 h-2 rounded-full bg-[#CCD0CF] shadow-[0_0_8px_rgba(204,208,207,0.6)]" />
                     <Label className="text-xs font-bold text-foreground uppercase tracking-wider">
                       Tipo de Prova <span className="text-rose-500">*</span>
                     </Label>
@@ -1566,7 +1566,7 @@ export function CreateOrderDialog({
                         onClick={() => setForm((f) => ({ ...f, tem_nf: !f.tem_nf }))}
                         className={`flex-1 py-1 px-1.5 rounded-lg text-[11px] font-bold border transition-all ${
                           form.tem_nf
-                            ? "bg-cyan-600 text-white border-cyan-400 shadow-sm"
+                            ? "bg-[#253745] text-[#CCD0CF] border-[#4A5C6A] shadow-sm"
                             : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                         }`}
                       >
@@ -1577,7 +1577,7 @@ export function CreateOrderDialog({
                         onClick={() => setForm((f) => ({ ...f, tem_protocolo: !f.tem_protocolo }))}
                         className={`flex-1 py-1 px-1.5 rounded-lg text-[11px] font-bold border transition-all ${
                           form.tem_protocolo
-                            ? "bg-cyan-600 text-white border-cyan-400 shadow-sm"
+                            ? "bg-[#253745] text-[#CCD0CF] border-[#4A5C6A] shadow-sm"
                             : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                         }`}
                       >
@@ -1597,7 +1597,7 @@ export function CreateOrderDialog({
                           onClick={() => setForm((f) => ({ ...f, empresa_entrega: emp }))}
                           className={`flex-1 py-1 px-1 rounded-lg text-[10px] font-bold border transition-all truncate ${
                             form.empresa_entrega === emp
-                              ? "bg-blue-600 text-white border-blue-400 shadow-sm"
+                              ? "bg-[#253745] text-[#CCD0CF] border-[#4A5C6A] shadow-sm"
                               : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
                           }`}
                         >
@@ -1684,7 +1684,7 @@ export function CreateOrderDialog({
               <Button
                 type="button"
                 onClick={handleNext}
-                className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold rounded-xl h-10 px-5 gap-1.5 shadow-md shadow-cyan-600/20"
+                className="bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] text-xs font-semibold rounded-xl h-10 px-5 gap-1.5 shadow-md"
               >
                 <span>Avançar para {step === 1 ? "Especificações" : "Logística"}</span>
                 <ArrowRight className="h-4 w-4" />

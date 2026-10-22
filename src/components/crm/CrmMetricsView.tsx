@@ -57,9 +57,9 @@ export function CrmMetricsView({ opportunities, stages }: CrmMetricsViewProps) {
       value: `${metrics.conversionRate.toFixed(1)}%`,
       subtext: "Ganha vs. Perdida no período",
       icon: Target,
-      color: "text-cyan-500",
-      bgBadge: "bg-cyan-500/10 border-cyan-500/20",
-      accentBar: "bg-cyan-500",
+      color: "text-[#CCD0CF]",
+      bgBadge: "bg-[#253745] border-[#4A5C6A]/50",
+      accentBar: "bg-[#CCD0CF]",
     },
     {
       label: "Ticket Médio",

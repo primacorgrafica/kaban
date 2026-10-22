@@ -297,7 +297,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
         {isActive && (
           <motion.div
             layoutId="sidebar-active-pill"
-            className="absolute inset-0 rounded-xl bg-sidebar-primary/15 border border-sidebar-primary/25 shadow-xs"
+            className="absolute inset-0 rounded-xl bg-[#253745] border border-[#4A5C6A]/60 shadow-xs"
             transition={{ type: "spring", stiffness: 380, damping: 30 }}
           />
         )}
@@ -321,7 +321,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
               sidebarCollapsed
                 ? "absolute top-1 right-1 text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold"
                 : "ml-auto text-xs px-2 py-0.5 rounded-full"
-            } ${isActive ? "bg-sidebar-primary text-sidebar-primary-foreground font-bold shadow-xs" : "bg-sidebar-accent/80 text-sidebar-foreground/75"}`}
+            } ${isActive ? "bg-[#CCD0CF] text-[#06141B] font-bold shadow-xs" : "bg-[#253745]/70 text-[#9BA8AB]"}`}
           >
             {item.count}
           </span>
@@ -361,7 +361,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
               <button
                 type="button"
                 onClick={toggleSidebarCollapse}
-                className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center font-extrabold font-mono-tech text-cyan-400 cursor-pointer shadow-xs hover:scale-105 hover:bg-cyan-500/20 transition-all"
+                className="w-10 h-10 rounded-xl bg-[#253745]/60 border border-[#4A5C6A]/40 flex items-center justify-center font-extrabold font-mono-tech text-[#CCD0CF] cursor-pointer shadow-xs hover:scale-105 hover:bg-[#253745] transition-all"
                 title="Expandir barra lateral"
               >
                 P
@@ -369,7 +369,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
             ) : (
               <div className="flex flex-col items-start gap-1">
                 <img src={logoImg} alt="Primacor Gráfica" className="w-36 h-auto max-h-11 object-contain" />
-                <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/15 text-cyan-400 font-mono-tech border border-cyan-500/25 font-bold tracking-wider">
+                <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#253745]/60 text-[#9BA8AB] font-mono-tech border border-[#4A5C6A]/40 font-bold tracking-wider">
                   2.0 SAAS
                 </span>
               </div>
@@ -381,7 +381,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
               variant="ghost"
               size="icon"
               onClick={toggleSidebarCollapse}
-              className="hidden lg:flex h-7 w-7 text-sidebar-foreground/50 hover:text-cyan-400 hover:bg-sidebar-accent/50 rounded-lg transition-colors"
+              className="hidden lg:flex h-7 w-7 text-sidebar-foreground/50 hover:text-[#CCD0CF] hover:bg-sidebar-accent/50 rounded-lg transition-colors"
               title="Recolher menu lateral"
             >
               <PanelLeftClose className="h-4 w-4" />
@@ -471,10 +471,10 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
                         className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-all duration-150 group"
                         title={link.description || link.label}
                       >
-                        <ExternalLink className="h-3.5 w-3.5 text-cyan-500/70 group-hover:text-cyan-400 group-hover:scale-110 transition-all shrink-0" />
+                        <ExternalLink className="h-3.5 w-3.5 text-[#9BA8AB] group-hover:text-[#CCD0CF] group-hover:scale-110 transition-all shrink-0" />
                         <span className="truncate flex-1 font-medium">{link.label}</span>
                         {link.badge && (
-                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/60">
                             {link.badge}
                           </span>
                         )}
@@ -492,7 +492,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
             <>
               <button
                 type="button"
-                className="w-10 h-10 rounded-xl bg-card border border-border flex items-center justify-center text-xs font-bold text-primary cursor-pointer hover:border-cyan-500/40 shadow-xs transition-colors"
+                className="w-10 h-10 rounded-xl bg-card border border-border flex items-center justify-center text-xs font-bold text-primary cursor-pointer hover:border-[#9BA8AB]/50 shadow-xs transition-colors"
                 title={`${user?.email} (${isAdmin ? "Admin" : "Operador"})`}
                 onClick={toggleSidebarCollapse}
               >
@@ -512,10 +512,10 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
             <>
               <div className="px-3 py-2 mb-2 rounded-xl bg-card border border-border shadow-xs">
                 <div className="text-[11px] text-foreground font-medium truncate flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_6px_#06b6d4]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_#10b981]" />
                   {user?.email}
                 </div>
-                <div className="text-[10px] text-primary font-mono-tech mt-0.5 uppercase tracking-wider font-semibold">
+                <div className="text-[10px] text-[#9BA8AB] font-mono-tech mt-0.5 uppercase tracking-wider font-semibold">
                   {isAdmin ? "Administrador" : "Operador"}
                 </div>
               </div>
@@ -626,7 +626,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
             >
               <MessageSquare className="h-4 w-4" />
               {unreadChatCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-cyan-500 text-[10px] font-bold text-white shadow-xs animate-pulse">
+                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-[#CCD0CF] text-[10px] font-bold text-[#06141B] shadow-xs animate-pulse">
                   {unreadChatCount > 9 ? "9+" : unreadChatCount}
                 </span>
               )}

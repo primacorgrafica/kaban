@@ -244,7 +244,7 @@ export default function ProductionPage() {
                 onClick={() => handleSetViewMode("kanban")}
                 className={`h-7 px-2.5 text-xs rounded-lg transition-all ${
                   viewMode === "kanban"
-                    ? "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-500/30"
+                    ? "bg-[#253745] text-[#CCD0CF] font-bold border border-[#4A5C6A]/60 shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
                 title="Visualização em Quadro Kanban"
@@ -257,7 +257,7 @@ export default function ProductionPage() {
                 onClick={() => handleSetViewMode("table")}
                 className={`h-7 px-2.5 text-xs rounded-lg transition-all ${
                   viewMode === "table"
-                    ? "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-500/30"
+                    ? "bg-[#253745] text-[#CCD0CF] font-bold border border-[#4A5C6A]/60 shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
                 title="Visualização em Tabela / Lista de Produção"

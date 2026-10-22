@@ -83,7 +83,7 @@ export function ChatMessageItem({
             message.is_deleted
               ? "bg-muted/70 border border-border text-muted-foreground italic"
               : isMe
-              ? "bg-gradient-to-r from-cyan-600 to-blue-600 text-white rounded-br-xs"
+              ? "bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A] rounded-br-xs font-medium"
               : "bg-muted border border-border text-foreground rounded-bl-xs"
           }`}
         >
@@ -93,7 +93,7 @@ export function ChatMessageItem({
               <Input
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
-                className="h-8 text-xs bg-background border-cyan-500 text-foreground"
+                className="h-8 text-xs bg-background border-[#4A5C6A] text-foreground"
                 autoFocus
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleSaveEdit();
@@ -112,7 +112,7 @@ export function ChatMessageItem({
                 <Button
                   size="sm"
                   onClick={handleSaveEdit}
-                  className="h-6 px-2 text-[10px] bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold"
+                  className="h-6 px-2 text-[10px] bg-[#CCD0CF] hover:bg-white text-[#06141B] font-bold"
                 >
                   Salvar
                 </Button>
@@ -128,7 +128,7 @@ export function ChatMessageItem({
               {/* Footer Meta: Time, Edit, Checkmarks */}
               <div
                 className={`flex items-center gap-1 justify-end mt-1 text-[10px] font-mono-tech ${
-                  isMe ? "text-cyan-100/80" : "text-muted-foreground"
+                  isMe ? "text-[#CCD0CF]/80" : "text-muted-foreground"
                 }`}
               >
                 {message.is_edited && !message.is_deleted && (
@@ -141,7 +141,7 @@ export function ChatMessageItem({
                     {message.status === "sending" ? (
                       <Clock className="h-2.5 w-2.5 animate-spin" />
                     ) : (
-                      <CheckCheck className="h-3 w-3 text-cyan-200" />
+                      <CheckCheck className="h-3 w-3 text-[#CCD0CF]" />
                     )}
                   </span>
                 )}
@@ -192,9 +192,9 @@ export function ChatMessageItem({
                       setEditContent(message.content);
                       setIsEditing(true);
                     }}
-                    className="text-xs hover:bg-accent cursor-pointer text-cyan-600 dark:text-cyan-300"
+                    className="text-xs hover:bg-accent cursor-pointer text-[#CCD0CF]"
                   >
-                    <Pencil className="h-3.5 w-3.5 mr-2 text-cyan-500" /> Editar mensagem
+                    <Pencil className="h-3.5 w-3.5 mr-2 text-[#CCD0CF]" /> Editar mensagem
                   </DropdownMenuItem>
                 )}
 
@@ -230,7 +230,7 @@ export function ChatMessageItem({
               onClick={() => onReact(message.id, emoji)}
               className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] border transition-all ${
                 data.hasReacted
-                  ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-600 dark:text-cyan-300 font-bold"
+                  ? "bg-[#253745] border-[#4A5C6A] text-[#CCD0CF] font-bold"
                   : "bg-card border-border text-foreground hover:border-muted-foreground/40"
               }`}
             >

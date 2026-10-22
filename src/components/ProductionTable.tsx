@@ -202,24 +202,24 @@ export function ProductionTable({
       <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-b border-border bg-muted/40">
         <div className="flex items-center gap-2">
           <span className="text-xs font-bold uppercase tracking-wider text-foreground font-mono-tech flex items-center gap-2">
-            <Layers className="h-4 w-4 text-cyan-500 dark:text-cyan-400" />
+            <Layers className="h-4 w-4 text-[#9BA8AB]" />
             Tabela de Produção
           </span>
-          <span className="text-[11px] px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-600 dark:text-cyan-400 font-mono-tech font-bold">
+          <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#253745] border border-[#4A5C6A]/60 text-[#CCD0CF] font-mono-tech font-bold">
             {orders.length} O.S.
           </span>
         </div>
 
         {/* Selected Counter & Batch Toolbar */}
         {selectedIds.size > 0 && (
-          <div className="flex items-center gap-2 bg-cyan-950/60 border border-cyan-500/30 px-3 py-1 rounded-xl shadow-lg animate-in fade-in">
-            <span className="text-xs font-mono-tech font-bold text-cyan-300">
+          <div className="flex items-center gap-2 bg-[#11212D] border border-[#4A5C6A] px-3 py-1 rounded-xl shadow-lg animate-in fade-in">
+            <span className="text-xs font-mono-tech font-bold text-[#CCD0CF]">
               {selectedIds.size} selecionada{selectedIds.size > 1 ? "s" : ""}
             </span>
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="ghost" className="h-7 text-xs text-white bg-cyan-600/30 hover:bg-cyan-600/50 rounded-lg">
+                <Button size="sm" variant="ghost" className="h-7 text-xs text-[#CCD0CF] bg-[#253745] hover:bg-[#253745]/80 rounded-lg">
                   Mover Status <ChevronRight className="h-3 w-3 ml-1" />
                 </Button>
               </DropdownMenuTrigger>
@@ -271,7 +271,7 @@ export function ProductionTable({
                 <Checkbox
                   checked={isAllSelected ? true : isSomeSelected ? "indeterminate" : false}
                   onCheckedChange={(c) => handleSelectAll(!!c)}
-                  className="rounded border-border data-[state=checked]:bg-cyan-500 data-[state=checked]:border-cyan-500"
+                  className="rounded border-border data-[state=checked]:bg-[#CCD0CF] data-[state=checked]:text-[#06141B] data-[state=checked]:border-[#CCD0CF]"
                 />
               </TableHead>
               <TableHead className="w-24 font-mono-tech cursor-pointer select-none" onClick={() => handleSort("titulo")}>
@@ -327,7 +327,7 @@ export function ProductionTable({
                     key={order.id}
                     className={`border-b border-border/60 transition-colors cursor-pointer ${
                       isSelected
-                        ? "bg-cyan-500/10 hover:bg-cyan-500/15"
+                        ? "bg-[#253745]/40 hover:bg-[#253745]/60"
                         : "hover:bg-accent/50"
                     }`}
                     onClick={() => handleOpenSlideOver(order)}
@@ -337,7 +337,7 @@ export function ProductionTable({
                       <Checkbox
                         checked={isSelected}
                         onCheckedChange={() => toggleSelectOne(order.id)}
-                        className="rounded border-border data-[state=checked]:bg-cyan-500 data-[state=checked]:border-cyan-500"
+                        className="rounded border-border data-[state=checked]:bg-[#CCD0CF] data-[state=checked]:text-[#06141B] data-[state=checked]:border-[#CCD0CF]"
                       />
                     </TableCell>
 
@@ -347,7 +347,7 @@ export function ProductionTable({
                         {isUrgent && (
                           <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_#f43f5e] shrink-0" />
                         )}
-                        <span className="px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 text-[11px]">
+                        <span className="px-1.5 py-0.5 rounded bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/60 text-[11px]">
                           #{order.titulo}
                         </span>
                         {(order.tipo_trabalho === "repeticao" || order.os_anterior) && (
@@ -472,7 +472,7 @@ export function ProductionTable({
                             onClick={() => handleOpenSlideOver(order)}
                             className="text-xs hover:bg-accent cursor-pointer"
                           >
-                            <ExternalLink className="h-3.5 w-3.5 mr-2 text-cyan-500" /> Inspecionar O.S.
+                            <ExternalLink className="h-3.5 w-3.5 mr-2 text-[#9BA8AB]" /> Inspecionar O.S.
                           </DropdownMenuItem>
                           {permissions.canArchive && (
                             <DropdownMenuItem

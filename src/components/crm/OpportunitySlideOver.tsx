@@ -309,7 +309,7 @@ export function OpportunitySlideOver({
               <div className="flex items-center gap-1.5">
                 <span
                   className="w-2.5 h-2.5 rounded-full"
-                  style={{ backgroundColor: currentStage?.cor || "#06b6d4" }}
+                  style={{ backgroundColor: currentStage?.cor || "#CCD0CF" }}
                 />
                 <span>Etapa: {currentStage?.nome || "Funil"}</span>
               </div>
@@ -401,13 +401,13 @@ export function OpportunitySlideOver({
                   onClick={() => onArchive(opportunity.id, !opportunity.arquivado)}
                   className={`gap-1.5 text-xs rounded-xl ${
                     opportunity.arquivado
-                      ? "border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 font-semibold"
+                      ? "border-[#4A5C6A]/50 text-[#CCD0CF] hover:bg-[#253745] font-semibold"
                       : "border-border text-muted-foreground hover:text-foreground"
                   }`}
                 >
                   {opportunity.arquivado ? (
                     <>
-                      <ArchiveRestore className="h-3.5 w-3.5 text-cyan-400" />
+                      <ArchiveRestore className="h-3.5 w-3.5 text-[#CCD0CF]" />
                       <span>Desarquivar (Restaurar)</span>
                     </>
                   ) : (
@@ -707,7 +707,7 @@ export function OpportunitySlideOver({
                               {prop.numero_proposta}
                             </span>
                             {isLatest && (
-                              <Badge variant="outline" className="text-[10px] bg-cyan-500/10 text-cyan-400 border-cyan-500/30 font-bold">
+                              <Badge variant="outline" className="text-[10px] bg-[#253745] text-[#CCD0CF] border-[#4A5C6A]/50 font-bold">
                                 Versão Atual
                               </Badge>
                             )}

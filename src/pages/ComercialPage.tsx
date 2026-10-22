@@ -495,7 +495,7 @@ export default function ComercialPage() {
                     return (
                       <div
                         key={dept.id}
-                        className="border border-border/80 bg-muted/40 dark:bg-[#253745]/25 backdrop-blur-md rounded-xl p-3.5 space-y-2.5 shadow-2xs hover:border-cyan-500/40 transition-all"
+                        className="border border-border/80 bg-muted/40 dark:bg-[#253745]/25 backdrop-blur-md rounded-xl p-3.5 space-y-2.5 shadow-2xs hover:border-[#9BA8AB]/50 transition-all"
                       >
                         <div className="flex items-center justify-between pb-2 border-b border-border/60">
                           <span className="font-bold text-sm text-foreground">{dept.label}</span>

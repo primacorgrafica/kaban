@@ -781,7 +781,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
         className="glass-bento p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4"
       >
         <div className="flex items-center gap-3.5">
-          <div className="relative p-2.5 rounded-xl bg-cyan-500/10 dark:bg-[#253745]/60 border border-cyan-500/30 text-cyan-600 dark:text-cyan-400 backdrop-blur-md">
+          <div className="relative p-2.5 rounded-xl bg-[#253745]/60 border border-[#4A5C6A]/50 text-[#CCD0CF] backdrop-blur-md">
             <BarChart3 className="h-5 w-5" />
             <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -816,7 +816,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                 toast.success("PDF analítico completo exportado!");
               }}
             >
-              <FileDown className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
+              <FileDown className="h-3.5 w-3.5 text-[#9BA8AB] dark:text-[#CCD0CF]" />
               <span>Relatório PDF</span>
             </Button>
           </motion.div>
@@ -830,7 +830,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
               disabled={backupLoading}
             >
               {backupLoading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-cyan-500" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-[#CCD0CF]" />
               ) : (
                 <DatabaseBackup className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
               )}
@@ -852,7 +852,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
               Saúde Operacional
             </span>
-            <div className="p-2 rounded-xl bg-cyan-500/10 dark:bg-[#253745]/50 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 backdrop-blur-md">
+            <div className="p-2 rounded-xl bg-[#253745]/50 text-[#CCD0CF] border border-[#4A5C6A]/40 backdrop-blur-md">
               <Activity className="h-4 w-4" />
             </div>
           </div>
@@ -868,7 +868,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
             </div>
             <div className="w-full h-1.5 bg-muted/60 rounded-full overflow-hidden mt-2.5">
               <div
-                className="h-full bg-linear-to-r from-cyan-500 to-emerald-500 rounded-full transition-all duration-700 shadow-sm"
+                className="h-full bg-gradient-to-r from-[#9BA8AB] to-[#CCD0CF] rounded-full transition-all duration-700 shadow-sm"
                 style={{ width: `${total > 0 ? Math.round(((total - criticalDeadlines.length) / total) * 100) : 100}%` }}
               />
             </div>
@@ -1041,13 +1041,13 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                       transition={{ type: "spring", stiffness: 450, damping: 32 }}
                     />
                   )}
-                  <TabIcon className={`h-3.5 w-3.5 relative z-10 transition-colors ${isActive ? "text-cyan-500" : "text-muted-foreground"}`} />
+                  <TabIcon className={`h-3.5 w-3.5 relative z-10 transition-colors ${isActive ? "text-[#CCD0CF]" : "text-muted-foreground"}`} />
                   <span className="relative z-10 whitespace-nowrap">{tab.label}</span>
                   {tab.count !== undefined && (
                     <span
                       className={`relative z-10 text-[10px] px-1.5 py-0.2 rounded-full font-mono-tech ${
                         isActive
-                          ? "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 font-bold"
+                          ? "bg-[#253745] text-[#CCD0CF] font-bold"
                           : "bg-muted text-muted-foreground"
                       }`}
                     >
@@ -1110,7 +1110,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
           <div className="glass-bento p-5 w-full">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-border/60 gap-3">
               <div className="flex items-center gap-2.5">
-                <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+                <div className="p-2 rounded-xl bg-[#253745]/50 text-[#CCD0CF] border border-[#4A5C6A]/40">
                   <Activity className="h-4 w-4" />
                 </div>
                 <div>
@@ -1118,7 +1118,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                     <h3 className="text-sm font-bold text-foreground tracking-tight">
                       Radar de Ordens no Fluxo em Tempo Real
                     </h3>
-                    <span className="text-[10px] font-mono-tech px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-500/20">
+                    <span className="text-[10px] font-mono-tech px-2 py-0.5 rounded-full bg-[#253745] text-[#CCD0CF] font-bold border border-[#4A5C6A]/40">
                       {filteredHomeOrders.length} ativas
                     </span>
                   </div>
@@ -1189,7 +1189,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                           onClick={() => setSelectedOrderForDetail(o)}
                           className="border-border/50 hover:bg-muted/40 transition-colors cursor-pointer group"
                         >
-                          <TableCell className="py-2.5 font-mono-tech font-bold text-xs text-foreground group-hover:text-cyan-500 transition-colors">
+                          <TableCell className="py-2.5 font-mono-tech font-bold text-xs text-foreground group-hover:text-[#CCD0CF] transition-colors">
                             #{o.titulo}
                           </TableCell>
                           <TableCell className="py-2.5">
@@ -1201,7 +1201,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                             <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold border ${
                               o.setor
                                 ? "bg-violet-500/10 text-violet-600 dark:text-violet-300 border-violet-500/25"
-                                : "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/25"
+                                : "bg-[#253745]/50 text-[#CCD0CF] border-[#4A5C6A]/40"
                             }`}>
                               <span className="w-1.5 h-1.5 rounded-full bg-current" />
                               {o.setor ? (DEPARTMENT_MAP[o.setor]?.label || o.setor) : (statusConfig?.label || "Pré-Impressão")}
@@ -1237,7 +1237,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                             <Button
                               size="sm"
                               variant="ghost"
-                              className="h-7 w-7 p-0 text-muted-foreground group-hover:text-foreground group-hover:bg-cyan-500/15 rounded-lg"
+                              className="h-7 w-7 p-0 text-muted-foreground group-hover:text-foreground group-hover:bg-[#253745] rounded-lg"
                               title="Inspecionar O.S."
                             >
                               <Eye className="h-3.5 w-3.5" />
@@ -1455,7 +1455,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
             <div className="glass-bento p-4">
               <div className="flex items-center justify-between pb-3 border-b border-border/60">
                 <div className="flex items-center gap-2">
-                  <div className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
+                  <div className="p-1.5 rounded-lg bg-[#253745]/50 text-[#CCD0CF]">
                     <BarChart3 className="h-4 w-4" />
                   </div>
                   <div>
@@ -1463,7 +1463,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                     <p className="text-[10px] text-muted-foreground">Status do fluxo atual</p>
                   </div>
                 </div>
-                <span className="text-xs font-mono-tech text-cyan-600 dark:text-cyan-400 font-bold bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-md">
+                <span className="text-xs font-mono-tech text-[#CCD0CF] font-bold bg-[#253745] border border-[#4A5C6A]/40 px-2 py-0.5 rounded-md">
                   {preImpressaoOrders.length} ordens
                 </span>
               </div>
@@ -1813,7 +1813,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                     <div className="flex items-center gap-2 min-w-0">
                       <span className="font-mono-tech font-bold text-foreground">#{r.titulo}</span>
                       <span className="text-muted-foreground truncate">• {r.cliente}</span>
-                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/40">
                         {r.supplyLabel}
                       </span>
                     </div>
@@ -1855,7 +1855,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                 <h2 className="text-base font-bold text-foreground">
                   Painel de Governança Operacional & Auditoria
                 </h2>
-                <Badge variant="outline" className="font-mono-tech text-[10px] text-cyan-500 dark:text-cyan-400 border-cyan-500/30 bg-cyan-500/10">
+                <Badge variant="outline" className="font-mono-tech text-[10px] text-[#CCD0CF] border-[#4A5C6A]/50 bg-[#253745]">
                   ADMIN VIEW
                 </Badge>
               </div>
@@ -2461,7 +2461,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                             {o.descricao || "—"}
                           </TableCell>
                           <TableCell className="text-xs">
-                            <span className="font-semibold text-cyan-600 dark:text-cyan-400">{setorLabel}</span>
+                            <span className="font-semibold text-[#CCD0CF]">{setorLabel}</span>
                             <span className="text-muted-foreground"> / {statusLabel}</span>
                           </TableCell>
                           <TableCell className="text-xs font-mono-tech text-muted-foreground">
@@ -2621,7 +2621,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
             <CardHeader className="pb-3 border-b border-border">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-cyan-500" /> O.S. Ativas em Produção — Tempo Acumulado
+                  <TrendingUp className="h-4 w-4 text-[#CCD0CF]" /> O.S. Ativas em Produção — Tempo Acumulado
                 </CardTitle>
                 <span className="text-xs text-muted-foreground">Top 12 ordens em processamento</span>
               </div>
@@ -2657,7 +2657,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                                 {statusConfig.label}
                               </Badge>
                             )}
-                            <div className="flex items-center gap-1.5 text-xs font-mono-tech font-bold text-cyan-400 bg-cyan-500/10 px-2.5 py-1 rounded-xl border border-cyan-500/20">
+                            <div className="flex items-center gap-1.5 text-xs font-mono-tech font-bold text-[#CCD0CF] bg-[#253745] px-2.5 py-1 rounded-xl border border-[#4A5C6A]/40">
                               <Timer className="h-3.5 w-3.5" />
                               {t.tempoTotal !== null ? formatDuration(t.tempoTotal) : "—"}
                             </div>
@@ -2737,7 +2737,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
             <CardHeader className="pb-3 border-b border-border">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <Bell className="h-4 w-4 text-cyan-500" /> Registro de Avisos & Comunicados ({avisos.length})
+                  <Bell className="h-4 w-4 text-[#CCD0CF]" /> Registro de Avisos & Comunicados ({avisos.length})
                 </CardTitle>
                 <span className="text-xs text-muted-foreground">Histórico de comunicações enviadas</span>
               </div>
@@ -2745,7 +2745,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
             <CardContent className="pt-4">
               {avisosLoading ? (
                 <div className="flex items-center justify-center py-12 gap-2 text-muted-foreground text-xs font-mono-tech">
-                  <Loader2 className="h-4 w-4 animate-spin text-cyan-500" /> Carregando avisos...
+                  <Loader2 className="h-4 w-4 animate-spin text-[#CCD0CF]" /> Carregando avisos...
                 </div>
               ) : avisos.length === 0 ? (
                 <p className="text-xs text-muted-foreground text-center py-10">Nenhum aviso registrado no momento.</p>
@@ -2815,7 +2815,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                           return (
                             <div className="space-y-1 pt-1">
                               <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                                <Eye className="h-3 w-3 text-cyan-500" />
+                                <Eye className="h-3 w-3 text-[#CCD0CF]" />
                                 <span>Visualizado por {leituras.length}/{totalUsers} usuários</span>
                               </div>
                               {leituras.length > 0 && (
@@ -2853,7 +2853,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
             <Card className="glass-bento">
               <CardHeader className="pb-3 border-b border-border">
                 <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <FileDown className="h-4 w-4 text-cyan-500" /> Exportação de Relatórios PDF
+                  <FileDown className="h-4 w-4 text-[#9BA8AB]" /> Exportação de Relatórios PDF
                 </CardTitle>
                 <CardDescription className="text-xs text-muted-foreground">
                   Gere relatórios impressos ou digitais do fluxo de pré-impressão.
@@ -2861,7 +2861,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
               </CardHeader>
               <CardContent className="pt-4 space-y-4">
                 <Button
-                  className="w-full gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-semibold rounded-xl h-10 shadow-lg"
+                  className="w-full gap-2 bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] font-semibold rounded-xl h-10 shadow-lg transition-all"
                   onClick={() => {
                     const active = orders.filter((o) => !o.arquivado);
                     if (active.length === 0) {
@@ -2988,7 +2988,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                   <div className="text-xs text-muted-foreground font-medium">Total de Suprimentos</div>
                   <div className="text-2xl font-bold font-mono-tech text-foreground mt-1">{supplyStats.total}</div>
                 </div>
-                <div className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                <div className="p-2.5 rounded-xl bg-[#253745]/60 text-[#CCD0CF] border border-[#4A5C6A]/40">
                   <Layers className="h-5 w-5" />
                 </div>
               </div>
@@ -3153,7 +3153,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                 variant="outline"
                 size="sm"
                 onClick={handleExportSupplyCSV}
-                className="h-8 text-xs rounded-xl px-3 gap-1.5 border-cyan-500/30 text-cyan-500 hover:bg-cyan-500/10 font-semibold ml-auto md:ml-0"
+                className="h-8 text-xs rounded-xl px-3 gap-1.5 border-[#4A5C6A]/50 text-[#CCD0CF] hover:bg-[#253745] font-semibold ml-auto md:ml-0"
               >
                 <Download className="h-3.5 w-3.5" />
                 Exportar CSV

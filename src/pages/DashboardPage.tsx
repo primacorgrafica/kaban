@@ -21,7 +21,7 @@ export default function DashboardPage() {
     >
       {loading ? (
         <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3 text-slate-400 font-mono-tech">
-          <span className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+          <span className="w-8 h-8 border-2 border-[#CCD0CF] border-t-transparent rounded-full animate-spin" />
           <span className="text-xs">Carregando painel administrador...</span>
         </div>
       ) : permissions.canAccessDashboard ? (

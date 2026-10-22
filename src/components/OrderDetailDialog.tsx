@@ -351,7 +351,7 @@ export function OrderDetailDialog({
           {/* Header Fixo */}
           <div className="px-6 py-4 border-b border-border bg-muted/40 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-500 dark:text-cyan-400">
+              <div className="h-9 w-9 rounded-xl bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center text-[#CCD0CF]">
                 <FileText className="h-4 w-4" />
               </div>
               <div>
@@ -395,8 +395,8 @@ export function OrderDetailDialog({
 
             <div className="flex items-center gap-3">
               {order.prazo && (
-                <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-800/80 border border-slate-700/80 text-xs font-mono-tech text-slate-300">
-                  <Clock className="h-3.5 w-3.5 text-cyan-400" />
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-muted/80 border border-border text-xs font-mono-tech text-foreground">
+                  <Clock className="h-3.5 w-3.5 text-[#9BA8AB]" />
                   <span className={isNearDeadline ? "text-rose-400 font-bold" : ""}>
                     {format(new Date(order.prazo), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                   </span>
@@ -470,7 +470,7 @@ export function OrderDetailDialog({
                   <div className="p-3.5 rounded-xl border border-border/80 bg-muted/40 dark:bg-[#253745]/25 backdrop-blur-md space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                        <span className="h-2 w-2 rounded-full bg-cyan-500" />
+                        <span className="h-2 w-2 rounded-full bg-[#CCD0CF] shadow-[0_0_8px_rgba(204,208,207,0.6)]" />
                         <span>Prova Técnica</span>
                       </div>
                       {order.urgente_prova && (
@@ -642,7 +642,7 @@ export function OrderDetailDialog({
                   <div className="p-3 rounded-xl border border-border/80 bg-muted/40 space-y-1 font-mono-tech text-[11px] text-muted-foreground">
                     {createdByName && (
                       <div className="flex items-center gap-2">
-                        <User className="h-3 w-3 text-cyan-600 dark:text-cyan-400" />
+                        <User className="h-3 w-3 text-[#9BA8AB]" />
                         <span>
                           Criado por <strong className="text-foreground">{createdByName}</strong> em{" "}
                           {format(new Date(order.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
@@ -661,10 +661,10 @@ export function OrderDetailDialog({
                   </div>
 
                   {/* Bloco de Atribuição de Operador (SELECIONAR O USUARIO QUE VAI TRABALHAR NA O.S) */}
-                  <div className="p-3.5 rounded-xl border border-cyan-500/30 bg-cyan-500/5 dark:bg-cyan-950/20 space-y-2.5">
+                  <div className="p-3.5 rounded-xl border border-border/80 bg-muted/40 dark:bg-[#253745]/25 space-y-2.5">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <div className="h-7 w-7 rounded-lg bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
+                        <div className="h-7 w-7 rounded-lg bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center text-[#CCD0CF]">
                           <UserCheck className="h-4 w-4" />
                         </div>
                         <div>
@@ -677,7 +677,7 @@ export function OrderDetailDialog({
                         </div>
                       </div>
                       {order.operador && (
-                        <Badge variant="outline" className="text-[10px] bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/30">
+                        <Badge variant="outline" className="text-[10px] bg-[#253745] text-[#CCD0CF] border-[#4A5C6A]/60">
                           Atribuído
                         </Badge>
                       )}

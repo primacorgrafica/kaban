@@ -89,7 +89,7 @@ export function CommandPalette({
               }}
               className="flex items-center gap-2 cursor-pointer py-2"
             >
-              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-cyan-500/10 text-cyan-400">
+              <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#253745] text-[#CCD0CF]">
                 <Plus className="h-3.5 w-3.5" />
               </div>
               <span className="font-medium text-xs">Nova Ordem de Serviço (O.S.)</span>
@@ -137,7 +137,7 @@ export function CommandPalette({
             }}
             className="flex items-center gap-2 cursor-pointer py-2"
           >
-            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-blue-500/10 text-blue-400">
+            <div className="flex h-6 w-6 items-center justify-center rounded-md bg-[#253745] text-[#CCD0CF]">
               {theme === "dark" ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
             </div>
             <span className="font-medium text-xs">Alternar Tema Visual (Claro / Escuro)</span>
@@ -149,11 +149,11 @@ export function CommandPalette({
         {/* Navegação entre Módulos */}
         <CommandGroup heading="Navegação / Módulos">
           <CommandItem onSelect={() => handleSelectNav("/chat")} className="cursor-pointer py-2">
-            <MessageSquare className="mr-2 h-4 w-4 text-cyan-400" />
+            <MessageSquare className="mr-2 h-4 w-4 text-[#CCD0CF]" />
             <span className="text-xs">Chat Privado entre Colaboradores</span>
           </CommandItem>
           <CommandItem onSelect={() => handleSelectNav("/")} className="cursor-pointer py-2">
-            <Monitor className="mr-2 h-4 w-4 text-cyan-400" />
+            <Monitor className="mr-2 h-4 w-4 text-[#CCD0CF]" />
             <span className="text-xs">Pré-Impressão (Quadro Principal)</span>
           </CommandItem>
           <CommandItem onSelect={() => handleSelectNav("/dashboard")} className="cursor-pointer py-2">
@@ -161,7 +161,7 @@ export function CommandPalette({
             <span className="text-xs">Dashboard Analítico & Métricas</span>
           </CommandItem>
           <CommandItem onSelect={() => handleSelectNav("/pcp")} className="cursor-pointer py-2">
-            <Layers className="mr-2 h-4 w-4 text-blue-400" />
+            <Layers className="mr-2 h-4 w-4 text-[#CCD0CF]" />
             <span className="text-xs">PCP — Painel de Carga de Máquinas</span>
           </CommandItem>
           <CommandItem onSelect={() => handleSelectNav("/comercial")} className="cursor-pointer py-2">

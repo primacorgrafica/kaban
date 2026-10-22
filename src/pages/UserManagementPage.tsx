@@ -107,7 +107,7 @@ const ROLE_DOT_COLORS: Record<AppRole | "null", string> = {
   vendedor: "bg-green-400",
   user: "bg-gray-400",
   orcamentista: "bg-purple-400",
-  impressor: "bg-cyan-400",
+  impressor: "bg-[#4A5C6A]",
   null: "bg-gray-400",
 };
 
@@ -118,7 +118,7 @@ const ROLE_COLORS: Record<AppRole, string> = {
   vendedor: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
   user: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300",
   orcamentista: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
-  impressor: "bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300",
+  impressor: "bg-slate-100 text-slate-800 dark:bg-[#253745] dark:text-[#CCD0CF]",
 };
 
 export default function UserManagementPage() {

@@ -167,10 +167,10 @@ function computeMetrics(
   };
 }
 
-function MetricCard({ title, icon, color = "cyan", children }: { title: string; icon: React.ReactNode; color?: "cyan" | "blue" | "emerald" | "violet"; children: React.ReactNode }) {
+function MetricCard({ title, icon, color = "slate", children }: { title: string; icon: React.ReactNode; color?: "slate" | "blue" | "emerald" | "violet"; children: React.ReactNode }) {
   const colorMap = {
-    cyan: "border-cyan-500/25 bg-card/85 dark:bg-[#11212D]/85 shadow-xs dark:shadow-[0_8px_24px_rgba(6,20,27,0.5)]",
-    blue: "border-blue-500/25 bg-card/85 dark:bg-[#11212D]/85 shadow-xs dark:shadow-[0_8px_24px_rgba(6,20,27,0.5)]",
+    slate: "border-[#4A5C6A]/40 bg-card/85 dark:bg-[#11212D]/85 shadow-xs dark:shadow-[0_8px_24px_rgba(6,20,27,0.5)]",
+    blue: "border-[#4A5C6A]/40 bg-card/85 dark:bg-[#11212D]/85 shadow-xs dark:shadow-[0_8px_24px_rgba(6,20,27,0.5)]",
     emerald: "border-emerald-500/25 bg-card/85 dark:bg-[#11212D]/85 shadow-xs dark:shadow-[0_8px_24px_rgba(6,20,27,0.5)]",
     violet: "border-violet-500/25 bg-card/85 dark:bg-[#11212D]/85 shadow-xs dark:shadow-[0_8px_24px_rgba(6,20,27,0.5)]",
   };
@@ -205,14 +205,14 @@ function PeriodView({
 }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      <MetricCard title="Ordens Criadas" icon={<ClipboardList className="h-4 w-4 text-cyan-400" />} color="cyan">
+      <MetricCard title="Ordens Criadas" icon={<ClipboardList className="h-4 w-4 text-[#CCD0CF]" />} color="slate">
         <div className="space-y-1">
           <p className="text-3xl font-bold font-mono-tech text-foreground">{metrics.numOS}</p>
           <p className="text-[11px] text-muted-foreground">O.S. de pré-impressão no período</p>
         </div>
       </MetricCard>
 
-      <MetricCard title="Tempo até Aprovação" icon={<Clock className="h-4 w-4 text-blue-400" />} color="blue">
+      <MetricCard title="Tempo até Aprovação" icon={<Clock className="h-4 w-4 text-[#9BA8AB]" />} color="blue">
         <div className="space-y-1 mt-1">
           <TimeDisplay label="Tempo Médio" value={metrics.tempoMedio} />
           <TimeDisplay label="Mínimo Registrado" value={metrics.tempoMin} />
@@ -233,7 +233,7 @@ function PeriodView({
         <div className="space-y-1.5 mt-0.5">
           <div className="flex items-center justify-between">
             <span className="text-xs text-foreground/80">Preparadas</span>
-            <Badge variant="outline" className="font-mono-tech font-bold text-cyan-400 border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5">
+            <Badge variant="outline" className="font-mono-tech font-bold text-[#CCD0CF] border-[#4A5C6A] bg-[#253745] px-2 py-0.5">
               {metrics.stageCounts.preparadas} O.S.
             </Badge>
           </div>
@@ -338,8 +338,8 @@ export function PreImpressaoTab() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-3">
-        <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />
-        <span className="text-xs text-slate-400 font-mono-tech">Calculando métricas de pré-impressão...</span>
+        <Loader2 className="h-6 w-6 animate-spin text-[#CCD0CF]" />
+        <span className="text-xs text-muted-foreground font-mono-tech">Calculando métricas de pré-impressão...</span>
       </div>
     );
   }
@@ -349,7 +349,7 @@ export function PreImpressaoTab() {
       {/* Period Selector Tabs */}
       <div className="glass-bento p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-500 dark:text-cyan-400">
+          <div className="p-2 rounded-xl bg-[#253745]/60 border border-[#4A5C6A]/50 text-[#CCD0CF]">
             <Calendar className="h-4 w-4" />
           </div>
           <div>
@@ -359,14 +359,14 @@ export function PreImpressaoTab() {
         </div>
 
         <Tabs value={activePeriod} onValueChange={(v) => setActivePeriod(v as Period)}>
-          <TabsList className="bg-card/80 border border-border/70 p-1 rounded-xl shadow-xs backdrop-blur-md">
-            <TabsTrigger value="dia" className="text-xs data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-600 dark:data-[state=active]:text-cyan-300">
+          <TabsList className="bg-[#11212D]/80 border border-[#4A5C6A]/50 p-1 rounded-xl shadow-xs backdrop-blur-md">
+            <TabsTrigger value="dia" className="text-xs data-[state=active]:bg-[#253745] data-[state=active]:text-[#CCD0CF]">
               Dia Anterior
             </TabsTrigger>
-            <TabsTrigger value="semana" className="text-xs data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-600 dark:data-[state=active]:text-cyan-300">
+            <TabsTrigger value="semana" className="text-xs data-[state=active]:bg-[#253745] data-[state=active]:text-[#CCD0CF]">
               Semana Anterior
             </TabsTrigger>
-            <TabsTrigger value="mes" className="text-xs data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-600 dark:data-[state=active]:text-cyan-300">
+            <TabsTrigger value="mes" className="text-xs data-[state=active]:bg-[#253745] data-[state=active]:text-[#CCD0CF]">
               Mês Anterior
             </TabsTrigger>
           </TabsList>
@@ -379,31 +379,31 @@ export function PreImpressaoTab() {
       {/* Comparison Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="glass-bento">
-          <CardHeader className="pb-3 border-b border-border/60">
+          <CardHeader className="pb-3 border-b border-[#4A5C6A]/40">
             <CardTitle className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-cyan-500 dark:text-cyan-400" /> Comparativo de Volume e Entregas
+              <BarChart3 className="h-4 w-4 text-[#CCD0CF]" /> Comparativo de Volume e Entregas
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-4">
             <ResponsiveContainer width="100%" height={260}>
               <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="name" stroke="#64748b" fontSize={11} />
-                <YAxis stroke="#64748b" fontSize={11} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#253745" />
+                <XAxis dataKey="name" stroke="#9BA8AB" fontSize={11} />
+                <YAxis stroke="#9BA8AB" fontSize={11} />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: "#0f172a",
-                    borderColor: "#334155",
+                    backgroundColor: "#11212D",
+                    borderColor: "#4A5C6A",
                     borderRadius: "0.75rem",
-                    color: "#f8fafc",
+                    color: "#CCD0CF",
                     fontSize: "12px",
                   }}
                 />
                 <Legend wrapperStyle={{ fontSize: "11px", paddingTop: "8px" }} />
-                <Bar dataKey="O.S. Criadas" fill="#06b6d4" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Preparadas" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Provas" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="Liberadas" fill="#10b981" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="O.S. Criadas" fill="#CCD0CF" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Preparadas" fill="#4A5C6A" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Provas" fill="#253745" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Liberadas" fill="#9BA8AB" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>

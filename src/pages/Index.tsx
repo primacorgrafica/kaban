@@ -97,7 +97,7 @@ const Index = () => {
       {loading ? (
         <div className="flex items-center justify-center h-full text-muted-foreground font-mono-tech">
           <div className="flex flex-col items-center gap-2">
-            <span className="w-6 h-6 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+            <span className="w-6 h-6 border-2 border-[#9BA8AB] border-t-transparent rounded-full animate-spin" />
             <span>Carregando O.S. Primacor...</span>
           </div>
         </div>
@@ -124,7 +124,7 @@ const Index = () => {
                 onClick={() => handleSetViewMode("kanban")}
                 className={`h-7 px-2.5 text-xs rounded-lg transition-all ${
                   viewMode === "kanban"
-                    ? "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-500/30"
+                    ? "bg-[#253745] text-[#CCD0CF] font-bold border border-[#4A5C6A]/60 shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
                 title="Visualização em Quadro Kanban"
@@ -137,7 +137,7 @@ const Index = () => {
                 onClick={() => handleSetViewMode("table")}
                 className={`h-7 px-2.5 text-xs rounded-lg transition-all ${
                   viewMode === "table"
-                    ? "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-500/30"
+                    ? "bg-[#253745] text-[#CCD0CF] font-bold border border-[#4A5C6A]/60 shadow-xs"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
                 title="Visualização em Tabela / Lista de Produção"

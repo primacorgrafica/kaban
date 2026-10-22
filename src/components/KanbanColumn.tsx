@@ -145,7 +145,7 @@ export function KanbanColumn({
             {...provided.droppableProps}
             className={`flex-1 space-y-2.5 p-2.5 pb-6 transition-all duration-200 ${
               snapshot.isDraggingOver
-                ? "bg-cyan-500/5 ring-2 ring-cyan-500/30 rounded-b-2xl"
+                ? "bg-[#253745]/30 ring-2 ring-[#9BA8AB]/40 rounded-b-2xl"
                 : ""
             }`}
             style={{ minHeight: "130px" }}

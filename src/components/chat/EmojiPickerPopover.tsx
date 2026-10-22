@@ -193,7 +193,7 @@ export function EmojiPickerPopover({ onSelectEmoji, trigger }: EmojiPickerPopove
             type="button"
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-slate-400 hover:text-cyan-400 hover:bg-cyan-500/10 rounded-lg transition-colors"
+            className="h-8 w-8 text-muted-foreground hover:text-[#CCD0CF] hover:bg-[#253745] rounded-lg transition-colors"
             title="Inserir Emoji"
           >
             <Smile className="h-5 w-5" />
@@ -227,7 +227,7 @@ export function EmojiPickerPopover({ onSelectEmoji, trigger }: EmojiPickerPopove
                 onClick={() => setSelectedCategory(cat.id)}
                 className={`p-1.5 text-base rounded-lg transition-all ${
                   selectedCategory === cat.id
-                    ? "bg-cyan-500/20 ring-1 ring-cyan-500/40 scale-110"
+                    ? "bg-[#253745] ring-1 ring-[#4A5C6A] scale-110"
                     : "opacity-60 hover:opacity-100 hover:bg-accent"
                 }`}
                 title={cat.label}
@@ -250,7 +250,7 @@ export function EmojiPickerPopover({ onSelectEmoji, trigger }: EmojiPickerPopove
                 key={`${item.emoji}-${idx}`}
                 type="button"
                 onClick={() => handleSelect(item.emoji)}
-                className="h-8 w-8 text-lg flex items-center justify-center rounded-lg hover:bg-cyan-500/20 hover:scale-125 transition-transform"
+                className="h-8 w-8 text-lg flex items-center justify-center rounded-lg hover:bg-[#253745] hover:scale-125 transition-transform"
                 title={item.name}
               >
                 {item.emoji}

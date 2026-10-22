@@ -188,13 +188,13 @@ export function AiProductionBottlenecksModal({
               onClick={() => setSelectedFilter((prev) => (prev === "urgent" ? "critical" : "urgent"))}
               className={`p-3 rounded-xl border text-center transition-all cursor-pointer ${
                 selectedFilter === "urgent"
-                  ? "bg-cyan-950/40 border-cyan-500 ring-2 ring-cyan-500/40 shadow-md"
-                  : "bg-cyan-950/20 border-cyan-500/30 hover:bg-cyan-950/35"
+                  ? "bg-[#253745] border-[#CCD0CF] ring-2 ring-[#CCD0CF]/40 shadow-md"
+                  : "bg-[#11212D] border-[#4A5C6A]/50 hover:bg-[#253745]/50"
               }`}
               title="Clique para filtrar apenas as O.S. urgentes"
             >
-              <span className="text-[10px] text-cyan-400 uppercase font-mono-tech block">Urgentes</span>
-              <span className="font-mono-tech text-xl font-bold text-cyan-400 mt-0.5 block">
+              <span className="text-[10px] text-[#9BA8AB] uppercase font-mono-tech block">Urgentes</span>
+              <span className="font-mono-tech text-xl font-bold text-[#CCD0CF] mt-0.5 block">
                 {briefing.urgentCount}
               </span>
             </button>

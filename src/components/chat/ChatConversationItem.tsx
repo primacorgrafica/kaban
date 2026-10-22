@@ -45,7 +45,7 @@ export function ChatConversationItem({
       onClick={onClick}
       className={`group flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-all border ${
         isActive
-          ? "bg-cyan-500/15 border-cyan-500/40 shadow-sm"
+          ? "bg-[#253745] border-[#4A5C6A] shadow-sm"
           : "hover:bg-accent border-transparent hover:border-border"
       }`}
     >
@@ -55,7 +55,7 @@ export function ChatConversationItem({
           <div
             className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shadow-sm transition-transform ${
               isActive
-                ? "bg-gradient-to-br from-cyan-500 to-blue-600 text-white font-black ring-1 ring-cyan-400/60"
+                ? "bg-[#253745] text-[#CCD0CF] font-black border border-[#4A5C6A]"
                 : "bg-muted border border-border text-foreground"
             }`}
           >
@@ -71,7 +71,7 @@ export function ChatConversationItem({
           <div className="flex items-center justify-between gap-1 mb-0.5">
             <span
               className={`text-xs font-bold truncate ${
-                isActive ? "text-cyan-600 dark:text-cyan-300" : "text-foreground"
+                isActive ? "text-[#CCD0CF]" : "text-foreground"
               }`}
             >
               {otherUser.nome}
@@ -89,7 +89,7 @@ export function ChatConversationItem({
             </p>
 
             {unreadCount > 0 && (
-              <Badge className="bg-cyan-500 text-slate-950 text-[10px] font-bold px-1.5 py-0 h-4 min-w-[16px] flex items-center justify-center rounded-full font-mono-tech shrink-0 animate-pulse">
+              <Badge className="bg-[#CCD0CF] text-[#06141B] text-[10px] font-bold px-1.5 py-0 h-4 min-w-[16px] flex items-center justify-center rounded-full font-mono-tech shrink-0 animate-pulse">
                 {unreadCount}
               </Badge>
             )}

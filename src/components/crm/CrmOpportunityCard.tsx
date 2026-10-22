@@ -158,7 +158,7 @@ export function CrmOpportunityCard({
                     onSelect(opportunity);
                   }}
                 >
-                  <FileText className="h-4 w-4 mr-2 text-cyan-400" />
+                  <FileText className="h-4 w-4 mr-2 text-[#CCD0CF]" />
                   Abrir Detalhes
                 </DropdownMenuItem>
                 {onScheduleActivity && (
@@ -205,11 +205,11 @@ export function CrmOpportunityCard({
                       e.stopPropagation();
                       onArchive(opportunity.id, !opportunity.arquivado);
                     }}
-                    className={opportunity.arquivado ? "text-cyan-400 focus:text-cyan-300 font-medium" : "text-muted-foreground focus:text-foreground"}
+                    className={opportunity.arquivado ? "text-[#CCD0CF] focus:text-white font-medium" : "text-muted-foreground focus:text-foreground"}
                   >
                     {opportunity.arquivado ? (
                       <>
-                        <ArchiveRestore className="h-4 w-4 mr-2 text-cyan-400" />
+                        <ArchiveRestore className="h-4 w-4 mr-2 text-[#CCD0CF]" />
                         Desarquivar (Restaurar ao Funil)
                       </>
                     ) : (

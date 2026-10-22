@@ -281,7 +281,7 @@ function ProductionCardImpl({
             ? "bg-rose-500/10 border-rose-500/40 text-card-foreground"
             : isNearDeadline
             ? "bg-card/85 dark:bg-[#11212D]/85 border-amber-500/50 text-card-foreground"
-            : "bg-card/85 dark:bg-[#11212D]/85 border-border/80 dark:border-[#4A5C6A]/35 text-card-foreground hover:border-cyan-500/50 hover:shadow-lg dark:hover:shadow-[0_12px_36px_rgba(6,20,27,0.65)]"
+            : "bg-card/85 dark:bg-[#11212D]/85 border-border/80 dark:border-[#4A5C6A]/35 text-card-foreground hover:border-[#9BA8AB]/60 hover:shadow-lg dark:hover:shadow-[0_12px_36px_rgba(6,20,27,0.65)]"
         } ${isNearDeadline && !sectorUrgent ? "animate-pulse" : ""}`}
       >
         {/* Faturamento: Empresa banner (Primacor / Imprimaset) with inline alerts */}
@@ -377,7 +377,7 @@ function ProductionCardImpl({
                 {isUrgentProva && (
                   <span className={`mr-2 inline-block bg-red-600 text-white text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${shouldBlink ? "animate-pulse" : ""}`}>URGENTE</span>
                 )}
-                <span className="text-[10px] font-semibold text-sky-700 dark:text-sky-300 uppercase tracking-wide">Prova Digital</span>
+                <span className="text-[10px] font-semibold text-[#CCD0CF] uppercase tracking-wide">Prova Digital</span>
               </div>
             )}
             {order.prova_email && (
@@ -619,10 +619,10 @@ function ProductionCardImpl({
           {order.operador && (
             <div className="flex items-center mt-1">
               <span
-                className="inline-flex items-center gap-1 text-[11px] font-semibold text-cyan-600 dark:text-cyan-400 bg-cyan-500/10 dark:bg-cyan-950/40 border border-cyan-500/30 px-1.5 py-0.5 rounded-md shadow-2xs"
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#CCD0CF] bg-[#253745] border border-[#4A5C6A]/60 px-1.5 py-0.5 rounded-md shadow-2xs"
                 title={`Operador responsável: ${order.operador}`}
               >
-                <UserCheck className="h-3 w-3 text-cyan-500 shrink-0" />
+                <UserCheck className="h-3 w-3 text-[#9BA8AB] shrink-0" />
                 <span>{order.operador}</span>
               </span>
             </div>

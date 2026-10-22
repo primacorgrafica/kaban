@@ -16,25 +16,25 @@
     --popover: 206 45% 12%;     /* #11212D */
     --popover-foreground: 165 5% 94%;
 
-    /* Cyan / Electric Tech Primary */
-    --primary: 191 95% 48%;
-    --primary-foreground: 200 64% 6.5%;
+    /* Nordic Ice Platinum Primary (#CCD0CF) and Soft Silver (#9BA8AB) */
+    --primary: 165 5% 82%;       /* #CCD0CF */
+    --primary-foreground: 200 64% 6.5%; /* #06141B */
 
     --secondary: 206 30% 21%;   /* #253745 */
-    --secondary-foreground: 165 5% 90%;
+    --secondary-foreground: 165 5% 90%; /* #CCD0CF */
 
     --muted: 206 30% 16%;
     --muted-foreground: 191 10% 64%; /* #9BA8AB */
 
     --accent: 206 18% 35%;      /* #4A5C6A */
-    --accent-foreground: 191 95% 48%;
+    --accent-foreground: 165 5% 90%; /* #CCD0CF */
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 206 18% 28%;      /* #4A5C6A tint */
     --input: 206 30% 15%;
-    --ring: 191 95% 48%;
+    --ring: 191 10% 64%;        /* #9BA8AB */
 
     --radius: 0.875rem;
 
@@ -43,11 +43,11 @@
     --glass-border: 206 18% 35% / 0.35;
     --glass-blur: 20px;
 
-    /* Status colors - High-Tech Neon */
+    /* Status colors */
     --status-entrada: 338 85% 60%;
     --status-entrada-bg: 338 85% 15% / 0.4;
-    --status-novo: 199 95% 55%;
-    --status-novo-bg: 199 95% 15% / 0.4;
+    --status-novo: 206 30% 40%;
+    --status-novo-bg: 206 30% 15% / 0.4;
     --status-andamento: 38 95% 52%;
     --status-andamento-bg: 38 95% 15% / 0.4;
     --status-rota: 215 20% 50%;
@@ -63,20 +63,20 @@
     --status-urgente: 0 85% 58%;
     --status-urgente-bg: 0 85% 15% / 0.4;
 
-    /* Sidebar High-Tech Dark */
+    /* Sidebar Nordic Palette */
     --sidebar-background: 200 64% 5.5%; /* #06141B deep */
-    --sidebar-foreground: 191 10% 75%;
-    --sidebar-primary: 191 95% 48%;
-    --sidebar-primary-foreground: 200 64% 6%;
-    --sidebar-accent: 206 30% 16%;
-    --sidebar-accent-foreground: 191 95% 48%;
-    --sidebar-border: 206 18% 22%;
-    --sidebar-ring: 191 95% 48%;
+    --sidebar-foreground: 191 10% 70%;  /* #9BA8AB */
+    --sidebar-primary: 165 5% 82%;      /* #CCD0CF */
+    --sidebar-primary-foreground: 200 64% 6%; /* #06141B */
+    --sidebar-accent: 206 30% 21%;      /* #253745 */
+    --sidebar-accent-foreground: 165 5% 90%; /* #CCD0CF */
+    --sidebar-border: 206 18% 22%;      /* #4A5C6A */
+    --sidebar-ring: 191 10% 64%;        /* #9BA8AB */
 
     /* Gradients */
     --gradient-sidebar: linear-gradient(180deg, #06141B, #11212D);
     --gradient-header: linear-gradient(90deg, rgba(17, 33, 45, 0.85), rgba(6, 20, 27, 0.9));
-    --gradient-primary: linear-gradient(135deg, hsl(191 95% 48%), #4A5C6A);
+    --gradient-primary: linear-gradient(135deg, #CCD0CF, #9BA8AB);
     --gradient-glow: radial-gradient(circle at 50% 0%, rgba(37, 55, 69, 0.35), transparent 70%);
   }
 
@@ -160,7 +160,7 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased selection:bg-cyan-500/20 selection:text-cyan-400 dark:selection:text-cyan-300;
+    @apply bg-background text-foreground antialiased selection:bg-[#253745] selection:text-[#CCD0CF];
     font-family: 'Inter', sans-serif;
   }
 

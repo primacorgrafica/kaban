@@ -240,7 +240,7 @@ export const STATUS_CONFIG_CRM: Record<
 > = {
   aberta: {
     label: "Em Aberto",
-    badgeClass: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30",
+    badgeClass: "bg-[#253745] text-[#CCD0CF] border-[#4A5C6A]",
   },
   fechada_ganha: {
     label: "Venda Fechada",
@@ -299,7 +299,7 @@ export const ACTIVITY_TYPE_CONFIG: Record<
   email: { label: "E-mail", iconName: "Mail", colorClass: "text-purple-400 bg-purple-500/10" },
   reuniao: { label: "Reunião", iconName: "Users", colorClass: "text-amber-400 bg-amber-500/10" },
   envio_amostra: { label: "Amostra Gráfica", iconName: "Package", colorClass: "text-indigo-400 bg-indigo-500/10" },
-  followup_orcamento: { label: "Follow-up Proposta", iconName: "FileCheck", colorClass: "text-cyan-400 bg-cyan-500/10" },
+  followup_orcamento: { label: "Follow-up Proposta", iconName: "FileCheck", colorClass: "text-[#CCD0CF] bg-[#253745]" },
   visita: { label: "Visita Presencial", iconName: "MapPin", colorClass: "text-orange-400 bg-orange-500/10" },
   outro: { label: "Outro Contato", iconName: "Calendar", colorClass: "text-slate-400 bg-slate-500/10" },
 };

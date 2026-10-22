@@ -129,7 +129,7 @@ export function CrmArchivedView({
       <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl border border-border/70 bg-card shadow-2xs">
         <div className="flex items-center gap-3 sm:gap-6 flex-wrap">
           <div className="flex items-center gap-2.5">
-            <span className="p-2.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+            <span className="p-2.5 rounded-xl bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/50">
               <Archive className="h-5 w-5" />
             </span>
             <div>
@@ -355,7 +355,7 @@ export function CrmArchivedView({
                     <Button
                       size="sm"
                       onClick={() => onUnarchive(opp.id)}
-                      className="gap-1.5 text-xs bg-cyan-600 hover:bg-cyan-500 text-white font-medium rounded-xl shadow-xs cursor-pointer"
+                      className="gap-1.5 text-xs bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] font-semibold rounded-xl shadow-xs cursor-pointer"
                       title="Restaurar Oportunidade para o Funil Ativo"
                     >
                       <ArchiveRestore className="h-3.5 w-3.5" />

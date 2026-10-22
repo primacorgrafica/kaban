@@ -531,7 +531,7 @@ export default function PcpPage() {
       {/* BARRA SUPERIOR: TELEMETRIA INDUSTRIAL & RELÓGIO DE ALTA PRECISÃO */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 rounded-3xl glass-bento shrink-0">
         <div className="flex items-center gap-4">
-          <div className="relative p-3 rounded-2xl bg-gradient-to-br from-blue-600/20 via-cyan-500/20 to-emerald-500/20 border border-cyan-500/40 text-cyan-600 dark:text-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.25)]">
+          <div className="relative p-3 rounded-2xl bg-[#253745] border border-[#4A5C6A] text-[#CCD0CF] shadow-xs">
             <Tv className="h-6 w-6" />
             <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -554,7 +554,7 @@ export default function PcpPage() {
         <div className="flex items-center gap-4 sm:gap-6">
           <div className="text-center sm:text-right">
             <div className="text-2xl sm:text-3xl font-black font-mono-tech text-foreground dark:text-white tracking-wider flex items-center justify-center sm:justify-end gap-1 drop-shadow-[0_0_12px_rgba(255,255,255,0.2)]">
-              <Clock className="h-5 w-5 text-cyan-500 dark:text-cyan-400 hidden sm:inline" />
+              <Clock className="h-5 w-5 text-[#CCD0CF] hidden sm:inline" />
               <span>{format(currentTime, "HH:mm:ss")}</span>
             </div>
             <div className="text-[11px] sm:text-xs font-medium text-muted-foreground dark:text-slate-400 uppercase tracking-wide">
@@ -594,12 +594,12 @@ export default function PcpPage() {
               }}
               className={`h-9 px-2.5 rounded-xl border text-xs gap-1.5 transition-all ${
                 soundEnabled
-                  ? "bg-cyan-500/20 border-cyan-500/40 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.2)]"
+                  ? "bg-[#253745] border-[#4A5C6A] text-[#CCD0CF] shadow-xs"
                   : "bg-muted/60 dark:bg-[#11212D]/80 border-border dark:border-[#4A5C6A]/40 text-muted-foreground dark:text-[#CCD0CF] hover:text-foreground dark:hover:text-white"
               }`}
               title={soundEnabled ? "Som e voz de O.S. liberada ativados (Clique para silenciar)" : "Ativar som e voz de O.S. liberada na TV"}
             >
-              {soundEnabled ? <Volume2 className="h-4 w-4 text-cyan-400" /> : <VolumeX className="h-4 w-4" />}
+              {soundEnabled ? <Volume2 className="h-4 w-4 text-[#CCD0CF]" /> : <VolumeX className="h-4 w-4" />}
               <span className="hidden xl:inline">{soundEnabled ? "Som Ativo" : "Mudo"}</span>
             </Button>
 
@@ -624,7 +624,7 @@ export default function PcpPage() {
               variant="default"
               size="sm"
               onClick={toggleTvMode}
-              className="h-9 px-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold text-xs gap-1.5 shadow-lg shadow-cyan-600/30"
+              className="h-9 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] font-bold text-xs gap-1.5 shadow-md transition-all"
             >
               {isTvMode ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
               <span>{isTvMode ? "Sair TV" : "Modo TV"}</span>
@@ -635,9 +635,9 @@ export default function PcpPage() {
 
       {/* BANNER DE ALERTA DE EVENTO RECENTE AO VIVO */}
       {lastEventAlert && (
-        <div className="p-3 rounded-2xl bg-gradient-to-r from-emerald-500/20 via-cyan-500/20 to-blue-500/20 border border-emerald-500/40 text-emerald-200 flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-300 shrink-0 shadow-[0_0_20px_rgba(16,185,129,0.15)]">
+        <div className="p-3 rounded-2xl bg-[#253745]/40 border border-[#4A5C6A]/50 text-[#CCD0CF] flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-300 shrink-0 shadow-[0_0_20px_rgba(6,20,27,0.4)]">
           <div className="flex items-center gap-2.5">
-            <Zap className="h-4 w-4 text-emerald-400 animate-bounce" />
+            <Zap className="h-4 w-4 text-[#CCD0CF] animate-bounce" />
             <span className="text-xs sm:text-sm font-bold font-mono-tech tracking-wide">
               {lastEventAlert.text}
             </span>
@@ -651,21 +651,21 @@ export default function PcpPage() {
       {/* METRIC HUD TELEMETRY CARDS (GIGANTES PARA ENXERGAR DE LONGE) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 shrink-0 mt-2">
         {/* Card 1: Emitidas Hoje */}
-        <div className="p-4 rounded-3xl glass-bento border-border dark:border-blue-500/30 relative overflow-hidden group">
-          <div className="flex items-center justify-between text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">
+        <div className="p-4 rounded-3xl glass-bento border-border dark:border-[#4A5C6A]/40 relative overflow-hidden group">
+          <div className="flex items-center justify-between text-xs font-semibold text-[#9BA8AB] dark:text-[#CCD0CF] uppercase tracking-wider mb-1">
             <span className="flex items-center gap-1.5">
-              <Layers className="h-4 w-4" /> O.S. Emitidas Hoje
+              <Layers className="h-4 w-4 text-[#CCD0CF]" /> O.S. Emitidas Hoje
             </span>
-            <Activity className="h-4 w-4 text-blue-500/50" />
+            <Activity className="h-4 w-4 text-[#9BA8AB]/50" />
           </div>
           <div className="text-4xl md:text-5xl font-black font-mono-tech text-foreground dark:text-white tracking-tight drop-shadow">
             {totalEmitidasHoje}
           </div>
           <div className="flex items-center justify-between text-[11px] text-muted-foreground dark:text-slate-400 mt-2">
             <span>Entradas no PCP</span>
-            <span className="font-mono-tech font-bold text-blue-600 dark:text-blue-400">Semana: {emitidas.length}</span>
+            <span className="font-mono-tech font-bold text-[#CCD0CF]">Semana: {emitidas.length}</span>
           </div>
-          <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-blue-500 to-cyan-500" />
+          <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-[#CCD0CF]" />
         </div>
 
         {/* Card 2: Liberadas Hoje */}
@@ -687,23 +687,23 @@ export default function PcpPage() {
         </div>
 
         {/* Card 3: Fluxo Líquido / Vazão */}
-        <div className="p-4 rounded-3xl glass-bento border-border dark:border-cyan-500/30 relative overflow-hidden group">
-          <div className="flex items-center justify-between text-xs font-semibold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider mb-1">
+        <div className="p-4 rounded-3xl glass-bento border-border dark:border-[#4A5C6A]/60 relative overflow-hidden group">
+          <div className="flex items-center justify-between text-xs font-semibold text-foreground dark:text-[#CCD0CF] uppercase tracking-wider mb-1">
             <span className="flex items-center gap-1.5">
               <TrendingUp className="h-4 w-4" /> Ritmo de Liberação
             </span>
-            <Radio className="h-4 w-4 text-cyan-500" />
+            <Radio className="h-4 w-4 text-[#CCD0CF]" />
           </div>
           <div className="text-4xl md:text-5xl font-black font-mono-tech text-foreground dark:text-white tracking-tight drop-shadow">
             {totalEmitidasHoje > 0 ? `${Math.round((totalLiberadasHoje / totalEmitidasHoje) * 100)}%` : "100%"}
           </div>
           <div className="flex items-center justify-between text-[11px] text-muted-foreground dark:text-slate-400 mt-2">
             <span>Vazão Liberadas / Emitidas</span>
-            <span className="font-mono-tech font-bold text-cyan-600 dark:text-cyan-400">
+            <span className="font-mono-tech font-bold text-foreground dark:text-[#CCD0CF]">
               {totalLiberadasHoje - totalEmitidasHoje >= 0 ? `+${totalLiberadasHoje - totalEmitidasHoje}` : `${totalLiberadasHoje - totalEmitidasHoje}`} saldo
             </span>
           </div>
-          <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-cyan-500 to-indigo-500" />
+          <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#253745] to-[#4A5C6A]" />
         </div>
 
         {/* Card 4: Alerta de Urgências ou Última Liberação */}
@@ -971,8 +971,8 @@ export default function PcpPage() {
 
       {/* RODAPÉ: TELEMETRY TICKER ESTILO BLOOMBERG / TV NOTÍCIAS */}
       <div className="mt-3 p-2.5 rounded-2xl glass-bento flex items-center justify-between gap-4 overflow-hidden shrink-0 text-xs font-mono-tech">
-        <div className="flex items-center gap-2 text-cyan-600 dark:text-cyan-400 font-bold uppercase tracking-wider shrink-0 bg-muted/60 dark:bg-[#253745]/60 px-3 py-1 rounded-xl border border-border/80 dark:border-[#4A5C6A]/40">
-          <span className="w-2 h-2 rounded-full bg-cyan-500 animate-ping" />
+        <div className="flex items-center gap-2 text-[#CCD0CF] font-bold uppercase tracking-wider shrink-0 bg-muted/60 dark:bg-[#253745]/60 px-3 py-1 rounded-xl border border-border/80 dark:border-[#4A5C6A]/40">
+          <span className="w-2 h-2 rounded-full bg-[#CCD0CF] animate-ping" />
           RADAR PCP
         </div>
 

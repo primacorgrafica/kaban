@@ -397,7 +397,7 @@ export function CrmKanbanBoard({
       <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl border border-border/70 bg-card shadow-2xs">
         <div className="flex items-center gap-3 sm:gap-6 flex-wrap">
           <div className="flex items-center gap-2">
-            <span className="p-2 rounded-xl bg-cyan-500/10 text-cyan-500 border border-cyan-500/20">
+            <span className="p-2 rounded-xl bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/50">
               <TrendingUp className="h-4 w-4" />
             </span>
             <div>
@@ -453,7 +453,7 @@ export function CrmKanbanBoard({
         {/* Botão Principal: Nova Oportunidade */}
         <Button
           onClick={() => onNewOpportunity()}
-          className="gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium shadow-md shadow-cyan-500/20 border border-cyan-400/30 rounded-xl cursor-pointer"
+          className="gap-2 bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] dark:border-[#CCD0CF] font-bold shadow-md shadow-[#06141B]/20 rounded-xl cursor-pointer transition-all"
         >
           <Plus className="h-4 w-4" />
           <span>Nova Oportunidade</span>
@@ -519,7 +519,7 @@ export function CrmKanbanBoard({
             className="h-9 text-xs rounded-xl gap-1.5 border-border bg-card text-muted-foreground hover:text-foreground cursor-pointer"
             title="Abrir central de vendas arquivadas para consulta ou desarquivamento"
           >
-            <ArchiveRestore className="h-3.5 w-3.5 text-cyan-500" />
+            <ArchiveRestore className="h-3.5 w-3.5 text-[#CCD0CF]" />
             <span>Ver Arquivados</span>
             {archivedCount > 0 && (
               <Badge
@@ -540,7 +540,7 @@ export function CrmKanbanBoard({
           onClick={() => setShowArchived((prev) => !prev)}
           className={`h-9 text-xs rounded-xl gap-1.5 transition-colors cursor-pointer ${
             showArchived
-              ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/40 font-semibold"
+              ? "bg-[#253745] text-[#CCD0CF] border-[#4A5C6A]/50 font-semibold"
               : "border-border text-muted-foreground hover:text-foreground"
           }`}
         >

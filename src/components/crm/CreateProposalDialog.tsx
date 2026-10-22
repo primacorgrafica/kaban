@@ -186,7 +186,7 @@ export function CreateProposalDialog({
         <div className="px-6 py-4 border-b border-border bg-muted/30 shrink-0">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="h-9 w-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-500">
+              <div className="h-9 w-9 rounded-xl bg-[#253745] border border-[#4A5C6A]/50 flex items-center justify-center text-[#CCD0CF]">
                 <FileSpreadsheet className="h-4 w-4" />
               </div>
               <div>
@@ -487,7 +487,7 @@ export function CreateProposalDialog({
               type="submit"
               size="sm"
               disabled={submitting}
-              className="rounded-xl text-xs bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium shadow-md shadow-cyan-500/20"
+              className="rounded-xl text-xs bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] font-bold shadow-md shadow-[#06141B]/20 transition-all"
             >
               {submitting
                 ? "Processando..."

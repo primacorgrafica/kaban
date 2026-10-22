@@ -213,7 +213,7 @@ export function CreateOpportunityDialog({
         <div className="px-6 py-4 border-b border-border bg-muted/30 shrink-0">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
-              <div className="h-9 w-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
+              <div className="h-9 w-9 rounded-xl bg-[#253745] border border-[#4A5C6A]/50 flex items-center justify-center text-[#CCD0CF]">
                 <Sparkles className="h-4 w-4" />
               </div>
               <div>
@@ -230,7 +230,7 @@ export function CreateOpportunityDialog({
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border bg-muted/60 text-xs font-mono-tech">
                 <span
                   className="w-2.5 h-2.5 rounded-full"
-                  style={{ backgroundColor: selectedStage.cor || "#06b6d4" }}
+                  style={{ backgroundColor: selectedStage.cor || "#CCD0CF" }}
                 />
                 <span className="font-semibold">{selectedStage.nome}</span>
               </div>
@@ -422,7 +422,7 @@ export function CreateOpportunityDialog({
               {/* Etapa do Funil (COM DESTAQUE) */}
               <div className="space-y-1.5">
                 <Label className="text-xs font-medium text-foreground flex items-center gap-1">
-                  <Flag className="h-3.5 w-3.5 text-cyan-400" />
+                  <Flag className="h-3.5 w-3.5 text-[#CCD0CF]" />
                   <span>Etapa do Funil</span>
                   <span className="text-rose-500">*</span>
                 </Label>
@@ -439,7 +439,7 @@ export function CreateOpportunityDialog({
                         <div className="flex items-center gap-2">
                           <span
                             className="w-2.5 h-2.5 rounded-full shrink-0"
-                            style={{ backgroundColor: s.cor || "#06b6d4" }}
+                            style={{ backgroundColor: s.cor || "#CCD0CF" }}
                           />
                           <span>{s.nome}</span>
                         </div>
@@ -570,7 +570,7 @@ export function CreateOpportunityDialog({
               type="submit"
               size="sm"
               disabled={submitting}
-              className="rounded-xl text-xs bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-medium shadow-md shadow-cyan-500/20 gap-1.5"
+              className="rounded-xl text-xs bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] font-bold shadow-md shadow-[#06141B]/20 gap-1.5 transition-all"
             >
               <Save className="h-3.5 w-3.5" />
               <span>{submitting ? "Salvando..." : "Salvar Oportunidade"}</span>
