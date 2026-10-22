@@ -214,18 +214,18 @@ export default function AuthPage() {
         {/* LEFT COLUMN: Clean, Elegant Login Form */}
         <div className="lg:col-span-7 p-7 sm:p-10 lg:p-12 flex flex-col justify-between">
           <div>
-            {/* Logo SEM CONTORNO, BEM DESTACADA E MAIOR */}
+            {/* Logo SEM CONTORNO, BEM DESTACADA E AINDA MAIOR */}
             <div className="flex items-center justify-between mb-8">
               <div className="flex items-center">
                 <img
                   src={logoImg}
                   alt="Primacor Gráfica"
-                  className="h-24 sm:h-28 md:h-32 w-auto object-contain filter drop-shadow-[0_12px_36px_rgba(0,0,0,0.85)] hover:scale-105 transition-transform duration-300"
+                  className="h-28 sm:h-36 md:h-40 w-auto object-contain filter drop-shadow-[0_16px_40px_rgba(0,0,0,0.9)] hover:scale-105 transition-transform duration-300"
                 />
               </div>
 
-              <span className="text-[10px] font-mono-tech px-2.5 py-1 rounded-full bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/60 font-bold tracking-wider shadow-xs">
-                OS V2.0
+              <span className="text-[11px] font-mono-tech px-3 py-1 rounded-full bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/60 font-bold tracking-wider shadow-xs">
+                2.0
               </span>
             </div>
 
