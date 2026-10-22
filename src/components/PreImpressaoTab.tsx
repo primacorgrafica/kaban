@@ -207,8 +207,8 @@ function PeriodView({
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <MetricCard title="Ordens Criadas" icon={<ClipboardList className="h-4 w-4 text-cyan-400" />} color="cyan">
         <div className="space-y-1">
-          <p className="text-3xl font-bold font-mono-tech text-white">{metrics.numOS}</p>
-          <p className="text-[11px] text-slate-400">O.S. de pré-impressão no período</p>
+          <p className="text-3xl font-bold font-mono-tech text-foreground">{metrics.numOS}</p>
+          <p className="text-[11px] text-muted-foreground">O.S. de pré-impressão no período</p>
         </div>
       </MetricCard>
 
@@ -226,31 +226,31 @@ function PeriodView({
           <TimeDisplay label="Mínimo Registrado" value={metrics.tempoTotalMin} />
           <TimeDisplay label="Máximo Registrado" value={metrics.tempoTotalMax} />
         </div>
-        <p className="text-[10px] text-slate-500 mt-2 truncate">Desconta tempo aguardando cliente</p>
+        <p className="text-[10px] text-muted-foreground mt-2 truncate">Desconta tempo aguardando cliente</p>
       </MetricCard>
 
       <MetricCard title="Entregas & Finalizações" icon={<Send className="h-4 w-4 text-violet-400" />} color="violet">
         <div className="space-y-1.5 mt-0.5">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-300">Preparadas</span>
+            <span className="text-xs text-foreground/80">Preparadas</span>
             <Badge variant="outline" className="font-mono-tech font-bold text-cyan-400 border-cyan-500/30 bg-cyan-500/10 px-2 py-0.5">
               {metrics.stageCounts.preparadas} O.S.
             </Badge>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-300">Provas Concluídas</span>
+            <span className="text-xs text-foreground/80">Provas Concluídas</span>
             <Badge variant="outline" className="font-mono-tech font-bold text-violet-400 border-violet-500/30 bg-violet-500/10 px-2 py-0.5">
               {metrics.stageCounts.provas} O.S.
             </Badge>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-300">Saídas Liberadas</span>
+            <span className="text-xs text-foreground/80">Saídas Liberadas</span>
             <Badge variant="outline" className="font-mono-tech font-bold text-emerald-400 border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5">
               {metrics.stageCounts.liberadas} O.S.
             </Badge>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-xs text-slate-300">Paralisadas</span>
+            <span className="text-xs text-foreground/80">Paralisadas</span>
             <Badge variant="outline" className="font-mono-tech font-bold text-amber-400 border-amber-500/30 bg-amber-500/10 px-2 py-0.5">
               {metrics.stageCounts.paralisadas} O.S.
             </Badge>
@@ -347,7 +347,7 @@ export function PreImpressaoTab() {
   return (
     <div className="space-y-6">
       {/* Period Selector Tabs */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800/80 shadow-xs backdrop-blur-md">
+      <div className="glass-bento p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-2.5">
           <div className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-500 dark:text-cyan-400">
             <Calendar className="h-4 w-4" />
@@ -359,7 +359,7 @@ export function PreImpressaoTab() {
         </div>
 
         <Tabs value={activePeriod} onValueChange={(v) => setActivePeriod(v as Period)}>
-          <TabsList className="bg-card dark:bg-slate-950/80 border border-border dark:border-slate-800/80 p-1 rounded-xl shadow-xs">
+          <TabsList className="bg-card/80 border border-border/70 p-1 rounded-xl shadow-xs backdrop-blur-md">
             <TabsTrigger value="dia" className="text-xs data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-600 dark:data-[state=active]:text-cyan-300">
               Dia Anterior
             </TabsTrigger>
@@ -378,8 +378,8 @@ export function PreImpressaoTab() {
 
       {/* Comparison Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border border-border dark:border-slate-800/80 bg-card dark:bg-slate-900/60 shadow-xs backdrop-blur-md rounded-2xl">
-          <CardHeader className="pb-3 border-b border-border dark:border-slate-800/60">
+        <Card className="glass-bento">
+          <CardHeader className="pb-3 border-b border-border/60">
             <CardTitle className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
               <BarChart3 className="h-4 w-4 text-cyan-500 dark:text-cyan-400" /> Comparativo de Volume e Entregas
             </CardTitle>
@@ -409,8 +409,8 @@ export function PreImpressaoTab() {
           </CardContent>
         </Card>
 
-        <Card className="border border-border dark:border-slate-800/80 bg-card dark:bg-slate-900/60 shadow-xs backdrop-blur-md rounded-2xl">
-          <CardHeader className="pb-3 border-b border-border dark:border-slate-800/60">
+        <Card className="glass-bento">
+          <CardHeader className="pb-3 border-b border-border/60">
             <CardTitle className="text-xs font-semibold text-foreground uppercase tracking-wider flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-emerald-500 dark:text-emerald-400" /> Comparativo de Tempos Médios (minutos)
             </CardTitle>

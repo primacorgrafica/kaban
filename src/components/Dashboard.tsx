@@ -737,12 +737,51 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
     toast.success("Relatório de Governança e Auditoria exportado com sucesso!");
   };
 
+  const dashboardContainerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.07,
+        delayChildren: 0.03,
+      },
+    },
+  };
+
+  const dashboardItemVariants = {
+    hidden: { opacity: 0, y: 14 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        type: "spring",
+        stiffness: 380,
+        damping: 26,
+      },
+    },
+  };
+
   return (
-    <div className="space-y-6 w-full max-w-none px-1 sm:px-2 pb-12 animate-in fade-in duration-300">
-      {/* Executive Telemetry Header - Modern SaaS Minimalist */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-5 rounded-2xl bg-card/70 dark:bg-slate-900/40 border border-border/70 backdrop-blur-xl shadow-xs">
+    <motion.div
+      variants={dashboardContainerVariants}
+      initial="hidden"
+      animate="show"
+      className="space-y-6 w-full max-w-none px-1 sm:px-2 pb-12 relative"
+    >
+      {/* Ambient Glassmorphism Refraction Glow (using image palette #06141B, #11212D, #253745, #4A5C6A, #9BA8AB, #CCD0CF) */}
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden select-none">
+        <div className="absolute -top-32 left-1/4 h-[440px] w-[440px] rounded-full bg-[#253745]/30 dark:bg-[#11212D]/80 blur-[120px] opacity-70" />
+        <div className="absolute top-1/3 right-4 h-[400px] w-[400px] rounded-full bg-[#4A5C6A]/25 dark:bg-[#253745]/40 blur-[110px] opacity-65" />
+        <div className="absolute -bottom-20 left-10 h-[380px] w-[380px] rounded-full bg-[#9BA8AB]/20 dark:bg-[#06141B]/60 blur-[100px] opacity-50" />
+      </div>
+
+      {/* Executive Telemetry Header - Modern SaaS Minimalist Glassmorphic */}
+      <motion.div
+        variants={dashboardItemVariants}
+        className="glass-bento p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+      >
         <div className="flex items-center gap-3.5">
-          <div className="relative p-2.5 rounded-xl bg-cyan-500/10 dark:bg-cyan-500/15 border border-cyan-500/25 text-cyan-600 dark:text-cyan-400">
+          <div className="relative p-2.5 rounded-xl bg-cyan-500/10 dark:bg-[#253745]/60 border border-cyan-500/30 text-cyan-600 dark:text-cyan-400 backdrop-blur-md">
             <BarChart3 className="h-5 w-5" />
             <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
@@ -754,7 +793,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
               <h1 className="text-lg sm:text-xl font-bold tracking-tight text-foreground font-sans">
                 Telemetria Operacional
               </h1>
-              <span className="saas-pill bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-mono-tech uppercase">
+              <span className="saas-pill bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-mono-tech uppercase">
                 Ao Vivo
               </span>
             </div>
@@ -765,55 +804,58 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2 bg-background hover:bg-muted text-foreground text-xs h-8 rounded-lg border-border/80 saas-interactive shadow-xs"
-            onClick={() => {
-              exportFullAnalyticsPDF(allTimelines, avgPerStatus, avgTotal, {
-                total,
-                liberadas: completedOrders.length,
-                arquivadas: archivedCount,
-                criadasHoje: todayOrders,
-              });
-              toast.success("PDF analítico completo exportado!");
-            }}
-          >
-            <FileDown className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
-            <span>Relatório PDF</span>
-          </Button>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 bg-background/80 hover:bg-muted text-foreground text-xs h-8 rounded-lg border-border/80 saas-interactive shadow-xs backdrop-blur-md cursor-pointer"
+              onClick={() => {
+                exportFullAnalyticsPDF(allTimelines, avgPerStatus, avgTotal, {
+                  total,
+                  liberadas: completedOrders.length,
+                  arquivadas: archivedCount,
+                  criadasHoje: todayOrders,
+                });
+                toast.success("PDF analítico completo exportado!");
+              }}
+            >
+              <FileDown className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
+              <span>Relatório PDF</span>
+            </Button>
+          </motion.div>
 
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-2 bg-background hover:bg-muted text-foreground text-xs h-8 rounded-lg border-border/80 saas-interactive shadow-xs"
-            onClick={handleBackup}
-            disabled={backupLoading}
-          >
-            {backupLoading ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin text-cyan-500" />
-            ) : (
-              <DatabaseBackup className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-            )}
-            <span>{backupLoading ? "Gerando..." : "Backup JSON"}</span>
-          </Button>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 bg-background/80 hover:bg-muted text-foreground text-xs h-8 rounded-lg border-border/80 saas-interactive shadow-xs backdrop-blur-md cursor-pointer"
+              onClick={handleBackup}
+              disabled={backupLoading}
+            >
+              {backupLoading ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-cyan-500" />
+              ) : (
+                <DatabaseBackup className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+              )}
+              <span>{backupLoading ? "Gerando..." : "Backup JSON"}</span>
+            </Button>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Executive Command Bento Grid - 4 High-Impact SaaS Modules */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <motion.div variants={dashboardItemVariants} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Module 1: Saúde Operacional & Eficiência */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2, delay: 0.05 }}
-          className="p-5 rounded-2xl bg-card/75 dark:bg-slate-900/60 border border-border/80 backdrop-blur-xl shadow-xs hover:border-cyan-500/40 transition-all flex flex-col justify-between"
+          whileHover={{ y: -4, scale: 1.008 }}
+          transition={{ type: "spring", stiffness: 350, damping: 24 }}
+          className="glass-bento p-5 flex flex-col justify-between group cursor-default"
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
               Saúde Operacional
             </span>
-            <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+            <div className="p-2 rounded-xl bg-cyan-500/10 dark:bg-[#253745]/50 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 backdrop-blur-md">
               <Activity className="h-4 w-4" />
             </div>
           </div>
@@ -827,9 +869,9 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                 no prazo
               </span>
             </div>
-            <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mt-2.5">
+            <div className="w-full h-1.5 bg-muted/60 rounded-full overflow-hidden mt-2.5">
               <div
-                className="h-full bg-linear-to-r from-cyan-500 to-emerald-500 rounded-full transition-all duration-700"
+                className="h-full bg-linear-to-r from-cyan-500 to-emerald-500 rounded-full transition-all duration-700 shadow-sm"
                 style={{ width: `${total > 0 ? Math.round(((total - criticalDeadlines.length) / total) * 100) : 100}%` }}
               />
             </div>
@@ -843,39 +885,42 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
         {/* Module 2: Radar de Atenção & Gargalos */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2, delay: 0.1 }}
-          className="p-5 rounded-2xl bg-card/75 dark:bg-slate-900/60 border border-border/80 backdrop-blur-xl shadow-xs hover:border-rose-500/40 transition-all flex flex-col justify-between"
+          whileHover={{ y: -4, scale: 1.008 }}
+          transition={{ type: "spring", stiffness: 350, damping: 24 }}
+          className="glass-bento p-5 flex flex-col justify-between group cursor-default"
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
               Atenção & Gargalos
             </span>
-            <div className="p-2 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+            <div className="p-2 rounded-xl bg-rose-500/10 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20 backdrop-blur-md">
               <AlertTriangle className="h-4 w-4" />
             </div>
           </div>
 
           <div className="my-2.5 grid grid-cols-2 gap-2">
-            <button
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.96 }}
               onClick={() => { setActiveTab("producao"); setOnlyUrgent(true); }}
-              className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/15 border border-rose-500/25 transition-all text-left group cursor-pointer"
+              className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/15 border border-rose-500/25 transition-all text-left group cursor-pointer backdrop-blur-sm"
             >
               <div className="text-[10px] text-rose-600 dark:text-rose-400 font-bold uppercase">Urgentes</div>
               <div className="text-xl font-bold font-mono-tech text-rose-600 dark:text-rose-300">
                 {urgentOrders.length}
               </div>
-            </button>
-            <button
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.96 }}
               onClick={() => { setActiveTab("sla"); }}
-              className="p-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/25 transition-all text-left group cursor-pointer"
+              className="p-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/25 transition-all text-left group cursor-pointer backdrop-blur-sm"
             >
               <div className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase">Prazo Crítico</div>
               <div className="text-xl font-bold font-mono-tech text-amber-600 dark:text-amber-300">
                 {criticalDeadlines.length}
               </div>
-            </button>
+            </motion.button>
           </div>
 
           <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/60">
@@ -886,16 +931,15 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
         {/* Module 3: Pipeline de Fluxo Setorial */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2, delay: 0.15 }}
-          className="p-5 rounded-2xl bg-card/75 dark:bg-slate-900/60 border border-border/80 backdrop-blur-xl shadow-xs hover:border-violet-500/40 transition-all flex flex-col justify-between"
+          whileHover={{ y: -4, scale: 1.008 }}
+          transition={{ type: "spring", stiffness: 350, damping: 24 }}
+          className="glass-bento p-5 flex flex-col justify-between group cursor-default"
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
               Fluxo Industrial
             </span>
-            <div className="p-2 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20">
+            <div className="p-2 rounded-xl bg-violet-500/10 dark:bg-violet-500/15 text-violet-600 dark:text-violet-400 border border-violet-500/20 backdrop-blur-md">
               <Factory className="h-4 w-4" />
             </div>
           </div>
@@ -917,22 +961,21 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
           <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/60">
             <span>Saídas hoje: <strong className="font-mono-tech text-emerald-600 dark:text-emerald-400">+{completedTodayOrders.length}</strong></span>
-            <button onClick={() => setActiveTab("producao")} className="text-primary hover:underline text-[11px] font-medium">Ver tudo →</button>
+            <button onClick={() => setActiveTab("producao")} className="text-primary hover:underline text-[11px] font-medium cursor-pointer">Ver tudo →</button>
           </div>
         </motion.div>
 
         {/* Module 4: Governança & Suprimentos */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.2, delay: 0.2 }}
-          className="p-5 rounded-2xl bg-card/75 dark:bg-slate-900/60 border border-border/80 backdrop-blur-xl shadow-xs hover:border-emerald-500/40 transition-all flex flex-col justify-between"
+          whileHover={{ y: -4, scale: 1.008 }}
+          transition={{ type: "spring", stiffness: 350, damping: 24 }}
+          className="glass-bento p-5 flex flex-col justify-between group cursor-default"
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
               Governança & Suprimentos
             </span>
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            <div className="p-2 rounded-xl bg-emerald-500/10 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 backdrop-blur-md">
               <ShieldCheck className="h-4 w-4" />
             </div>
           </div>
@@ -960,14 +1003,14 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
           <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/60">
             <span>Compras: <strong className="font-mono-tech text-foreground">{comprasStats.pendentes} pend.</strong></span>
-            <button onClick={() => setActiveTab("governanca")} className="text-primary hover:underline text-[11px] font-medium">Auditar →</button>
+            <button onClick={() => setActiveTab("governanca")} className="text-primary hover:underline text-[11px] font-medium cursor-pointer">Auditar →</button>
           </div>
         </motion.div>
-      </div>
+      </motion.div>
 
       {/* Structured Executive Navigation Tabs - Animated Framer Motion Segmented Control */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
-        <div className="w-full flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3 p-1.5 rounded-2xl bg-card/80 dark:bg-slate-900/60 border border-border/70 backdrop-blur-xl shadow-xs">
+        <motion.div variants={dashboardItemVariants} className="glass-bento p-1.5 w-full flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3">
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
             {[
               { id: "geral", label: "Visão Geral", icon: Activity },
@@ -982,11 +1025,13 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
               const isActive = activeTab === tab.id;
               const TabIcon = tab.icon;
               return (
-                <button
+                <motion.button
                   key={tab.id}
                   type="button"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`relative px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 flex items-center gap-2 select-none shrink-0 ${
+                  className={`relative px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors duration-150 flex items-center gap-2 select-none shrink-0 cursor-pointer ${
                     isActive
                       ? "text-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
@@ -995,8 +1040,8 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                   {isActive && (
                     <motion.div
                       layoutId="dashboard-tab-active-indicator"
-                      className="absolute inset-0 rounded-xl bg-background border border-border shadow-xs dark:shadow-[0_2px_12px_rgba(0,0,0,0.3)]"
-                      transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                      className="absolute inset-0 rounded-xl bg-background/95 dark:bg-[#11212D]/90 border border-border shadow-xs dark:shadow-[0_2px_12px_rgba(0,0,0,0.4)] backdrop-blur-md"
+                      transition={{ type: "spring", stiffness: 450, damping: 32 }}
                     />
                   )}
                   <TabIcon className={`h-3.5 w-3.5 relative z-10 transition-colors ${isActive ? "text-cyan-500" : "text-muted-foreground"}`} />
@@ -1023,7 +1068,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                       {tab.badge}
                     </span>
                   )}
-                </button>
+                </motion.button>
               );
             })}
           </div>
@@ -1033,7 +1078,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
             <span className="font-mono-tech text-[11px] font-semibold text-foreground/80">Fluxo Operacional Ativo</span>
             <span className="text-[10px] text-muted-foreground">({activeNonArchived.length} O.S.)</span>
           </div>
-        </div>
+        </motion.div>
 
         {/* TAB 1: VISÃO GERAL & GARGALOS */}
         <TabsContent value="geral" className="space-y-6 m-0 focus-visible:outline-none">
@@ -1071,7 +1116,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
           )}
 
           {/* Radar de Ordens no Fluxo em Tempo Real (Live Factory Radar) */}
-          <div className="saas-card p-5 w-full">
+          <div className="glass-bento p-5 w-full">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-border/60 gap-3">
               <div className="flex items-center gap-2.5">
                 <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
@@ -1245,7 +1290,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
           {/* Hub de Governança & Exceções (Sleek Compact Summary or Detailed Cards) */}
           {revisionOrders.length === 0 && comprasOrders.length === 0 ? (
-            <div className="p-4 rounded-xl bg-card border border-border/70 backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+            <div className="glass-bento p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
                   <CheckCircle2 className="h-4 w-4" />
@@ -1271,7 +1316,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* REVs Recentes */}
-              <div className="saas-card saas-card-hover p-4 flex flex-col justify-between">
+              <div className="glass-bento p-4 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between pb-3 border-b border-border/60">
                     <div className="flex items-center gap-2">
@@ -1338,7 +1383,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
               </div>
 
               {/* Compras Recentes */}
-              <div className="saas-card saas-card-hover p-4 flex flex-col justify-between">
+              <div className="glass-bento p-4 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between pb-3 border-b border-border/60">
                     <div className="flex items-center gap-2">
@@ -1416,7 +1461,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
           {/* Section: Status Breakdown & Average Stage Times */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Status Breakdown Bar Meter */}
-            <div className="saas-card saas-card-hover p-4">
+            <div className="glass-bento p-4">
               <div className="flex items-center justify-between pb-3 border-b border-border/60">
                 <div className="flex items-center gap-2">
                   <div className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
@@ -1466,7 +1511,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
             </div>
 
             {/* Average Duration per Stage */}
-            <div className="saas-card saas-card-hover p-4">
+            <div className="glass-bento p-4">
               <div className="flex items-center justify-between pb-3 border-b border-border/60">
                 <div className="flex items-center gap-2">
                   <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500">
@@ -1537,7 +1582,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
           {/* Section: Deadlines & Multiple Proofs */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Controle de Prazos */}
-            <div className="saas-card saas-card-hover p-4">
+            <div className="glass-bento p-4">
               <div className="flex items-center justify-between pb-3 border-b border-border/60">
                 <div className="flex items-center gap-2">
                   <div className="p-1.5 rounded-lg bg-rose-500/10 text-rose-500">
@@ -1615,7 +1660,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
             </div>
 
             {/* Controle de Retrabalho (Múltiplas Provas) */}
-            <div className="saas-card saas-card-hover p-4">
+            <div className="glass-bento p-4">
               <div className="flex items-center justify-between pb-3 border-b border-border/60">
                 <div className="flex items-center gap-2">
                   <div className="p-1.5 rounded-lg bg-violet-500/10 text-violet-500">
@@ -1667,7 +1712,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
           {/* Section: Suprimentos Especiais Executive Widget (Minimalist & Link to Full Tab) */}
           {supplyStats.total > 0 && (
-            <div className="saas-card saas-card-hover p-4">
+            <div className="glass-bento p-4">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-border/60 gap-3">
                 <div className="flex items-center gap-2">
                   <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500">
@@ -1812,7 +1857,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
             className="space-y-6"
           >
           {/* Header & Filter Controls */}
-          <div className="p-5 rounded-2xl bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="glass-bento p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-amber-500 dark:text-amber-400" />
@@ -1917,7 +1962,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
           {/* TABLE 1: REVISÕES & RETRABALHOS (REVs) */}
           {(governancaSubFilter === "all" || governancaSubFilter === "revisoes") && (
-            <Card className="border border-border bg-card dark:bg-slate-900/60 backdrop-blur-md rounded-2xl overflow-hidden shadow-xl">
+            <Card className="glass-bento overflow-hidden">
               <CardHeader className="pb-3 border-b border-border bg-muted/20">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -2037,7 +2082,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
           {/* TABLE 2: CENTRAL DE COMPRAS INTEGRADA */}
           {(governancaSubFilter === "all" || governancaSubFilter === "compras") && (
-            <Card className="border border-border bg-card dark:bg-slate-900/60 backdrop-blur-md rounded-2xl overflow-hidden shadow-xl">
+            <Card className="glass-bento overflow-hidden">
               <CardHeader className="pb-3 border-b border-border bg-muted/20">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -2182,7 +2227,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
           {/* TABLE 3: AUDITORIA DA TRAVA DE SAÍDA (FACA & CLICHÊ) */}
           {(governancaSubFilter === "all" || governancaSubFilter === "saida_travas") && (
-            <Card className="border border-border bg-card dark:bg-slate-900/60 backdrop-blur-md rounded-2xl overflow-hidden shadow-xl">
+            <Card className="glass-bento overflow-hidden">
               <CardHeader className="pb-3 border-b border-border bg-muted/20">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -2298,7 +2343,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
             className="space-y-4"
           >
           {/* Controls Bar: Search + Sector Pills + Urgency Toggle */}
-          <div className="p-4 rounded-2xl bg-card border border-border backdrop-blur-md flex flex-col md:flex-row items-center justify-between gap-3 shadow-xs">
+          <div className="glass-bento p-4 flex flex-col md:flex-row items-center justify-between gap-3">
             <div className="relative w-full md:w-80">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -2370,7 +2415,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
           </div>
 
           {/* Table Card */}
-          <Card className="border border-border bg-card backdrop-blur-md rounded-2xl overflow-hidden shadow-xl">
+          <Card className="glass-bento overflow-hidden">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader className="bg-muted/40">
@@ -2498,7 +2543,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
             className="space-y-6"
           >
           {/* Últimas OS Liberadas — Tempo Detalhado */}
-          <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl">
+          <Card className="glass-bento">
             <CardHeader className="pb-3 border-b border-border">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -2581,7 +2626,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
           </Card>
 
           {/* OS em Andamento — Tempo Acumulado */}
-          <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl">
+          <Card className="glass-bento">
             <CardHeader className="pb-3 border-b border-border">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -2697,7 +2742,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
             transition={{ duration: 0.22 }}
             className="space-y-4"
           >
-          <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl">
+          <Card className="glass-bento">
             <CardHeader className="pb-3 border-b border-border">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -2814,7 +2859,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
           >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Exportar PDFs */}
-            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl">
+            <Card className="glass-bento">
               <CardHeader className="pb-3 border-b border-border">
                 <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
                   <FileDown className="h-4 w-4 text-cyan-500" /> Exportação de Relatórios PDF
@@ -2879,7 +2924,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
             </Card>
 
             {/* Backup do Banco de Dados */}
-            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl">
+            <Card className="glass-bento">
               <CardHeader className="pb-3 border-b border-border">
                 <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
                   <DatabaseBackup className="h-4 w-4 text-emerald-500" /> Backup & Restauração do Sistema
@@ -2946,7 +2991,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
           {/* KPI Cards Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Total */}
-            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl p-4">
+            <Card className="glass-bento p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-xs text-muted-foreground font-medium">Total de Suprimentos</div>
@@ -2967,7 +3012,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
             </Card>
 
             {/* FACA */}
-            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl p-4">
+            <Card className="glass-bento p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-xs text-muted-foreground font-medium">Faca Especial</div>
@@ -2988,7 +3033,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
             </Card>
 
             {/* CLICHE */}
-            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl p-4">
+            <Card className="glass-bento p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-xs text-muted-foreground font-medium">Clichê</div>
@@ -3009,7 +3054,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
             </Card>
 
             {/* PANTONE */}
-            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl p-4">
+            <Card className="glass-bento p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="text-xs text-muted-foreground font-medium">Pantone</div>
@@ -3031,7 +3076,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
           </div>
 
           {/* Filters & Actions Bar */}
-          <div className="p-4 rounded-2xl bg-card border border-border backdrop-blur-md flex flex-col md:flex-row items-center justify-between gap-3 shadow-xs">
+          <div className="glass-bento p-4 flex flex-col md:flex-row items-center justify-between gap-3">
             <div className="relative w-full md:w-80">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -3126,7 +3171,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
           </div>
 
           {/* Records Table */}
-          <Card className="border border-border bg-card backdrop-blur-md rounded-2xl overflow-hidden shadow-xl">
+          <Card className="glass-bento overflow-hidden">
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader className="bg-muted/40">
@@ -3258,6 +3303,6 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
         onOpenChange={(open) => !open && setSelectedOrderForDetail(null)}
         onUpdate={handleUpdateOrderForDetail}
       />
-    </div>
+    </motion.div>
   );
 }
