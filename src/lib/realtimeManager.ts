@@ -12,6 +12,7 @@
  */
 import { supabase } from "@/integrations/supabase/client";
 import type { RealtimePostgresChangesPayload, RealtimeChannel } from "@supabase/supabase-js";
+import { trackWebSocketTelemetry } from "@/lib/autonomousEngine/telemetry";
 
 export type RealtimeConnectionState = "CONNECTING" | "ONLINE" | "RECONNECTING" | "OFFLINE";
 export type OrderPayload = RealtimePostgresChangesPayload<Record<string, any>>;
@@ -46,6 +47,10 @@ function setConnectionState(newState: RealtimeConnectionState) {
   if (currentConnectionState === newState) return;
   const previousState = currentConnectionState;
   currentConnectionState = newState;
+
+  // Telemetria autônoma de WebSocket
+  trackWebSocketTelemetry(newState, { previous_state: previousState });
+
   connectionStateSubs.forEach((cb) => {
     try {
       cb(newState);

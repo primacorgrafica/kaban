@@ -25,6 +25,7 @@ const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 
 import { GlobalChatNotifier } from "@/components/chat/GlobalChatNotifier";
 import { ThemeProvider } from "@/components/theme-provider";
+import { AutonomousEngineMonitor } from "@/components/AutonomousEngineMonitor";
 
 // Configuração de alto desempenho para o React Query: evita refetches desnecessários ao trocar de aba
 const queryClient = new QueryClient({
@@ -82,6 +83,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            <AutonomousEngineMonitor />
             <GlobalChatNotifier>
               <Suspense fallback={<PageLoadingFallback />}>
                 <Routes>
