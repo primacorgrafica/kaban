@@ -292,6 +292,13 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
     });
   }, [ordersWithDeadline]);
 
+  // Urgent orders
+  const urgentOrders = useMemo(() => {
+    return activeNonArchived.filter(
+      (o) => o.urgente || o.urgente_impressao || o.urgente_acabamento || o.urgente_expedicao
+    );
+  }, [activeNonArchived]);
+
   // Production floor filtered list
   const filteredProductionOrders = useMemo(() => {
     let list = activeNonArchived.filter((o) => {
