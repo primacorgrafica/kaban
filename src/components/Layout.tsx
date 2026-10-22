@@ -351,12 +351,12 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
         } ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
         style={{ background: "var(--gradient-sidebar)" }}
       >
-        <div className={`py-3.5 border-b border-sidebar-border/60 relative flex items-center ${sidebarCollapsed ? "justify-center px-2" : "justify-between px-4"}`}>
+        <div className={`py-5 border-b border-sidebar-border/60 relative flex items-center ${sidebarCollapsed ? "justify-center px-2" : "justify-between px-4"}`}>
           <button className="lg:hidden absolute top-3 right-3 text-sidebar-foreground hover:text-foreground" onClick={() => setSidebarOpen(false)}>
             <X className="h-5 w-5" />
           </button>
           
-          <div className={`flex items-center ${sidebarCollapsed ? "justify-center" : "gap-2.5"} overflow-hidden`}>
+          <div className={`flex items-center ${sidebarCollapsed ? "justify-center" : "gap-2"} overflow-hidden`}>
             {sidebarCollapsed ? (
               <button
                 type="button"
@@ -367,11 +367,11 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
                 P
               </button>
             ) : (
-              <div className="flex items-center py-0.5">
+              <div className="flex items-center py-1">
                 <img
                   src={logoImg}
                   alt="Primacor Gráfica"
-                  className="w-44 sm:w-48 h-auto max-h-13 sm:max-h-14 object-contain filter drop-shadow-sm transition-transform duration-200"
+                  className="w-52 sm:w-56 h-auto max-h-24 sm:max-h-28 object-contain filter drop-shadow-md transition-transform duration-200"
                 />
               </div>
             )}
