@@ -25,7 +25,6 @@ import { CommandPalette } from "./CommandPalette";
 import { AiProductionBottlenecksModal } from "./AiProductionBottlenecksModal";
 import { ChatDialog } from "./chat/ChatDialog";
 import { useChatNotification } from "./chat/GlobalChatNotifier";
-import { RealtimeStatusIndicator } from "./RealtimeStatusIndicator";
 import { SharePointStatusIndicator } from "./sharepoint/SharePointStatusIndicator";
 import { OutlookStatusIndicator } from "./email/OutlookStatusIndicator";
 import { Activity, Command, MessageSquare, ExternalLink, Compass } from "lucide-react";
@@ -606,7 +605,6 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
             );
           })()}
           <div className="flex items-center gap-2 ml-auto order-2">
-            <RealtimeStatusIndicator />
             {(isAdmin || role === "coordenador") && <SharePointStatusIndicator />}
             {(isAdmin || role === "coordenador") && <OutlookStatusIndicator />}
             <Button
