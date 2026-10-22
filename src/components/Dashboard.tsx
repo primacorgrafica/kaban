@@ -10,6 +10,7 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PreImpressaoTab } from "./PreImpressaoTab";
+import { OrderDetailDialog } from "./OrderDetailDialog";
 import { getOrderRevision, cleanObservationRevision } from "@/lib/orderRevision";
 import { OffsetIcon } from "./icons/OffsetIcon";
 import { DEPARTMENTS, EXPEDICAO_DEPARTMENT, COMPRAS_DEPARTMENT, Department, DEPARTMENT_MAP } from "@/types/production";
@@ -72,6 +73,22 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
   const [provasTodayCount, setProvasTodayCount] = useState(0);
   const [novoArquivoTodayCount, setNovoArquivoTodayCount] = useState(0);
   const [avisosLidos, setAvisosLidos] = useState<Record<string, { user_id: string; lido_em: string }[]>>({});
+
+  // Home Live Radar states
+  const [homeSearchTerm, setHomeSearchTerm] = useState("");
+  const [homePage, setHomePage] = useState(1);
+  const HOME_ITEMS_PER_PAGE = 7;
+  const [selectedOrderForDetail, setSelectedOrderForDetail] = useState<Order | null>(null);
+
+  const handleUpdateOrderForDetail = async (id: string, data: Partial<Order>) => {
+    const { error } = await supabase.from("orders").update(data).eq("id", id);
+    if (error) {
+      toast.error("Erro ao atualizar ordem: " + error.message);
+    } else {
+      toast.success("Ordem atualizada!");
+      setSelectedOrderForDetail((prev) => (prev && prev.id === id ? { ...prev, ...data } : prev));
+    }
+  };
 
   useEffect(() => {
     const fetchAvisos = async () => {
@@ -251,11 +268,18 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
   }, [activeNonArchived]);
 
   const sectorCounts = useMemo(() => {
+    const chaoDeFabrica = activeNonArchived.filter(
+      (o) => o.setor && !["compras", "manutencao", "qualidade", "expedicao"].includes(o.setor) && o.setor_status !== "saida"
+    ).length;
+    const qualidade = activeNonArchived.filter((o) => o.setor === "qualidade" && o.setor_status !== "saida").length;
+    const expedicao = activeNonArchived.filter((o) => o.setor === "expedicao" && o.setor_status !== "saida").length;
+    const compras = activeNonArchived.filter((o) => o.setor === "compras" && o.setor_status !== "saida").length;
     return {
       pre_impressao: preImpressaoOrders.length,
-      qualidade: activeNonArchived.filter((o) => o.setor === "qualidade" && o.setor_status !== "saida").length,
-      expedicao: activeNonArchived.filter((o) => o.setor === "expedicao" && o.setor_status !== "saida").length,
-      compras: activeNonArchived.filter((o) => o.setor === "compras" && o.setor_status !== "saida").length,
+      chao_de_fabrica: chaoDeFabrica,
+      qualidade,
+      expedicao,
+      compras,
     };
   }, [activeNonArchived, preImpressaoOrders]);
 
@@ -298,6 +322,36 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
       (o) => o.urgente || o.urgente_impressao || o.urgente_acabamento || o.urgente_expedicao
     );
   }, [activeNonArchived]);
+
+  // Filtered orders for Home Live Radar
+  const filteredHomeOrders = useMemo(() => {
+    let list = activeNonArchived;
+    if (homeSearchTerm.trim()) {
+      const q = homeSearchTerm.toLowerCase();
+      list = list.filter((o) =>
+        o.titulo?.toLowerCase().includes(q) ||
+        o.cliente?.toLowerCase().includes(q) ||
+        o.descricao?.toLowerCase().includes(q)
+      );
+    }
+    return [...list].sort((a, b) => {
+      const aUrg = !!(a.urgente || a.urgente_impressao || a.urgente_acabamento || a.urgente_expedicao);
+      const bUrg = !!(b.urgente || b.urgente_impressao || b.urgente_acabamento || b.urgente_expedicao);
+      if (aUrg && !bUrg) return -1;
+      if (!aUrg && bUrg) return 1;
+      if (a.prazo && b.prazo) return new Date(a.prazo).getTime() - new Date(b.prazo).getTime();
+      if (a.prazo) return -1;
+      if (b.prazo) return 1;
+      return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+    });
+  }, [activeNonArchived, homeSearchTerm]);
+
+  const totalHomePages = useMemo(() => Math.ceil(filteredHomeOrders.length / HOME_ITEMS_PER_PAGE) || 1, [filteredHomeOrders]);
+
+  const paginatedHomeOrders = useMemo(() => {
+    const start = (homePage - 1) * HOME_ITEMS_PER_PAGE;
+    return filteredHomeOrders.slice(start, start + HOME_ITEMS_PER_PAGE);
+  }, [filteredHomeOrders, homePage]);
 
   // Production floor filtered list
   const filteredProductionOrders = useMemo(() => {
@@ -684,7 +738,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-in fade-in duration-300">
+    <div className="space-y-6 w-full max-w-none px-1 sm:px-2 pb-12 animate-in fade-in duration-300">
       {/* Executive Telemetry Header - Modern SaaS Minimalist */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-5 rounded-2xl bg-card/70 dark:bg-slate-900/40 border border-border/70 backdrop-blur-xl shadow-xs">
         <div className="flex items-center gap-3.5">
@@ -853,7 +907,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Chão de Fábrica</span>
-              <span className="font-mono-tech font-bold text-foreground">{sectorCounts.offset + sectorCounts.digital + sectorCounts.acabamento}</span>
+              <span className="font-mono-tech font-bold text-foreground">{sectorCounts.chao_de_fabrica}</span>
             </div>
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">Qualidade & Expedição</span>
@@ -913,8 +967,8 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
       {/* Structured Executive Navigation Tabs - Animated Framer Motion Segmented Control */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
-        <div className="overflow-x-auto pb-1 scrollbar-none">
-          <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-card/80 dark:bg-slate-900/60 border border-border/70 backdrop-blur-xl shadow-xs w-max">
+        <div className="w-full flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-3 p-1.5 rounded-2xl bg-card/80 dark:bg-slate-900/60 border border-border/70 backdrop-blur-xl shadow-xs">
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-0.5">
             {[
               { id: "geral", label: "Visão Geral", icon: Activity },
               { id: "producao", label: "Chão de Fábrica", icon: Factory, count: filteredProductionOrders.length },
@@ -973,6 +1027,12 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
               );
             })}
           </div>
+
+          <div className="hidden xl:flex items-center gap-2 px-3 text-xs text-muted-foreground shrink-0 border-l border-border/50">
+            <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="font-mono-tech text-[11px] font-semibold text-foreground/80">Fluxo Operacional Ativo</span>
+            <span className="text-[10px] text-muted-foreground">({activeNonArchived.length} O.S.)</span>
+          </div>
         </div>
 
         {/* TAB 1: VISÃO GERAL & GARGALOS */}
@@ -1010,147 +1070,348 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
             </div>
           )}
 
-          {/* Executive Overview: Governança das Mudanças Recentes */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* REVs Recentes */}
-            <div className="saas-card saas-card-hover p-4 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between pb-3 border-b border-border/60">
+          {/* Radar de Ordens no Fluxo em Tempo Real (Live Factory Radar) */}
+          <div className="saas-card p-5 w-full">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-border/60 gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+                  <Activity className="h-4 w-4" />
+                </div>
+                <div>
                   <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500">
-                      <RotateCcw className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <h3 className="text-xs font-bold text-foreground">Ordens em Revisão / Retrabalho</h3>
-                      <p className="text-[10px] text-muted-foreground">{revisionOrders.length} ordens com histórico</p>
-                    </div>
+                    <h3 className="text-sm font-bold text-foreground tracking-tight">
+                      Radar de Ordens no Fluxo em Tempo Real
+                    </h3>
+                    <span className="text-[10px] font-mono-tech px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 font-bold border border-cyan-500/20">
+                      {filteredHomeOrders.length} ativas
+                    </span>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => { setActiveTab("governanca"); setGovernancaSubFilter("revisoes"); }}
-                    className="text-xs h-7 text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:bg-amber-500/10 px-2.5 rounded-lg saas-interactive"
-                  >
-                    Ver Todas
-                  </Button>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Acompanhamento instantâneo de ordens em Pré-Impressão e Chão de Fábrica
+                  </p>
+                </div>
+              </div>
+
+              {/* Quick Search & Grid Link */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <div className="relative">
+                  <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar O.S., cliente..."
+                    value={homeSearchTerm}
+                    onChange={(e) => {
+                      setHomeSearchTerm(e.target.value);
+                      setHomePage(1);
+                    }}
+                    className="pl-8 pr-3 bg-background border-input h-8 text-xs rounded-lg w-40 sm:w-56"
+                  />
                 </div>
 
-                <div className="pt-3">
-                  {revisionOrders.length === 0 ? (
-                    <div className="py-8 text-center text-xs text-muted-foreground">
-                      Nenhuma ordem com retrabalho ou revisão no momento.
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {revisionOrders.slice(0, 5).map((r) => (
-                        <div
-                          key={`home-rev-${r.order.id}`}
-                          className="p-2.5 rounded-xl bg-muted/30 hover:bg-muted/60 border border-border/60 flex items-center justify-between gap-3 transition-colors"
-                        >
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono-tech font-bold text-xs text-foreground">#{r.order.titulo}</span>
-                              <span className="text-[11px] font-medium text-foreground truncate">• {(r.order.cliente || "").toUpperCase()}</span>
-                              <span
-                                className={`text-[10px] font-mono-tech font-bold px-1.5 py-0.5 rounded ${
-                                  r.revNumber >= 3
-                                    ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30"
-                                    : "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
-                                }`}
-                              >
-                                REV {r.revNumber}
-                              </span>
-                            </div>
-                            <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                              {r.cleanObs || "Motivo da revisão não especificado"}
-                            </div>
-                          </div>
-                          <div className="text-right shrink-0">
-                            <span className="text-[10px] font-medium text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md">
-                              {r.order.operador || "—"}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setActiveTab("producao")}
+                  className="text-xs h-8 rounded-lg border-border/80 hover:bg-muted text-foreground saas-interactive"
+                >
+                  Chão de Fábrica ({filteredProductionOrders.length}) →
+                </Button>
               </div>
             </div>
 
-            {/* Compras Recentes */}
-            <div className="saas-card saas-card-hover p-4 flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between pb-3 border-b border-border/60">
-                  <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-pink-500/10 text-pink-500">
-                      <ShoppingBag className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <h3 className="text-xs font-bold text-foreground">Central de Compras Integrada</h3>
-                      <p className="text-[10px] text-muted-foreground">{comprasStats.total} ordens com insumos</p>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => { setActiveTab("governanca"); setGovernancaSubFilter("compras"); }}
-                    className="text-xs h-7 text-pink-600 dark:text-pink-400 hover:text-pink-700 hover:bg-pink-500/10 px-2.5 rounded-lg saas-interactive"
-                  >
-                    Ver Todas
-                  </Button>
-                </div>
-
-                <div className="pt-3">
-                  {comprasOrders.length === 0 ? (
-                    <div className="py-8 text-center text-xs text-muted-foreground">
-                      Nenhuma ordem enviada para Compras no momento.
-                    </div>
+            {/* Live Orders Table */}
+            <div className="mt-3 overflow-x-auto scrollbar-none">
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-border/60 hover:bg-transparent">
+                    <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground py-2.5">O.S. / Título</TableHead>
+                    <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground py-2.5">Cliente</TableHead>
+                    <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground py-2.5">Etapa / Setor</TableHead>
+                    <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground py-2.5">Prazo / SLA</TableHead>
+                    <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground py-2.5">Prioridade</TableHead>
+                    <TableHead className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground py-2.5 text-right">Ação</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedHomeOrders.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-xs text-muted-foreground">
+                        Nenhuma ordem encontrada para os filtros aplicados.
+                      </TableCell>
+                    </TableRow>
                   ) : (
-                    <div className="space-y-2">
-                      {comprasOrders.slice(0, 5).map((c) => (
-                        <div
-                          key={`home-compras-${c.order.id}`}
-                          className="p-2.5 rounded-xl bg-muted/30 hover:bg-muted/60 border border-border/60 flex items-center justify-between gap-3 transition-colors"
+                    paginatedHomeOrders.map((o) => {
+                      const isUrg = !!(o.urgente || o.urgente_impressao || o.urgente_acabamento || o.urgente_expedicao);
+                      const deadline = o.prazo ? new Date(o.prazo) : null;
+                      const remaining = deadline ? deadline.getTime() - Date.now() : null;
+                      const isOverdue = remaining !== null && remaining < 0;
+                      const isCritical = remaining !== null && remaining > 0 && remaining < 7200000;
+                      const statusConfig = o.status ? STATUS_CONFIG[o.status as OrderStatus] : null;
+
+                      return (
+                        <TableRow
+                          key={`home-order-${o.id}`}
+                          onClick={() => setSelectedOrderForDetail(o)}
+                          className="border-border/50 hover:bg-muted/40 transition-colors cursor-pointer group"
                         >
-                          <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-mono-tech font-bold text-xs text-foreground">#{c.order.titulo}</span>
-                              <span className="text-[11px] font-medium text-foreground truncate">• {(c.order.cliente || "").toUpperCase()}</span>
-                              {c.pantoneActive && (
-                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/15 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/25">
-                                  PANTONE
-                                </span>
-                              )}
-                              {c.outrosActive && (
-                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/15 text-purple-600 dark:text-purple-400 font-medium border border-purple-500/25">
-                                  INSUMO
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
-                              {c.pantoneText ? `Pantone: ${c.pantoneText}` : c.outrosText ? `Insumo: ${c.outrosText}` : (c.order.descricao || "Item em processo de compra")}
-                            </div>
-                          </div>
-                          <div className="text-right shrink-0">
-                            {c.isComprado ? (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-md">
-                                <Check className="h-3 w-3 stroke-[3]" /> Comprado
+                          <TableCell className="py-2.5 font-mono-tech font-bold text-xs text-foreground group-hover:text-cyan-500 transition-colors">
+                            #{o.titulo}
+                          </TableCell>
+                          <TableCell className="py-2.5">
+                            <span className="text-xs font-semibold text-foreground truncate max-w-[200px] block uppercase">
+                              {o.cliente || "—"}
+                            </span>
+                          </TableCell>
+                          <TableCell className="py-2.5">
+                            <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold border ${
+                              o.setor
+                                ? "bg-violet-500/10 text-violet-600 dark:text-violet-300 border-violet-500/25"
+                                : "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/25"
+                            }`}>
+                              <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                              {o.setor ? (DEPARTMENT_MAP[o.setor]?.label || o.setor) : (statusConfig?.label || "Pré-Impressão")}
+                            </span>
+                          </TableCell>
+                          <TableCell className="py-2.5">
+                            {deadline ? (
+                              <span className={`text-[11px] font-mono-tech font-semibold px-2 py-0.5 rounded-md border inline-flex items-center gap-1 ${
+                                isOverdue
+                                  ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30"
+                                  : isCritical
+                                  ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30"
+                                  : "bg-muted text-muted-foreground border-border/60"
+                              }`}>
+                                <Clock className="h-3 w-3" />
+                                {format(deadline, "dd/MM HH:mm")}
+                                {isOverdue && " (Atrasado)"}
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-md">
-                                <Clock className="h-3 w-3" /> Pendente
-                              </span>
+                              <span className="text-xs text-muted-foreground/60">—</span>
                             )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                          </TableCell>
+                          <TableCell className="py-2.5">
+                            {isUrg ? (
+                              <span className="saas-pill bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 text-[10px] font-bold animate-pulse">
+                                URGENTE
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-muted-foreground font-medium">Normal</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-2.5 text-right">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 w-7 p-0 text-muted-foreground group-hover:text-foreground group-hover:bg-cyan-500/15 rounded-lg"
+                              title="Inspecionar O.S."
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Pagination Controls */}
+            {totalHomePages > 1 && (
+              <div className="flex items-center justify-between pt-3 border-t border-border/60 text-xs text-muted-foreground">
+                <span>Página {homePage} de {totalHomePages}</span>
+                <div className="flex items-center gap-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={homePage <= 1}
+                    onClick={() => setHomePage((p) => Math.max(1, p - 1))}
+                    className="h-7 w-7 p-0 rounded-lg border-border/70"
+                  >
+                    <ChevronLeft className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={homePage >= totalHomePages}
+                    onClick={() => setHomePage((p) => Math.min(totalHomePages, p + 1))}
+                    className="h-7 w-7 p-0 rounded-lg border-border/70"
+                  >
+                    <ChevronRight className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Hub de Governança & Exceções (Sleek Compact Summary or Detailed Cards) */}
+          {revisionOrders.length === 0 && comprasOrders.length === 0 ? (
+            <div className="p-4 rounded-xl bg-card border border-border/70 backdrop-blur-md flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
+                  <CheckCircle2 className="h-4 w-4" />
+                </div>
+                <div>
+                  <h4 className="text-xs font-bold text-foreground">
+                    Governança Operacional: 100% em Conformidade
+                  </h4>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Zero retrabalhos ativos e todas as aquisições de insumos em dia no fluxo industrial.
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setActiveTab("governanca")}
+                className="text-xs h-7 rounded-lg text-primary hover:bg-primary/10 border-border/80 shrink-0 saas-interactive"
+              >
+                Auditar Mudanças →
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* REVs Recentes */}
+              <div className="saas-card saas-card-hover p-4 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between pb-3 border-b border-border/60">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500">
+                        <RotateCcw className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-bold text-foreground">Ordens em Revisão / Retrabalho</h3>
+                        <p className="text-[10px] text-muted-foreground">{revisionOrders.length} ordens com histórico</p>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => { setActiveTab("governanca"); setGovernancaSubFilter("revisoes"); }}
+                      className="text-xs h-7 text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:bg-amber-500/10 px-2.5 rounded-lg saas-interactive"
+                    >
+                      Ver Todas
+                    </Button>
+                  </div>
+
+                  <div className="pt-3">
+                    {revisionOrders.length === 0 ? (
+                      <div className="py-4 text-center text-xs text-muted-foreground">
+                        Nenhuma ordem com retrabalho ou revisão no momento.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {revisionOrders.slice(0, 5).map((r) => (
+                          <div
+                            key={`home-rev-${r.order.id}`}
+                            onClick={() => setSelectedOrderForDetail(r.order)}
+                            className="p-2.5 rounded-xl bg-muted/30 hover:bg-muted/60 border border-border/60 flex items-center justify-between gap-3 transition-colors cursor-pointer"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono-tech font-bold text-xs text-foreground">#{r.order.titulo}</span>
+                                <span className="text-[11px] font-medium text-foreground truncate">• {(r.order.cliente || "").toUpperCase()}</span>
+                                <span
+                                  className={`text-[10px] font-mono-tech font-bold px-1.5 py-0.5 rounded ${
+                                    r.revNumber >= 3
+                                      ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30"
+                                      : "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                                  }`}
+                                >
+                                  REV {r.revNumber}
+                                </span>
+                              </div>
+                              <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                                {r.cleanObs || "Motivo da revisão não especificado"}
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <span className="text-[10px] font-medium text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md">
+                                {r.order.operador || "—"}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Compras Recentes */}
+              <div className="saas-card saas-card-hover p-4 flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between pb-3 border-b border-border/60">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-pink-500/10 text-pink-500">
+                        <ShoppingBag className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <h3 className="text-xs font-bold text-foreground">Central de Compras Integrada</h3>
+                        <p className="text-[10px] text-muted-foreground">{comprasStats.total} ordens com insumos</p>
+                      </div>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => { setActiveTab("governanca"); setGovernancaSubFilter("compras"); }}
+                      className="text-xs h-7 text-pink-600 dark:text-pink-400 hover:text-pink-700 hover:bg-pink-500/10 px-2.5 rounded-lg saas-interactive"
+                    >
+                      Ver Todas
+                    </Button>
+                  </div>
+
+                  <div className="pt-3">
+                    {comprasOrders.length === 0 ? (
+                      <div className="py-4 text-center text-xs text-muted-foreground">
+                        Nenhuma ordem enviada para Compras no momento.
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {comprasOrders.slice(0, 5).map((c) => (
+                          <div
+                            key={`home-compras-${c.order.id}`}
+                            onClick={() => setSelectedOrderForDetail(c.order)}
+                            className="p-2.5 rounded-xl bg-muted/30 hover:bg-muted/60 border border-border/60 flex items-center justify-between gap-3 transition-colors cursor-pointer"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono-tech font-bold text-xs text-foreground">#{c.order.titulo}</span>
+                                <span className="text-[11px] font-medium text-foreground truncate">• {(c.order.cliente || "").toUpperCase()}</span>
+                                {c.pantoneActive && (
+                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/15 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/25">
+                                    PANTONE
+                                  </span>
+                                )}
+                                {c.outrosActive && (
+                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/15 text-purple-600 dark:text-purple-400 font-medium border border-purple-500/25">
+                                    INSUMO
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                                {c.pantoneText ? `Pantone: ${c.pantoneText}` : c.outrosText ? `Insumo: ${c.outrosText}` : (c.order.descricao || "Item em processo de compra")}
+                              </div>
+                            </div>
+                            <div className="text-right shrink-0">
+                              {c.isComprado ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-md">
+                                  <Check className="h-3 w-3 stroke-[3]" /> Comprado
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-md">
+                                  <Clock className="h-3 w-3" /> Pendente
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Section: Status Breakdown & Average Stage Times */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -2989,6 +3250,14 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
           </motion.div>
         </TabsContent>
       </Tabs>
+
+      {/* Modal de Detalhes da O.S. disparado por clique nos cards ou no radar */}
+      <OrderDetailDialog
+        order={selectedOrderForDetail}
+        open={!!selectedOrderForDetail}
+        onOpenChange={(open) => !open && setSelectedOrderForDetail(null)}
+        onUpdate={handleUpdateOrderForDetail}
+      />
     </div>
   );
 }
