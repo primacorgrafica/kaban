@@ -276,17 +276,13 @@ function ProductionCardImpl({
   return (
     <>
       <div
-        className={`group rounded-xl border shadow-sm hover:shadow-md overflow-hidden relative ${isNearDeadline && !sectorUrgent ? "animate-pulse" : ""}`}
-        style={{
-          backgroundColor: sectorUrgent
-            ? "hsl(0 84% 60% / 0.12)"
-            : "hsl(var(--card))",
-          borderColor: sectorUrgent
-            ? "hsl(0 84% 60% / 0.4)"
+        className={`group rounded-2xl border shadow-xs hover:shadow-lg backdrop-blur-xl transition-all duration-200 overflow-hidden relative ${
+          sectorUrgent
+            ? "bg-rose-500/10 border-rose-500/40 text-card-foreground"
             : isNearDeadline
-              ? "hsl(38 92% 50% / 0.5)"
-              : "hsl(var(--border))",
-        }}
+            ? "bg-card/85 dark:bg-[#11212D]/85 border-amber-500/50 text-card-foreground"
+            : "bg-card/85 dark:bg-[#11212D]/85 border-border/80 dark:border-[#4A5C6A]/35 text-card-foreground hover:border-cyan-500/50 hover:shadow-lg dark:hover:shadow-[0_12px_36px_rgba(6,20,27,0.65)]"
+        } ${isNearDeadline && !sectorUrgent ? "animate-pulse" : ""}`}
       >
         {/* Faturamento: Empresa banner (Primacor / Imprimaset) with inline alerts */}
         {department.id === "faturamento" && (() => {

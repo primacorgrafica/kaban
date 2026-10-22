@@ -411,7 +411,7 @@ export function OrderDetailDialog({
                 {/* ─── COLUNA 1: ESPECIFICAÇÕES, PROVA & PROCESSOS ─── */}
                 <div className="space-y-3">
                   {/* Bloco Comercial & Descrição */}
-                  <div className="p-3.5 rounded-xl border border-border bg-slate-50/70 dark:bg-slate-900/50 space-y-2">
+                  <div className="p-3.5 rounded-xl border border-border/80 bg-muted/40 dark:bg-[#253745]/25 backdrop-blur-md space-y-2">
                     <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                       <FileText className="h-3.5 w-3.5 text-primary" />
                       <span>Dados do Serviço</span>
@@ -467,7 +467,7 @@ export function OrderDetailDialog({
                   </div>
 
                   {/* Bloco de Provas Técnicas */}
-                  <div className="p-3.5 rounded-xl border border-border bg-slate-50/70 dark:bg-slate-900/50 space-y-2">
+                  <div className="p-3.5 rounded-xl border border-border/80 bg-muted/40 dark:bg-[#253745]/25 backdrop-blur-md space-y-2">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                         <span className="h-2 w-2 rounded-full bg-cyan-500" />
@@ -499,7 +499,7 @@ export function OrderDetailDialog({
                   </div>
 
                   {/* Bloco de Processos & Acabamentos */}
-                  <div className="p-3.5 rounded-xl border border-border bg-slate-50/70 dark:bg-slate-900/50 space-y-2">
+                  <div className="p-3.5 rounded-xl border border-border/80 bg-muted/40 dark:bg-[#253745]/25 backdrop-blur-md space-y-2">
                     <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                       <span className="h-2 w-2 rounded-full bg-amber-500" />
                       <span>Suprimentos & Processos Especiais</span>
@@ -603,7 +603,7 @@ export function OrderDetailDialog({
                 {/* ─── COLUNA 2: LOGÍSTICA & AUDITORIA ─── */}
                 <div className="space-y-3">
                   {/* Bloco de Logística & Entrega */}
-                  <div className="p-3.5 rounded-xl border border-border bg-slate-50/70 dark:bg-slate-900/50 space-y-2">
+                  <div className="p-3.5 rounded-xl border border-border/80 bg-muted/40 dark:bg-[#253745]/25 backdrop-blur-md space-y-2">
                     <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                       <Truck className="h-3.5 w-3.5 text-primary" />
                       <span>Expedição & Logística</span>
@@ -708,7 +708,7 @@ export function OrderDetailDialog({
 
                 {/* ─── SEÇÃO DE ANEXOS DO SHAREPOINT (VISUALIZAÇÃO COMPLETA) ─── */}
                 <div className="col-span-1 md:col-span-2 pt-2">
-                  <div className="p-4 rounded-xl border border-border bg-slate-50/70 dark:bg-slate-900/50">
+                  <div className="p-4 rounded-xl border border-border/80 bg-muted/40 dark:bg-[#253745]/25 backdrop-blur-md">
                     <OrderAttachmentsSection
                       orderId={order.id}
                       orderTitulo={order.titulo}
@@ -720,7 +720,7 @@ export function OrderDetailDialog({
 
                 {/* ─── SEÇÃO DE HISTÓRICO DE E-MAILS DO OUTLOOK ─── */}
                 <div className="col-span-1 md:col-span-2 pt-2">
-                  <div className="p-4 rounded-xl border border-border bg-slate-50/70 dark:bg-slate-900/50">
+                  <div className="p-4 rounded-xl border border-border/80 bg-muted/40 dark:bg-[#253745]/25 backdrop-blur-md">
                     <OrderEmailEventsSection
                       orderId={order.id}
                       orderTitulo={order.titulo}
@@ -730,7 +730,7 @@ export function OrderDetailDialog({
               </div>
 
               {/* Rodapé Fixo de Ações */}
-              <div className="px-6 py-3.5 border-t border-border bg-card/90 dark:border-slate-800/80 dark:bg-slate-900/60 flex flex-wrap items-center justify-between gap-3 shrink-0">
+              <div className="px-6 py-3.5 border-t border-border/80 bg-card/90 dark:border-[#4A5C6A]/35 dark:bg-[#11212D]/90 backdrop-blur-xl flex flex-wrap items-center justify-between gap-3 shrink-0">
                 <div className="flex items-center gap-2">
                   {permissions.canSendToProduction && onSendToProduction && (
                     <Button

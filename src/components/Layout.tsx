@@ -552,8 +552,15 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
         </div>
       </motion.aside>
 
-      <div className="flex-1 flex flex-col min-w-0 bg-background text-foreground">
-        <header className="h-14 border-b border-border bg-card/85 backdrop-blur-xl flex flex-wrap items-center gap-3 px-4 flex-shrink-0 z-10 shadow-xs">
+      <div className="flex-1 flex flex-col min-w-0 bg-background text-foreground relative">
+        {/* Ambient background refraction glow for deep glassmorphism across the entire app */}
+        <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden select-none">
+          <div className="absolute -top-32 left-1/4 h-[460px] w-[460px] rounded-full bg-[#253745]/25 dark:bg-[#11212D]/80 blur-[130px] opacity-70" />
+          <div className="absolute top-1/3 right-6 h-[420px] w-[420px] rounded-full bg-[#4A5C6A]/20 dark:bg-[#253745]/35 blur-[120px] opacity-65" />
+          <div className="absolute -bottom-24 left-10 h-[400px] w-[400px] rounded-full bg-[#9BA8AB]/15 dark:bg-[#06141B]/70 blur-[110px] opacity-50" />
+        </div>
+
+        <header className="h-14 border-b border-border/80 bg-card/80 backdrop-blur-2xl flex flex-wrap items-center gap-3 px-4 flex-shrink-0 z-10 shadow-xs dark:shadow-[0_4px_24px_rgba(6,20,27,0.4)]">
           <button className="lg:hidden p-1.5 rounded-lg bg-card border border-border text-foreground hover:bg-muted" onClick={() => setSidebarOpen(true)}>
             <Menu className="h-4 w-4" />
           </button>

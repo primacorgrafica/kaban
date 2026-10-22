@@ -109,8 +109,8 @@ export function KanbanColumn({
   const StatusIcon = PRE_PRESS_STATUS_ICONS[status];
 
   return (
-    <div className="flex-shrink-0 w-[82vw] sm:w-[290px] flex flex-col rounded-2xl bg-card/60 dark:bg-slate-900/40 backdrop-blur-xl border border-border/70 dark:border-slate-800/60 shadow-xs hover:border-border transition-all min-h-full h-fit">
-      <div className="flex items-center gap-2.5 px-3.5 py-3 border-b border-border/60 flex-shrink-0 rounded-t-2xl bg-muted/20">
+    <div className="flex-shrink-0 w-[82vw] sm:w-[290px] flex flex-col rounded-2xl glass-bento transition-all min-h-full h-fit">
+      <div className="flex items-center gap-2.5 px-3.5 py-3 border-b border-border/60 dark:border-[#4A5C6A]/25 flex-shrink-0 rounded-t-2xl bg-muted/30 dark:bg-[#11212D]/40">
         <div
           className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 border"
           style={{

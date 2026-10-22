@@ -117,7 +117,7 @@ const Index = () => {
         <div className="flex flex-col min-h-full gap-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <KanbanFiltersBar filters={filters} onChange={setFilters} />
-            <div className="flex items-center bg-card dark:bg-slate-900/60 p-1 rounded-xl border border-border dark:border-slate-800/80 shrink-0 shadow-xs">
+            <div className="flex items-center bg-card/85 dark:bg-[#11212D]/85 backdrop-blur-xl p-1 rounded-xl border border-border/80 dark:border-[#4A5C6A]/35 shrink-0 shadow-xs">
               <Button
                 variant={viewMode === "kanban" ? "secondary" : "ghost"}
                 size="sm"

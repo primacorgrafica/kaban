@@ -529,7 +529,7 @@ export default function PcpPage() {
   const mainContent = (
     <div className={`flex flex-col h-full ${isTvMode ? "bg-[#050811] text-slate-100 p-3 sm:p-5 select-none" : "space-y-4 text-foreground"}`}>
       {/* BARRA SUPERIOR: TELEMETRIA INDUSTRIAL & RELÓGIO DE ALTA PRECISÃO */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 rounded-3xl bg-card dark:bg-slate-900/80 border border-border dark:border-slate-800/80 backdrop-blur-2xl shadow-xs dark:shadow-2xl shrink-0">
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 rounded-3xl glass-bento shrink-0">
         <div className="flex items-center gap-4">
           <div className="relative p-3 rounded-2xl bg-gradient-to-br from-blue-600/20 via-cyan-500/20 to-emerald-500/20 border border-cyan-500/40 text-cyan-600 dark:text-cyan-300 shadow-[0_0_25px_rgba(6,182,212,0.25)]">
             <Tv className="h-6 w-6" />
@@ -595,7 +595,7 @@ export default function PcpPage() {
               className={`h-9 px-2.5 rounded-xl border text-xs gap-1.5 transition-all ${
                 soundEnabled
                   ? "bg-cyan-500/20 border-cyan-500/40 text-cyan-300 shadow-[0_0_10px_rgba(6,182,212,0.2)]"
-                  : "bg-muted/60 dark:bg-slate-950/60 border-border dark:border-slate-800 text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
+                  : "bg-muted/60 dark:bg-[#11212D]/80 border-border dark:border-[#4A5C6A]/40 text-muted-foreground dark:text-[#CCD0CF] hover:text-foreground dark:hover:text-white"
               }`}
               title={soundEnabled ? "Som e voz de O.S. liberada ativados (Clique para silenciar)" : "Ativar som e voz de O.S. liberada na TV"}
             >
@@ -612,7 +612,7 @@ export default function PcpPage() {
               className={`h-9 px-2.5 rounded-xl border text-xs gap-1.5 transition-all ${
                 autoScroll
                   ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
-                  : "bg-muted/60 dark:bg-slate-950/60 border-border dark:border-slate-800 text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
+                  : "bg-muted/60 dark:bg-[#11212D]/80 border-border dark:border-[#4A5C6A]/40 text-muted-foreground dark:text-[#CCD0CF] hover:text-foreground dark:hover:text-white"
               }`}
               title="Rolagem automática da lista de ordens na TV"
             >
@@ -642,7 +642,7 @@ export default function PcpPage() {
               {lastEventAlert.text}
             </span>
           </div>
-          <span className="text-[10px] font-mono-tech bg-card dark:bg-slate-950/80 px-2 py-0.5 rounded-lg border border-border dark:border-slate-800 text-muted-foreground dark:text-slate-400">
+          <span className="text-[10px] font-mono-tech bg-card/85 dark:bg-[#11212D]/85 px-2 py-0.5 rounded-lg border border-border/80 dark:border-[#4A5C6A]/35 text-muted-foreground dark:text-[#CCD0CF]">
             {lastEventAlert.time}
           </span>
         </div>
@@ -651,7 +651,7 @@ export default function PcpPage() {
       {/* METRIC HUD TELEMETRY CARDS (GIGANTES PARA ENXERGAR DE LONGE) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 shrink-0 mt-2">
         {/* Card 1: Emitidas Hoje */}
-        <div className="p-4 rounded-3xl bg-card dark:bg-slate-900/90 border border-border dark:border-blue-500/30 shadow-xs dark:shadow-[0_0_25px_rgba(59,130,246,0.1)] relative overflow-hidden group">
+        <div className="p-4 rounded-3xl glass-bento border-border dark:border-blue-500/30 relative overflow-hidden group">
           <div className="flex items-center justify-between text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-1">
             <span className="flex items-center gap-1.5">
               <Layers className="h-4 w-4" /> O.S. Emitidas Hoje
@@ -669,7 +669,7 @@ export default function PcpPage() {
         </div>
 
         {/* Card 2: Liberadas Hoje */}
-        <div className="p-4 rounded-3xl bg-card dark:bg-slate-900/90 border border-border dark:border-emerald-500/30 shadow-xs dark:shadow-[0_0_25px_rgba(16,185,129,0.1)] relative overflow-hidden group">
+        <div className="p-4 rounded-3xl glass-bento border-border dark:border-emerald-500/30 relative overflow-hidden group">
           <div className="flex items-center justify-between text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">
             <span className="flex items-center gap-1.5">
               <CheckCircle2 className="h-4 w-4" /> O.S. Liberadas Hoje
@@ -687,7 +687,7 @@ export default function PcpPage() {
         </div>
 
         {/* Card 3: Fluxo Líquido / Vazão */}
-        <div className="p-4 rounded-3xl bg-card dark:bg-slate-900/90 border border-border dark:border-cyan-500/30 shadow-xs dark:shadow-[0_0_25px_rgba(6,182,212,0.1)] relative overflow-hidden group">
+        <div className="p-4 rounded-3xl glass-bento border-border dark:border-cyan-500/30 relative overflow-hidden group">
           <div className="flex items-center justify-between text-xs font-semibold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider mb-1">
             <span className="flex items-center gap-1.5">
               <TrendingUp className="h-4 w-4" /> Ritmo de Liberação
@@ -707,10 +707,10 @@ export default function PcpPage() {
         </div>
 
         {/* Card 4: Alerta de Urgências ou Última Liberação */}
-        <div className={`p-4 rounded-3xl bg-card dark:bg-slate-900/90 border relative overflow-hidden group shadow-xs ${
+        <div className={`p-4 rounded-3xl glass-bento border relative overflow-hidden group ${
           urgentesHoje > 0
             ? "border-rose-500/50 shadow-[0_0_25px_rgba(244,63,94,0.2)]"
-            : "border-border dark:border-slate-800"
+            : "border-border dark:border-[#4A5C6A]/35"
         }`}>
           <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider mb-1">
             <span className={`flex items-center gap-1.5 ${urgentesHoje > 0 ? "text-rose-600 dark:text-rose-400 font-bold" : "text-muted-foreground dark:text-slate-400"}`}>
@@ -745,7 +745,7 @@ export default function PcpPage() {
       {/* DUAL COMMAND DECK: EMITIDAS (ESQUERDA) vs LIBERADAS (DIREITA) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0 mt-3">
         {/* COLUNA ESQUERDA: O.S. EMITIDAS */}
-        <div className="flex flex-col rounded-3xl bg-card/90 dark:bg-slate-900/70 border border-border dark:border-blue-500/30 overflow-hidden shadow-xs dark:shadow-2xl backdrop-blur-xl">
+        <div className="flex flex-col rounded-3xl glass-bento border-border dark:border-blue-500/30 overflow-hidden">
           {/* Header da Coluna */}
           <div className="p-3.5 sm:p-4 border-b border-border dark:border-blue-500/20 bg-muted/60 dark:bg-blue-950/40 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2.5">
@@ -761,7 +761,7 @@ export default function PcpPage() {
             </div>
 
             {/* Alternador Hoje / Anteriores */}
-            <div className="flex items-center gap-1 bg-background dark:bg-slate-950/80 p-1 rounded-xl border border-border dark:border-slate-800">
+            <div className="flex items-center gap-1 bg-background/80 dark:bg-[#11212D]/80 backdrop-blur-md p-1 rounded-xl border border-border/70 dark:border-[#4A5C6A]/40">
               <button
                 onClick={() => setActiveTabLeft("hoje")}
                 className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
@@ -811,7 +811,7 @@ export default function PcpPage() {
                         ? "bg-rose-500/10 border-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.15)]"
                         : isNew
                         ? "bg-blue-500/10 border-blue-400/50 shadow-[0_0_20px_rgba(59,130,246,0.15)]"
-                        : "bg-card dark:bg-slate-950/70 border-border dark:border-slate-800/90 hover:border-blue-500/40"
+                        : "bg-card/85 dark:bg-[#11212D]/85 border-border/80 dark:border-[#4A5C6A]/35 hover:border-blue-500/40"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -857,7 +857,7 @@ export default function PcpPage() {
         </div>
 
         {/* COLUNA DIREITA: O.S. LIBERADAS */}
-        <div className="flex flex-col rounded-3xl bg-card/90 dark:bg-slate-900/70 border border-border dark:border-emerald-500/30 overflow-hidden shadow-xs dark:shadow-2xl backdrop-blur-xl">
+        <div className="flex flex-col rounded-3xl glass-bento border-border dark:border-emerald-500/30 overflow-hidden">
           {/* Header da Coluna */}
           <div className="p-3.5 sm:p-4 border-b border-border dark:border-emerald-500/20 bg-muted/60 dark:bg-emerald-950/40 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2.5">
@@ -873,7 +873,7 @@ export default function PcpPage() {
             </div>
 
             {/* Alternador Hoje / Anteriores */}
-            <div className="flex items-center gap-1 bg-background dark:bg-slate-950/80 p-1 rounded-xl border border-border dark:border-slate-800">
+            <div className="flex items-center gap-1 bg-background/80 dark:bg-[#11212D]/80 backdrop-blur-md p-1 rounded-xl border border-border/70 dark:border-[#4A5C6A]/40">
               <button
                 onClick={() => setActiveTabRight("hoje")}
                 className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
@@ -923,7 +923,7 @@ export default function PcpPage() {
                         ? "bg-rose-500/10 border-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.15)]"
                         : isRecent
                         ? "bg-emerald-500/15 border-emerald-400/60 shadow-[0_0_25px_rgba(16,185,129,0.25)] ring-1 ring-emerald-400/50"
-                        : "bg-card dark:bg-slate-950/70 border-border dark:border-slate-800/90 hover:border-emerald-500/40"
+                        : "bg-card/85 dark:bg-[#11212D]/85 border-border/80 dark:border-[#4A5C6A]/35 hover:border-emerald-500/40"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -970,8 +970,8 @@ export default function PcpPage() {
       </div>
 
       {/* RODAPÉ: TELEMETRY TICKER ESTILO BLOOMBERG / TV NOTÍCIAS */}
-      <div className="mt-3 p-2.5 rounded-2xl bg-card dark:bg-slate-950/90 border border-border dark:border-slate-800/80 flex items-center justify-between gap-4 overflow-hidden shrink-0 text-xs font-mono-tech shadow-xs">
-        <div className="flex items-center gap-2 text-cyan-600 dark:text-cyan-400 font-bold uppercase tracking-wider shrink-0 bg-muted/60 dark:bg-slate-900 px-3 py-1 rounded-xl border border-border dark:border-slate-800">
+      <div className="mt-3 p-2.5 rounded-2xl glass-bento flex items-center justify-between gap-4 overflow-hidden shrink-0 text-xs font-mono-tech">
+        <div className="flex items-center gap-2 text-cyan-600 dark:text-cyan-400 font-bold uppercase tracking-wider shrink-0 bg-muted/60 dark:bg-[#253745]/60 px-3 py-1 rounded-xl border border-border/80 dark:border-[#4A5C6A]/40">
           <span className="w-2 h-2 rounded-full bg-cyan-500 animate-ping" />
           RADAR PCP
         </div>

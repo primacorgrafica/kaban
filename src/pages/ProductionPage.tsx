@@ -237,7 +237,7 @@ export default function ProductionPage() {
               department={currentDept}
               showOnly={["statuses", "vendedores", "date"]}
             />
-            <div className="flex items-center bg-card dark:bg-slate-900/60 p-1 rounded-xl border border-border dark:border-slate-800/80 shrink-0 shadow-xs">
+            <div className="flex items-center bg-card/85 dark:bg-[#11212D]/85 backdrop-blur-xl p-1 rounded-xl border border-border/80 dark:border-[#4A5C6A]/35 shrink-0 shadow-xs">
               <Button
                 variant={viewMode === "kanban" ? "secondary" : "ghost"}
                 size="sm"

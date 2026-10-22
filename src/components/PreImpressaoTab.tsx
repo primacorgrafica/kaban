@@ -169,10 +169,10 @@ function computeMetrics(
 
 function MetricCard({ title, icon, color = "cyan", children }: { title: string; icon: React.ReactNode; color?: "cyan" | "blue" | "emerald" | "violet"; children: React.ReactNode }) {
   const colorMap = {
-    cyan: "border-cyan-500/25 bg-card dark:bg-slate-900/60 shadow-xs dark:shadow-[0_0_15px_rgba(6,182,212,0.05)]",
-    blue: "border-blue-500/25 bg-card dark:bg-slate-900/60 shadow-xs dark:shadow-[0_0_15px_rgba(59,130,246,0.05)]",
-    emerald: "border-emerald-500/25 bg-card dark:bg-slate-900/60 shadow-xs dark:shadow-[0_0_15px_rgba(16,185,129,0.05)]",
-    violet: "border-violet-500/25 bg-card dark:bg-slate-900/60 shadow-xs dark:shadow-[0_0_15px_rgba(139,92,246,0.05)]",
+    cyan: "border-cyan-500/25 bg-card/85 dark:bg-[#11212D]/85 shadow-xs dark:shadow-[0_8px_24px_rgba(6,20,27,0.5)]",
+    blue: "border-blue-500/25 bg-card/85 dark:bg-[#11212D]/85 shadow-xs dark:shadow-[0_8px_24px_rgba(6,20,27,0.5)]",
+    emerald: "border-emerald-500/25 bg-card/85 dark:bg-[#11212D]/85 shadow-xs dark:shadow-[0_8px_24px_rgba(6,20,27,0.5)]",
+    violet: "border-violet-500/25 bg-card/85 dark:bg-[#11212D]/85 shadow-xs dark:shadow-[0_8px_24px_rgba(6,20,27,0.5)]",
   };
 
   return (

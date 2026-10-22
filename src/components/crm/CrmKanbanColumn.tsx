@@ -35,7 +35,7 @@ export function CrmKanbanColumn({
   }, [opportunities]);
 
   return (
-    <div className="flex-shrink-0 w-[85vw] sm:w-80 flex flex-col rounded-2xl bg-slate-100/75 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800/80 shadow-xs dark:shadow-lg min-h-full h-fit">
+    <div className="flex-shrink-0 w-[85vw] sm:w-80 flex flex-col rounded-2xl glass-bento min-h-full h-fit transition-all duration-200">
       {/* Coluna Header */}
       <div className="p-3.5 border-b border-border/60 bg-muted/40 rounded-t-2xl">
         <div className="flex items-center justify-between gap-2">

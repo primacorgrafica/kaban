@@ -11,9 +11,9 @@ const buttonVariants = cva(
       variant: {
         default: "bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-xs dark:bg-gradient-to-r dark:from-cyan-500 dark:to-blue-600 dark:hover:from-cyan-400 dark:hover:to-blue-500 dark:text-slate-950 dark:shadow-[0_0_20px_-3px_rgba(6,182,212,0.35)] dark:hover:shadow-[0_0_25px_rgba(6,182,212,0.55)] border-none",
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-xs dark:bg-rose-600 dark:text-white dark:hover:bg-rose-500 dark:shadow-[0_0_15px_-3px_rgba(244,63,94,0.4)] border-none",
-        outline: "border border-border bg-card hover:bg-muted text-foreground dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-200 dark:hover:bg-slate-800/80 dark:hover:text-white dark:hover:border-slate-700 shadow-2xs",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-border dark:bg-slate-800/80 dark:text-slate-200 dark:hover:bg-slate-700 dark:hover:text-white dark:border-slate-700/50",
-        ghost: "hover:bg-muted hover:text-foreground text-muted-foreground dark:hover:bg-slate-800/60 dark:hover:text-white dark:text-slate-300",
+        outline: "border border-border/80 bg-card/85 hover:bg-muted text-foreground backdrop-blur-md dark:border-[#4A5C6A]/40 dark:bg-[#11212D]/80 dark:text-[#CCD0CF] dark:hover:bg-[#253745]/70 dark:hover:text-white dark:hover:border-[#9BA8AB]/50 shadow-2xs transition-all",
+        secondary: "bg-secondary/80 text-secondary-foreground hover:bg-secondary border border-border/80 dark:bg-[#253745]/80 dark:text-[#CCD0CF] dark:hover:bg-[#4A5C6A]/70 dark:hover:text-white dark:border-[#4A5C6A]/40",
+        ghost: "hover:bg-muted/80 hover:text-foreground text-muted-foreground dark:hover:bg-[#253745]/50 dark:hover:text-[#CCD0CF] dark:text-[#9BA8AB] transition-colors",
         link: "text-primary underline-offset-4 hover:underline dark:text-cyan-400",
       },
       size: {

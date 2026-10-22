@@ -389,16 +389,16 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
   return (
     <>
       <div
-        className={`group rounded-2xl border shadow-xs hover:shadow-lg transition-all duration-200 overflow-hidden relative ${
+        className={`group rounded-2xl border shadow-xs hover:shadow-lg transition-all duration-200 overflow-hidden relative backdrop-blur-xl ${
           shouldBlinkCard ? "animate-pulse" : ""
         } ${
           isUrgent
-            ? "bg-card dark:bg-slate-900/90 border-rose-400/60 dark:border-rose-500/40 hover:border-rose-500 text-card-foreground border-l-[4px] border-l-rose-500 shadow-rose-500/5"
+            ? "bg-card/85 dark:bg-[#11212D]/85 border-rose-400/60 dark:border-rose-500/40 hover:border-rose-500 text-card-foreground border-l-[4px] border-l-rose-500 shadow-rose-500/5 dark:shadow-[0_8px_32px_rgba(6,20,27,0.5)]"
             : isSlowAlert
-            ? "bg-card dark:bg-slate-900/90 border-amber-400/60 dark:border-amber-500/40 hover:border-amber-500 text-card-foreground border-l-[4px] border-l-amber-500 shadow-amber-500/5"
+            ? "bg-card/85 dark:bg-[#11212D]/85 border-amber-400/60 dark:border-amber-500/40 hover:border-amber-500 text-card-foreground border-l-[4px] border-l-amber-500 shadow-amber-500/5 dark:shadow-[0_8px_32px_rgba(6,20,27,0.5)]"
             : isNearDeadline
-            ? "bg-card dark:bg-slate-900/90 border-amber-400/60 dark:border-amber-500/40 hover:border-amber-500 text-card-foreground border-l-[4px] border-l-amber-500 shadow-amber-500/5"
-            : "bg-card dark:bg-slate-900/90 border-border/70 dark:border-slate-800/80 text-card-foreground hover:border-cyan-500/40 hover:shadow-md dark:hover:shadow-[0_4px_20px_rgba(6,182,212,0.08)] border-l-[4px] border-l-transparent hover:border-l-cyan-500/60"
+            ? "bg-card/85 dark:bg-[#11212D]/85 border-amber-400/60 dark:border-amber-500/40 hover:border-amber-500 text-card-foreground border-l-[4px] border-l-amber-500 shadow-amber-500/5 dark:shadow-[0_8px_32px_rgba(6,20,27,0.5)]"
+            : "bg-card/85 dark:bg-[#11212D]/85 border-border/80 dark:border-[#4A5C6A]/35 text-card-foreground hover:border-cyan-500/50 hover:shadow-lg dark:hover:shadow-[0_12px_36px_rgba(6,20,27,0.65)] border-l-[4px] border-l-transparent hover:border-l-cyan-500"
         }`}
       >
         {/* Deadline alert ribbon if near deadline */}
@@ -860,7 +860,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                 {/* ─── COLUNA 1: ESPECIFICAÇÕES, PROVA & PROCESSOS ─── */}
                 <div className="space-y-3">
                   {/* Bloco Comercial & Descrição */}
-                  <div className="p-3.5 rounded-xl border border-border bg-slate-50/70 dark:bg-slate-900/50 space-y-2">
+                  <div className="p-3.5 rounded-xl border border-border/80 bg-muted/40 dark:bg-[#253745]/25 backdrop-blur-md space-y-2">
                     <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                       <FileText className="h-3.5 w-3.5 text-primary" />
                       <span>Dados do Serviço</span>
@@ -917,7 +917,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
 
                   {/* Bloco Prova */}
                   {(order.prova_digital || order.prova_email || order.saida_direta) && (
-                    <div className="p-3.5 rounded-xl border border-border bg-slate-50/70 dark:bg-slate-900/50 space-y-2">
+                    <div className="p-3.5 rounded-xl border border-border/80 bg-muted/40 dark:bg-[#253745]/25 backdrop-blur-md space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                           <span className="w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_8px_#22d3ee]" />
@@ -962,7 +962,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
 
                   {/* Bloco Processos */}
                   {order.processos && order.processos.length > 0 && (
-                    <div className="p-3.5 rounded-xl border border-border bg-slate-50/70 dark:bg-slate-900/50 space-y-2">
+                    <div className="p-3.5 rounded-xl border border-border/80 bg-muted/40 dark:bg-[#253745]/25 backdrop-blur-md space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                           <span className="w-2 h-2 rounded-full bg-purple-400 shadow-[0_0_8px_#c084fc]" />
@@ -987,7 +987,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                 <div className="space-y-3">
                   {/* Bloco Expedição */}
                   {hasEntregaInfo && (
-                    <div className="p-3.5 rounded-xl border border-border bg-slate-50/70 dark:bg-slate-900/50 space-y-2">
+                    <div className="p-3.5 rounded-xl border border-border/80 bg-muted/40 dark:bg-[#253745]/25 backdrop-blur-md space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
                           <Truck className="h-3.5 w-3.5 text-emerald-500" />
@@ -1114,7 +1114,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
 
 
               {/* Rodapé Fixo de Ações */}
-              <div className="px-6 py-3.5 border-t border-border bg-card/90 dark:border-slate-800/80 dark:bg-slate-900/60 flex flex-wrap items-center justify-between gap-3 shrink-0">
+              <div className="px-6 py-3.5 border-t border-border/80 bg-card/90 dark:border-[#4A5C6A]/35 dark:bg-[#11212D]/90 backdrop-blur-xl flex flex-wrap items-center justify-between gap-3 shrink-0">
                 <div className="flex items-center gap-2">
                   {permissions.canSendToProduction && onSendToProduction && (
                     <Button

@@ -364,6 +364,16 @@
     box-shadow: inset 0 1px 1px 0 rgba(204, 208, 207, 0.14), 0 14px 38px -6px rgba(6, 20, 27, 0.65);
   }
 
+  .glass-bento-hover:hover {
+    border-color: rgba(74, 92, 106, 0.65);
+    box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 1), 0 16px 36px -4px rgba(37, 55, 69, 0.12);
+  }
+
+  .dark .glass-bento-hover:hover, [data-theme="dark"] .glass-bento-hover:hover {
+    border-color: rgba(155, 168, 171, 0.5);
+    box-shadow: inset 0 1px 1px 0 rgba(204, 208, 207, 0.22), 0 18px 42px -6px rgba(6, 20, 27, 0.75), 0 0 24px -2px rgba(6, 182, 212, 0.15);
+  }
+
   .saas-interactive {
     transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
   }
