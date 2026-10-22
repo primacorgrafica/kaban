@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { fetchMailboxMessages, fetchConversationMessages } from "./outlookService";
 import { findOsInEmail, isApprovalResponse } from "./emailMatcher";
 import { MONITORED_MAILBOXES, type MonitoredMailbox, type GraphMessage } from "@/types/email";
+import { trackGraphApiTelemetry } from "@/lib/autonomousEngine/telemetry";
 
 export const LAST_EMAIL_SYNC_KEY = "kaban_last_email_sync_timestamp";
 
@@ -28,6 +29,7 @@ export interface SyncResult {
  * Executa uma rodada completa de sincronização de e-mails em todas as caixas monitoradas.
  */
 export async function runEmailSync(): Promise<SyncResult> {
+  const syncStartTime = performance.now();
   const result: SyncResult = {
     processed: 0,
     newEvents: 0,
@@ -79,10 +81,12 @@ export async function runEmailSync(): Promise<SyncResult> {
     }
   }
 
-  // 2. Carrega eventos já gravados para mapear conversation_ids e evitar duplicatas
+  // 2. Carrega eventos da janela deslizante (últimos 30 dias) para mapear conversation_ids e evitar duplicatas
+  const rollingCutoff = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
   const { data: existingEvents, error: eventsError } = await supabase
     .from("order_email_events")
-    .select("id, message_id, conversation_id, order_id, os_number, subject, body_preview, email_datetime, direction");
+    .select("id, message_id, conversation_id, order_id, os_number, subject, body_preview, email_datetime, direction")
+    .gte("email_datetime", rollingCutoff);
 
   if (eventsError) {
     console.warn("[EmailSync] Aviso ao consultar eventos existentes:", eventsError.message);
@@ -401,6 +405,10 @@ export async function runEmailSync(): Promise<SyncResult> {
   if (typeof window !== "undefined") {
     localStorage.setItem(LAST_EMAIL_SYNC_KEY, result.lastSyncAt);
   }
+
+  // Telemetria autônoma da operação de sincronização do Outlook
+  const syncDurationMs = performance.now() - syncStartTime;
+  trackGraphApiTelemetry("EMAIL_SYNC", result.errors.length === 0, syncDurationMs, result.errors.join("; "));
 
   return result;
 }
