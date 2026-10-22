@@ -7,6 +7,7 @@ import {
   deleteFileFromSharePoint,
   SHAREPOINT_ROOT_FOLDER,
 } from "@/lib/sharepointService";
+import { uploadWithResilience } from "@/lib/autonomousEngine/uploadQueue";
 import type {
   OrderAttachment,
   PendingUploadItem,
@@ -166,22 +167,32 @@ export function useOrderAttachments(orderId: string | null, orderTitulo?: string
         }));
 
         try {
-          // Upload direto ao SharePoint com progresso em tempo real
-          const driveItem = await uploadFileToSharePoint(
+          // Upload resiliente ao SharePoint com auto-recuperação e progresso em tempo real
+          const driveItem = await uploadWithResilience(
             file,
             activeFolder,
-            (percent) => {
-              if (isMountedRef.current) {
-                setUploadQueue((prev) => {
-                  if (!prev[itemId]) return prev;
-                  return {
+            {
+              onProgress: (percent) => {
+                if (isMountedRef.current) {
+                  setUploadQueue((prev) => {
+                    if (!prev[itemId]) return prev;
+                    return {
+                      ...prev,
+                      [itemId]: { ...prev[itemId], progress: percent },
+                    };
+                  });
+                }
+              },
+              abortSignal: itemState.abortController?.signal,
+              onStatusChange: (status) => {
+                if (status === "RETRYING" && isMountedRef.current) {
+                  setUploadQueue((prev) => ({
                     ...prev,
-                    [itemId]: { ...prev[itemId], progress: percent },
-                  };
-                });
-              }
-            },
-            itemState.abortController?.signal
+                    [itemId]: { ...prev[itemId], error: "Instabilidade transitória. Retentando..." },
+                  }));
+                }
+              },
+            }
           );
 
           // 3. Salva os metadados do anexo no Supabase
