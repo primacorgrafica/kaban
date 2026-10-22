@@ -5,8 +5,9 @@ import {
   ArrowRight, FileDown, DatabaseBackup, Loader2, Upload, AlertTriangle,
   Printer, CalendarClock, History, Bell, Trash2, Info, Square,
   PrinterCheck, Layers, Truck, List, Eye, EyeOff, Search, Filter,
-  ChevronLeft, ChevronRight, Activity, ShieldCheck, Sparkles, RefreshCw, X, Download, Check, Palette, ShoppingCart
+  ChevronLeft, ChevronRight, Activity, ShieldCheck, Sparkles, RefreshCw, X, Download, Check, Palette, ShoppingCart, Factory
 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PreImpressaoTab } from "./PreImpressaoTab";
 import { getOrderRevision, cleanObservationRevision } from "@/lib/orderRevision";
@@ -738,317 +739,243 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
         </div>
       </div>
 
-      {/* Row 1: KPI Telemetry Cards - SaaS Refined */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        <div className="saas-stat-card group">
-          <div className="flex items-center justify-between text-muted-foreground text-xs mb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
-              Em Produção
+      {/* Executive Command Bento Grid - 4 High-Impact SaaS Modules */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Module 1: Saúde Operacional & Eficiência */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, delay: 0.05 }}
+          className="p-5 rounded-2xl bg-card/75 dark:bg-slate-900/60 border border-border/80 backdrop-blur-xl shadow-xs hover:border-cyan-500/40 transition-all flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              Saúde Operacional
             </span>
-            <div className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
-              <Layers className="h-3.5 w-3.5" />
+            <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+              <Activity className="h-4 w-4" />
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-bold font-mono-tech text-foreground tracking-tight">
-            {total}
-          </div>
-          <p className="text-[11px] text-muted-foreground mt-1 truncate">Ordens ativas na fábrica</p>
-        </div>
 
-        <div className="saas-stat-card group">
-          <div className="flex items-center justify-between text-muted-foreground text-xs mb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-              Criadas Hoje
-            </span>
-            <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
-              <Clock className="h-3.5 w-3.5" />
-            </div>
-          </div>
-          <div className="text-2xl sm:text-3xl font-bold font-mono-tech text-foreground tracking-tight">
-            {todayOrders}
-          </div>
-          <p className="text-[11px] text-muted-foreground mt-1 truncate">Novas entradas no dia</p>
-        </div>
-
-        <div className="saas-stat-card group">
-          <div className="flex items-center justify-between text-muted-foreground text-xs mb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-              Aprovadas Hoje
-            </span>
-            <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-            </div>
-          </div>
-          <div className="text-2xl sm:text-3xl font-bold font-mono-tech text-foreground tracking-tight">
-            {completedTodayOrders.length}
-          </div>
-          <p className="text-[11px] text-muted-foreground mt-1 truncate">Saídas de pré-impressão</p>
-        </div>
-
-        <div className="saas-stat-card group">
-          <div className="flex items-center justify-between text-muted-foreground text-xs mb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
-              Provas Hoje
-            </span>
-            <div className="p-1.5 rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400">
-              <Printer className="h-3.5 w-3.5" />
-            </div>
-          </div>
-          <div className="text-2xl sm:text-3xl font-bold font-mono-tech text-foreground tracking-tight">
-            {provasTodayCount}
-          </div>
-          <p className="text-[11px] text-muted-foreground mt-1 truncate">Físicas e digitais</p>
-        </div>
-
-        <div className="saas-stat-card group col-span-2 sm:col-span-1">
-          <div className="flex items-center justify-between text-muted-foreground text-xs mb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
-              Novo Arquivo
-            </span>
-            <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
-              <AlertTriangle className="h-3.5 w-3.5" />
-            </div>
-          </div>
-          <div className="text-2xl sm:text-3xl font-bold font-mono-tech text-foreground tracking-tight">
-            {novoArquivoTodayCount}
-          </div>
-          <p className="text-[11px] text-muted-foreground mt-1 truncate">Ajustes liberados hoje</p>
-        </div>
-      </div>
-
-      {/* Row 2: Unified Operations & Governance Control Hub */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
-        {/* Sector Production Distribution */}
-        <div className="lg:col-span-7 p-4 rounded-2xl bg-card/70 dark:bg-slate-900/40 border border-border/70 backdrop-blur-md shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Activity className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
-              <span className="text-xs font-bold text-foreground tracking-tight">
-                Distribuição por Setor
+          <div className="my-3">
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-extrabold font-mono-tech text-foreground tracking-tight">
+                {total > 0 ? Math.round(((total - criticalDeadlines.length) / total) * 100) : 100}%
+              </span>
+              <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                no prazo
               </span>
             </div>
-            <span className="text-[11px] text-muted-foreground">Clique para filtrar Chão de Fábrica</span>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            <button
-              onClick={() => handleSelectSectorFilter("pre_impressao")}
-              className="p-2.5 rounded-xl bg-background/80 hover:bg-cyan-500/5 border border-border/70 hover:border-cyan-500/30 transition-all text-left saas-interactive group"
-            >
-              <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
-                <span className="font-medium group-hover:text-cyan-600 dark:group-hover:text-cyan-400 truncate">Pré-Impressão</span>
-                <span className="font-mono-tech font-bold text-foreground">{sectorCounts.pre_impressao}</span>
-              </div>
-              <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-cyan-500 rounded-full transition-all duration-500"
-                  style={{ width: `${total > 0 ? (sectorCounts.pre_impressao / total) * 100 : 0}%` }}
-                />
-              </div>
-            </button>
-
-            <button
-              onClick={() => handleSelectSectorFilter("qualidade")}
-              className="p-2.5 rounded-xl bg-background/80 hover:bg-violet-500/5 border border-border/70 hover:border-violet-500/30 transition-all text-left saas-interactive group"
-            >
-              <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
-                <span className="font-medium group-hover:text-violet-600 dark:group-hover:text-violet-400 truncate">Qualidade</span>
-                <span className="font-mono-tech font-bold text-foreground">{sectorCounts.qualidade}</span>
-              </div>
-              <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-violet-500 rounded-full transition-all duration-500"
-                  style={{ width: `${total > 0 ? (sectorCounts.qualidade / total) * 100 : 0}%` }}
-                />
-              </div>
-            </button>
-
-            <button
-              onClick={() => handleSelectSectorFilter("expedicao")}
-              className="p-2.5 rounded-xl bg-background/80 hover:bg-emerald-500/5 border border-border/70 hover:border-emerald-500/30 transition-all text-left saas-interactive group"
-            >
-              <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
-                <span className="font-medium group-hover:text-emerald-600 dark:group-hover:text-emerald-400 truncate">Expedição</span>
-                <span className="font-mono-tech font-bold text-foreground">{sectorCounts.expedicao}</span>
-              </div>
-              <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                  style={{ width: `${total > 0 ? (sectorCounts.expedicao / total) * 100 : 0}%` }}
-                />
-              </div>
-            </button>
-
-            <button
-              onClick={() => handleSelectSectorFilter("compras")}
-              className="p-2.5 rounded-xl bg-background/80 hover:bg-pink-500/5 border border-border/70 hover:border-pink-500/30 transition-all text-left saas-interactive group"
-            >
-              <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
-                <span className="font-medium group-hover:text-pink-600 dark:group-hover:text-pink-400 truncate">Compras</span>
-                <span className="font-mono-tech font-bold text-foreground">{sectorCounts.compras}</span>
-              </div>
-              <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-pink-500 rounded-full transition-all duration-500"
-                  style={{ width: `${total > 0 ? (sectorCounts.compras / total) * 100 : 0}%` }}
-                />
-              </div>
-            </button>
-          </div>
-        </div>
-
-        {/* Governance & Audit Radar Widget */}
-        <div className="lg:col-span-5 p-4 rounded-2xl bg-card/70 dark:bg-slate-900/40 border border-border/70 backdrop-blur-md shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-amber-500" />
-              <span className="text-xs font-bold text-foreground tracking-tight">
-                Radar de Governança
-              </span>
-              <span className="saas-pill bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[9px] font-mono-tech">
-                ADMIN
-              </span>
+            <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden mt-2.5">
+              <div
+                className="h-full bg-linear-to-r from-cyan-500 to-emerald-500 rounded-full transition-all duration-700"
+                style={{ width: `${total > 0 ? Math.round(((total - criticalDeadlines.length) / total) * 100) : 100}%` }}
+              />
             </div>
+          </div>
+
+          <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/60">
+            <span>{total} ativas na fábrica</span>
+            <span className="font-mono-tech font-bold text-foreground">+{todayOrders} hoje</span>
+          </div>
+        </motion.div>
+
+        {/* Module 2: Radar de Atenção & Gargalos */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, delay: 0.1 }}
+          className="p-5 rounded-2xl bg-card/75 dark:bg-slate-900/60 border border-border/80 backdrop-blur-xl shadow-xs hover:border-rose-500/40 transition-all flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              Atenção & Gargalos
+            </span>
+            <div className="p-2 rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+              <AlertTriangle className="h-4 w-4" />
+            </div>
+          </div>
+
+          <div className="my-2.5 grid grid-cols-2 gap-2">
             <button
-              onClick={() => { setActiveTab("governanca"); setGovernancaSubFilter("all"); }}
-              className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1 saas-interactive"
+              onClick={() => { setActiveTab("producao"); setOnlyUrgent(true); }}
+              className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/15 border border-rose-500/25 transition-all text-left group cursor-pointer"
             >
-              <span>Auditoria</span>
-              <ArrowRight className="h-3 w-3" />
+              <div className="text-[10px] text-rose-600 dark:text-rose-400 font-bold uppercase">Urgentes</div>
+              <div className="text-xl font-bold font-mono-tech text-rose-600 dark:text-rose-300">
+                {urgentOrders.length}
+              </div>
+            </button>
+            <button
+              onClick={() => { setActiveTab("sla"); }}
+              className="p-2 rounded-xl bg-amber-500/10 hover:bg-amber-500/15 border border-amber-500/25 transition-all text-left group cursor-pointer"
+            >
+              <div className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase">Prazo Crítico</div>
+              <div className="text-xl font-bold font-mono-tech text-amber-600 dark:text-amber-300">
+                {criticalDeadlines.length}
+              </div>
             </button>
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
-            <button
-              onClick={() => { setActiveTab("governanca"); setGovernancaSubFilter("revisoes"); }}
-              className="p-2 rounded-xl bg-background/80 hover:bg-amber-500/5 border border-border/70 hover:border-amber-500/30 transition-all text-left saas-interactive"
-            >
-              <div className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-                <RotateCcw className="h-3 w-3 text-amber-500 shrink-0" />
-                <span className="truncate">REVs</span>
-              </div>
-              <div className="text-base font-bold font-mono-tech text-foreground mt-0.5">
+          <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/60">
+            <span>Ajuste Arquivo: <strong className="font-mono-tech text-foreground">{novoArquivoTodayCount}</strong></span>
+            <span className="text-rose-600 dark:text-rose-400 font-semibold">{urgentOrders.length > 0 ? "Ação Requerida" : "Normal"}</span>
+          </div>
+        </motion.div>
+
+        {/* Module 3: Pipeline de Fluxo Setorial */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, delay: 0.15 }}
+          className="p-5 rounded-2xl bg-card/75 dark:bg-slate-900/60 border border-border/80 backdrop-blur-xl shadow-xs hover:border-violet-500/40 transition-all flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              Fluxo Industrial
+            </span>
+            <div className="p-2 rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400 border border-violet-500/20">
+              <Factory className="h-4 w-4" />
+            </div>
+          </div>
+
+          <div className="my-2 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Pré-Impressão</span>
+              <span className="font-mono-tech font-bold text-foreground">{sectorCounts.pre_impressao}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Chão de Fábrica</span>
+              <span className="font-mono-tech font-bold text-foreground">{sectorCounts.offset + sectorCounts.digital + sectorCounts.acabamento}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Qualidade & Expedição</span>
+              <span className="font-mono-tech font-bold text-foreground">{sectorCounts.qualidade + sectorCounts.expedicao}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/60">
+            <span>Saídas hoje: <strong className="font-mono-tech text-emerald-600 dark:text-emerald-400">+{completedTodayOrders.length}</strong></span>
+            <button onClick={() => setActiveTab("producao")} className="text-primary hover:underline text-[11px] font-medium">Ver tudo →</button>
+          </div>
+        </motion.div>
+
+        {/* Module 4: Governança & Suprimentos */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, delay: 0.2 }}
+          className="p-5 rounded-2xl bg-card/75 dark:bg-slate-900/60 border border-border/80 backdrop-blur-xl shadow-xs hover:border-emerald-500/40 transition-all flex flex-col justify-between"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+              Governança & Suprimentos
+            </span>
+            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+              <ShieldCheck className="h-4 w-4" />
+            </div>
+          </div>
+
+          <div className="my-2 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Revisões (REV 2+)</span>
+              <span className={`font-mono-tech font-bold ${revisionOrders.length > 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground"}`}>
                 {revisionOrders.length}
-              </div>
-              <span className="text-[10px] text-muted-foreground truncate block">
-                {rev3PlusCount > 0 ? (
-                  <span className="text-rose-600 dark:text-rose-400 font-bold">{rev3PlusCount} crítica{rev3PlusCount > 1 ? "s" : ""}</span>
-                ) : (
-                  "Sob controle"
-                )}
               </span>
-            </button>
-
-            <button
-              onClick={() => { setActiveTab("governanca"); setGovernancaSubFilter("saida_travas"); }}
-              className="p-2 rounded-xl bg-background/80 hover:bg-emerald-500/5 border border-border/70 hover:border-emerald-500/30 transition-all text-left saas-interactive"
-            >
-              <div className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-                <ShieldCheck className="h-3 w-3 text-emerald-500 shrink-0" />
-                <span className="truncate">Trava Saída</span>
-              </div>
-              <div className="text-base font-bold font-mono-tech text-foreground mt-0.5">
-                {saidaWithToolsCount}
-              </div>
-              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium truncate block">
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Trava de Saída</span>
+              <span className="font-mono-tech font-bold text-emerald-600 dark:text-emerald-400">
                 100% Auditada
               </span>
-            </button>
-
-            <button
-              onClick={() => { setActiveTab("governanca"); setGovernancaSubFilter("compras"); }}
-              className="p-2 rounded-xl bg-background/80 hover:bg-pink-500/5 border border-border/70 hover:border-pink-500/30 transition-all text-left saas-interactive"
-            >
-              <div className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
-                <ShoppingBag className="h-3 w-3 text-pink-500 shrink-0" />
-                <span className="truncate">Compras</span>
-              </div>
-              <div className="text-base font-bold font-mono-tech text-foreground mt-0.5">
-                {comprasStats.total}
-              </div>
-              <span className="text-[10px] text-muted-foreground truncate block">
-                {comprasStats.pendentes > 0 ? (
-                  <span className="text-amber-600 dark:text-amber-400 font-bold">{comprasStats.pendentes} pend.</span>
-                ) : (
-                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">Em dia</span>
-                )}
-              </span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Structured Executive Navigation Tabs - Sleek SaaS Segmented Control */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
-        <div className="overflow-x-auto pb-1 scrollbar-hide">
-          <TabsList className="bg-muted/40 dark:bg-slate-900/50 border border-border/60 p-1 rounded-xl h-auto gap-1 shadow-xs flex-nowrap min-w-max">
-            <TabsTrigger
-              value="geral"
-              className="text-xs py-2 px-3.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium transition-all"
-            >
-              Visão Geral
-            </TabsTrigger>
-            <TabsTrigger
-              value="governanca"
-              className="text-xs py-2 px-3.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium transition-all flex items-center gap-1.5"
-            >
-              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
-              <span>Governança</span>
-              {revisionOrders.length > 0 && (
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-rose-500/15 text-rose-600 dark:text-rose-400 font-bold">
-                  {revisionOrders.length} REV
-                </span>
-              )}
-              {comprasStats.pendentes > 0 && (
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold">
-                  {comprasStats.pendentes} Compra
-                </span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger
-              value="producao"
-              className="text-xs py-2 px-3.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium transition-all"
-            >
-              Chão de Fábrica ({filteredProductionOrders.length})
-            </TabsTrigger>
-            <TabsTrigger
-              value="sla"
-              className="text-xs py-2 px-3.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium transition-all"
-            >
-              Lead Time & SLA
-            </TabsTrigger>
-            <TabsTrigger
-              value="pre-impressao"
-              className="text-xs py-2 px-3.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium transition-all"
-            >
-              Métricas Pré-Impressão
-            </TabsTrigger>
-            <TabsTrigger
-              value="suprimentos"
-              className="text-xs py-2 px-3.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium transition-all flex items-center gap-1.5"
-            >
-              <span>Suprimentos</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-mono-tech bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-semibold">
+            </div>
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">Suprimentos Aprovados</span>
+              <span className="font-mono-tech font-bold text-foreground">
                 {supplyStats.sent}/{supplyStats.total}
               </span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="avisos"
-              className="text-xs py-2 px-3.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium transition-all"
-            >
-              Avisos ({avisos.length})
-            </TabsTrigger>
-            <TabsTrigger
-              value="backup"
-              className="text-xs py-2 px-3.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium transition-all"
-            >
-              Exportações & Backup
-            </TabsTrigger>
-          </TabsList>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/60">
+            <span>Compras: <strong className="font-mono-tech text-foreground">{comprasStats.pendentes} pend.</strong></span>
+            <button onClick={() => setActiveTab("governanca")} className="text-primary hover:underline text-[11px] font-medium">Auditar →</button>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Structured Executive Navigation Tabs - Animated Framer Motion Segmented Control */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
+        <div className="overflow-x-auto pb-1 scrollbar-none">
+          <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-card/80 dark:bg-slate-900/60 border border-border/70 backdrop-blur-xl shadow-xs w-max">
+            {[
+              { id: "geral", label: "Visão Geral", icon: Activity },
+              { id: "producao", label: "Chão de Fábrica", icon: Factory, count: filteredProductionOrders.length },
+              { id: "governanca", label: "Governança & REVs", icon: ShieldCheck, badge: revisionOrders.length > 0 ? `${revisionOrders.length} REV` : undefined },
+              { id: "sla", label: "Lead Time & SLA", icon: Timer },
+              { id: "pre-impressao", label: "Métricas Pré-Impressão", icon: BarChart3 },
+              { id: "suprimentos", label: "Suprimentos", icon: Layers, badge: `${supplyStats.sent}/${supplyStats.total}` },
+              { id: "avisos", label: "Avisos", icon: Bell, count: avisos.length },
+              { id: "backup", label: "Backup & Exportações", icon: DatabaseBackup },
+            ].map((tab) => {
+              const isActive = activeTab === tab.id;
+              const TabIcon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`relative px-3.5 py-2 rounded-xl text-xs font-semibold transition-all duration-200 flex items-center gap-2 select-none shrink-0 ${
+                    isActive
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
+                  }`}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="dashboard-tab-active-indicator"
+                      className="absolute inset-0 rounded-xl bg-background border border-border shadow-xs dark:shadow-[0_2px_12px_rgba(0,0,0,0.3)]"
+                      transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                    />
+                  )}
+                  <TabIcon className={`h-3.5 w-3.5 relative z-10 transition-colors ${isActive ? "text-cyan-500" : "text-muted-foreground"}`} />
+                  <span className="relative z-10">{tab.label}</span>
+                  {tab.count !== undefined && (
+                    <span
+                      className={`relative z-10 text-[10px] px-1.5 py-0.2 rounded-full font-mono-tech ${
+                        isActive
+                          ? "bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 font-bold"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {tab.count}
+                    </span>
+                  )}
+                  {tab.badge && (
+                    <span
+                      className={`relative z-10 text-[10px] px-1.5 py-0.2 rounded-full font-mono-tech ${
+                        isActive
+                          ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {tab.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* TAB 1: VISÃO GERAL & GARGALOS */}
-        <TabsContent value="geral" className="space-y-6 m-0">
+        <TabsContent value="geral" className="space-y-6 m-0 focus-visible:outline-none">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.22 }}
+            className="space-y-6"
+          >
           {/* Critical Deadlines Alert Banner - Sleek Minimalist */}
           {criticalDeadlines.length > 0 && (
             <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/25 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs">
@@ -1605,11 +1532,17 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
               </div>
             </div>
           )}
+          </motion.div>
         </TabsContent>
 
-        {/* TAB 2: CHÃO DE FÁBRICA (OS EM PRODUÇÃO) */}
         {/* TAB: GOVERNANÇA OPERACIONAL & AUDITORIA DE MUDANÇAS */}
-        <TabsContent value="governanca" className="space-y-6 m-0">
+        <TabsContent value="governanca" className="space-y-6 m-0 focus-visible:outline-none">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.22 }}
+            className="space-y-6"
+          >
           {/* Header & Filter Controls */}
           <div className="p-5 rounded-2xl bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
@@ -2086,9 +2019,16 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
               </div>
             </Card>
           )}
+          </motion.div>
         </TabsContent>
 
-        <TabsContent value="producao" className="space-y-4 m-0">
+        <TabsContent value="producao" className="space-y-4 m-0 focus-visible:outline-none">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.22 }}
+            className="space-y-4"
+          >
           {/* Controls Bar: Search + Sector Pills + Urgency Toggle */}
           <div className="p-4 rounded-2xl bg-card border border-border backdrop-blur-md flex flex-col md:flex-row items-center justify-between gap-3 shadow-xs">
             <div className="relative w-full md:w-80">
@@ -2278,10 +2218,17 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
               </div>
             )}
           </Card>
+          </motion.div>
         </TabsContent>
 
         {/* TAB 3: LEAD TIME & PRAZOS */}
-        <TabsContent value="sla" className="space-y-6 m-0">
+        <TabsContent value="sla" className="space-y-6 m-0 focus-visible:outline-none">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.22 }}
+            className="space-y-6"
+          >
           {/* Últimas OS Liberadas — Tempo Detalhado */}
           <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl">
             <CardHeader className="pb-3 border-b border-border">
@@ -2460,15 +2407,28 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
               )}
             </CardContent>
           </Card>
+          </motion.div>
         </TabsContent>
 
         {/* TAB 4: MÉTRICAS PRÉ-IMPRESSÃO */}
-        <TabsContent value="pre-impressao" className="m-0">
-          <PreImpressaoTab />
+        <TabsContent value="pre-impressao" className="m-0 focus-visible:outline-none">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.22 }}
+          >
+            <PreImpressaoTab />
+          </motion.div>
         </TabsContent>
 
         {/* TAB 5: AVISOS & COMUNICADOS */}
-        <TabsContent value="avisos" className="space-y-4 m-0">
+        <TabsContent value="avisos" className="space-y-4 m-0 focus-visible:outline-none">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.22 }}
+            className="space-y-4"
+          >
           <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl">
             <CardHeader className="pb-3 border-b border-border">
               <div className="flex items-center justify-between">
@@ -2573,10 +2533,17 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
               )}
             </CardContent>
           </Card>
+          </motion.div>
         </TabsContent>
 
         {/* TAB 6: EXPORTAÇÕES & BACKUP */}
-        <TabsContent value="backup" className="space-y-6 m-0">
+        <TabsContent value="backup" className="space-y-6 m-0 focus-visible:outline-none">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.22 }}
+            className="space-y-6"
+          >
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Exportar PDFs */}
             <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl">
@@ -2697,10 +2664,17 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
               </CardContent>
             </Card>
           </div>
+          </motion.div>
         </TabsContent>
 
         {/* TAB: TELEMETRIA DE SUPRIMENTOS ESPECIAIS (FACA, CLICHÊ, PANTONE) */}
-        <TabsContent value="suprimentos" className="space-y-6 m-0">
+        <TabsContent value="suprimentos" className="space-y-6 m-0 focus-visible:outline-none">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.22 }}
+            className="space-y-6"
+          >
           {/* KPI Cards Row */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Total */}
@@ -3005,6 +2979,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
               </Table>
             </div>
           </Card>
+          </motion.div>
         </TabsContent>
       </Tabs>
     </div>

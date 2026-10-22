@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useState, useCallback, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Monitor, Archive, Search, Menu, X, LogOut, BarChart3, Users, Maximize, Minimize, Truck, Megaphone, Lightbulb, Handshake, Square, PrinterCheck, Layers, ChevronDown, ShoppingCart, CircleDollarSign, AlertTriangle, Wrench, Briefcase, ShieldCheck, LucideIcon, Factory, ClipboardList, Settings, Package, KeyRound } from "lucide-react";
+import { Monitor, Archive, Search, Menu, X, LogOut, BarChart3, Users, Maximize, Minimize, Truck, Megaphone, Lightbulb, Handshake, Square, PrinterCheck, Layers, ChevronDown, ShoppingCart, CircleDollarSign, AlertTriangle, Wrench, Briefcase, ShieldCheck, LucideIcon, Factory, ClipboardList, Settings, Package, KeyRound, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { ChangePasswordDialog } from "./ChangePasswordDialog";
 import logoImg from "@/assets/logo-sidebar.png";
 import { OffsetIcon } from "./icons/OffsetIcon";
@@ -59,6 +60,17 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
   const location = useLocation();
   const { signOut, user, role, isAdmin, authReady, hasModule, canAccessSector, setorVinculado } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return localStorage.getItem("primacor_sidebar_collapsed") === "true";
+  });
+
+  const toggleSidebarCollapse = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      localStorage.setItem("primacor_sidebar_collapsed", String(next));
+      return next;
+    });
+  };
   const { unreadChatCount } = useChatNotification();
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
@@ -247,6 +259,26 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
 
   const isCadastrosActive = cadastrosItems.some(i => location.pathname === i.to);
 
+  const handleCadastrosClick = () => {
+    if (sidebarCollapsed) {
+      setSidebarCollapsed(false);
+      localStorage.setItem("primacor_sidebar_collapsed", "false");
+      setCadastrosOpen(true);
+    } else {
+      setCadastrosOpen(!cadastrosOpen);
+    }
+  };
+
+  const handleUtilidadesClick = () => {
+    if (sidebarCollapsed) {
+      setSidebarCollapsed(false);
+      localStorage.setItem("primacor_sidebar_collapsed", "false");
+      setUtilidadesOpen(true);
+    } else {
+      setUtilidadesOpen(!utilidadesOpen);
+    }
+  };
+
   const renderNavLink = (item: { to: string; label: string; icon: any; count?: number }) => {
     const isActive = location.pathname === item.to || (item.to === "/qualidade" && location.pathname === "/producao/qualidade");
     return (
@@ -254,16 +286,44 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
         key={item.to}
         to={item.to}
         onClick={() => setSidebarOpen(false)}
-        className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 ${
+        title={sidebarCollapsed ? `${item.label}${item.count !== undefined ? ` (${item.count})` : ""}` : undefined}
+        className={`relative flex items-center ${
+          sidebarCollapsed ? "justify-center px-2" : "gap-2.5 px-3"
+        } py-2 rounded-xl text-sm transition-all duration-150 group ${
           isActive
-            ? "bg-sidebar-primary/15 text-sidebar-primary font-medium shadow-sm"
-            : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+            ? "text-sidebar-primary font-semibold"
+            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
         }`}
       >
-        <item.icon className="h-4 w-4" />
-        {item.label}
+        {isActive && (
+          <motion.div
+            layoutId="sidebar-active-pill"
+            className="absolute inset-0 rounded-xl bg-sidebar-primary/15 border border-sidebar-primary/25 shadow-xs"
+            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+          />
+        )}
+        <item.icon className="h-4 w-4 shrink-0 relative z-10 transition-transform group-hover:scale-110" />
+        <AnimatePresence>
+          {!sidebarCollapsed && (
+            <motion.span
+              initial={{ opacity: 0, width: 0 }}
+              animate={{ opacity: 1, width: "auto" }}
+              exit={{ opacity: 0, width: 0 }}
+              transition={{ duration: 0.15 }}
+              className="relative z-10 truncate font-medium flex-1 overflow-hidden ml-0.5"
+            >
+              {item.label}
+            </motion.span>
+          )}
+        </AnimatePresence>
         {item.count !== undefined && (
-          <span className={`ml-auto text-xs px-1.5 py-0.5 rounded-full ${isActive ? "bg-sidebar-primary/20 text-sidebar-primary" : "opacity-50"}`}>
+          <span
+            className={`relative z-10 font-mono-tech ${
+              sidebarCollapsed
+                ? "absolute top-1 right-1 text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold"
+                : "ml-auto text-xs px-2 py-0.5 rounded-full"
+            } ${isActive ? "bg-sidebar-primary text-sidebar-primary-foreground font-bold shadow-xs" : "bg-sidebar-accent/80 text-sidebar-foreground/75"}`}
+          >
             {item.count}
           </span>
         )}
@@ -281,69 +341,121 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
         <div className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-64 flex-col transition-transform duration-200 text-sidebar-foreground ${
+      <motion.aside
+        initial={false}
+        animate={{
+          width: isFullscreen ? 0 : sidebarCollapsed ? 72 : 256,
+        }}
+        transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+        className={`fixed lg:static inset-y-0 left-0 z-50 flex-col text-sidebar-foreground border-r border-sidebar-border/60 shrink-0 select-none overflow-hidden ${
           isFullscreen ? "hidden" : "flex"
         } ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
         style={{ background: "var(--gradient-sidebar)" }}
       >
-        <div className="px-5 py-4 border-b border-sidebar-border/60 relative flex flex-col items-center justify-center">
+        <div className={`py-3.5 border-b border-sidebar-border/60 relative flex items-center ${sidebarCollapsed ? "justify-center px-2" : "justify-between px-4"}`}>
           <button className="lg:hidden absolute top-3 right-3 text-sidebar-foreground hover:text-foreground" onClick={() => setSidebarOpen(false)}>
             <X className="h-5 w-5" />
           </button>
-          <div className="flex flex-col items-center justify-center gap-2">
-            <img src={logoImg} alt="Primacor Gráfica" className="w-40 h-auto max-h-24 object-contain" />
-            <div className="flex items-center justify-center">
-              <span className="text-[10px] px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 font-mono-tech border border-cyan-500/25 font-bold tracking-wider">
-                2.0
-              </span>
-            </div>
+          
+          <div className={`flex items-center ${sidebarCollapsed ? "justify-center" : "gap-2.5"} overflow-hidden`}>
+            {sidebarCollapsed ? (
+              <button
+                type="button"
+                onClick={toggleSidebarCollapse}
+                className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center font-extrabold font-mono-tech text-cyan-400 cursor-pointer shadow-xs hover:scale-105 hover:bg-cyan-500/20 transition-all"
+                title="Expandir barra lateral"
+              >
+                P
+              </button>
+            ) : (
+              <div className="flex flex-col items-start gap-1">
+                <img src={logoImg} alt="Primacor Gráfica" className="w-36 h-auto max-h-11 object-contain" />
+                <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/15 text-cyan-400 font-mono-tech border border-cyan-500/25 font-bold tracking-wider">
+                  2.0 SAAS
+                </span>
+              </div>
+            )}
           </div>
+
+          {!sidebarCollapsed && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleSidebarCollapse}
+              className="hidden lg:flex h-7 w-7 text-sidebar-foreground/50 hover:text-cyan-400 hover:bg-sidebar-accent/50 rounded-lg transition-colors"
+              title="Recolher menu lateral"
+            >
+              <PanelLeftClose className="h-4 w-4" />
+            </Button>
+          )}
         </div>
 
-        <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto scrollbar-none">
+        <nav className={`flex-1 ${sidebarCollapsed ? "px-2" : "px-3"} py-2 space-y-1 overflow-y-auto scrollbar-none`}>
           {navItems.map(renderNavLink)}
-
 
           {/* Cadastros - collapsible group, admin only */}
           {permissions.canManageUsers && (
-            <>
+            <div>
               <button
-                onClick={() => setCadastrosOpen(!cadastrosOpen)}
-                className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 w-full ${
+                onClick={handleCadastrosClick}
+                title={sidebarCollapsed ? "Cadastros" : undefined}
+                className={`relative flex items-center ${
+                  sidebarCollapsed ? "justify-center px-2" : "gap-2.5 px-3"
+                } py-2 rounded-xl text-sm transition-all duration-150 w-full ${
                   isCadastrosActive && !cadastrosOpen
                     ? "bg-sidebar-primary/15 text-sidebar-primary font-medium"
                     : "text-sidebar-foreground/75 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                 }`}
               >
-                <ClipboardList className="h-4 w-4" />
-                Cadastros
-                <ChevronDown className={`ml-auto h-3.5 w-3.5 transition-transform duration-200 ${cadastrosOpen ? "rotate-180" : ""}`} />
+                <ClipboardList className="h-4 w-4 shrink-0" />
+                {!sidebarCollapsed && (
+                  <>
+                    <span className="truncate flex-1 text-left font-medium">Cadastros</span>
+                    <ChevronDown className={`ml-auto h-3.5 w-3.5 transition-transform duration-200 ${cadastrosOpen ? "rotate-180" : ""}`} />
+                  </>
+                )}
               </button>
-              {cadastrosOpen && (
-                <div className="pl-3 space-y-0.5">
+              {cadastrosOpen && !sidebarCollapsed && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="pl-3 space-y-1 mt-1"
+                >
                   {cadastrosItems.map(renderNavLink)}
-                </div>
+                </motion.div>
               )}
-            </>
+            </div>
           )}
 
           {/* Utilidades - Menu com sub-menus e botões para links externos */}
           <div>
             <button
-              onClick={() => setUtilidadesOpen(!utilidadesOpen)}
-              className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm transition-all duration-200 w-full ${
+              onClick={handleUtilidadesClick}
+              title={sidebarCollapsed ? "Utilidades" : undefined}
+              className={`relative flex items-center ${
+                sidebarCollapsed ? "justify-center px-2" : "gap-2.5 px-3"
+              } py-2 rounded-xl text-sm transition-all duration-150 w-full ${
                 utilidadesOpen
                   ? "bg-sidebar-primary/15 text-sidebar-primary font-medium"
                   : "text-sidebar-foreground/75 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
               }`}
             >
-              <Compass className="h-4 w-4" />
-              Utilidades
-              <ChevronDown className={`ml-auto h-3.5 w-3.5 transition-transform duration-200 ${utilidadesOpen ? "rotate-180" : ""}`} />
+              <Compass className="h-4 w-4 shrink-0" />
+              {!sidebarCollapsed && (
+                <>
+                  <span className="truncate flex-1 text-left font-medium">Utilidades</span>
+                  <ChevronDown className={`ml-auto h-3.5 w-3.5 transition-transform duration-200 ${utilidadesOpen ? "rotate-180" : ""}`} />
+                </>
+              )}
             </button>
-            {utilidadesOpen && (
-              <div className="pl-3 space-y-2 mt-1 py-1">
+            {utilidadesOpen && !sidebarCollapsed && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="pl-3 space-y-2 mt-1 py-1"
+              >
                 {UTILITIES_CONFIG.map((submenu) => (
                   <div key={submenu.id} className="space-y-0.5">
                     {submenu.title && (
@@ -371,56 +483,90 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
                     ))}
                   </div>
                 ))}
-              </div>
+              </motion.div>
             )}
           </div>
         </nav>
 
-        <div className="px-3 py-3 border-t border-sidebar-border/60 bg-sidebar-background/60">
-          <div className="px-3 py-2 mb-2 rounded-xl bg-card border border-border shadow-xs">
-            <div className="text-[11px] text-foreground font-medium truncate flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_6px_#06b6d4]" />
-              {user?.email}
-            </div>
-            <div className="text-[10px] text-primary font-mono-tech mt-0.5 uppercase tracking-wider font-semibold">
-              {isAdmin ? "Administrador" : "Operador"}
-            </div>
-          </div>
-          {isAdmin && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-sidebar-accent mb-1 rounded-lg text-xs"
-              onClick={() => setSendDialogOpen(true)}
-            >
-              <Megaphone className="h-3.5 w-3.5 mr-2 text-amber-500 dark:text-amber-400" /> Enviar Aviso
-            </Button>
+        <div className={`p-3 border-t border-sidebar-border/60 bg-sidebar-background/60 ${sidebarCollapsed ? "flex flex-col items-center gap-2" : ""}`}>
+          {sidebarCollapsed ? (
+            <>
+              <button
+                type="button"
+                className="w-10 h-10 rounded-xl bg-card border border-border flex items-center justify-center text-xs font-bold text-primary cursor-pointer hover:border-cyan-500/40 shadow-xs transition-colors"
+                title={`${user?.email} (${isAdmin ? "Admin" : "Operador"})`}
+                onClick={toggleSidebarCollapse}
+              >
+                {user?.email?.charAt(0).toUpperCase() || "U"}
+              </button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-rose-500 hover:bg-rose-500/10 rounded-xl"
+                onClick={signOut}
+                title="Sair do sistema"
+              >
+                <LogOut className="h-4 w-4" />
+              </Button>
+            </>
+          ) : (
+            <>
+              <div className="px-3 py-2 mb-2 rounded-xl bg-card border border-border shadow-xs">
+                <div className="text-[11px] text-foreground font-medium truncate flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 shadow-[0_0_6px_#06b6d4]" />
+                  {user?.email}
+                </div>
+                <div className="text-[10px] text-primary font-mono-tech mt-0.5 uppercase tracking-wider font-semibold">
+                  {isAdmin ? "Administrador" : "Operador"}
+                </div>
+              </div>
+              {isAdmin && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-sidebar-accent mb-1 rounded-lg text-xs"
+                  onClick={() => setSendDialogOpen(true)}
+                >
+                  <Megaphone className="h-3.5 w-3.5 mr-2 text-amber-500 dark:text-amber-400" /> Enviar Aviso
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-sidebar-accent mb-1 rounded-lg text-xs"
+                onClick={() => setChangePasswordOpen(true)}
+              >
+                <KeyRound className="h-3.5 w-3.5 mr-2 text-primary" /> Alterar senha
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-500/10 rounded-lg text-xs"
+                onClick={signOut}
+              >
+                <LogOut className="h-3.5 w-3.5 mr-2 text-rose-600 dark:text-rose-400" /> Sair
+              </Button>
+            </>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-sidebar-accent mb-1 rounded-lg text-xs"
-            onClick={() => setChangePasswordOpen(true)}
-          >
-            <KeyRound className="h-3.5 w-3.5 mr-2 text-primary" /> Alterar senha
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 hover:bg-rose-500/10 rounded-lg text-xs"
-            onClick={signOut}
-          >
-            <LogOut className="h-3.5 w-3.5 mr-2 text-rose-600 dark:text-rose-400" /> Sair
-          </Button>
           <ChangePasswordDialog open={changePasswordOpen} onOpenChange={setChangePasswordOpen} />
         </div>
-      </aside>
+      </motion.aside>
 
       <div className="flex-1 flex flex-col min-w-0 bg-background text-foreground">
         <header className="h-14 border-b border-border bg-card/85 backdrop-blur-xl flex flex-wrap items-center gap-3 px-4 flex-shrink-0 z-10 shadow-xs">
           <button className="lg:hidden p-1.5 rounded-lg bg-card border border-border text-foreground hover:bg-muted" onClick={() => setSidebarOpen(true)}>
             <Menu className="h-4 w-4" />
           </button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={toggleSidebarCollapse}
+            className="hidden lg:flex h-9 w-9 text-muted-foreground hover:text-foreground hover:bg-muted rounded-xl transition-all border border-border/60"
+            title={sidebarCollapsed ? "Expandir menu lateral" : "Recolher menu lateral"}
+          >
+            {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+          </Button>
           <div className="relative flex-1 min-w-0 max-w-sm order-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
