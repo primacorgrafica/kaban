@@ -44,7 +44,7 @@ export function useOrders() {
       while (true) {
         const { data, error } = await supabase
           .from("orders")
-          .select(KANBAN_ESSENTIAL_COLUMNS)
+          .select("*")
           .order("posicao", { ascending: true })
           .range(from, from + PAGE_SIZE - 1);
 

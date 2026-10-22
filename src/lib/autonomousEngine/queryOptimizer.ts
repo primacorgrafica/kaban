@@ -21,35 +21,9 @@ export interface OrdersMetricsSummary {
 
 /**
  * Colunas essenciais para renderização do Kanban operacional.
- * Evita carregar campos pesados desnecessários no board inicial.
+ * Utiliza projeção completa para compatibilidade estrita com todas as flags e cards.
  */
-export const KANBAN_ESSENTIAL_COLUMNS = [
-  "id",
-  "titulo",
-  "descricao",
-  "cliente",
-  "status",
-  "arquivado",
-  "posicao",
-  "prioridade",
-  "setor",
-  "setor_status",
-  "criado_por",
-  "atualizado_por",
-  "responsavel_id",
-  "operador",
-  "os_anterior",
-  "revisao",
-  "parent_order_id",
-  "is_revisao",
-  "observacao",
-  "obs_prova",
-  "saida_direta",
-  "prova_digital",
-  "prova_email",
-  "created_at",
-  "updated_at",
-].join(", ");
+export const KANBAN_ESSENTIAL_COLUMNS = "*";
 
 /**
  * Consulta de alta performance para o Kanban ativo.
