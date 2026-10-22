@@ -215,18 +215,12 @@ export default function AuthPage() {
         <div className="lg:col-span-7 p-7 sm:p-10 lg:p-12 flex flex-col justify-between">
           <div>
             {/* Logo SEM CONTORNO, BEM DESTACADA E AINDA MAIOR */}
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center">
-                <img
-                  src={logoImg}
-                  alt="Primacor Gráfica"
-                  className="h-28 sm:h-36 md:h-40 w-auto object-contain filter drop-shadow-[0_16px_40px_rgba(0,0,0,0.9)] hover:scale-105 transition-transform duration-300"
-                />
-              </div>
-
-              <span className="text-[11px] font-mono-tech px-3 py-1 rounded-full bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/60 font-bold tracking-wider shadow-xs">
-                2.0
-              </span>
+            <div className="flex items-center mb-8">
+              <img
+                src={logoImg}
+                alt="Primacor Gráfica"
+                className="h-28 sm:h-36 md:h-40 w-auto object-contain filter drop-shadow-[0_16px_40px_rgba(0,0,0,0.9)] hover:scale-105 transition-transform duration-300"
+              />
             </div>
 
             {/* Header Titles */}
@@ -337,7 +331,9 @@ export default function AuthPage() {
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34d399]" />
               SISTEMA OPERACIONAL ATIVO
             </span>
-            <span className="text-[10px] font-mono-tech text-[#9BA8AB]">24/7</span>
+            <span className="text-[10px] font-mono-tech px-2.5 py-0.5 rounded-full bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/60 font-bold tracking-wider shadow-xs">
+              2.0
+            </span>
           </div>
 
           {/* Center Floating 3D Glass Showcase Badge (Faithfully matching Reference Image) */}
