@@ -122,7 +122,7 @@ const ROLE_COLORS: Record<AppRole, string> = {
 };
 
 export default function UserManagementPage() {
-  const { signOut, user: currentUser } = useAuth();
+  const { signOut, user: currentUser, isAdmin } = useAuth();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -161,6 +161,10 @@ export default function UserManagementPage() {
   }, [users]);
 
   const fetchUsers = useCallback(async () => {
+    if (!isAdmin) {
+      setLoading(false);
+      return;
+    }
     const [{ data: profiles }, { data: roles }, emailRes, { data: presenceData }] = await Promise.all([
       supabase.from("profiles").select("user_id, nome, setor_vinculado, modulos_acesso" as any),
       supabase.from("user_roles").select("user_id, role"),
@@ -392,9 +396,26 @@ export default function UserManagementPage() {
     setEditing(false);
   };
 
-  const dirtyCount = users.filter((u) => u.dirty).length;
-
-  const allRoles: (AppRole | "sem_papel")[] = ["admin", "coordenador", "operador", "vendedor", "user", "sem_papel"];
+  if (!isAdmin) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-background p-6">
+        <div className="max-w-md text-center flex flex-col items-center">
+          <div className="w-12 h-12 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mb-4">
+            <Shield className="h-6 w-6" />
+          </div>
+          <h2 className="text-xl font-bold text-foreground">Acesso Restrito</h2>
+          <p className="text-sm text-muted-foreground mt-2">
+            Apenas administradores do sistema têm permissão para acessar o gerenciamento de usuários e controle de privilégios.
+          </p>
+          <Link to="/" className="mt-6">
+            <Button variant="outline" className="gap-2">
+              <ArrowLeft className="h-4 w-4" /> Voltar ao Início
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen overflow-hidden">

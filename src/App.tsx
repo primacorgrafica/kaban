@@ -26,6 +26,12 @@ const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 import { GlobalChatNotifier } from "@/components/chat/GlobalChatNotifier";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AutonomousEngineMonitor } from "@/components/AutonomousEngineMonitor";
+import { securityLogger, checkDomainIntegrity } from "@/lib/securityGuardian";
+
+// Executa verificação de integridade de ambiente no carregamento
+if (typeof window !== "undefined") {
+  checkDomainIntegrity();
+}
 
 // Configuração de alto desempenho para o React Query: evita refetches desnecessários ao trocar de aba
 const queryClient = new QueryClient({
@@ -52,10 +58,27 @@ function PageLoadingFallback() {
   );
 }
 
-function ProtectedRoute({ children, module }: { children: React.ReactNode; module?: string }) {
-  const { session, loading, hasModule } = useAuth();
+function ProtectedRoute({
+  children,
+  module,
+  requireAdmin = false,
+}: {
+  children: React.ReactNode;
+  module?: string;
+  requireAdmin?: boolean;
+}) {
+  const { session, loading, hasModule, isAdmin } = useAuth();
   if (loading) return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Carregando...</div>;
   if (!session) return <Navigate to="/login" replace />;
+  if (requireAdmin && !isAdmin) {
+    void securityLogger.log({
+      event_type: "UNAUTHORIZED_ROUTE_ACCESS",
+      severity: "warning",
+      details: { attempted_route: typeof window !== "undefined" ? window.location.pathname : "" },
+      target_resource: "UserManagement",
+    });
+    return <Navigate to="/" replace />;
+  }
   if (module && !hasModule(module)) return <Navigate to="/" replace />;
   return <>{children}</>;
 }
@@ -97,7 +120,7 @@ const App = () => (
                   <Route path="/producao/:departamento" element={<ProtectedRoute module="producao"><ProductionPage /></ProtectedRoute>} />
                   <Route path="/producao" element={<ProtectedRoute module="producao"><ProducaoRedirect /></ProtectedRoute>} />
                   <Route path="/expedicao" element={<ProtectedRoute module="expedicao"><ExpedicaoPage /></ProtectedRoute>} />
-                  <Route path="/usuarios" element={<ProtectedRoute module="cadastro"><UserManagementPage /></ProtectedRoute>} />
+                  <Route path="/usuarios" element={<ProtectedRoute requireAdmin><UserManagementPage /></ProtectedRoute>} />
                   <Route path="/equipamentos" element={<ProtectedRoute module="cadastro"><EquipamentosPage /></ProtectedRoute>} />
                   <Route path="/comercial" element={<ProtectedRoute module="comercial"><ComercialPage /></ProtectedRoute>} />
                   <Route path="/pcp" element={<ProtectedRoute module="pcp"><PcpPage /></ProtectedRoute>} />

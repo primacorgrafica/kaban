@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { authRateLimiter, securityLogger } from "@/lib/securityGuardian";
 import {
   ShieldCheck,
   ArrowRight,
@@ -174,15 +175,55 @@ export default function AuthPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail || !password.trim()) {
       toast.error("Preencha todos os campos");
       return;
     }
+
+    // Verifica bloqueio de força bruta antes de submeter credenciais
+    const rateStatus = authRateLimiter.checkStatus(normalizedEmail);
+    if (!rateStatus.allowed) {
+      toast.error(`Muitas tentativas incorretas. Aguarde ${rateStatus.retryAfterSeconds} segundos.`);
+      void securityLogger.log({
+        event_type: "AUTH_BRUTE_FORCE_BLOCKED",
+        severity: "warning",
+        details: { email: normalizedEmail, retryAfterSeconds: rateStatus.retryAfterSeconds },
+        target_resource: "AuthPage",
+      });
+      return;
+    }
+
     setLoading(true);
-    const { error } = await signIn(email, password);
+    const { error } = await signIn(normalizedEmail, password);
     setLoading(false);
+
     if (error) {
-      toast.error(error.message);
+      const attemptResult = authRateLimiter.recordAttempt(normalizedEmail);
+      void securityLogger.log({
+        event_type: "AUTH_LOGIN_FAILED",
+        severity: attemptResult.allowed ? "info" : "warning",
+        details: {
+          email: normalizedEmail,
+          errorMessage: error.message,
+          remainingAttempts: attemptResult.remainingAttempts,
+        },
+        target_resource: "AuthPage",
+      });
+
+      if (!attemptResult.allowed) {
+        toast.error(`Limite de tentativas excedido. Bloqueado por ${attemptResult.retryAfterSeconds} segundos.`);
+      } else {
+        toast.error(error.message);
+      }
+    } else {
+      authRateLimiter.reset(normalizedEmail);
+      void securityLogger.log({
+        event_type: "AUTH_LOGIN_SUCCESS",
+        severity: "info",
+        details: { email: normalizedEmail },
+        target_resource: "AuthPage",
+      });
     }
   };
 
