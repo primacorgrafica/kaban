@@ -677,34 +677,36 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12 animate-in fade-in duration-300">
-      {/* Executive Telemetry Header */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-5 rounded-3xl bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800/80 backdrop-blur-xl shadow-xs dark:shadow-2xl">
+      {/* Executive Telemetry Header - Modern SaaS Minimalist */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-5 rounded-2xl bg-card/70 dark:bg-slate-900/40 border border-border/70 backdrop-blur-xl shadow-xs">
         <div className="flex items-center gap-3.5">
-          <div className="relative p-3 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-blue-600/20 border border-cyan-500/30 text-cyan-500 dark:text-cyan-400 shadow-[0_0_20px_rgba(6,182,212,0.15)]">
-            <BarChart3 className="h-6 w-6" />
-            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+          <div className="relative p-2.5 rounded-xl bg-cyan-500/10 dark:bg-cyan-500/15 border border-cyan-500/25 text-cyan-600 dark:text-cyan-400">
+            <BarChart3 className="h-5 w-5" />
+            <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
             </span>
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold tracking-tight text-foreground">Dashboard de Telemetria</h1>
-              <Badge variant="outline" className="font-mono-tech text-[10px] text-emerald-600 dark:text-emerald-400 border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5">
-                SISTEMA OPERACIONAL
-              </Badge>
+              <h1 className="text-lg sm:text-xl font-bold tracking-tight text-foreground font-sans">
+                Telemetria Operacional
+              </h1>
+              <span className="saas-pill bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[10px] font-mono-tech uppercase">
+                Ao Vivo
+              </span>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Primacor OS v2.0 • Monitoramento em tempo real da produção e fluxo gráfico
+              Primacor OS • Monitoramento em tempo real do fluxo gráfico e chão de fábrica
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2.5 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant="outline"
             size="sm"
-            className="gap-2 bg-card border-border hover:bg-muted text-foreground text-xs h-9 rounded-xl shadow-xs"
+            className="gap-2 bg-background hover:bg-muted text-foreground text-xs h-8 rounded-lg border-border/80 saas-interactive shadow-xs"
             onClick={() => {
               exportFullAnalyticsPDF(allTimelines, avgPerStatus, avgTotal, {
                 total,
@@ -715,343 +717,330 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
               toast.success("PDF analítico completo exportado!");
             }}
           >
-            <FileDown className="h-4 w-4 text-cyan-500 dark:text-cyan-400" />
-            Exportar Relatório PDF
+            <FileDown className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />
+            <span>Relatório PDF</span>
           </Button>
 
           <Button
             variant="outline"
             size="sm"
-            className="gap-2 bg-card border-border hover:bg-muted text-foreground text-xs h-9 rounded-xl shadow-xs"
+            className="gap-2 bg-background hover:bg-muted text-foreground text-xs h-8 rounded-lg border-border/80 saas-interactive shadow-xs"
             onClick={handleBackup}
             disabled={backupLoading}
           >
-            {backupLoading ? <Loader2 className="h-4 w-4 animate-spin text-cyan-500 dark:text-cyan-400" /> : <DatabaseBackup className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />}
-            {backupLoading ? "Gerando Backup..." : "Backup JSON"}
+            {backupLoading ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-cyan-500" />
+            ) : (
+              <DatabaseBackup className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
+            )}
+            <span>{backupLoading ? "Gerando..." : "Backup JSON"}</span>
           </Button>
         </div>
       </div>
 
-      {/* Row 1: KPI Telemetry Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
-        <div className="p-4 rounded-2xl bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800/80 shadow-xs dark:shadow-[0_0_20px_rgba(6,182,212,0.08)] relative overflow-hidden group hover:border-cyan-500/50 transition-all">
-          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium mb-2">
-            <span className="flex items-center gap-1.5 text-cyan-600 dark:text-cyan-400 font-semibold tracking-wide uppercase text-[11px]">
-              <Layers className="h-3.5 w-3.5" /> OS em Produção
+      {/* Row 1: KPI Telemetry Cards - SaaS Refined */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="saas-stat-card group">
+          <div className="flex items-center justify-between text-muted-foreground text-xs mb-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+              Em Produção
             </span>
-            <Activity className="h-3.5 w-3.5 text-cyan-500/50 group-hover:text-cyan-400 transition-colors" />
+            <div className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
+              <Layers className="h-3.5 w-3.5" />
+            </div>
           </div>
-          <div className="text-3xl font-extrabold font-mono-tech text-foreground tracking-tight">{total}</div>
-          <p className="text-[11px] text-muted-foreground mt-1">Ordens ativas na fábrica</p>
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 to-blue-500 opacity-60" />
+          <div className="text-2xl sm:text-3xl font-bold font-mono-tech text-foreground tracking-tight">
+            {total}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1 truncate">Ordens ativas na fábrica</p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800/80 shadow-xs dark:shadow-[0_0_20px_rgba(59,130,246,0.08)] relative overflow-hidden group hover:border-blue-500/50 transition-all">
-          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium mb-2">
-            <span className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 font-semibold tracking-wide uppercase text-[11px]">
-              <Clock className="h-3.5 w-3.5" /> Criadas Hoje
+        <div className="saas-stat-card group">
+          <div className="flex items-center justify-between text-muted-foreground text-xs mb-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+              Criadas Hoje
             </span>
-            <Sparkles className="h-3.5 w-3.5 text-blue-500/50 group-hover:text-blue-400 transition-colors" />
+            <div className="p-1.5 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
+              <Clock className="h-3.5 w-3.5" />
+            </div>
           </div>
-          <div className="text-3xl font-extrabold font-mono-tech text-foreground tracking-tight">{todayOrders}</div>
-          <p className="text-[11px] text-muted-foreground mt-1">Novas entradas no dia</p>
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-indigo-500 opacity-60" />
+          <div className="text-2xl sm:text-3xl font-bold font-mono-tech text-foreground tracking-tight">
+            {todayOrders}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1 truncate">Novas entradas no dia</p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800/80 shadow-xs dark:shadow-[0_0_20px_rgba(16,185,129,0.08)] relative overflow-hidden group hover:border-emerald-500/50 transition-all">
-          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium mb-2">
-            <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-semibold tracking-wide uppercase text-[11px]">
-              <CheckCircle2 className="h-3.5 w-3.5" /> Aprovadas Hoje
+        <div className="saas-stat-card group">
+          <div className="flex items-center justify-between text-muted-foreground text-xs mb-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+              Aprovadas Hoje
             </span>
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-500/50 group-hover:text-emerald-400 transition-colors" />
+            <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+            </div>
           </div>
-          <div className="text-3xl font-extrabold font-mono-tech text-foreground tracking-tight">{completedTodayOrders.length}</div>
-          <p className="text-[11px] text-muted-foreground mt-1">Saídas de pré-impressão</p>
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500 opacity-60" />
+          <div className="text-2xl sm:text-3xl font-bold font-mono-tech text-foreground tracking-tight">
+            {completedTodayOrders.length}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1 truncate">Saídas de pré-impressão</p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800/80 shadow-xs dark:shadow-[0_0_20px_rgba(139,92,246,0.08)] relative overflow-hidden group hover:border-violet-500/50 transition-all">
-          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium mb-2">
-            <span className="flex items-center gap-1.5 text-violet-600 dark:text-violet-400 font-semibold tracking-wide uppercase text-[11px]">
-              <Printer className="h-3.5 w-3.5" /> Provas Hoje
+        <div className="saas-stat-card group">
+          <div className="flex items-center justify-between text-muted-foreground text-xs mb-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors">
+              Provas Hoje
             </span>
-            <PrinterCheck className="h-3.5 w-3.5 text-violet-500/50 group-hover:text-violet-400 transition-colors" />
+            <div className="p-1.5 rounded-lg bg-violet-500/10 text-violet-600 dark:text-violet-400">
+              <Printer className="h-3.5 w-3.5" />
+            </div>
           </div>
-          <div className="text-3xl font-extrabold font-mono-tech text-foreground tracking-tight">{provasTodayCount}</div>
-          <p className="text-[11px] text-muted-foreground mt-1">Provas físicas e digitais</p>
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-violet-500 to-purple-500 opacity-60" />
+          <div className="text-2xl sm:text-3xl font-bold font-mono-tech text-foreground tracking-tight">
+            {provasTodayCount}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1 truncate">Físicas e digitais</p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800/80 shadow-xs dark:shadow-[0_0_20px_rgba(245,158,11,0.08)] relative overflow-hidden group hover:border-amber-500/50 transition-all col-span-2 sm:col-span-1">
-          <div className="flex items-center justify-between text-muted-foreground text-xs font-medium mb-2">
-            <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400 font-semibold tracking-wide uppercase text-[11px]">
-              <ArrowRight className="h-3.5 w-3.5" /> Novo Arquivo
+        <div className="saas-stat-card group col-span-2 sm:col-span-1">
+          <div className="flex items-center justify-between text-muted-foreground text-xs mb-2">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+              Novo Arquivo
             </span>
-            <AlertTriangle className="h-3.5 w-3.5 text-amber-500/50 group-hover:text-amber-400 transition-colors" />
+            <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400">
+              <AlertTriangle className="h-3.5 w-3.5" />
+            </div>
           </div>
-          <div className="text-3xl font-extrabold font-mono-tech text-foreground tracking-tight">{novoArquivoTodayCount}</div>
-          <p className="text-[11px] text-muted-foreground mt-1">Ajustes liberados hoje</p>
-          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 to-rose-500 opacity-60" />
+          <div className="text-2xl sm:text-3xl font-bold font-mono-tech text-foreground tracking-tight">
+            {novoArquivoTodayCount}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-1 truncate">Ajustes liberados hoje</p>
         </div>
       </div>
 
-      {/* Row 2: Sector Production Radar Bar */}
-      <div className="p-4 rounded-2xl bg-card dark:bg-slate-900/60 border border-border dark:border-slate-800/80 shadow-xs backdrop-blur-md">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Activity className="h-4 w-4 text-cyan-500 dark:text-cyan-400" />
-            <span className="text-xs font-semibold text-foreground uppercase tracking-wider">
-              Distribuição por Setor de Fábrica
-            </span>
-          </div>
-          <span className="text-[11px] text-muted-foreground">Clique para filtrar ordens no Chão de Fábrica</span>
-        </div>
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <button
-            onClick={() => handleSelectSectorFilter("pre_impressao")}
-            className="flex flex-col p-3 rounded-xl bg-muted/40 dark:bg-slate-950/60 border border-border dark:border-slate-800 hover:border-cyan-500/40 hover:bg-cyan-500/5 transition-all text-left group"
-          >
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-              <span className="font-medium group-hover:text-cyan-500 dark:group-hover:text-cyan-400 transition-colors">Pré-Impressão</span>
-              <span className="font-mono-tech font-bold text-foreground text-sm">{sectorCounts.pre_impressao}</span>
-            </div>
-            <div className="w-full h-1.5 bg-muted dark:bg-slate-800 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-cyan-500 dark:bg-cyan-400 rounded-full transition-all duration-500"
-                style={{ width: `${total > 0 ? (sectorCounts.pre_impressao / total) * 100 : 0}%` }}
-              />
-            </div>
-          </button>
-
-          <button
-            onClick={() => handleSelectSectorFilter("qualidade")}
-            className="flex flex-col p-3 rounded-xl bg-muted/40 dark:bg-slate-950/60 border border-border dark:border-slate-800 hover:border-violet-500/40 hover:bg-violet-500/5 transition-all text-left group"
-          >
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-              <span className="font-medium group-hover:text-violet-500 dark:group-hover:text-violet-400 transition-colors">Qualidade</span>
-              <span className="font-mono-tech font-bold text-foreground text-sm">{sectorCounts.qualidade}</span>
-            </div>
-            <div className="w-full h-1.5 bg-muted dark:bg-slate-800 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-violet-500 dark:bg-violet-400 rounded-full transition-all duration-500"
-                style={{ width: `${total > 0 ? (sectorCounts.qualidade / total) * 100 : 0}%` }}
-              />
-            </div>
-          </button>
-
-          <button
-            onClick={() => handleSelectSectorFilter("expedicao")}
-            className="flex flex-col p-3 rounded-xl bg-muted/40 dark:bg-slate-950/60 border border-border dark:border-slate-800 hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all text-left group"
-          >
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-              <span className="font-medium group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition-colors">Expedição</span>
-              <span className="font-mono-tech font-bold text-foreground text-sm">{sectorCounts.expedicao}</span>
-            </div>
-            <div className="w-full h-1.5 bg-muted dark:bg-slate-800 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-emerald-500 dark:bg-emerald-400 rounded-full transition-all duration-500"
-                style={{ width: `${total > 0 ? (sectorCounts.expedicao / total) * 100 : 0}%` }}
-              />
-            </div>
-          </button>
-
-          <button
-            onClick={() => handleSelectSectorFilter("compras")}
-            className="flex flex-col p-3 rounded-xl bg-muted/40 dark:bg-slate-950/60 border border-border dark:border-slate-800 hover:border-pink-500/40 hover:bg-pink-500/5 transition-all text-left group"
-          >
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
-              <span className="font-medium group-hover:text-pink-500 dark:group-hover:text-pink-400 transition-colors flex items-center gap-1.5">
-                <ShoppingBag className="h-3.5 w-3.5 text-pink-500" /> Compras
+      {/* Row 2: Unified Operations & Governance Control Hub */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5">
+        {/* Sector Production Distribution */}
+        <div className="lg:col-span-7 p-4 rounded-2xl bg-card/70 dark:bg-slate-900/40 border border-border/70 backdrop-blur-md shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Activity className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+              <span className="text-xs font-bold text-foreground tracking-tight">
+                Distribuição por Setor
               </span>
-              <span className="font-mono-tech font-bold text-foreground text-sm">{sectorCounts.compras}</span>
             </div>
-            <div className="w-full h-1.5 bg-muted dark:bg-slate-800 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-pink-500 dark:bg-pink-400 rounded-full transition-all duration-500"
-                style={{ width: `${total > 0 ? (sectorCounts.compras / total) * 100 : 0}%` }}
-              />
-            </div>
-          </button>
-        </div>
-      </div>
+            <span className="text-[11px] text-muted-foreground">Clique para filtrar Chão de Fábrica</span>
+          </div>
 
-      {/* Row 2.5: Executive Governance & Recent System Changes Banner */}
-      <div className="p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-pink-500/10 to-cyan-500/10 border border-amber-500/20 dark:border-amber-500/30 backdrop-blur-md shadow-xs space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-amber-500/20 text-amber-500 dark:text-amber-400 border border-amber-500/30">
-              <Sparkles className="h-4 w-4" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-xs font-bold text-foreground uppercase tracking-wider">
-                  Radar de Governança & Mudanças Operacionais
-                </h3>
-                <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-500 dark:text-amber-400 border-amber-500/30 px-2 py-0">
-                  VISÃO ADMIN
-                </Badge>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <button
+              onClick={() => handleSelectSectorFilter("pre_impressao")}
+              className="p-2.5 rounded-xl bg-background/80 hover:bg-cyan-500/5 border border-border/70 hover:border-cyan-500/30 transition-all text-left saas-interactive group"
+            >
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
+                <span className="font-medium group-hover:text-cyan-600 dark:group-hover:text-cyan-400 truncate">Pré-Impressão</span>
+                <span className="font-mono-tech font-bold text-foreground">{sectorCounts.pre_impressao}</span>
               </div>
-              <p className="text-[11px] text-muted-foreground">
-                Auditoria em tempo real: Revisões (REVs), Trava de Saída (Faca/Clichê) e Compras Automáticas
-              </p>
-            </div>
-          </div>
+              <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-cyan-500 rounded-full transition-all duration-500"
+                  style={{ width: `${total > 0 ? (sectorCounts.pre_impressao / total) * 100 : 0}%` }}
+                />
+              </div>
+            </button>
 
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => { setActiveTab("governanca"); setGovernancaSubFilter("all"); }}
-            className="text-xs h-8 rounded-xl bg-card/70 hover:bg-card border-border gap-1.5 self-start sm:self-auto"
-          >
-            <span>Auditoria Completa</span>
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Button>
+            <button
+              onClick={() => handleSelectSectorFilter("qualidade")}
+              className="p-2.5 rounded-xl bg-background/80 hover:bg-violet-500/5 border border-border/70 hover:border-violet-500/30 transition-all text-left saas-interactive group"
+            >
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
+                <span className="font-medium group-hover:text-violet-600 dark:group-hover:text-violet-400 truncate">Qualidade</span>
+                <span className="font-mono-tech font-bold text-foreground">{sectorCounts.qualidade}</span>
+              </div>
+              <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-violet-500 rounded-full transition-all duration-500"
+                  style={{ width: `${total > 0 ? (sectorCounts.qualidade / total) * 100 : 0}%` }}
+                />
+              </div>
+            </button>
+
+            <button
+              onClick={() => handleSelectSectorFilter("expedicao")}
+              className="p-2.5 rounded-xl bg-background/80 hover:bg-emerald-500/5 border border-border/70 hover:border-emerald-500/30 transition-all text-left saas-interactive group"
+            >
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
+                <span className="font-medium group-hover:text-emerald-600 dark:group-hover:text-emerald-400 truncate">Expedição</span>
+                <span className="font-mono-tech font-bold text-foreground">{sectorCounts.expedicao}</span>
+              </div>
+              <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                  style={{ width: `${total > 0 ? (sectorCounts.expedicao / total) * 100 : 0}%` }}
+                />
+              </div>
+            </button>
+
+            <button
+              onClick={() => handleSelectSectorFilter("compras")}
+              className="p-2.5 rounded-xl bg-background/80 hover:bg-pink-500/5 border border-border/70 hover:border-pink-500/30 transition-all text-left saas-interactive group"
+            >
+              <div className="flex items-center justify-between text-[11px] text-muted-foreground mb-1">
+                <span className="font-medium group-hover:text-pink-600 dark:group-hover:text-pink-400 truncate">Compras</span>
+                <span className="font-mono-tech font-bold text-foreground">{sectorCounts.compras}</span>
+              </div>
+              <div className="w-full h-1 bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-pink-500 rounded-full transition-all duration-500"
+                  style={{ width: `${total > 0 ? (sectorCounts.compras / total) * 100 : 0}%` }}
+                />
+              </div>
+            </button>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* Card 1: REVs / Retrabalhos */}
-          <div
-            onClick={() => { setActiveTab("governanca"); setGovernancaSubFilter("revisoes"); }}
-            className="p-3.5 rounded-xl bg-card/70 dark:bg-slate-950/70 border border-border dark:border-slate-800 hover:border-amber-500/40 hover:bg-amber-500/5 transition-all cursor-pointer group"
-          >
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-500 dark:text-amber-400">
-                <RotateCcw className="h-4 w-4" /> Controle de Revisões (REVs)
+        {/* Governance & Audit Radar Widget */}
+        <div className="lg:col-span-5 p-4 rounded-2xl bg-card/70 dark:bg-slate-900/40 border border-border/70 backdrop-blur-md shadow-xs flex flex-col justify-between">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-amber-500" />
+              <span className="text-xs font-bold text-foreground tracking-tight">
+                Radar de Governança
               </span>
-              <span className="font-mono-tech font-extrabold text-base text-foreground">
+              <span className="saas-pill bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-[9px] font-mono-tech">
+                ADMIN
+              </span>
+            </div>
+            <button
+              onClick={() => { setActiveTab("governanca"); setGovernancaSubFilter("all"); }}
+              className="text-[11px] font-semibold text-primary hover:underline flex items-center gap-1 saas-interactive"
+            >
+              <span>Auditoria</span>
+              <ArrowRight className="h-3 w-3" />
+            </button>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onClick={() => { setActiveTab("governanca"); setGovernancaSubFilter("revisoes"); }}
+              className="p-2 rounded-xl bg-background/80 hover:bg-amber-500/5 border border-border/70 hover:border-amber-500/30 transition-all text-left saas-interactive"
+            >
+              <div className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+                <RotateCcw className="h-3 w-3 text-amber-500 shrink-0" />
+                <span className="truncate">REVs</span>
+              </div>
+              <div className="text-base font-bold font-mono-tech text-foreground mt-0.5">
                 {revisionOrders.length}
+              </div>
+              <span className="text-[10px] text-muted-foreground truncate block">
+                {rev3PlusCount > 0 ? (
+                  <span className="text-rose-600 dark:text-rose-400 font-bold">{rev3PlusCount} crítica{rev3PlusCount > 1 ? "s" : ""}</span>
+                ) : (
+                  "Sob controle"
+                )}
               </span>
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              Ordens com histórico de retrabalho na Preparação
-            </p>
-            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/40 text-[11px]">
-              <span className="text-muted-foreground">REV 2: <b className="text-foreground">{rev2Count}</b></span>
-              <span className="text-muted-foreground">•</span>
-              <span className={rev3PlusCount > 0 ? "text-rose-500 dark:text-rose-400 font-bold flex items-center gap-1 animate-pulse" : "text-muted-foreground"}>
-                REV 3+: <b className={rev3PlusCount > 0 ? "text-rose-500 dark:text-rose-400" : "text-foreground"}>{rev3PlusCount}</b> {rev3PlusCount > 0 && "⚠️"}
-              </span>
-            </div>
-          </div>
+            </button>
 
-          {/* Card 2: Trava de Saída Faca & Clichê */}
-          <div
-            onClick={() => { setActiveTab("governanca"); setGovernancaSubFilter("saida_travas"); }}
-            className="p-3.5 rounded-xl bg-card/70 dark:bg-slate-950/70 border border-border dark:border-slate-800 hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all cursor-pointer group"
-          >
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-500 dark:text-emerald-400">
-                <ShieldCheck className="h-4 w-4" /> Trava Faca & Clichê na Saída
+            <button
+              onClick={() => { setActiveTab("governanca"); setGovernancaSubFilter("saida_travas"); }}
+              className="p-2 rounded-xl bg-background/80 hover:bg-emerald-500/5 border border-border/70 hover:border-emerald-500/30 transition-all text-left saas-interactive"
+            >
+              <div className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+                <ShieldCheck className="h-3 w-3 text-emerald-500 shrink-0" />
+                <span className="truncate">Trava Saída</span>
+              </div>
+              <div className="text-base font-bold font-mono-tech text-foreground mt-0.5">
+                {saidaWithToolsCount}
+              </div>
+              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium truncate block">
+                100% Auditada
               </span>
-              <Badge variant="outline" className="font-mono-tech text-[10px] text-emerald-500 dark:text-emerald-400 border-emerald-500/30 bg-emerald-500/10">
-                100% AUDITADO
-              </Badge>
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              Saída bloqueada sem confirmação obrigatória de ferramental
-            </p>
-            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/40 text-[11px]">
-              <span className="text-muted-foreground">
-                Com Ferramental: <b className="text-foreground">{saidaWithToolsCount}</b> O.S.
-              </span>
-              <span className="text-muted-foreground">•</span>
-              <span className="text-emerald-500 dark:text-emerald-400 font-medium">Validado na Saída</span>
-            </div>
-          </div>
+            </button>
 
-          {/* Card 3: Central de Compras Integrada */}
-          <div
-            onClick={() => { setActiveTab("governanca"); setGovernancaSubFilter("compras"); }}
-            className="p-3.5 rounded-xl bg-card/70 dark:bg-slate-950/70 border border-border dark:border-slate-800 hover:border-pink-500/40 hover:bg-pink-500/5 transition-all cursor-pointer group"
-          >
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-pink-500 dark:text-pink-400">
-                <ShoppingBag className="h-4 w-4" /> Compras & Pantones
+            <button
+              onClick={() => { setActiveTab("governanca"); setGovernancaSubFilter("compras"); }}
+              className="p-2 rounded-xl bg-background/80 hover:bg-pink-500/5 border border-border/70 hover:border-pink-500/30 transition-all text-left saas-interactive"
+            >
+              <div className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+                <ShoppingBag className="h-3 w-3 text-pink-500 shrink-0" />
+                <span className="truncate">Compras</span>
+              </div>
+              <div className="text-base font-bold font-mono-tech text-foreground mt-0.5">
+                {comprasStats.total}
+              </div>
+              <span className="text-[10px] text-muted-foreground truncate block">
+                {comprasStats.pendentes > 0 ? (
+                  <span className="text-amber-600 dark:text-amber-400 font-bold">{comprasStats.pendentes} pend.</span>
+                ) : (
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">Em dia</span>
+                )}
               </span>
-              <span className="font-mono-tech font-extrabold text-base text-foreground">
-                {comprasStats.total} O.S.
-              </span>
-            </div>
-            <p className="text-[11px] text-muted-foreground">
-              Criação automática a partir da Saída da Pré-Impressão
-            </p>
-            <div className="flex items-center gap-2 mt-2 pt-2 border-t border-border/40 text-[11px]">
-              <span className="text-emerald-500 dark:text-emerald-400 font-bold flex items-center gap-1">
-                <Check className="h-3 w-3 stroke-[3]" /> {comprasStats.comprados} Comprados (Verde)
-              </span>
-              <span className="text-muted-foreground">•</span>
-              <span className={comprasStats.pendentes > 0 ? "text-amber-500 dark:text-amber-400 font-bold" : "text-muted-foreground"}>
-                {comprasStats.pendentes} Pendentes
-              </span>
-            </div>
+            </button>
           </div>
         </div>
       </div>
 
-      {/* Structured Executive Navigation Tabs */}
+      {/* Structured Executive Navigation Tabs - Sleek SaaS Segmented Control */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-6">
-        <div className="flex items-center justify-between overflow-x-auto pb-1 border-b border-border">
-          <TabsList className="bg-card dark:bg-slate-950/80 border border-border dark:border-slate-800/80 p-1 rounded-2xl h-auto gap-1 shadow-xs">
+        <div className="overflow-x-auto pb-1 scrollbar-hide">
+          <TabsList className="bg-muted/40 dark:bg-slate-900/50 border border-border/60 p-1 rounded-xl h-auto gap-1 shadow-xs flex-nowrap min-w-max">
             <TabsTrigger
               value="geral"
-              className="text-xs py-2 px-3.5 rounded-xl data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-300 data-[state=active]:font-bold transition-all"
+              className="text-xs py-2 px-3.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium transition-all"
             >
-              Visão Geral & Gargalos
+              Visão Geral
             </TabsTrigger>
             <TabsTrigger
               value="governanca"
-              className="text-xs py-2 px-3.5 rounded-xl data-[state=active]:bg-gradient-to-r data-[state=active]:from-amber-500/20 data-[state=active]:to-pink-500/20 data-[state=active]:text-amber-300 data-[state=active]:font-bold transition-all flex items-center gap-1.5 border border-transparent data-[state=active]:border-amber-500/30"
+              className="text-xs py-2 px-3.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium transition-all flex items-center gap-1.5"
             >
-              <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-              <span>Governança & Mudanças</span>
+              <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+              <span>Governança</span>
               {revisionOrders.length > 0 && (
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-rose-500/30 text-rose-300 font-bold animate-pulse">
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-rose-500/15 text-rose-600 dark:text-rose-400 font-bold">
                   {revisionOrders.length} REV
                 </span>
               )}
               {comprasStats.pendentes > 0 && (
-                <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-amber-500/30 text-amber-300 font-bold">
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold">
                   {comprasStats.pendentes} Compra
                 </span>
               )}
             </TabsTrigger>
             <TabsTrigger
               value="producao"
-              className="text-xs py-2 px-3.5 rounded-xl data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-300 data-[state=active]:font-bold transition-all"
+              className="text-xs py-2 px-3.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium transition-all"
             >
               Chão de Fábrica ({filteredProductionOrders.length})
             </TabsTrigger>
             <TabsTrigger
               value="sla"
-              className="text-xs py-2 px-3.5 rounded-xl data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-300 data-[state=active]:font-bold transition-all"
+              className="text-xs py-2 px-3.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium transition-all"
             >
-              Lead Time & Prazos
+              Lead Time & SLA
             </TabsTrigger>
             <TabsTrigger
               value="pre-impressao"
-              className="text-xs py-2 px-3.5 rounded-xl data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-300 data-[state=active]:font-bold transition-all"
+              className="text-xs py-2 px-3.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium transition-all"
             >
               Métricas Pré-Impressão
             </TabsTrigger>
             <TabsTrigger
               value="suprimentos"
-              className="text-xs py-2 px-3.5 rounded-xl data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-300 data-[state=active]:font-bold transition-all flex items-center gap-1.5"
+              className="text-xs py-2 px-3.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium transition-all flex items-center gap-1.5"
             >
-              <span>Faca / Clichê / Pantone</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-mono-tech bg-emerald-500/20 text-emerald-400 font-semibold">
+              <span>Suprimentos</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full font-mono-tech bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 font-semibold">
                 {supplyStats.sent}/{supplyStats.total}
               </span>
             </TabsTrigger>
             <TabsTrigger
               value="avisos"
-              className="text-xs py-2 px-3.5 rounded-xl data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-300 data-[state=active]:font-bold transition-all"
+              className="text-xs py-2 px-3.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium transition-all"
             >
               Avisos ({avisos.length})
             </TabsTrigger>
             <TabsTrigger
               value="backup"
-              className="text-xs py-2 px-3.5 rounded-xl data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-300 data-[state=active]:font-bold transition-all"
+              className="text-xs py-2 px-3.5 rounded-lg data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-xs font-medium transition-all"
             >
               Exportações & Backup
             </TabsTrigger>
@@ -1060,19 +1049,19 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
         {/* TAB 1: VISÃO GERAL & GARGALOS */}
         <TabsContent value="geral" className="space-y-6 m-0">
-          {/* Critical Deadlines Alert Banner */}
+          {/* Critical Deadlines Alert Banner - Sleek Minimalist */}
           {criticalDeadlines.length > 0 && (
-            <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/25 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs">
               <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400">
-                  <AlertTriangle className="h-5 w-5" />
+                <div className="p-2 rounded-lg bg-rose-500/20 text-rose-500 shrink-0">
+                  <AlertTriangle className="h-4 w-4" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-rose-300">
+                  <h4 className="text-xs font-bold text-rose-600 dark:text-rose-300">
                     Atenção: {criticalDeadlines.length} {criticalDeadlines.length === 1 ? "Ordem com Prazo Crítico" : "Ordens com Prazos Críticos"}
                   </h4>
-                  <p className="text-xs text-rose-400/80">
-                    Ordens atrasadas ou que vencem em menos de 2 horas requerem prioridade imediata.
+                  <p className="text-[11px] text-rose-600/80 dark:text-rose-300/80 mt-0.5">
+                    Ordens atrasadas ou que vencem em menos de 2 horas requerem prioridade imediata no fluxo.
                   </p>
                 </div>
               </div>
@@ -1080,150 +1069,175 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                 size="sm"
                 variant="outline"
                 onClick={() => setActiveTab("sla")}
-                className="bg-rose-500/20 border-rose-500/40 hover:bg-rose-500/30 text-rose-200 text-xs h-8 rounded-xl shrink-0"
+                className="bg-rose-500/15 border-rose-500/30 hover:bg-rose-500/25 text-rose-700 dark:text-rose-200 text-xs h-8 rounded-lg shrink-0 saas-interactive"
               >
-                Ver Prazos no SLA
+                Ver no SLA
               </Button>
             </div>
           )}
 
           {/* Executive Overview: Governança das Mudanças Recentes */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* REVs Recentes */}
-            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl">
-              <CardHeader className="pb-3 border-b border-border">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    <RotateCcw className="h-4 w-4 text-amber-500" /> Ordens em Revisão / Retrabalho ({revisionOrders.length})
-                  </CardTitle>
+            <div className="saas-card saas-card-hover p-4 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between pb-3 border-b border-border/60">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500">
+                      <RotateCcw className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-foreground">Ordens em Revisão / Retrabalho</h3>
+                      <p className="text-[10px] text-muted-foreground">{revisionOrders.length} ordens com histórico</p>
+                    </div>
+                  </div>
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={() => { setActiveTab("governanca"); setGovernancaSubFilter("revisoes"); }}
-                    className="text-xs h-7 text-amber-500 hover:text-amber-400 hover:bg-amber-500/10 p-2 rounded-lg"
+                    className="text-xs h-7 text-amber-600 dark:text-amber-400 hover:text-amber-700 hover:bg-amber-500/10 px-2.5 rounded-lg saas-interactive"
                   >
                     Ver Todas
                   </Button>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-4">
-                {revisionOrders.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-6">Nenhuma ordem com retrabalho ou revisão no momento.</p>
-                ) : (
-                  <div className="space-y-2.5">
-                    {revisionOrders.slice(0, 5).map((r) => (
-                      <div
-                        key={`home-rev-${r.order.id}`}
-                        className="p-3 rounded-xl bg-muted/40 border border-border flex items-center justify-between gap-3 hover:border-amber-500/30 transition-colors"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono-tech font-bold text-xs text-foreground">#{r.order.titulo}</span>
-                            <span className="text-[11px] font-bold text-foreground uppercase tracking-wide truncate">• {(r.order.cliente || "").toUpperCase()}</span>
-                            <Badge
-                              className={`text-[10px] font-mono-tech font-bold px-1.5 py-0 ${
-                                r.revNumber >= 3 ? "bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-pulse" : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                              }`}
-                            >
-                              REV {r.revNumber}
-                            </Badge>
+
+                <div className="pt-3">
+                  {revisionOrders.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-muted-foreground">
+                      Nenhuma ordem com retrabalho ou revisão no momento.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {revisionOrders.slice(0, 5).map((r) => (
+                        <div
+                          key={`home-rev-${r.order.id}`}
+                          className="p-2.5 rounded-xl bg-muted/30 hover:bg-muted/60 border border-border/60 flex items-center justify-between gap-3 transition-colors"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono-tech font-bold text-xs text-foreground">#{r.order.titulo}</span>
+                              <span className="text-[11px] font-medium text-foreground truncate">• {(r.order.cliente || "").toUpperCase()}</span>
+                              <span
+                                className={`text-[10px] font-mono-tech font-bold px-1.5 py-0.5 rounded ${
+                                  r.revNumber >= 3
+                                    ? "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30"
+                                    : "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                                }`}
+                              >
+                                REV {r.revNumber}
+                              </span>
+                            </div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                              {r.cleanObs || "Motivo da revisão não especificado"}
+                            </div>
                           </div>
-                          <div className="text-[10px] text-muted-foreground mt-1 truncate">
-                            {r.cleanObs || "Motivo da revisão não especificado"}
+                          <div className="text-right shrink-0">
+                            <span className="text-[10px] font-medium text-muted-foreground bg-muted/60 px-2 py-0.5 rounded-md">
+                              {r.order.operador || "—"}
+                            </span>
                           </div>
                         </div>
-                        <div className="text-right shrink-0">
-                          <span className="text-[10px] font-medium text-muted-foreground">
-                            {r.order.operador || "—"}
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
 
             {/* Compras Recentes */}
-            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl">
-              <CardHeader className="pb-3 border-b border-border">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    <ShoppingBag className="h-4 w-4 text-pink-500" /> Central de Compras Integrada ({comprasStats.total})
-                  </CardTitle>
+            <div className="saas-card saas-card-hover p-4 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between pb-3 border-b border-border/60">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-pink-500/10 text-pink-500">
+                      <ShoppingBag className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-bold text-foreground">Central de Compras Integrada</h3>
+                      <p className="text-[10px] text-muted-foreground">{comprasStats.total} ordens com insumos</p>
+                    </div>
+                  </div>
                   <Button
                     size="sm"
                     variant="ghost"
                     onClick={() => { setActiveTab("governanca"); setGovernancaSubFilter("compras"); }}
-                    className="text-xs h-7 text-pink-500 hover:text-pink-400 hover:bg-pink-500/10 p-2 rounded-lg"
+                    className="text-xs h-7 text-pink-600 dark:text-pink-400 hover:text-pink-700 hover:bg-pink-500/10 px-2.5 rounded-lg saas-interactive"
                   >
                     Ver Todas
                   </Button>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-4">
-                {comprasOrders.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-6">Nenhuma ordem enviada para Compras no momento.</p>
-                ) : (
-                  <div className="space-y-2.5">
-                    {comprasOrders.slice(0, 5).map((c) => (
-                      <div
-                        key={`home-compras-${c.order.id}`}
-                        className="p-3 rounded-xl bg-muted/40 border border-border flex items-center justify-between gap-3 hover:border-pink-500/30 transition-colors"
-                      >
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono-tech font-bold text-xs text-foreground">#{c.order.titulo}</span>
-                            <span className="text-[11px] font-bold text-foreground uppercase tracking-wide truncate">• {(c.order.cliente || "").toUpperCase()}</span>
-                            {c.pantoneActive && (
-                              <span className="text-[10px] px-1.5 py-0 rounded bg-blue-500/20 text-blue-400 font-bold border border-blue-500/30">
-                                PANTONE
+
+                <div className="pt-3">
+                  {comprasOrders.length === 0 ? (
+                    <div className="py-8 text-center text-xs text-muted-foreground">
+                      Nenhuma ordem enviada para Compras no momento.
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {comprasOrders.slice(0, 5).map((c) => (
+                        <div
+                          key={`home-compras-${c.order.id}`}
+                          className="p-2.5 rounded-xl bg-muted/30 hover:bg-muted/60 border border-border/60 flex items-center justify-between gap-3 transition-colors"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono-tech font-bold text-xs text-foreground">#{c.order.titulo}</span>
+                              <span className="text-[11px] font-medium text-foreground truncate">• {(c.order.cliente || "").toUpperCase()}</span>
+                              {c.pantoneActive && (
+                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/15 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/25">
+                                  PANTONE
+                                </span>
+                              )}
+                              {c.outrosActive && (
+                                <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/15 text-purple-600 dark:text-purple-400 font-medium border border-purple-500/25">
+                                  INSUMO
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground mt-0.5 truncate">
+                              {c.pantoneText ? `Pantone: ${c.pantoneText}` : c.outrosText ? `Insumo: ${c.outrosText}` : (c.order.descricao || "Item em processo de compra")}
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            {c.isComprado ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-md">
+                                <Check className="h-3 w-3 stroke-[3]" /> Comprado
                               </span>
-                            )}
-                            {c.outrosActive && (
-                              <span className="text-[10px] px-1.5 py-0 rounded bg-purple-500/20 text-purple-400 font-medium border border-purple-500/30">
-                                INSUMO
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-md">
+                                <Clock className="h-3 w-3" /> Pendente
                               </span>
                             )}
                           </div>
-                          <div className="text-[10px] text-muted-foreground mt-1 truncate">
-                            {c.pantoneText ? `Pantone: ${c.pantoneText}` : c.outrosText ? `Insumo: ${c.outrosText}` : (c.order.descricao || "Item em processo de compra")}
-                          </div>
                         </div>
-                        <div className="text-right shrink-0">
-                          {c.isComprado ? (
-                            <Badge className="bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[10px] font-bold">
-                              <Check className="h-3 w-3 mr-1 stroke-[3]" /> COMPRADO
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-amber-500/20 text-amber-400 border border-amber-500/40 text-[10px] font-bold">
-                              <Clock className="h-3 w-3 mr-1" /> PENDENTE
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Section: Status Breakdown & Average Stage Times */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Status Breakdown Bar Meter */}
-            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl">
-              <CardHeader className="pb-3 border-b border-border">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4 text-cyan-500" /> Distribuição por Etapa (Pré-Impressão)
-                  </CardTitle>
-                  <span className="text-xs font-mono-tech text-cyan-600 dark:text-cyan-400 font-bold">
-                    {preImpressaoOrders.length} ordens
-                  </span>
+            <div className="saas-card saas-card-hover p-4">
+              <div className="flex items-center justify-between pb-3 border-b border-border/60">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
+                    <BarChart3 className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-foreground">Distribuição por Etapa (Pré-Impressão)</h3>
+                    <p className="text-[10px] text-muted-foreground">Status do fluxo atual</p>
+                  </div>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-4 space-y-3">
+                <span className="text-xs font-mono-tech text-cyan-600 dark:text-cyan-400 font-bold bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-md">
+                  {preImpressaoOrders.length} ordens
+                </span>
+              </div>
+
+              <div className="pt-3 space-y-2.5">
                 {STATUS_ORDER.map((status) => {
                   const config = STATUS_CONFIG[status];
                   const count = countByStatus[status] || 0;
@@ -1231,44 +1245,49 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
                   return (
                     <div key={status} className="flex items-center gap-3">
-                      <div className="w-36 text-xs text-foreground truncate font-medium">{config.label}</div>
-                      <div className="flex-1 h-7 bg-muted/70 rounded-xl border border-border overflow-hidden relative p-0.5">
+                      <div className="w-32 sm:w-36 text-xs text-foreground truncate font-medium">{config.label}</div>
+                      <div className="flex-1 h-5 bg-muted/60 rounded-md border border-border/60 overflow-hidden relative p-0.5">
                         <div
-                          className="h-full rounded-lg transition-all duration-500 flex items-center justify-end pr-2"
+                          className="h-full rounded transition-all duration-500 flex items-center justify-end pr-1.5"
                           style={{
-                            width: `${Math.max(pct, count > 0 ? 10 : 0)}%`,
+                            width: `${Math.max(pct, count > 0 ? 8 : 0)}%`,
                             backgroundColor: `hsl(var(--status-${config.colorKey}))`,
                           }}
                         >
                           {count > 0 && (
-                            <span className="text-[10px] font-bold font-mono-tech text-white drop-shadow whitespace-nowrap">
+                            <span className="text-[9px] font-bold font-mono-tech text-white drop-shadow whitespace-nowrap">
                               {count}
                             </span>
                           )}
                         </div>
                       </div>
-                      <div className="w-8 text-right font-mono-tech text-xs font-bold text-muted-foreground">
+                      <div className="w-6 text-right font-mono-tech text-xs font-bold text-muted-foreground">
                         {count}
                       </div>
                     </div>
                   );
                 })}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* Average Duration per Stage */}
-            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl">
-              <CardHeader className="pb-3 border-b border-border">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    <Timer className="h-4 w-4 text-amber-500" /> Tempo Médio por Etapa (Ordens Liberadas)
-                  </CardTitle>
-                  <span className="text-xs font-mono-tech text-amber-600 dark:text-amber-400 font-bold">
-                    Total: {avgTotal !== null ? formatDuration(avgTotal) : "—"}
-                  </span>
+            <div className="saas-card saas-card-hover p-4">
+              <div className="flex items-center justify-between pb-3 border-b border-border/60">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-amber-500/10 text-amber-500">
+                    <Timer className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-foreground">Tempo Médio por Etapa</h3>
+                    <p className="text-[10px] text-muted-foreground">Ordens liberadas</p>
+                  </div>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-4 space-y-3">
+                <span className="text-xs font-mono-tech text-amber-600 dark:text-amber-400 font-bold bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">
+                  Total: {avgTotal !== null ? formatDuration(avgTotal) : "—"}
+                </span>
+              </div>
+
+              <div className="pt-3 space-y-2.5">
                 {Object.keys(avgPerStatus).length === 0 ? (
                   <div className="py-8 text-center text-xs text-muted-foreground">
                     Ainda não há dados suficientes de ordens finalizadas para calcular médias.
@@ -1279,35 +1298,35 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                     const avg = avgPerStatus[status] || 0;
                     const maxAvg = Math.max(...Object.values(avgPerStatus), 1);
                     const pct = (avg / maxAvg) * 100;
-                    const isWide = pct >= 18;
+                    const isWide = pct >= 20;
 
                     return (
                       <div key={status} className="flex items-center gap-3" title={`${config.label}: ${avg > 0 ? formatDuration(avg) : "Sem dados"}`}>
-                        <div className="w-36 text-xs text-foreground truncate font-medium">{config.label}</div>
-                        <div className="flex-1 h-7 bg-muted/70 rounded-xl border border-border overflow-hidden relative p-0.5 flex items-center">
+                        <div className="w-32 sm:w-36 text-xs text-foreground truncate font-medium">{config.label}</div>
+                        <div className="flex-1 h-5 bg-muted/60 rounded-md border border-border/60 overflow-hidden relative p-0.5 flex items-center">
                           <div
-                            className={`h-full rounded-lg transition-all duration-500 flex items-center shrink-0 ${
-                              isWide ? "justify-end pr-2" : ""
+                            className={`h-full rounded transition-all duration-500 flex items-center shrink-0 ${
+                              isWide ? "justify-end pr-1.5" : ""
                             }`}
                             style={{
                               width: `${Math.max(pct, avg > 0 ? 3.5 : 0)}%`,
-                              minWidth: isWide ? "72px" : undefined,
+                              minWidth: isWide ? "65px" : undefined,
                               backgroundColor: `hsl(var(--status-${config.colorKey}))`,
                             }}
                           >
                             {isWide && avg > 0 && (
-                              <span className="text-[10px] font-bold font-mono-tech text-white drop-shadow whitespace-nowrap">
+                              <span className="text-[9px] font-bold font-mono-tech text-white drop-shadow whitespace-nowrap">
                                 {formatDuration(avg)}
                               </span>
                             )}
                           </div>
                           {!isWide && avg > 0 && (
-                            <span className="ml-2 text-[10px] sm:text-[11px] font-bold font-mono-tech text-foreground whitespace-nowrap">
+                            <span className="ml-2 text-[10px] font-bold font-mono-tech text-foreground whitespace-nowrap">
                               {formatDuration(avg)}
                             </span>
                           )}
                           {avg === 0 && (
-                            <span className="ml-2 text-[10px] font-mono-tech text-muted-foreground/50 whitespace-nowrap">
+                            <span className="ml-2 text-[9px] font-mono-tech text-muted-foreground/50 whitespace-nowrap">
                               —
                             </span>
                           )}
@@ -1316,44 +1335,60 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                     );
                   })
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
           {/* Section: Deadlines & Multiple Proofs */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
             {/* Controle de Prazos */}
-            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl">
-              <CardHeader className="pb-3 border-b border-border">
-                <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <CalendarClock className="h-4 w-4 text-rose-500" /> Controle de Prazos ({ordersWithDeadline.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4">
+            <div className="saas-card saas-card-hover p-4">
+              <div className="flex items-center justify-between pb-3 border-b border-border/60">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-rose-500/10 text-rose-500">
+                    <CalendarClock className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-foreground">Controle de Prazos (SLA)</h3>
+                    <p className="text-[10px] text-muted-foreground">{ordersWithDeadline.length} com prazo estipulado</p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setActiveTab("sla")}
+                  className="text-xs h-7 text-primary hover:bg-primary/10 px-2.5 rounded-lg saas-interactive"
+                >
+                  Ver no SLA
+                </Button>
+              </div>
+
+              <div className="pt-3">
                 {ordersWithDeadline.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-6">Nenhuma ordem com prazo estipulado no momento.</p>
+                  <div className="py-8 text-center text-xs text-muted-foreground">
+                    Nenhuma ordem com prazo estipulado no momento.
+                  </div>
                 ) : (
-                  <div className="space-y-2.5">
+                  <div className="space-y-2">
                     {ordersWithDeadline
                       .sort((a, b) => new Date(a.prazo!).getTime() - new Date(b.prazo!).getTime())
-                      .slice(0, 6)
+                      .slice(0, 5)
                       .map((o) => {
                         const deadline = new Date(o.prazo!);
                         const now = new Date();
                         const remaining = deadline.getTime() - now.getTime();
                         const isOverdue = remaining < 0;
                         const isNear = remaining > 0 && remaining < 3600000;
-                        const statusConfig = STATUS_CONFIG[o.status as OrderStatus];
 
                         return (
                           <div
                             key={o.id}
-                            className={`p-3 rounded-xl border flex items-center justify-between gap-3 transition-colors ${
+                            className={`p-2.5 rounded-xl border flex items-center justify-between gap-3 transition-colors ${
                               isOverdue
                                 ? "bg-rose-500/10 border-rose-500/30 text-rose-700 dark:text-rose-200"
                                 : isNear
                                 ? "bg-amber-500/10 border-amber-500/30 text-amber-700 dark:text-amber-200"
-                                : "bg-muted/40 border-border text-foreground"
+                                : "bg-muted/30 border-border/60 text-foreground"
                             }`}
                           >
                             <div className="min-w-0 flex-1">
@@ -1381,364 +1416,194 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                       })}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
 
             {/* Controle de Retrabalho (Múltiplas Provas) */}
-            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl">
-              <CardHeader className="pb-3 border-b border-border">
-                <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                  <Printer className="h-4 w-4 text-violet-500" /> Controle de Provas & Retrabalho ({multiProofOrders.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-4">
+            <div className="saas-card saas-card-hover p-4">
+              <div className="flex items-center justify-between pb-3 border-b border-border/60">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-violet-500/10 text-violet-500">
+                    <Printer className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-foreground">Controle de Provas & Retrabalho</h3>
+                    <p className="text-[10px] text-muted-foreground">{multiProofOrders.length} ordens com +1 prova</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-3">
                 {multiProofOrders.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-6">Nenhuma O.S. precisou de mais de 1 prova até agora.</p>
+                  <div className="py-8 text-center text-xs text-muted-foreground">
+                    Nenhuma O.S. precisou de mais de 1 prova até agora.
+                  </div>
                 ) : (
-                  <div className="space-y-2.5">
+                  <div className="space-y-2">
                     {multiProofOrders
                       .sort((a, b) => b.provasCount - a.provasCount)
-                      .slice(0, 6)
-                      .map((t) => {
-                        const statusConfig = STATUS_CONFIG[t.statusAtual as OrderStatus];
-                        return (
-                          <div
-                            key={t.orderId}
-                            className="p-3 rounded-xl bg-muted/40 border border-border flex items-center justify-between gap-3"
-                          >
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-mono-tech font-bold text-xs text-foreground">{t.titulo}</span>
-                                <span className="text-[11px] text-muted-foreground truncate">• {t.cliente}</span>
-                              </div>
-                              <div className="text-[10px] text-muted-foreground mt-0.5">
-                                Tipo: {t.provaDigital ? "Digital" : ""}{t.provaDigital && t.provaEmail ? " + " : ""}{t.provaEmail ? "E-mail" : ""}{!t.provaDigital && !t.provaEmail ? "Física" : ""}
-                              </div>
+                      .slice(0, 5)
+                      .map((t) => (
+                        <div
+                          key={t.orderId}
+                          className="p-2.5 rounded-xl bg-muted/30 hover:bg-muted/60 border border-border/60 flex items-center justify-between gap-3 transition-colors"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono-tech font-bold text-xs text-foreground">{t.titulo}</span>
+                              <span className="text-[11px] text-muted-foreground truncate">• {t.cliente}</span>
                             </div>
-                            <div className="flex items-center gap-1.5 bg-violet-500/10 border border-violet-500/30 text-violet-600 dark:text-violet-300 px-2.5 py-1 rounded-xl">
-                              <Printer className="h-3.5 w-3.5" />
-                              <span className="font-mono-tech font-bold text-xs">{t.provasCount}</span>
-                              <span className="text-[10px]">provas</span>
+                            <div className="text-[10px] text-muted-foreground mt-0.5">
+                              Tipo: {t.provaDigital ? "Digital" : ""}{t.provaDigital && t.provaEmail ? " + " : ""}{t.provaEmail ? "E-mail" : ""}{!t.provaDigital && !t.provaEmail ? "Física" : ""}
                             </div>
                           </div>
-                        );
-                      })}
+                          <div className="flex items-center gap-1.5 bg-violet-500/10 border border-violet-500/25 text-violet-600 dark:text-violet-300 px-2 py-0.5 rounded-lg">
+                            <Printer className="h-3 w-3" />
+                            <span className="font-mono-tech font-bold text-xs">{t.provasCount}</span>
+                            <span className="text-[9px]">provas</span>
+                          </div>
+                        </div>
+                      ))}
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </div>
 
-          {/* Card Acompanhamento de Suprimentos Especiais: FACA / CLICHÊ / PANTONE (Tabela Completa Direta) */}
+          {/* Section: Suprimentos Especiais Executive Widget (Minimalist & Link to Full Tab) */}
           {supplyStats.total > 0 && (
-            <Card className="border border-border bg-card backdrop-blur-md rounded-2xl shadow-xl overflow-hidden">
-              <CardHeader className="pb-3 border-b border-border">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-emerald-500" />
-                      Acompanhamento de Suprimentos Especiais (Faca • Clichê • Pantone)
-                    </CardTitle>
-                    <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                      Rastreamento em tempo real de aprovações com registro de data, hora e operador
-                    </CardDescription>
+            <div className="saas-card saas-card-hover p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-border/60 gap-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500">
+                    <Sparkles className="h-4 w-4" />
                   </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-foreground">
+                      Suprimentos Especiais (Faca • Clichê • Pantone)
+                    </h3>
+                    <p className="text-[10px] text-muted-foreground">
+                      {supplyStats.sent} de {supplyStats.total} suprimentos liberados ({Math.round((supplyStats.sent / Math.max(supplyStats.total, 1)) * 100)}%)
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={handleExportSupplyCSV}
-                    className="text-xs h-8 rounded-xl border-cyan-500/30 text-cyan-500 hover:bg-cyan-500/10 font-semibold gap-1.5 shrink-0"
+                    className="text-xs h-7 rounded-lg border-border/80 text-foreground hover:bg-muted saas-interactive gap-1.5"
                   >
-                    <Download className="h-3.5 w-3.5" />
-                    <span>Exportar CSV</span>
+                    <Download className="h-3 w-3 text-emerald-500" />
+                    <span>CSV</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => setActiveTab("suprimentos")}
+                    className="text-xs h-7 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 saas-interactive gap-1"
+                  >
+                    <span>Painel Completo</span>
+                    <ArrowRight className="h-3 w-3" />
                   </Button>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-4 space-y-4">
-                {/* 3 Metric Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {/* FACA */}
-                  <div className="p-3 rounded-xl bg-muted/40 border border-border flex items-center justify-between">
-                    <div>
-                      <div className="text-xs font-semibold text-foreground">FACA</div>
-                      <div className="text-[11px] text-muted-foreground mt-0.5">
-                        {supplyStats.faca.sent} de {supplyStats.faca.total} liberadas
-                      </div>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className={`text-xs font-mono-tech font-bold ${
-                        supplyStats.faca.total > 0 && supplyStats.faca.sent === supplyStats.faca.total
-                          ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
-                          : supplyStats.faca.sent > 0
-                          ? "bg-amber-500/20 text-amber-400 border-amber-500/40"
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {supplyStats.faca.total > 0
-                        ? `${Math.round((supplyStats.faca.sent / supplyStats.faca.total) * 100)}%`
-                        : "—"}
-                    </Badge>
-                  </div>
+              </div>
 
-                  {/* CLICHÊ */}
-                  <div className="p-3 rounded-xl bg-muted/40 border border-border flex items-center justify-between">
-                    <div>
-                      <div className="text-xs font-semibold text-foreground">CLICHÊ</div>
-                      <div className="text-[11px] text-muted-foreground mt-0.5">
-                        {supplyStats.cliche.sent} de {supplyStats.cliche.total} liberados
-                      </div>
+              {/* 3 Metric Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4">
+                <div className="p-3 rounded-xl bg-background/80 border border-border/60 flex items-center justify-between">
+                  <div>
+                    <div className="text-[11px] font-semibold text-foreground">FACA</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                      {supplyStats.faca.sent} de {supplyStats.faca.total} liberadas
                     </div>
-                    <Badge
-                      variant="outline"
-                      className={`text-xs font-mono-tech font-bold ${
-                        supplyStats.cliche.total > 0 && supplyStats.cliche.sent === supplyStats.cliche.total
-                          ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
-                          : supplyStats.cliche.sent > 0
-                          ? "bg-amber-500/20 text-amber-400 border-amber-500/40"
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {supplyStats.cliche.total > 0
-                        ? `${Math.round((supplyStats.cliche.sent / supplyStats.cliche.total) * 100)}%`
-                        : "—"}
-                    </Badge>
                   </div>
-
-                  {/* PANTONE */}
-                  <div className="p-3 rounded-xl bg-muted/40 border border-border flex items-center justify-between">
-                    <div>
-                      <div className="text-xs font-semibold text-foreground">PANTONE</div>
-                      <div className="text-[11px] text-muted-foreground mt-0.5">
-                        {supplyStats.pantone.sent} de {supplyStats.pantone.total} liberados
-                      </div>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className={`text-xs font-mono-tech font-bold ${
-                        supplyStats.pantone.total > 0 && supplyStats.pantone.sent === supplyStats.pantone.total
-                          ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
-                          : supplyStats.pantone.sent > 0
-                          ? "bg-amber-500/20 text-amber-400 border-amber-500/40"
-                          : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {supplyStats.pantone.total > 0
-                        ? `${Math.round((supplyStats.pantone.sent / supplyStats.pantone.total) * 100)}%`
-                        : "—"}
-                    </Badge>
-                  </div>
+                  <span className={`text-xs font-mono-tech font-bold px-2 py-0.5 rounded-md ${
+                    supplyStats.faca.total > 0 && supplyStats.faca.sent === supplyStats.faca.total
+                      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                      : supplyStats.faca.sent > 0
+                      ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                      : "bg-muted text-muted-foreground"
+                  }`}>
+                    {supplyStats.faca.total > 0
+                      ? `${Math.round((supplyStats.faca.sent / supplyStats.faca.total) * 100)}%`
+                      : "—"}
+                  </span>
                 </div>
 
-                {/* Filters & Actions Bar */}
-                <div className="p-3 rounded-xl bg-muted/30 border border-border flex flex-col md:flex-row items-center justify-between gap-2.5">
-                  <div className="relative w-full md:w-72">
-                    <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
-                    <Input
-                      placeholder="Buscar por O.S., cliente, operador..."
-                      value={supplySearch}
-                      onChange={(e) => setSupplySearch(e.target.value)}
-                      className="pl-8 bg-background border-input h-8 text-xs rounded-xl text-foreground placeholder:text-muted-foreground"
-                    />
-                    {supplySearch && (
-                      <button
-                        onClick={() => setSupplySearch("")}
-                        className="absolute right-2.5 top-2 text-muted-foreground hover:text-foreground"
-                      >
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    )}
+                <div className="p-3 rounded-xl bg-background/80 border border-border/60 flex items-center justify-between">
+                  <div>
+                    <div className="text-[11px] font-semibold text-foreground">CLICHÊ</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                      {supplyStats.cliche.sent} de {supplyStats.cliche.total} liberados
+                    </div>
                   </div>
-
-                  <div className="flex items-center gap-1.5 flex-wrap w-full md:w-auto justify-start md:justify-end">
-                    {/* Type filter pills */}
-                    <Button
-                      variant={supplyTypeFilter === "all" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSupplyTypeFilter("all")}
-                      className="h-7 text-[11px] rounded-lg px-2.5"
-                    >
-                      Todos
-                    </Button>
-                    <Button
-                      variant={supplyTypeFilter === "FACA" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSupplyTypeFilter("FACA")}
-                      className="h-7 text-[11px] rounded-lg px-2.5"
-                    >
-                      Faca ({supplyStats.faca.total})
-                    </Button>
-                    <Button
-                      variant={supplyTypeFilter === "CLICHE" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSupplyTypeFilter("CLICHE")}
-                      className="h-7 text-[11px] rounded-lg px-2.5"
-                    >
-                      Clichê ({supplyStats.cliche.total})
-                    </Button>
-                    <Button
-                      variant={supplyTypeFilter === "PANTONE" ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSupplyTypeFilter("PANTONE")}
-                      className="h-7 text-[11px] rounded-lg px-2.5"
-                    >
-                      Pantone ({supplyStats.pantone.total})
-                    </Button>
-
-                    <div className="h-3.5 w-px bg-border mx-0.5" />
-
-                    {/* Status filter */}
-                    <Button
-                      variant={supplyStatusFilter === "all" ? "secondary" : "outline"}
-                      size="sm"
-                      onClick={() => setSupplyStatusFilter("all")}
-                      className="h-7 text-[11px] rounded-lg px-2"
-                    >
-                      Status: Todos
-                    </Button>
-                    <Button
-                      variant={supplyStatusFilter === "sent" ? "secondary" : "outline"}
-                      size="sm"
-                      onClick={() => setSupplyStatusFilter("sent")}
-                      className="h-7 text-[11px] rounded-lg px-2 text-emerald-500"
-                    >
-                      Aprovados
-                    </Button>
-                    <Button
-                      variant={supplyStatusFilter === "pending" ? "secondary" : "outline"}
-                      size="sm"
-                      onClick={() => setSupplyStatusFilter("pending")}
-                      className="h-7 text-[11px] rounded-lg px-2 text-amber-500"
-                    >
-                      Pendentes
-                    </Button>
-                  </div>
+                  <span className={`text-xs font-mono-tech font-bold px-2 py-0.5 rounded-md ${
+                    supplyStats.cliche.total > 0 && supplyStats.cliche.sent === supplyStats.cliche.total
+                      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                      : supplyStats.cliche.sent > 0
+                      ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                      : "bg-muted text-muted-foreground"
+                  }`}>
+                    {supplyStats.cliche.total > 0
+                      ? `${Math.round((supplyStats.cliche.sent / supplyStats.cliche.total) * 100)}%`
+                      : "—"}
+                  </span>
                 </div>
 
-                {/* Complete Telemetry Table */}
-                <div className="rounded-xl border border-border overflow-hidden bg-background/50">
-                  <div className="overflow-x-auto max-h-[460px]">
-                    <Table>
-                      <TableHeader className="bg-muted/50 sticky top-0 z-10 backdrop-blur-sm">
-                        <TableRow className="border-border hover:bg-transparent">
-                          <TableHead className="w-[110px] text-xs font-semibold text-muted-foreground">O.S.</TableHead>
-                          <TableHead className="text-xs font-semibold text-muted-foreground">Cliente & Descrição</TableHead>
-                          <TableHead className="text-xs font-semibold text-muted-foreground">Suprimento</TableHead>
-                          <TableHead className="text-xs font-semibold text-muted-foreground">Status</TableHead>
-                          <TableHead className="text-xs font-semibold text-muted-foreground">Data da Aprovação</TableHead>
-                          <TableHead className="text-xs font-semibold text-muted-foreground">Horário</TableHead>
-                          <TableHead className="text-xs font-semibold text-muted-foreground">Tempo até Envio</TableHead>
-                          <TableHead className="text-xs font-semibold text-muted-foreground text-right">Operador Responsável</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredSupplyRecords.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={8} className="text-center py-10 text-xs text-muted-foreground">
-                              Nenhum suprimento encontrado com os filtros selecionados.
-                            </TableCell>
-                          </TableRow>
-                        ) : (
-                          filteredSupplyRecords.map((r, idx) => {
-                            const hasSentDate = r.sent && Boolean(r.sentAt);
-                            const sentDate = hasSentDate ? parseSafeDate(r.sentAt) : null;
-                            const createdDate = parseSafeDate(r.createdAt);
-                            const elapsedSinceCreation =
-                              hasSentDate && sentDate && createdDate
-                                ? sentDate.getTime() - createdDate.getTime()
-                                : null;
-
-                            return (
-                              <TableRow
-                                key={`geral-supply-${r.orderId}-${r.supplyId}-${idx}`}
-                                className="border-border/60 hover:bg-accent/40 transition-colors"
-                              >
-                                <TableCell className="font-medium">
-                                  <span className="font-mono-tech font-bold text-xs text-foreground">
-                                    #{r.titulo}
-                                  </span>
-                                </TableCell>
-                                <TableCell>
-                                  <div className="flex flex-col max-w-[260px]">
-                                    <span className="text-xs font-medium text-foreground truncate">
-                                      {r.cliente || "—"}
-                                    </span>
-                                    {r.descricao && (
-                                      <span className="text-[11px] text-muted-foreground truncate">
-                                        {r.descricao}
-                                      </span>
-                                    )}
-                                  </div>
-                                </TableCell>
-                                <TableCell>
-                                  <Badge
-                                    variant="outline"
-                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                                      r.sent
-                                        ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-                                        : "bg-amber-500/15 text-amber-400 border-amber-500/30"
-                                    }`}
-                                  >
-                                    {r.supplyLabel}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>
-                                  {r.sent ? (
-                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-500 dark:text-emerald-400 border border-emerald-500/30">
-                                      <CheckCircle2 className="h-3 w-3" />
-                                      <span>Enviado / Aprovado</span>
-                                    </div>
-                                  ) : (
-                                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-500 dark:text-amber-400 border border-amber-500/30">
-                                      <Clock className="h-3 w-3" />
-                                      <span>Pendente</span>
-                                    </div>
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  {sentDate ? (
-                                    <span className="text-xs font-mono-tech font-medium text-foreground">
-                                      {formatSafeDate(sentDate, "dd/MM/yyyy", { locale: ptBR })}
-                                    </span>
-                                  ) : r.sent ? (
-                                    <span className="text-xs text-muted-foreground italic">Registrado</span>
-                                  ) : (
-                                    <span className="text-xs text-muted-foreground">—</span>
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  {sentDate ? (
-                                    <span className="text-xs font-mono-tech font-bold text-emerald-500 dark:text-emerald-400">
-                                      {formatSafeDate(sentDate, "HH:mm:ss")}
-                                    </span>
-                                  ) : (
-                                    <span className="text-xs text-muted-foreground">—</span>
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  {elapsedSinceCreation && elapsedSinceCreation > 0 ? (
-                                    <span className="text-xs font-mono-tech text-muted-foreground">
-                                      {formatDuration(elapsedSinceCreation)}
-                                    </span>
-                                  ) : (
-                                    <span className="text-xs text-muted-foreground">—</span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <span className="text-xs font-medium text-foreground">
-                                    {r.operator || "—"}
-                                  </span>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })
-                        )}
-                      </TableBody>
-                    </Table>
+                <div className="p-3 rounded-xl bg-background/80 border border-border/60 flex items-center justify-between">
+                  <div>
+                    <div className="text-[11px] font-semibold text-foreground">PANTONE</div>
+                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                      {supplyStats.pantone.sent} de {supplyStats.pantone.total} liberados
+                    </div>
                   </div>
+                  <span className={`text-xs font-mono-tech font-bold px-2 py-0.5 rounded-md ${
+                    supplyStats.pantone.total > 0 && supplyStats.pantone.sent === supplyStats.pantone.total
+                      ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                      : supplyStats.pantone.sent > 0
+                      ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                      : "bg-muted text-muted-foreground"
+                  }`}>
+                    {supplyStats.pantone.total > 0
+                      ? `${Math.round((supplyStats.pantone.sent / supplyStats.pantone.total) * 100)}%`
+                      : "—"}
+                  </span>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+
+              {/* Recent special supplies preview (up to 4) */}
+              <div className="mt-3 pt-3 border-t border-border/50 space-y-1.5">
+                {filteredSupplyRecords.slice(0, 4).map((r, idx) => (
+                  <div
+                    key={`geral-supply-preview-${r.orderId}-${r.supplyId}-${idx}`}
+                    className="px-3 py-2 rounded-lg bg-muted/20 hover:bg-muted/40 flex items-center justify-between gap-2 text-xs transition-colors"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-mono-tech font-bold text-foreground">#{r.titulo}</span>
+                      <span className="text-muted-foreground truncate">• {r.cliente}</span>
+                      <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20">
+                        {r.supplyLabel}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {r.sent ? (
+                        <span className="saas-pill bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25 text-[10px]">
+                          <CheckCircle2 className="h-3 w-3" /> Aprovado
+                        </span>
+                      ) : (
+                        <span className="saas-pill bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/25 text-[10px]">
+                          <Clock className="h-3 w-3" /> Pendente
+                        </span>
+                      )}
+                      <span className="text-[11px] text-muted-foreground hidden sm:inline">
+                        {r.operator || "—"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </TabsContent>
 

@@ -109,18 +109,13 @@ export function KanbanColumn({
   const StatusIcon = PRE_PRESS_STATUS_ICONS[status];
 
   return (
-    <div className="flex-shrink-0 w-[80vw] sm:w-72 flex flex-col rounded-2xl bg-slate-100/75 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/90 dark:border-slate-800/80 shadow-xs dark:shadow-lg min-h-full h-fit">
-      <div
-        className="flex items-center gap-2.5 px-3.5 py-3 border-b flex-shrink-0 rounded-t-2xl"
-        style={{
-          backgroundColor: `hsl(var(--status-${config.colorKey}-bg))`,
-          borderColor: `hsl(var(--status-${config.colorKey}) / 0.25)`,
-        }}
-      >
+    <div className="flex-shrink-0 w-[82vw] sm:w-[290px] flex flex-col rounded-2xl bg-card/60 dark:bg-slate-900/40 backdrop-blur-xl border border-border/70 dark:border-slate-800/60 shadow-xs hover:border-border transition-all min-h-full h-fit">
+      <div className="flex items-center gap-2.5 px-3.5 py-3 border-b border-border/60 flex-shrink-0 rounded-t-2xl bg-muted/20">
         <div
-          className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0"
+          className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 border"
           style={{
-            backgroundColor: `hsl(var(--status-${config.colorKey}) / 0.15)`,
+            backgroundColor: `hsl(var(--status-${config.colorKey}) / 0.12)`,
+            borderColor: `hsl(var(--status-${config.colorKey}) / 0.25)`,
           }}
         >
           <StatusIcon
@@ -128,17 +123,14 @@ export function KanbanColumn({
             style={{ color: `hsl(var(--status-${config.colorKey}))` }}
           />
         </div>
-        <h3
-          className="text-xs font-bold uppercase tracking-wider font-mono-tech truncate"
-          style={{ color: `hsl(var(--status-${config.colorKey}))` }}
-        >
+        <h3 className="text-xs font-bold uppercase tracking-wider text-foreground font-mono-tech truncate flex-1">
           {config.label}
         </h3>
         <span
-          className="text-[11px] ml-auto rounded-full px-2 py-0.5 font-bold font-mono-tech border"
+          className="text-[11px] font-mono-tech font-bold rounded-full px-2 py-0.5 border"
           style={{
-            backgroundColor: `hsl(var(--status-${config.colorKey}) / 0.15)`,
-            borderColor: `hsl(var(--status-${config.colorKey}) / 0.3)`,
+            backgroundColor: `hsl(var(--status-${config.colorKey}) / 0.1)`,
+            borderColor: `hsl(var(--status-${config.colorKey}) / 0.25)`,
             color: `hsl(var(--status-${config.colorKey}))`,
           }}
         >
@@ -151,13 +143,18 @@ export function KanbanColumn({
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`flex-1 space-y-2 p-2.5 pb-6 transition-colors duration-200 ${
+            className={`flex-1 space-y-2.5 p-2.5 pb-6 transition-all duration-200 ${
               snapshot.isDraggingOver
-                ? "bg-cyan-500/5 ring-1 ring-cyan-500/30"
+                ? "bg-cyan-500/5 ring-2 ring-cyan-500/30 rounded-b-2xl"
                 : ""
             }`}
-            style={{ minHeight: "120px" }}
+            style={{ minHeight: "130px" }}
           >
+            {orders.length === 0 && !snapshot.isDraggingOver && (
+              <div className="h-24 rounded-xl border border-dashed border-border/60 flex items-center justify-center text-[11px] text-muted-foreground/60 select-none">
+                Sem ordens
+              </div>
+            )}
             {orders.map((order, index) => (
               <Draggable
                 key={order.id}

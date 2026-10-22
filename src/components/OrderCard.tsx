@@ -4,7 +4,7 @@ import { Order, OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
 import { DEPARTMENTS, Department } from "@/types/production";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { RotateCcw, ShoppingBag, Calendar, User, FileText, Archive, Trash2, GripVertical, UserCheck, Clock, AlertTriangle, Send, Truck, Briefcase, Copy, Edit2, MessageSquarePlus, Repeat, Sparkles, Check } from "lucide-react";
+import { RotateCcw, ShoppingBag, Calendar, User, FileText, Archive, Trash2, GripVertical, UserCheck, Clock, AlertTriangle, Send, Truck, Briefcase, Copy, Edit2, MessageSquarePlus, Repeat, Sparkles, Check, Zap } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -384,159 +384,152 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
   const shouldBlinkUrgentBanner = isUrgent && !isArquivoLiberado;
 
   const hasEntregaInfo = order.nf || order.protocolo || order.empresa_entrega || order.obs_entrega || (order.tipo_entrega && order.tipo_entrega.length > 0) || order.entrega_para || order.entrega_endereco || order.entrega_ac || order.entrega_data_limite;
+  const hasHeaderPills = isUrgent || order.saida_direta || order.prova_digital || order.prova_email || isSlowAlert || (departmentContext === "producao" && ((order as any).digital_color || (order as any).digital_pb)) || (departmentContext === "expedicao" && order.tipo_entrega && order.tipo_entrega.length > 0) || (order.setor && order.setor !== "desenvolvimento") || order.parent_order_id;
 
   return (
     <>
       <div
-        className={`group rounded-2xl border shadow-sm hover:shadow-xl transition-all duration-200 overflow-hidden relative ${
+        className={`group rounded-2xl border shadow-xs hover:shadow-lg transition-all duration-200 overflow-hidden relative ${
           shouldBlinkCard ? "animate-pulse" : ""
         } ${
           isUrgent
-            ? "bg-rose-50 dark:bg-rose-950/25 border-rose-300 dark:border-rose-500/40 hover:border-rose-500/70 text-rose-950 dark:text-rose-100"
+            ? "bg-card dark:bg-slate-900/90 border-rose-400/60 dark:border-rose-500/40 hover:border-rose-500 text-card-foreground border-l-[4px] border-l-rose-500 shadow-rose-500/5"
             : isSlowAlert
-            ? "bg-amber-50 dark:bg-amber-950/25 border-amber-300 dark:border-amber-500/40 hover:border-amber-500/70 text-amber-950 dark:text-amber-100"
+            ? "bg-card dark:bg-slate-900/90 border-amber-400/60 dark:border-amber-500/40 hover:border-amber-500 text-card-foreground border-l-[4px] border-l-amber-500 shadow-amber-500/5"
             : isNearDeadline
-            ? "bg-amber-50 dark:bg-amber-950/25 border-amber-300 dark:border-amber-500/40 hover:border-amber-500/70 text-amber-950 dark:text-amber-100"
-            : "bg-card dark:bg-slate-900/70 border-border dark:border-slate-800/80 text-card-foreground hover:border-cyan-500/50 hover:shadow-md dark:hover:shadow-[0_4px_20px_rgba(6,182,212,0.12)]"
+            ? "bg-card dark:bg-slate-900/90 border-amber-400/60 dark:border-amber-500/40 hover:border-amber-500 text-card-foreground border-l-[4px] border-l-amber-500 shadow-amber-500/5"
+            : "bg-card dark:bg-slate-900/90 border-border/70 dark:border-slate-800/80 text-card-foreground hover:border-cyan-500/40 hover:shadow-md dark:hover:shadow-[0_4px_20px_rgba(6,182,212,0.08)] border-l-[4px] border-l-transparent hover:border-l-cyan-500/60"
         }`}
       >
+        {/* Deadline alert ribbon if near deadline */}
         {isNearDeadline && !isUrgent && (
-          <div className="bg-red-600 text-white text-[10px] font-bold text-center py-0.5 tracking-wide uppercase flex items-center justify-center gap-1">
-            <Clock className="h-3 w-3" /> {isExpired ? "Atrasado" : "Prazo Próximo"}
-            {remainingText && <span className="opacity-90 font-mono-tech">({remainingText})</span>}
-          </div>
-        )}
-        {order.saida_direta && (
-          <div className="px-2 py-0.5 bg-amber-400 text-amber-900 flex items-center relative">
-            {isSlowAlert && <Clock className="h-4 w-4 animate-pulse absolute left-1.5" fill="#facc15" color="#000" strokeWidth={2} />}
-            <div className="flex-1 text-center flex items-center justify-center gap-1">
-              {isUrgentProva && !order.prova_digital && !order.prova_email && (
-                <span className={`mr-1 inline-flex items-center gap-1 bg-red-600 text-white text-[10px] font-black uppercase px-1.5 py-0.5 rounded shadow-2xs ${shouldBlinkUrgentBanner ? "animate-pulse" : ""}`}>
-                  <span>URGENTE</span>
-                  {remainingText && (
-                    <span className="font-mono-tech font-bold text-[9px] bg-black/25 px-1 py-0.2 rounded">
-                      {remainingText}
-                    </span>
-                  )}
-                </span>
-              )}
-              <span className="text-[10px] font-bold uppercase tracking-wide">Saída Direta</span>
-            </div>
-          </div>
-        )}
-        {order.prova_digital && (
-          <div className="px-2 py-0.5 bg-sky-100 dark:bg-sky-900/30 flex items-center relative">
-            {isSlowAlert && <Clock className="h-4 w-4 animate-pulse absolute left-1.5" fill="#facc15" color="#000" strokeWidth={2} />}
-            <div className="flex-1 text-center flex items-center justify-center gap-1">
-              {isUrgentProva && (
-                <span className={`mr-1 inline-flex items-center gap-1 bg-red-600 text-white text-[10px] font-black uppercase px-1.5 py-0.5 rounded shadow-2xs ${shouldBlinkUrgentBanner ? "animate-pulse" : ""}`}>
-                  <span>URGENTE</span>
-                  {remainingText && (
-                    <span className="font-mono-tech font-bold text-[9px] bg-black/25 px-1 py-0.2 rounded">
-                      {remainingText}
-                    </span>
-                  )}
-                </span>
-              )}
-              <span className="text-[10px] font-semibold text-sky-700 dark:text-sky-300 uppercase tracking-wide">Prova Digital</span>
-            </div>
-          </div>
-        )}
-        {order.prova_email && (
-          <div className="px-2 py-0.5 bg-pink-100 dark:bg-pink-900/30 flex items-center relative">
-            {isSlowAlert && !order.prova_digital && <Clock className="h-4 w-4 animate-pulse absolute left-1.5" fill="#facc15" color="#000" strokeWidth={2} />}
-            <div className="flex-1 text-center flex items-center justify-center gap-1">
-              {isUrgentProva && !order.prova_digital && (
-                <span className={`mr-1 inline-flex items-center gap-1 bg-red-600 text-white text-[10px] font-black uppercase px-1.5 py-0.5 rounded shadow-2xs ${shouldBlinkUrgentBanner ? "animate-pulse" : ""}`}>
-                  <span>URGENTE</span>
-                  {remainingText && (
-                    <span className="font-mono-tech font-bold text-[9px] bg-black/25 px-1 py-0.2 rounded">
-                      {remainingText}
-                    </span>
-                  )}
-                </span>
-              )}
-              <span className="text-[10px] font-semibold text-pink-700 dark:text-pink-300 uppercase tracking-wide">Prova E-mail</span>
-            </div>
-          </div>
-        )}
-        {/* Slow alert standalone: only when no prova/saida banner exists */}
-        {isSlowAlert && !order.saida_direta && !order.prova_digital && !order.prova_email && (
-          <div className="px-2 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 flex items-center relative">
-            <Clock className="h-4 w-4 animate-pulse absolute left-1.5" fill="#facc15" color="#000" strokeWidth={2} />
-            <span className="flex-1 text-center text-[10px] font-bold text-yellow-700 dark:text-yellow-300 uppercase tracking-wide">+21h em etapa</span>
-          </div>
-        )}
-        {/* Standalone URGENTE banner */}
-        {isUrgent && !isUrgentProva && !order.saida_direta && !order.prova_digital && !order.prova_email && departmentContext !== "expedicao" && (
-          <div className={`bg-red-500 text-white text-[10px] font-bold text-center py-0.5 tracking-wide uppercase flex items-center justify-center gap-1 ${shouldBlinkUrgentBanner ? "animate-pulse" : ""}`}>
-            <AlertTriangle className="h-3 w-3" /> Urgente
-            {isUrgentImpressao && <span className="ml-1 text-[8px] opacity-80">(Impressão)</span>}
-            {isUrgentAcabamento && <span className="ml-1 text-[8px] opacity-80">(Acabamento)</span>}
-            {isUrgentExpedicao && <span className="ml-1 text-[8px] opacity-80">(Expedição)</span>}
-          </div>
-        )}
-        {/* Digital sector banners: Color and PB */}
-        {departmentContext === "producao" && (order as any).digital_color && (
-          <div className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-center">
-            <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide">Color</span>
-          </div>
-        )}
-        {departmentContext === "producao" && (order as any).digital_pb && (
-          <div className="px-2 py-0.5 bg-gray-200 dark:bg-gray-700/30 text-center">
-            <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">PB</span>
-          </div>
-        )}
-        {departmentContext === "expedicao" && order.tipo_entrega && order.tipo_entrega.includes("CARRO") && (
-          <div className="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-center">
-            <span className="text-[10px] font-semibold text-green-700 dark:text-green-300 uppercase tracking-wide">Carro</span>
-            {isUrgentExpedicao && (
-              <span className={`ml-2 inline-block bg-red-600 text-white text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${shouldBlinkUrgentBanner ? "animate-pulse" : ""}`}>URGENTE</span>
-            )}
-          </div>
-        )}
-        {departmentContext === "expedicao" && order.tipo_entrega && order.tipo_entrega.includes("MOTO") && (
-          <div className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-center">
-            <span className="text-[10px] font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wide">Moto</span>
-            {isUrgentExpedicao && !order.tipo_entrega.includes("CARRO") && (
-              <span className={`ml-2 inline-block bg-red-600 text-white text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${shouldBlinkUrgentBanner ? "animate-pulse" : ""}`}>URGENTE</span>
-            )}
-          </div>
-        )}
-        {departmentContext === "expedicao" && order.tipo_entrega && order.tipo_entrega.includes("RETIRA") && (
-          <div className="px-2 py-0.5 bg-gray-200 dark:bg-gray-800/50 text-center">
-            <span className="text-[10px] font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">Retira</span>
-            {isUrgentExpedicao && !order.tipo_entrega.includes("CARRO") && !order.tipo_entrega.includes("MOTO") && (
-              <span className={`ml-2 inline-block bg-red-600 text-white text-[10px] font-black uppercase px-1.5 py-0.5 rounded ${shouldBlinkUrgentBanner ? "animate-pulse" : ""}`}>URGENTE</span>
-            )}
-          </div>
-        )}
-        {/* Standalone URGENTE for expedicao when no tipo_entrega banners */}
-        {departmentContext === "expedicao" && isUrgentExpedicao && (!order.tipo_entrega || (!order.tipo_entrega.includes("CARRO") && !order.tipo_entrega.includes("MOTO") && !order.tipo_entrega.includes("RETIRA"))) && (
-          <div className={`bg-red-500 text-white text-[10px] font-bold text-center py-0.5 tracking-wide uppercase flex items-center justify-center gap-1 ${shouldBlinkUrgentBanner ? "animate-pulse" : ""}`}>
-            <AlertTriangle className="h-3 w-3" /> Urgente
-          </div>
-        )}
-        {order.setor && order.setor !== "desenvolvimento" && (
-          <div className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-center">
-            <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 uppercase tracking-wide">
-              Em Produção — {DEPARTMENTS.find(d => d.id === order.setor)?.label || order.setor}
-              {order.setor_status && (() => {
-                const dept = DEPARTMENTS.find(d => d.id === order.setor);
-                const statusLabel = dept?.statuses.find(s => s.id === order.setor_status)?.label;
-                return statusLabel ? ` › ${statusLabel}` : "";
-              })()}
+          <div className="px-3 py-1 bg-rose-500/15 dark:bg-rose-950/50 text-rose-600 dark:text-rose-300 border-b border-rose-500/20 text-[10px] font-bold tracking-wider uppercase flex items-center justify-between gap-1">
+            <span className="flex items-center gap-1.5">
+              <Clock className="h-3 w-3 shrink-0 text-rose-500" />
+              {isExpired ? "Atrasado" : "Prazo Próximo"}
             </span>
+            {remainingText && (
+              <span className="font-mono-tech font-bold text-[9px] bg-rose-500/20 dark:bg-rose-500/30 px-1.5 py-0.5 rounded">
+                {remainingText}
+              </span>
+            )}
           </div>
         )}
-        {order.parent_order_id && (
-          <div className="px-2 py-0.5 bg-violet-100 dark:bg-violet-900/30 text-center">
-            <span className="text-[10px] font-semibold text-violet-700 dark:text-violet-300 uppercase tracking-wide">Sub-ordem</span>
-          </div>
-        )}
-        {dragHandleProps && (
-          <div {...dragHandleProps} className="flex items-center justify-center py-1 cursor-grab active:cursor-grabbing hover:bg-black/5 transition-colors" onClick={(e) => e.stopPropagation()}>
-            <GripVertical className="h-4 w-4 text-muted-foreground/50" />
+
+        {/* Top Header Bar with Badges & Drag Handle */}
+        {(hasHeaderPills || dragHandleProps) && (
+          <div className="flex items-center justify-between gap-1.5 px-3 pt-2.5 pb-1 flex-wrap">
+            <div className="flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
+              {/* Urgent badge */}
+              {isUrgent && (
+                <span
+                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-rose-600 text-white shadow-xs ${
+                    shouldBlinkUrgentBanner ? "animate-pulse" : ""
+                  }`}
+                >
+                  <AlertTriangle className="h-2.5 w-2.5 shrink-0" />
+                  <span>Urgente</span>
+                  {isUrgentImpressao && <span className="opacity-80 text-[8px]">(Imp)</span>}
+                  {isUrgentAcabamento && <span className="opacity-80 text-[8px]">(Acab)</span>}
+                  {isUrgentExpedicao && <span className="opacity-80 text-[8px]">(Exp)</span>}
+                  {remainingText && isUrgentProva && (
+                    <span className="font-mono-tech font-bold text-[9px] bg-black/25 px-1 py-0.2 rounded ml-0.5">
+                      {remainingText}
+                    </span>
+                  )}
+                </span>
+              )}
+
+              {/* Saída Direta */}
+              {order.saida_direta && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-400 text-amber-950 border border-amber-500/30 shadow-2xs">
+                  <Zap className="h-2.5 w-2.5 shrink-0" />
+                  <span>Saída Direta</span>
+                </span>
+              )}
+
+              {/* Prova Digital */}
+              {order.prova_digital && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-sky-500/15 text-sky-700 dark:text-sky-300 border border-sky-500/30">
+                  <span>Prova Digital</span>
+                </span>
+              )}
+
+              {/* Prova E-mail */}
+              {order.prova_email && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-pink-500/15 text-pink-700 dark:text-pink-300 border border-pink-500/30">
+                  <span>Prova E-mail</span>
+                </span>
+              )}
+
+              {/* Slow Alert standalone indicator */}
+              {isSlowAlert && !order.saida_direta && !order.prova_digital && !order.prova_email && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30" title="Mais de 21 horas nesta etapa">
+                  <Clock className="h-2.5 w-2.5 text-amber-500 animate-pulse shrink-0" />
+                  <span>+21h</span>
+                </span>
+              )}
+
+              {/* Digital sector banners: Color and PB */}
+              {departmentContext === "producao" && (order as any).digital_color && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30">
+                  Color
+                </span>
+              )}
+              {departmentContext === "producao" && (order as any).digital_pb && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-500/30">
+                  PB
+                </span>
+              )}
+
+              {/* Expedição delivery types */}
+              {departmentContext === "expedicao" && order.tipo_entrega && order.tipo_entrega.includes("CARRO") && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                  Carro
+                </span>
+              )}
+              {departmentContext === "expedicao" && order.tipo_entrega && order.tipo_entrega.includes("MOTO") && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30">
+                  Moto
+                </span>
+              )}
+              {departmentContext === "expedicao" && order.tipo_entrega && order.tipo_entrega.includes("RETIRA") && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-500/30">
+                  Retira
+                </span>
+              )}
+
+              {/* Setor em Produção */}
+              {order.setor && order.setor !== "desenvolvimento" && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 max-w-[210px] truncate" title={`Em Produção — ${DEPARTMENTS.find(d => d.id === order.setor)?.label || order.setor}`}>
+                  Em Prod: {DEPARTMENTS.find(d => d.id === order.setor)?.label || order.setor}
+                  {order.setor_status && (() => {
+                    const dept = DEPARTMENTS.find(d => d.id === order.setor);
+                    const statusLabel = dept?.statuses.find(s => s.id === order.setor_status)?.label;
+                    return statusLabel ? ` › ${statusLabel}` : "";
+                  })()}
+                </span>
+              )}
+
+              {/* Sub-ordem */}
+              {order.parent_order_id && (
+                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider bg-violet-500/10 text-violet-700 dark:text-violet-300 border border-violet-500/25">
+                  Sub-ordem
+                </span>
+              )}
+            </div>
+
+            {/* Drag Handle */}
+            {dragHandleProps && (
+              <div
+                {...dragHandleProps}
+                className="p-1 -mr-1 rounded hover:bg-muted text-muted-foreground/40 hover:text-muted-foreground cursor-grab active:cursor-grabbing transition-colors shrink-0"
+                onClick={(e) => e.stopPropagation()}
+                title="Arrastar cartão"
+              >
+                <GripVertical className="h-3.5 w-3.5" />
+              </div>
+            )}
           </div>
         )}
 

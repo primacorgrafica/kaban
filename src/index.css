@@ -241,6 +241,78 @@
     animation: tech-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 
+  /* SaaS Modern Utilities */
+  .saas-card {
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border) / 0.7);
+    border-radius: 1rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .dark .saas-card {
+    background-color: hsl(var(--card) / 0.65);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-color: hsl(var(--border) / 0.5);
+    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.35);
+  }
+
+  .saas-card-hover:hover {
+    border-color: hsl(var(--primary) / 0.4);
+    transform: translateY(-1.5px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  }
+
+  .dark .saas-card-hover:hover {
+    border-color: hsl(var(--primary) / 0.45);
+    box-shadow: 0 12px 30px -5px rgba(6, 182, 212, 0.12), 0 4px 15px -2px rgba(0, 0, 0, 0.4);
+  }
+
+  .saas-stat-card {
+    position: relative;
+    overflow: hidden;
+    background-color: hsl(var(--card));
+    border: 1px solid hsl(var(--border) / 0.6);
+    border-radius: 1rem;
+    padding: 1.25rem;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .dark .saas-stat-card {
+    background: linear-gradient(180deg, hsl(var(--card) / 0.8) 0%, hsl(var(--card) / 0.45) 100%);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-color: hsl(var(--border) / 0.5);
+  }
+
+  .saas-stat-card:hover {
+    border-color: hsl(var(--primary) / 0.4);
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px -6px rgba(6, 182, 212, 0.12), 0 4px 12px -2px rgba(0, 0, 0, 0.15);
+  }
+
+  .saas-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    border-radius: 9999px;
+    padding: 0.2rem 0.65rem;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: 0.025em;
+    transition: all 0.15s ease;
+  }
+
+  .saas-interactive {
+    transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .saas-interactive:active {
+    transform: scale(0.98);
+  }
+
   @keyframes tech-pulse {
     0%, 100% {
       opacity: 1;
