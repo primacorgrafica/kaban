@@ -22,13 +22,13 @@ export default function DashboardPage() {
       {loading ? (
         <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3 text-slate-400 font-mono-tech">
           <span className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
-          <span className="text-xs">Carregando telemetria operacional...</span>
+          <span className="text-xs">Carregando painel administrador...</span>
         </div>
       ) : permissions.canAccessDashboard ? (
         <Dashboard orders={orders} archivedCount={archivedOrders.length} />
       ) : (
         <div className="flex items-center justify-center min-h-[50vh] text-slate-400 text-sm">
-          Sem permissão para acessar o Dashboard de Telemetria.
+          Sem permissão para acessar o Painel Administrador.
         </div>
       )}
     </Layout>

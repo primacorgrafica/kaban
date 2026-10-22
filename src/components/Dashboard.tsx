@@ -791,11 +791,8 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-lg sm:text-xl font-bold tracking-tight text-foreground font-sans">
-                Telemetria Operacional
+                Painel Administrador
               </h1>
-              <span className="saas-pill bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-mono-tech uppercase">
-                Ao Vivo
-              </span>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
               Primacor OS • Monitoramento em tempo real do fluxo gráfico e chão de fábrica
