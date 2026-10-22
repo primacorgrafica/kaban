@@ -367,11 +367,12 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
                 P
               </button>
             ) : (
-              <div className="flex flex-col items-start gap-1">
-                <img src={logoImg} alt="Primacor Gráfica" className="w-36 h-auto max-h-11 object-contain" />
-                <span className="text-[9px] px-1.5 py-0.2 rounded bg-[#253745]/60 text-[#9BA8AB] font-mono-tech border border-[#4A5C6A]/40 font-bold tracking-wider">
-                  2.0 SAAS
-                </span>
+              <div className="flex items-center py-0.5">
+                <img
+                  src={logoImg}
+                  alt="Primacor Gráfica"
+                  className="w-44 sm:w-48 h-auto max-h-13 sm:max-h-14 object-contain filter drop-shadow-sm transition-transform duration-200"
+                />
               </div>
             )}
           </div>
