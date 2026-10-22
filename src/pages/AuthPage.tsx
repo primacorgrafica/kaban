@@ -357,35 +357,39 @@ export default function AuthPage() {
             <span className="text-[10px] font-mono-tech text-[#9BA8AB]">24/7</span>
           </div>
 
-          {/* Center Floating 3D Glass Showcase Badge (Matching Reference Image) */}
+          {/* Center Floating 3D Glass Showcase Badge (Faithfully matching Reference Image) */}
           <div className="my-auto py-8 z-10 flex flex-col items-center text-center w-full">
             <motion.div
               key={currentSlide}
-              initial={{ opacity: 0, y: 15, scale: 0.92 }}
+              initial={{ opacity: 0, y: 15, scale: 0.94 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -15, scale: 0.92 }}
+              exit={{ opacity: 0, y: -15, scale: 0.94 }}
               transition={{ duration: 0.35, ease: "easeOut" }}
               className="relative mb-8"
             >
-              {/* Outer frosted glass rounded container with subtle radar waves */}
-              <div className="relative w-44 h-48 sm:w-48 sm:h-52 rounded-[28px] bg-[#253745]/60 border border-[#4A5C6A]/70 shadow-[0_20px_50px_rgba(6,20,27,0.8)] backdrop-blur-2xl flex flex-col items-center justify-center p-6 group">
-                {/* Glowing beacon dot on top-right corner of card (just like the reference image!) */}
-                <div className="absolute top-4 right-4 flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#CCD0CF] opacity-75" />
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-[#CCD0CF] shadow-[0_0_12px_#CCD0CF]" />
+              {/* Soft ambient backlight behind card */}
+              <div className="absolute -inset-2 rounded-[36px] bg-[#4A5C6A]/20 blur-xl pointer-events-none" />
+
+              {/* Outer 3D Frosted Glass Rounded Card */}
+              <div className="relative w-48 h-56 sm:w-52 sm:h-60 rounded-[32px] bg-gradient-to-b from-[#253745]/80 via-[#11212D]/85 to-[#06141B]/90 border border-[#9BA8AB]/35 shadow-[0_25px_60px_rgba(6,20,27,0.9),inset_0_1px_2px_rgba(255,255,255,0.18)] backdrop-blur-2xl flex flex-col items-center justify-center p-6 group">
+                {/* Glowing beacon light on top-right (identically placed as reference image) */}
+                <div className="absolute top-5 right-6 flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#CCD0CF] opacity-80" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white shadow-[0_0_10px_#FFFFFF,0_0_20px_#CCD0CF]" />
                 </div>
 
-                {/* Concentric radar rings */}
-                <div className="absolute inset-5 rounded-2xl border border-[#4A5C6A]/40 pointer-events-none" />
-                <div className="absolute inset-8 rounded-xl border border-[#4A5C6A]/30 pointer-events-none" />
+                {/* Concentric radar rings centered around the icon badge */}
+                <div className="absolute w-40 h-40 rounded-full border border-[#9BA8AB]/15 pointer-events-none" />
+                <div className="absolute w-32 h-32 rounded-full border border-[#9BA8AB]/25 pointer-events-none" />
+                <div className="absolute w-24 h-24 rounded-full border border-[#CCD0CF]/20 pointer-events-none" />
 
-                {/* Central glowing icon container */}
-                <div className="relative p-4 rounded-2xl bg-[#11212D]/90 border border-[#4A5C6A]/70 text-[#CCD0CF] shadow-[0_8px_24px_rgba(6,20,27,0.7)]">
-                  <ActiveSlideIcon className="h-8 w-8 text-[#CCD0CF]" />
+                {/* Central frosted squircle with glowing icon */}
+                <div className="relative p-4 rounded-2xl bg-gradient-to-b from-[#4A5C6A]/60 to-[#253745]/90 border border-[#CCD0CF]/40 text-[#CCD0CF] shadow-[0_12px_28px_rgba(6,20,27,0.7),inset_0_1px_1px_rgba(255,255,255,0.3)] transition-transform group-hover:scale-105 duration-300">
+                  <ActiveSlideIcon className="h-9 w-9 text-white drop-shadow-[0_2px_8px_rgba(255,255,255,0.3)]" />
                 </div>
 
                 {/* Bottom triple dots indicator (matching reference print) */}
-                <div className="mt-4 flex items-center gap-1.5 opacity-60">
+                <div className="mt-5 flex items-center gap-1.5 opacity-70">
                   <span className="w-1.5 h-1.5 rounded-full bg-[#CCD0CF]" />
                   <span className="w-1.5 h-1.5 rounded-full bg-[#CCD0CF]" />
                   <span className="w-1.5 h-1.5 rounded-full bg-[#CCD0CF]" />
@@ -406,7 +410,7 @@ export default function AuthPage() {
                 <h3 className="text-xl sm:text-2xl font-bold tracking-tight text-white font-sans">
                   {activeSlideData.title}
                 </h3>
-                <p className="text-xs text-[#9BA8AB] mt-2.5 leading-relaxed">
+                <p className="text-xs text-[#9BA8AB] mt-2.5 leading-relaxed font-sans">
                   {activeSlideData.description}
                 </p>
               </motion.div>
@@ -421,7 +425,7 @@ export default function AuthPage() {
                   onClick={() => setCurrentSlide(idx)}
                   className={`transition-all duration-300 rounded-full cursor-pointer ${
                     currentSlide === idx
-                      ? "w-7 h-1.5 bg-[#CCD0CF] shadow-[0_0_8px_rgba(204,208,207,0.5)]"
+                      ? "w-8 h-1.5 bg-[#CCD0CF] shadow-[0_0_10px_rgba(204,208,207,0.6)]"
                       : "w-2 h-1.5 bg-[#4A5C6A] hover:bg-[#9BA8AB]"
                   }`}
                   title={`Slide ${idx + 1}`}
