@@ -372,16 +372,22 @@ export async function sendEmailViaGraph(params: {
       }
 
       const errData = await fallbackRes.json().catch(() => ({}));
+      const is403 = fallbackRes.status === 403;
       return {
         ok: false,
-        error: `Falha no envio via Graph API (${fallbackRes.status}): ${errData?.error?.message || fallbackRes.statusText}`,
+        error: is403
+          ? "Acesso negado no Microsoft 365 (403): Falta conceder a permissão 'Mail.Send' no Azure para enviar e-mails aos vendedores."
+          : `Falha no envio via Graph API (${fallbackRes.status}): ${errData?.error?.message || fallbackRes.statusText}`,
       };
     }
 
     const primaryErr = await res.json().catch(() => ({}));
+    const isPrimary403 = res.status === 403;
     return {
       ok: false,
-      error: `Falha no envio via Graph API (${res.status}): ${primaryErr?.error?.message || res.statusText}`,
+      error: isPrimary403
+        ? "Acesso negado no Microsoft 365 (403): Falta conceder a permissão 'Mail.Send' no Azure para enviar e-mails aos vendedores."
+        : `Falha no envio via Graph API (${res.status}): ${primaryErr?.error?.message || res.statusText}`,
     };
   } catch (err: any) {
     return {

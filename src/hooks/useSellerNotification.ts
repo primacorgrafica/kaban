@@ -112,8 +112,15 @@ export function useSellerNotification(orderId?: string | null): UseSellerNotific
         await fetchNotifications();
         return true;
       } else {
-        toast.error("Falha ao reenviar notificação. Verifique se o vendedor possui e-mail válido.", {
+        const { data: updated } = await supabase
+          .from("order_seller_notifications")
+          .select("error_message")
+          .eq("id", targetId)
+          .maybeSingle();
+        const err = updated?.error_message || "Falha ao enviar e-mail via Microsoft Graph (403)";
+        toast.error(err, {
           id: "retry-seller-notif",
+          duration: 8000,
         });
         await fetchNotifications();
         return false;
