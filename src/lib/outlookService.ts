@@ -116,6 +116,17 @@ export async function getEmailAccessToken(interactiveFallback = true): Promise<s
       throw new Error("Uma janela de login do Microsoft 365 já estava aberta. Feche janelas anteriores e tente novamente.");
     }
 
+    if (
+      popupError?.message?.includes("AADSTS90094") ||
+      popupError?.message?.includes("admin") ||
+      popupError?.message?.includes("administrador") ||
+      popupError?.errorCode === "admin_consent_required"
+    ) {
+      throw new Error(
+        "Aprovação de Administrador necessária: O Microsoft 365 da organização exige aprovação do administrador para leitura de e-mails corporativos. Na tela da Microsoft, clique em 'Tem uma conta de administrador? Entre com essa conta'."
+      );
+    }
+
     throw popupError;
   }
 }
