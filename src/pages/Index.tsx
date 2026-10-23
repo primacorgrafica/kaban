@@ -38,15 +38,25 @@ const Index = () => {
     getProfileName,
   } = useOrders();
 
-  const { canAccessSector, setorVinculado } = useAuth();
+  const { canAccessSector, setorVinculado, hasModule } = useAuth();
   const location = useLocation();
   const isDashboard = location.pathname === "/dashboard";
   const isArchived = location.pathname === "/arquivados";
 
-  // Se o usuário tem um setor vinculado que não é pré-impressão e tenta acessar a raiz "/",
-  // redireciona para a página do seu respectivo setor
-  if (location.pathname === "/" && !canAccessSector("pre_impressao") && setorVinculado) {
-    return <Navigate to={`/producao/${setorVinculado}`} replace />;
+  // Se o usuário não tem acesso à Pré-Impressão e tenta acessar "/", redireciona para seu setor ou primeiro módulo acessível
+  if (location.pathname === "/" && !canAccessSector("pre_impressao")) {
+    if (setorVinculado) {
+      return <Navigate to={`/producao/${setorVinculado}`} replace />;
+    }
+    if (hasModule("comercial")) return <Navigate to="/comercial" replace />;
+    if (hasModule("pcp")) return <Navigate to="/pcp" replace />;
+    if (hasModule("qualidade")) return <Navigate to="/qualidade" replace />;
+    if (hasModule("expedicao")) return <Navigate to="/expedicao" replace />;
+    if (hasModule("entregas") || hasModule("gestao_entregas")) return <Navigate to="/entregas" replace />;
+    if (hasModule("compras")) return <Navigate to="/compras" replace />;
+    if (hasModule("manutencao")) return <Navigate to="/manutencao" replace />;
+    if (hasModule("dashboard")) return <Navigate to="/dashboard" replace />;
+    if (hasModule("trabalhos_concluidos")) return <Navigate to="/arquivados" replace />;
   }
 
   const [viewMode, setViewMode] = useState<"kanban" | "table">(() => {

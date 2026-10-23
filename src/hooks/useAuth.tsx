@@ -232,20 +232,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasModule = (mod: string) => {
     if (isAdmin) return true;
     if (modulosAcesso && modulosAcesso.length > 0) {
-      return modulosAcesso.includes(mod);
+      if (modulosAcesso.includes(mod)) return true;
+      // Compatibilidade retroativa com módulos legados
+      if (mod === "pre_impressao" && modulosAcesso.includes("producao")) return true;
+      if (mod === "qualidade" && modulosAcesso.includes("producao")) return true;
+      if ((mod === "entregas" || mod === "gestao_entregas") && (modulosAcesso.includes("entregas") || modulosAcesso.includes("gestao_entregas"))) return true;
+      if ((mod === "cadastros" || mod === "cadastro") && (modulosAcesso.includes("cadastros") || modulosAcesso.includes("cadastro"))) return true;
+      return false;
     }
     // Fallback seguro: default-deny baseado na role caso não haja módulos explicitamente configurados
     if (role === "coordenador") {
-      return ["producao", "expedicao", "pcp", "trabalhos_concluidos", "compras", "manutencao"].includes(mod);
+      return ["comercial", "pcp", "pre_impressao", "qualidade", "producao", "expedicao", "entregas", "gestao_entregas", "trabalhos_concluidos", "compras", "manutencao", "dashboard", "cadastros", "cadastro", "utilidades"].includes(mod);
     }
     if (role === "vendedor") {
-      return ["comercial"].includes(mod);
+      return ["comercial", "utilidades"].includes(mod);
     }
     if (role === "orcamentista") {
-      return ["comercial", "producao"].includes(mod);
+      return ["comercial", "pcp", "pre_impressao", "producao", "utilidades"].includes(mod);
     }
     if (role === "operador" || role === "impressor") {
-      return ["producao"].includes(mod);
+      return ["pre_impressao", "qualidade", "producao", "utilidades"].includes(mod);
     }
     return false;
   };
@@ -253,6 +259,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const canAccessSector = useCallback((sectorId: string) => {
     // Administrador tem acesso irrestrito
     if (isAdmin) return true;
+
+    // Se o usuário possui módulos de acesso explicitamente configurados
+    if (modulosAcesso && modulosAcesso.length > 0) {
+      return hasModule(sectorId);
+    }
 
     // Se o usuário possui um setor vinculado, o acesso à produção é estritamente restrito a ele
     if (setorVinculado) {
@@ -262,9 +273,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Coordenador sem setor fixo pode gerenciar todos os setores
     if (role === "coordenador") return true;
 
-    // Para usuários operacionais sem setor específico, checa o módulo 'producao'
-    return hasModule("producao");
-  }, [isAdmin, setorVinculado, role, hasModule]);
+    // Para usuários operacionais sem setor específico, checa o módulo 'pre_impressao' ou 'producao'
+    return hasModule("pre_impressao") || hasModule("producao");
+  }, [isAdmin, setorVinculado, role, hasModule, modulosAcesso]);
 
   return (
     <AuthContext.Provider

@@ -230,7 +230,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
     // 1. CHAT
     { to: "/chat", label: "Chat", icon: MessageSquare, count: unreadChatCount > 0 ? unreadChatCount : undefined },
     // 2. COMERCIAL
-    ...(permissions.canAccessComercial && hasModule("comercial") ? [{ to: "/comercial", label: "Comercial", icon: Briefcase }] : []),
+    ...(hasModule("comercial") ? [{ to: "/comercial", label: "Comercial", icon: Briefcase }] : []),
     // 3. PCP
     ...(hasModule("pcp") ? [{ to: "/pcp", label: "PCP", icon: ClipboardList }] : []),
     // 4. PRÉ-IMPRESSÃO
@@ -238,21 +238,21 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
     // 5. QUALIDADE
     ...(canAccessSector("qualidade") ? [{ to: "/qualidade", label: "Qualidade", icon: Search, count: deptCountsLoaded ? (deptCounts["qualidade"] ?? 0) : undefined }] : []),
     // 6. EXPEDIÇÃO
-    ...(hasModule("expedicao") && canAccessSector("expedicao") ? [{ to: "/expedicao", label: "Expedição", icon: Truck, count: deptCountsLoaded ? (deptCounts["expedicao"] ?? 0) : undefined }] : []),
+    ...(hasModule("expedicao") ? [{ to: "/expedicao", label: "Expedição", icon: Truck, count: deptCountsLoaded ? (deptCounts["expedicao"] ?? 0) : undefined }] : []),
     // 7. GESTÃO ENTREGAS
-    ...(canAccessGestaoEntregas && hasModule("expedicao") ? [{ to: "/entregas", label: "Gestão Entregas", icon: Package }] : []),
+    ...(hasModule("entregas") ? [{ to: "/entregas", label: "Gestão Entregas", icon: Package }] : []),
     // 8. TRABALHOS CONCLUIDOS
-    ...(permissions.canArchive && hasModule("trabalhos_concluidos") ? [{ to: "/arquivados", label: "Trabalhos Concluídos", icon: Archive, count: countsLoading ? undefined : archivedCount }] : []),
+    ...(hasModule("trabalhos_concluidos") ? [{ to: "/arquivados", label: "Trabalhos Concluídos", icon: Archive, count: countsLoading ? undefined : archivedCount }] : []),
     // 9. COMPRAS
     ...(hasModule("compras") ? [{ to: "/compras", label: "Compras", icon: ShoppingCart, count: deptCountsLoaded ? (deptCounts["compras"] ?? 0) : undefined }] : []),
     // 10. MANUTENÇÃO
     ...(hasModule("manutencao") ? [{ to: "/manutencao", label: "Manutenção", icon: Wrench, count: deptCountsLoaded ? (deptCounts["manutencao"] ?? 0) : undefined }] : []),
     // 11. DASHBOARD
-    ...(permissions.canAccessDashboard && hasModule("dashboard") ? [{ to: "/dashboard", label: "Dashboard", icon: BarChart3 }] : []),
+    ...(hasModule("dashboard") ? [{ to: "/dashboard", label: "Dashboard", icon: BarChart3 }] : []),
   ];
 
   const cadastrosItems = [
-    { to: "/usuarios", label: "Usuários", icon: Users },
+    ...(isAdmin ? [{ to: "/usuarios", label: "Usuários", icon: Users }] : []),
     { to: "/equipamentos", label: "Equipamentos", icon: Settings },
   ];
 
@@ -393,8 +393,8 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
         <nav className={`flex-1 ${sidebarCollapsed ? "px-2" : "px-3"} py-2 space-y-1 overflow-y-auto scrollbar-none`}>
           {navItems.map(renderNavLink)}
 
-          {/* Cadastros - collapsible group, admin only */}
-          {permissions.canManageUsers && (
+          {/* Cadastros - collapsible group */}
+          {(isAdmin || hasModule("cadastros")) && (
             <div>
               <button
                 onClick={handleCadastrosClick}
@@ -429,7 +429,8 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
           )}
 
           {/* Utilidades - Menu com sub-menus e botões para links externos */}
-          <div>
+          {(isAdmin || hasModule("utilidades")) && (
+            <div>
             <button
               onClick={handleUtilidadesClick}
               title={sidebarCollapsed ? "Utilidades" : undefined}
@@ -486,6 +487,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
               </motion.div>
             )}
           </div>
+          )}
         </nav>
 
         <div className={`p-3 border-t border-sidebar-border/60 bg-sidebar-background/60 ${sidebarCollapsed ? "flex flex-col items-center gap-2" : ""}`}>

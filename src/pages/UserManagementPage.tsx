@@ -50,14 +50,34 @@ type AppRole = "admin" | "coordenador" | "operador" | "vendedor" | "user" | "orc
 const ACCESS_MODULES: { id: string; label: string }[] = [
   { id: "comercial", label: "Comercial" },
   { id: "pcp", label: "PCP" },
-  { id: "producao", label: "Produção" },
+  { id: "pre_impressao", label: "Pré-Impressão" },
+  { id: "qualidade", label: "Qualidade" },
   { id: "expedicao", label: "Expedição" },
+  { id: "entregas", label: "Gestão Entregas" },
   { id: "trabalhos_concluidos", label: "Trabalhos Concluídos" },
   { id: "compras", label: "Compras" },
   { id: "manutencao", label: "Manutenção" },
   { id: "dashboard", label: "Dashboard" },
-  { id: "cadastro", label: "Cadastro" },
+  { id: "cadastros", label: "Cadastros" },
+  { id: "utilidades", label: "Utilidades" },
 ];
+
+export const normalizeModules = (modules: string[] = []): string[] => {
+  const set = new Set<string>();
+  modules.forEach((m) => {
+    if (m === "producao") {
+      set.add("pre_impressao");
+      set.add("qualidade");
+    } else if (m === "cadastro") {
+      set.add("cadastros");
+    } else if (m === "gestao_entregas") {
+      set.add("entregas");
+    } else {
+      set.add(m);
+    }
+  });
+  return Array.from(set);
+};
 
 
 
@@ -488,7 +508,7 @@ export default function UserManagementPage() {
 
   const openEditDialog = (u: UserRow) => {
     setEditTarget(u);
-    setEditForm({ nome: u.nome, email: u.email || "", password: "", modulos_acesso: u.modulos_acesso || [] });
+    setEditForm({ nome: u.nome, email: u.email || "", password: "", modulos_acesso: normalizeModules(u.modulos_acesso || []) });
     setEditOpen(true);
   };
 
@@ -896,7 +916,7 @@ export default function UserManagementPage() {
                           {u.modulos_acesso.length === 0 ? (
                             <span className="text-xs text-muted-foreground">Todos</span>
                           ) : (
-                            u.modulos_acesso.map((modId) => {
+                            normalizeModules(u.modulos_acesso).map((modId) => {
                               const mod = ACCESS_MODULES.find((m) => m.id === modId);
                               return (
                                 <Badge key={modId} variant="secondary" className="text-[10px] px-1.5 py-0">

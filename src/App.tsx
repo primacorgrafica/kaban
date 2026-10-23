@@ -116,18 +116,18 @@ const App = () => (
                   <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
                   <Route path="/dashboard" element={<ProtectedRoute module="dashboard"><DashboardPage /></ProtectedRoute>} />
                   <Route path="/arquivados" element={<ProtectedRoute module="trabalhos_concluidos"><Index /></ProtectedRoute>} />
-                  <Route path="/qualidade" element={<ProtectedRoute module="producao"><ProductionPage /></ProtectedRoute>} />
+                  <Route path="/qualidade" element={<ProtectedRoute module="qualidade"><ProductionPage /></ProtectedRoute>} />
                   <Route path="/producao/:departamento" element={<ProtectedRoute module="producao"><ProductionPage /></ProtectedRoute>} />
                   <Route path="/producao" element={<ProtectedRoute module="producao"><ProducaoRedirect /></ProtectedRoute>} />
                   <Route path="/expedicao" element={<ProtectedRoute module="expedicao"><ExpedicaoPage /></ProtectedRoute>} />
                   <Route path="/usuarios" element={<ProtectedRoute requireAdmin><UserManagementPage /></ProtectedRoute>} />
-                  <Route path="/equipamentos" element={<ProtectedRoute module="cadastro"><EquipamentosPage /></ProtectedRoute>} />
+                  <Route path="/equipamentos" element={<ProtectedRoute module="cadastros"><EquipamentosPage /></ProtectedRoute>} />
                   <Route path="/comercial" element={<ProtectedRoute module="comercial"><ComercialPage /></ProtectedRoute>} />
                   <Route path="/pcp" element={<ProtectedRoute module="pcp"><PcpPage /></ProtectedRoute>} />
                   
                   <Route path="/compras" element={<ProtectedRoute module="compras"><ProductionPage /></ProtectedRoute>} />
                   <Route path="/manutencao" element={<ProtectedRoute module="manutencao"><ProductionPage /></ProtectedRoute>} />
-                  <Route path="/entregas" element={<ProtectedRoute module="expedicao"><EntregasPage /></ProtectedRoute>} />
+                  <Route path="/entregas" element={<ProtectedRoute module="entregas"><EntregasPage /></ProtectedRoute>} />
                   <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
 
                   <Route path="*" element={<NotFound />} />
