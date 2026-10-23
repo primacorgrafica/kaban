@@ -25,7 +25,7 @@ export function useOrders() {
   const [loading, setLoading] = useState(true);
 
   const fetchProfiles = useCallback(async () => {
-    const { data } = await supabase.from("profiles").select("id, user_id, nome, email, created_at");
+    const { data } = await supabase.from("profiles").select("id, user_id, nome, created_at");
     if (data) {
       const map: Record<string, Profile> = {};
       data.forEach((p) => { map[p.user_id] = p as Profile; });

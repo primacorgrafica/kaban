@@ -70,73 +70,109 @@ export async function resolveSellerEmail(
 
   // 1. Busca na tabela profiles por nome exato (case-insensitive)
   if (cleanVendedor) {
-    const { data: profileExact } = await supabase
-      .from("profiles")
-      .select("nome, email, user_id")
-      .ilike("nome", cleanVendedor)
-      .not("email", "is", null)
-      .limit(1)
-      .maybeSingle();
+    try {
+      const { data: profileExact } = await supabase
+        .from("profiles")
+        .select("nome, email, user_id" as any)
+        .ilike("nome", cleanVendedor)
+        .not("email", "is", null)
+        .limit(1)
+        .maybeSingle();
 
-    if (profileExact?.email && isValidEmail(profileExact.email)) {
-      return {
-        email: profileExact.email.trim().toLowerCase(),
-        name: profileExact.nome || cleanVendedor,
-        source: "profiles",
-      };
-    }
+      if (profileExact?.email && isValidEmail(profileExact.email)) {
+        return {
+          email: profileExact.email.trim().toLowerCase(),
+          name: profileExact.nome || cleanVendedor,
+          source: "profiles",
+        };
+      }
 
-    // Busca na tabela profiles por correspondência parcial (ex: "Carlos" para "Carlos Silva")
-    const { data: profilePartial } = await supabase
-      .from("profiles")
-      .select("nome, email, user_id")
-      .ilike("nome", `${cleanVendedor}%`)
-      .not("email", "is", null)
-      .limit(1)
-      .maybeSingle();
+      // Busca na tabela profiles por correspondência parcial (ex: "Carlos" para "Carlos Silva")
+      const { data: profilePartial } = await supabase
+        .from("profiles")
+        .select("nome, email, user_id" as any)
+        .ilike("nome", `${cleanVendedor}%`)
+        .not("email", "is", null)
+        .limit(1)
+        .maybeSingle();
 
-    if (profilePartial?.email && isValidEmail(profilePartial.email)) {
-      return {
-        email: profilePartial.email.trim().toLowerCase(),
-        name: profilePartial.nome || cleanVendedor,
-        source: "profiles",
-      };
+      if (profilePartial?.email && isValidEmail(profilePartial.email)) {
+        return {
+          email: profilePartial.email.trim().toLowerCase(),
+          name: profilePartial.nome || cleanVendedor,
+          source: "profiles",
+        };
+      }
+    } catch {
+      // Se a coluna email ainda não existir na tabela profiles, continua para outros métodos
     }
 
     // 2. Busca na tabela vendedores
-    const { data: vendData } = await supabase
-      .from("vendedores")
-      .select("nome, email, user_id")
-      .ilike("nome", cleanVendedor)
-      .not("email", "is", null)
-      .limit(1)
-      .maybeSingle();
+    try {
+      const { data: vendData } = await supabase
+        .from("vendedores")
+        .select("nome, email, user_id" as any)
+        .ilike("nome", cleanVendedor)
+        .not("email", "is", null)
+        .limit(1)
+        .maybeSingle();
 
-    if (vendData?.email && isValidEmail(vendData.email)) {
-      return {
-        email: vendData.email.trim().toLowerCase(),
-        name: vendData.nome || cleanVendedor,
-        source: "vendedores",
-      };
+      if (vendData?.email && isValidEmail(vendData.email)) {
+        return {
+          email: vendData.email.trim().toLowerCase(),
+          name: vendData.nome || cleanVendedor,
+          source: "vendedores",
+        };
+      }
+    } catch {
+      // continua
+    }
+
+    // 3. Busca por nome em profiles e resolve e-mail via list-users (auth.users)
+    try {
+      const { data: pByName } = await supabase
+        .from("profiles")
+        .select("user_id, nome" as any)
+        .ilike("nome", cleanVendedor)
+        .limit(1)
+        .maybeSingle();
+
+      if (pByName?.user_id) {
+        const { data: uRes } = await supabase.functions.invoke("list-users");
+        const found = uRes?.emails?.[pByName.user_id];
+        if (found && isValidEmail(found)) {
+          return {
+            email: found.trim().toLowerCase(),
+            name: pByName.nome || cleanVendedor,
+            source: "auth_users",
+          };
+        }
+      }
+    } catch {
+      // continua
     }
   }
 
-  // 3. Fallback: criador da O.S. se for conhecido
+  // 4. Fallback: criador da O.S. se for conhecido
   if (criadoPorUserId) {
-    const { data: creatorProfile } = await supabase
-      .from("profiles")
-      .select("nome, email")
-      .eq("user_id", criadoPorUserId)
-      .not("email", "is", null)
-      .limit(1)
-      .maybeSingle();
+    try {
+      const { data: creatorProfile } = await supabase
+        .from("profiles")
+        .select("nome, email" as any)
+        .eq("user_id", criadoPorUserId)
+        .not("email", "is", null)
+        .limit(1)
+        .maybeSingle();
 
-    if (creatorProfile?.email && isValidEmail(creatorProfile.email)) {
-      return {
-        email: creatorProfile.email.trim().toLowerCase(),
-        name: creatorProfile.nome || cleanVendedor || "Criador da O.S.",
-        source: "creator",
-      };
+      if (creatorProfile?.email && isValidEmail(creatorProfile.email)) {
+        return {
+          email: creatorProfile.email.trim().toLowerCase(),
+          name: creatorProfile.nome || cleanVendedor || "Criador da O.S.",
+          source: "creator",
+        };
+      }
+    } catch {
+      // continua
     }
   }
 

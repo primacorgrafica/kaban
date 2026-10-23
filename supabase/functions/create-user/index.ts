@@ -138,12 +138,23 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: `Não foi possível atribuir o perfil: ${roleError.message}`, error_code: "ROLE_CREATE_FAILED" }, 400);
     }
 
-    const { data: profile, error: profileError } = await adminClient
+    let { data: profile, error: profileError } = await adminClient
       .from("profiles")
       .update({ modulos_acesso, email })
       .eq("user_id", newUser.user.id)
       .select("user_id")
       .maybeSingle();
+
+    if (profileError && profileError.message?.toLowerCase().includes("email")) {
+      const fallback = await adminClient
+        .from("profiles")
+        .update({ modulos_acesso })
+        .eq("user_id", newUser.user.id)
+        .select("user_id")
+        .maybeSingle();
+      profile = fallback.data;
+      profileError = fallback.error;
+    }
 
     if (role === "vendedor") {
       try {

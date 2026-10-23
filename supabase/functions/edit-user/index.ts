@@ -83,10 +83,17 @@ Deno.serve(async (req) => {
         .eq("user_id", user_id);
 
       if (profileError) {
-        return new Response(JSON.stringify({ error: profileError.message }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+        if (profileError.message?.toLowerCase().includes("email")) {
+          delete profileUpdate.email;
+          if (Object.keys(profileUpdate).length > 0) {
+            await adminClient.from("profiles").update(profileUpdate).eq("user_id", user_id);
+          }
+        } else {
+          return new Response(JSON.stringify({ error: profileError.message }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
 
       // Sincroniza tabela vendedores se este usuário for vendedor

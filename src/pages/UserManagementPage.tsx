@@ -165,45 +165,66 @@ export default function UserManagementPage() {
       setLoading(false);
       return;
     }
-    const [{ data: profiles }, { data: roles }, emailRes, { data: presenceData }] = await Promise.all([
-      supabase.from("profiles").select("user_id, nome, email, setor_vinculado, modulos_acesso" as any),
-      supabase.from("user_roles").select("user_id, role"),
-      supabase.functions.invoke("list-users"),
-      supabase.from("user_presence").select("*"),
-    ]);
 
-    const emailMap: Record<string, string> = emailRes?.data?.emails || {};
-    const lastSignInMap: Record<string, string | null> = emailRes?.data?.lastSignIns || {};
-    const presenceMap: Record<string, PresenceInfo> = {};
-    (presenceData as any[])?.forEach((p: any) => {
-      presenceMap[p.user_id] = {
-        last_seen: p.last_seen,
-        logged_in_at: p.logged_in_at,
-        last_logout_at: p.last_logout_at,
-        last_session_duration_ms: p.last_session_duration_ms,
-      };
-    });
+    try {
+      const [profilesRes, { data: roles }, emailRes, { data: presenceData }] = await Promise.all([
+        supabase.from("profiles").select("user_id, nome, setor_vinculado, modulos_acesso" as any),
+        supabase.from("user_roles").select("user_id, role"),
+        supabase.functions.invoke("list-users"),
+        supabase.from("user_presence").select("*"),
+      ]);
 
-    if (profiles) {
-      const roleMap: Record<string, AppRole> = {};
-      roles?.forEach((r: any) => { roleMap[r.user_id] = r.role; });
+      const profiles = profilesRes?.data;
+      const emailMap: Record<string, string> = emailRes?.data?.emails || {};
+      const lastSignInMap: Record<string, string | null> = emailRes?.data?.lastSignIns || {};
+      const presenceMap: Record<string, PresenceInfo> = {};
+      (presenceData as any[])?.forEach((p: any) => {
+        presenceMap[p.user_id] = {
+          last_seen: p.last_seen,
+          logged_in_at: p.logged_in_at,
+          last_logout_at: p.last_logout_at,
+          last_session_duration_ms: p.last_session_duration_ms,
+        };
+      });
 
-      setUsers(
-        profiles.map((p: any) => ({
-          user_id: p.user_id,
-          nome: p.nome,
-          email: p.email || emailMap[p.user_id] || undefined,
-          role: roleMap[p.user_id] || null,
-          setor_vinculado: p.setor_vinculado || null,
-          modulos_acesso: Array.isArray(p.modulos_acesso) ? p.modulos_acesso : [],
-          dirty: false,
-          last_sign_in_at: lastSignInMap[p.user_id] || null,
-          presence: presenceMap[p.user_id] || null,
-        }))
-      );
+      // Tenta carregar emails adicionais da coluna profiles.email se já disponível no banco
+      const profileEmailMap: Record<string, string> = {};
+      try {
+        const { data: pEmailData } = await supabase.from("profiles").select("user_id, email" as any);
+        if (pEmailData && Array.isArray(pEmailData)) {
+          pEmailData.forEach((pe: any) => {
+            if (pe.email) profileEmailMap[pe.user_id] = pe.email;
+          });
+        }
+      } catch {
+        // Coluna email ainda em processo de migração, usa emailMap de auth.users
+      }
+
+      if (profiles && Array.isArray(profiles)) {
+        const roleMap: Record<string, AppRole> = {};
+        roles?.forEach((r: any) => { roleMap[r.user_id] = r.role; });
+
+        setUsers(
+          profiles.map((p: any) => ({
+            user_id: p.user_id,
+            nome: p.nome,
+            email: profileEmailMap[p.user_id] || (p as any).email || emailMap[p.user_id] || undefined,
+            role: roleMap[p.user_id] || null,
+            setor_vinculado: p.setor_vinculado || null,
+            modulos_acesso: Array.isArray(p.modulos_acesso) ? p.modulos_acesso : [],
+            dirty: false,
+            last_sign_in_at: lastSignInMap[p.user_id] || null,
+            presence: presenceMap[p.user_id] || null,
+          }))
+        );
+      }
+    } catch (err) {
+      console.error("[UserManagement] Erro ao carregar usuários:", err);
+      toast.error("Erro ao carregar lista de usuários");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
-  }, []);
+  }, [isAdmin]);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
