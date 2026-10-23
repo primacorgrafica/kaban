@@ -21,6 +21,7 @@ import {
   clearConversationHistoryForUser,
   toggleMessageReaction,
   setLocalConversationHidden,
+  setLocalHiddenOtherUser,
 } from "@/lib/chatService";
 import { toast } from "sonner";
 import { setActiveChatConversationId, notifyConversationViewed } from "@/components/chat/GlobalChatNotifier";
@@ -468,9 +469,24 @@ export function useChat() {
                   .eq("id", newMsg.conversation_id)
                   .or(`user1_id.eq.${currentUserId},user2_id.eq.${currentUserId}`)
                   .maybeSingle()
-                  .then(({ data: validConv }) => {
+                  .then(async ({ data: validConv }) => {
                     if (validConv) {
                       setLocalConversationHidden(currentUserId, newMsg.conversation_id, false);
+                      setLocalHiddenOtherUser(currentUserId, newMsg.sender_id, false);
+                      setDbOnlineIds((prev) => new Set(prev).add(newMsg.sender_id));
+                      try {
+                        await supabase
+                          .from("chat_conversation_settings" as any)
+                          .upsert(
+                            {
+                              conversation_id: newMsg.conversation_id,
+                              user_id: currentUserId,
+                              is_hidden: false,
+                              updated_at: new Date().toISOString(),
+                            },
+                            { onConflict: "conversation_id,user_id" }
+                          );
+                      } catch {}
                       void loadConversations(false);
                     }
                   });
@@ -528,11 +544,29 @@ export function useChat() {
           data.forEach((row: any) => {
             if (row.user_id !== currentUserId && row.last_seen) {
               const diff = now - new Date(row.last_seen).getTime();
-              if (diff < 3 * 60 * 1000) {
+              if (diff < 5 * 60 * 1000) {
                 nextSet.add(row.user_id);
               }
             }
           });
+
+          // Também verifica quem enviou mensagens nos últimos 10 minutos (garantia de estar online)
+          try {
+            const tenMinAgo = new Date(now - 10 * 60 * 1000).toISOString();
+            const { data: recentMsgs } = await supabase
+              .from("chat_messages" as any)
+              .select("sender_id")
+              .neq("sender_id", currentUserId)
+              .gte("created_at", tenMinAgo)
+              .limit(30);
+
+            if (recentMsgs) {
+              recentMsgs.forEach((m: any) => {
+                if (m.sender_id) nextSet.add(m.sender_id);
+              });
+            }
+          } catch {}
+
           setDbOnlineIds(nextSet);
         }
       } catch {
@@ -588,7 +622,7 @@ export function useChat() {
   const mappedAvailableUsers = useMemo(() => {
     return availableUsers.map((u) => ({
       ...u,
-      online: allOnlineUserIds.has(u.id),
+      online: allOnlineUserIds.has(u.id) || !!u.online,
     }));
   }, [availableUsers, allOnlineUserIds]);
 

@@ -7,7 +7,7 @@ import { ChatMessageItem } from "./ChatMessageItem";
 import { EmojiPickerPopover } from "./EmojiPickerPopover";
 import { NewConversationDialog } from "./NewConversationDialog";
 import { notifyConversationViewed } from "./GlobalChatNotifier";
-import { getLocalHiddenOtherUsers } from "@/lib/chatService";
+import { supabase } from "@/integrations/supabase/client";
 import {
   ChatConversation,
   ChatMessage,
@@ -99,17 +99,74 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
 
   // Se houver um parâmetro ?conv=id na URL (ex: ao clicar na notificação), seleciona automaticamente essa conversa
   useEffect(() => {
-    if (convParam && conversations.length > 0) {
-      const target = conversations.find((c) => c.id === convParam);
-      if (target) {
-        if (activeConversation?.id !== target.id) {
-          selectConversation(target);
-          setMobileView("chat");
-        }
-        void notifyConversationViewed(target.id);
+    if (!convParam) return;
+
+    const target = conversations.find((c) => c.id === convParam);
+    if (target) {
+      if (activeConversation?.id !== target.id) {
+        selectConversation(target);
+        setMobileView("chat");
       }
+      void notifyConversationViewed(target.id);
+      return;
     }
-  }, [convParam, conversations, activeConversation?.id, selectConversation]);
+
+    // Se a conversa ainda não está na lista em memória (ex: acabou de receber a notificação e clicou em Responder)
+    let isCancelled = false;
+    const fetchAndOpenConv = async () => {
+      try {
+        const { data: convData } = await supabase
+          .from("chat_conversations" as any)
+          .select("*")
+          .eq("id", convParam)
+          .maybeSingle();
+
+        if (convData && !isCancelled) {
+          const otherUserId = convData.user1_id === currentUserId ? convData.user2_id : convData.user1_id;
+          let otherUserMeta = availableUsers.find((u) => u.id === otherUserId);
+          if (!otherUserMeta) {
+            const { data: prof } = await supabase
+              .from("profiles")
+              .select("user_id, nome, setor_vinculado")
+              .eq("user_id", otherUserId)
+              .maybeSingle();
+            if (prof) {
+              otherUserMeta = {
+                id: prof.user_id,
+                nome: prof.nome || "Colega",
+                setor: (prof as any).setor_vinculado,
+                online: true,
+              };
+            }
+          }
+
+          const convObj: ChatConversation = {
+            id: convData.id,
+            user1_id: convData.user1_id,
+            user2_id: convData.user2_id,
+            last_message_at: convData.last_message_at || convData.created_at,
+            last_message_preview: convData.last_message_preview,
+            last_message_sender_id: convData.last_message_sender_id,
+            created_at: convData.created_at,
+            updated_at: convData.updated_at,
+            otherUser: otherUserMeta || { id: otherUserId, nome: "Colega de Trabalho", online: true },
+            unreadCount: 0,
+          };
+
+          selectConversation(convObj);
+          setMobileView("chat");
+          void notifyConversationViewed(convObj.id);
+        }
+      } catch (err) {
+        console.error("Erro ao carregar conversa da URL:", err);
+      }
+    };
+
+    void fetchAndOpenConv();
+    return () => {
+      isCancelled = true;
+    };
+  }, [convParam, conversations, activeConversation?.id, selectConversation, currentUserId, availableUsers]);
 
   // Se a conversa ativa atual possui mensagens não lidas, notifica para limpar a notificação do topo
   useEffect(() => {
@@ -175,22 +232,20 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
     }
   };
 
-  // Usuários online que ainda não possuem conversa no histórico (e que não foram ocultados/excluídos)
+  // Usuários online que ainda não possuem conversa no histórico
   const onlineUsersWithoutConversation = useMemo(() => {
     const existingOtherUserIds = new Set(
       conversations.map((c) => c.otherUser.id)
     );
-    const hiddenUserIds = getLocalHiddenOtherUsers(currentUserId);
     return availableUsers.filter(
-      (u) => u.online && !existingOtherUserIds.has(u.id) && !hiddenUserIds.has(u.id)
+      (u) => u.online && !existingOtherUserIds.has(u.id)
     );
-  }, [availableUsers, conversations, currentUserId]);
+  }, [availableUsers, conversations]);
 
-  // Lista de todos os usuários online no momento (excluindo os que foram ocultados para o usuário)
+  // Lista de todos os usuários online no momento
   const allOnlineUsersList = useMemo(() => {
-    const hiddenUserIds = getLocalHiddenOtherUsers(currentUserId);
-    return availableUsers.filter((u) => u.online && !hiddenUserIds.has(u.id));
-  }, [availableUsers, currentUserId]);
+    return availableUsers.filter((u) => u.online);
+  }, [availableUsers]);
 
   // Filtragem de conversas existentes
   const filteredConversations = useMemo(() => {

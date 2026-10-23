@@ -49,7 +49,7 @@ export async function fetchChatUsers(
           const lastSeen = presenceMap[p.user_id] || null;
           const isRealtime = realtimeOnlineIds ? realtimeOnlineIds.has(p.user_id) : false;
           const isRecentHeartbeat = lastSeen
-            ? Date.now() - new Date(lastSeen).getTime() < 3 * 60 * 1000
+            ? Date.now() - new Date(lastSeen).getTime() < 5 * 60 * 1000
             : false;
           const isOnline = isRealtime || isRecentHeartbeat;
 
@@ -179,17 +179,32 @@ export async function fetchUserConversations(
 
     const visibleConvs = (convs as any[]).filter((raw) => {
       const otherId = raw.user1_id === currentUserId ? raw.user2_id : raw.user1_id;
+      const convSetting = settingsMap[raw.id];
+
+      // Se a última mensagem foi enviada pelo outro participante (ou há mensagem mais recente que cleared_until), a conversa NUNCA deve ficar oculta
+      const isFromOtherUser =
+        (raw.last_message_sender_id && raw.last_message_sender_id !== currentUserId) ||
+        (convSetting?.cleared_until && raw.last_message_at && new Date(raw.last_message_at).getTime() > new Date(convSetting.cleared_until).getTime());
+      if (isFromOtherUser) {
+        localHidden.delete(raw.id);
+        if (otherId) localHiddenUsers.delete(otherId);
+        if (convSetting && (convSetting.is_hidden === true || (convSetting.is_hidden as any) === "true")) {
+          void supabase
+            .from("chat_conversation_settings" as any)
+            .update({ is_hidden: false, updated_at: new Date().toISOString() })
+            .eq("conversation_id", raw.id)
+            .eq("user_id", currentUserId);
+        }
+        return true;
+      }
 
       // 1. Verifica no localStorage imediato (garante que não volta mesmo antes do sync)
       if (localHidden.has(raw.id)) {
-        if (otherId) localHiddenUsers.add(otherId);
         return false;
       }
       // 2. Verifica nas configurações salvas no banco
-      const convSetting = settingsMap[raw.id];
       if (convSetting && (convSetting.is_hidden === true || (convSetting.is_hidden as any) === "true")) {
         localHidden.add(raw.id);
-        if (otherId) localHiddenUsers.add(otherId);
         return false;
       }
       return true;
@@ -456,6 +471,14 @@ export async function sendMessage(
         last_message_sender_id: senderId,
       })
       .eq("id", conversationId);
+
+    // Desoculta a conversa nas configurações para todos os participantes
+    try {
+      await supabase
+        .from("chat_conversation_settings" as any)
+        .update({ is_hidden: false, updated_at: now })
+        .eq("conversation_id", conversationId);
+    } catch {}
 
     // Marca como lida para quem enviou e desoculta para si
     setLocalConversationHidden(senderId, conversationId, false);

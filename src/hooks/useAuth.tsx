@@ -154,9 +154,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const state = presenceChannel.presenceState();
           const ids = new Set<string>();
-          Object.keys(state).forEach((key) => {
-            if (key !== userId) {
-              ids.add(key);
+          Object.entries(state).forEach(([k, presences]) => {
+            if (k && k !== userId) {
+              ids.add(k);
+            }
+            if (Array.isArray(presences)) {
+              presences.forEach((p: any) => {
+                if (p?.user_id && p.user_id !== userId) {
+                  ids.add(p.user_id);
+                }
+              });
             }
           });
           setOnlineUserIds(ids);
@@ -164,16 +171,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // silencioso
         }
       })
-      .on("presence", { event: "join" }, ({ key }) => {
-        if (key && key !== userId) {
-          setOnlineUserIds((prev) => new Set(prev).add(key));
+      .on("presence", { event: "join" }, ({ key, newPresences }: any) => {
+        const idsToAdd: string[] = [];
+        if (key && key !== userId) idsToAdd.push(key);
+        if (Array.isArray(newPresences)) {
+          newPresences.forEach((p: any) => {
+            if (p?.user_id && p.user_id !== userId) idsToAdd.push(p.user_id);
+          });
         }
-      })
-      .on("presence", { event: "leave" }, ({ key }) => {
-        if (key) {
+        if (idsToAdd.length > 0) {
           setOnlineUserIds((prev) => {
             const next = new Set(prev);
-            next.delete(key);
+            idsToAdd.forEach((id) => next.add(id));
+            return next;
+          });
+        }
+      })
+      .on("presence", { event: "leave" }, ({ key, leftPresences }: any) => {
+        const idsToRemove: string[] = [];
+        if (key) idsToRemove.push(key);
+        if (Array.isArray(leftPresences)) {
+          leftPresences.forEach((p: any) => {
+            if (p?.user_id) idsToRemove.push(p.user_id);
+          });
+        }
+        if (idsToRemove.length > 0) {
+          setOnlineUserIds((prev) => {
+            const next = new Set(prev);
+            idsToRemove.forEach((id) => next.delete(id));
             return next;
           });
         }

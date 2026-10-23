@@ -295,6 +295,22 @@ export function GlobalChatNotifier({ children }: { children?: ReactNode }) {
           setLocalConversationHidden(currentUserId, newMsg.conversation_id, false);
           setLocalHiddenOtherUser(currentUserId, newMsg.sender_id, false);
 
+          // Desoculta também no Supabase (chat_conversation_settings)
+          void supabase
+            .from("chat_conversation_settings" as any)
+            .upsert(
+              {
+                conversation_id: newMsg.conversation_id,
+                user_id: currentUserId,
+                is_hidden: false,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "conversation_id,user_id" }
+            );
+
+          // Dispara evento para que a interface de chat recarregue a lista de conversas
+          window.dispatchEvent(new CustomEvent("primacor:chat_conversations_updated"));
+
           // Se o usuário já está ativo exatamente nessa conversa e com a aba visível
           const activeId = getActiveChatConversationId();
           const isActivelyViewing =
