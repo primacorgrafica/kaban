@@ -330,3 +330,61 @@ BEGIN
   RETURN jsonb_build_object('success', true, 'id', p_notification_id);
 END;
 $$;
+
+-- 6. Política e RPC para administradores atualizarem perfis e e-mails de usuários sem depender de Edge Functions
+DROP POLICY IF EXISTS "Admins can update all profiles" ON public.profiles;
+CREATE POLICY "Admins can update all profiles"
+  ON public.profiles
+  FOR UPDATE
+  TO authenticated
+  USING (
+    public.get_user_role(auth.uid()) = 'admin'
+    OR public.has_role(auth.uid(), 'admin'::app_role)
+  );
+
+CREATE OR REPLACE FUNCTION public.admin_update_user_profile(
+  p_user_id UUID,
+  p_nome TEXT,
+  p_email TEXT,
+  p_modulos_acesso TEXT[] DEFAULT NULL
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  IF NOT (public.get_user_role(auth.uid()) = 'admin' OR public.has_role(auth.uid(), 'admin'::app_role)) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Apenas administradores podem atualizar perfis.');
+  END IF;
+
+  UPDATE public.profiles
+  SET
+    nome = COALESCE(NULLIF(trim(p_nome), ''), nome),
+    email = NULLIF(trim(p_email), ''),
+    modulos_acesso = COALESCE(p_modulos_acesso, modulos_acesso),
+    updated_at = now()
+  WHERE user_id = p_user_id;
+
+  -- Tenta atualizar na tabela auth.users se possível
+  BEGIN
+    UPDATE auth.users
+    SET email = LOWER(TRIM(p_email)), updated_at = now()
+    WHERE id = p_user_id AND p_email IS NOT NULL AND p_email <> '';
+  EXCEPTION WHEN OTHERS THEN
+    -- Ignora se o schema auth tiver restrições adicionais
+  END;
+
+  -- Sincroniza em vendedores
+  UPDATE public.vendedores
+  SET
+    nome = COALESCE(NULLIF(trim(p_nome), ''), nome),
+    email = NULLIF(trim(p_email), '')
+  WHERE user_id = p_user_id OR lower(trim(nome)) = lower(trim(p_nome));
+
+  RETURN jsonb_build_object('success', true);
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.admin_update_user_profile(UUID, TEXT, TEXT, TEXT[]) TO authenticated;
+

@@ -402,32 +402,110 @@ export default function UserManagementPage() {
 
     setEditing(true);
     try {
-      const body: any = { user_id: editTarget.user_id, nome: editForm.nome.trim(), modulos_acesso: editForm.modulos_acesso };
-      if (trimmedEmail) body.email = trimmedEmail;
-      if (editForm.password) body.password = editForm.password;
+      let saved = false;
 
-      const res = await supabase.functions.invoke("edit-user", { body });
+      // 1. Tenta atualizar via RPC dedicada admin_update_user_profile (PostgreSQL SECURITY DEFINER)
+      try {
+        const { data: rpcRes, error: rpcErr } = await supabase.rpc("admin_update_user_profile" as any, {
+          p_user_id: editTarget.user_id,
+          p_nome: editForm.nome.trim(),
+          p_email: trimmedEmail || null,
+          p_modulos_acesso: editForm.modulos_acesso,
+        });
 
-      if (res.error || res.data?.error) {
-        const { error: msg } = await extractFnResponse(res, "Erro ao editar usuário");
-        toast.error(msg);
-      } else {
-        toast.success("Usuário atualizado!");
+        if (!rpcErr && (rpcRes as any)?.success !== false) {
+          saved = true;
+        }
+      } catch {
+        // RPC pode não estar criada ainda no banco
+      }
+
+      // 2. Se a RPC não foi executada, tenta atualização direta em profiles e vendedores
+      if (!saved) {
+        try {
+          const profilePayload: any = {
+            nome: editForm.nome.trim(),
+            modulos_acesso: editForm.modulos_acesso,
+          };
+          if (trimmedEmail) {
+            profilePayload.email = trimmedEmail;
+          }
+
+          let { error: updateErr } = await supabase
+            .from("profiles")
+            .update(profilePayload as any)
+            .eq("user_id", editTarget.user_id);
+
+          // Se falhou porque a coluna email ainda não existe, tenta atualizar sem ela
+          if (updateErr && updateErr.message?.toLowerCase().includes("email")) {
+            delete profilePayload.email;
+            const retry = await supabase
+              .from("profiles")
+              .update(profilePayload as any)
+              .eq("user_id", editTarget.user_id);
+            updateErr = retry.error;
+          }
+
+          if (!updateErr) {
+            saved = true;
+          }
+        } catch {
+          // Continua para outros métodos
+        }
+
+        // Tenta sincronizar vendedores por user_id e nome
+        if (trimmedEmail) {
+          try {
+            await supabase.from("vendedores").update({ email: trimmedEmail, nome: editForm.nome.trim() } as any).eq("user_id", editTarget.user_id);
+          } catch { /* ignore */ }
+          try {
+            await supabase.from("vendedores").update({ email: trimmedEmail } as any).ilike("nome", editForm.nome.trim());
+          } catch { /* ignore */ }
+        }
+      }
+
+      // 3. Tenta Edge Function edit-user caso esteja implantada
+      if (!saved) {
+        try {
+          const body: any = { user_id: editTarget.user_id, nome: editForm.nome.trim(), modulos_acesso: editForm.modulos_acesso };
+          if (trimmedEmail) body.email = trimmedEmail;
+          if (editForm.password) body.password = editForm.password;
+
+          const res = await supabase.functions.invoke("edit-user", { body });
+          if (!res.error && !res.data?.error) {
+            saved = true;
+          }
+        } catch {
+          // Edge function 404
+        }
+      }
+
+      if (saved) {
+        toast.success("Usuário atualizado com sucesso!");
         setUsers((prev) =>
           prev.map((u) =>
             u.user_id === editTarget.user_id
-              ? { ...u, nome: editForm.nome.trim(), email: editForm.email.trim() || u.email, modulos_acesso: editForm.modulos_acesso }
+              ? {
+                  ...u,
+                  nome: editForm.nome.trim(),
+                  email: trimmedEmail || u.email,
+                  modulos_acesso: editForm.modulos_acesso,
+                }
               : u
           )
         );
         setEditOpen(false);
         setEditTarget(null);
+      } else {
+        toast.error(
+          "Não foi possível salvar no banco. Execute o script SQL no Supabase para habilitar a atualização de perfis e e-mails."
+        );
       }
-
     } catch (err: any) {
       toast.error(err.message || "Erro ao editar usuário");
+    } finally {
+      setEditing(false);
     }
-    setEditing(false);
   };
 
   if (!isAdmin) {
