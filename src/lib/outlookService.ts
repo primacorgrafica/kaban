@@ -154,13 +154,8 @@ export async function fetchMailboxMessages(
   const selectParam = "id,subject,bodyPreview,from,toRecipients,sentDateTime,receivedDateTime,conversationId,internetMessageId,parentFolderId,isRead";
   const orderByParam = "receivedDateTime desc";
 
-  const pca = await getMsalInstance();
-  const account = pca.getActiveAccount();
-  const isMe = Boolean(account?.username && account.username.toLowerCase() === mailbox.toLowerCase());
-
-  const baseUrl = isMe
-    ? `https://graph.microsoft.com/v1.0/me/mailFolders/${folder}/messages`
-    : `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/mailFolders/${folder}/messages`;
+  // Consulta via /users/{mailbox}/mailFolders/{folder}/messages compatível com a permissão Mail.Read.Shared
+  const baseUrl = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/mailFolders/${folder}/messages`;
 
   const url = `${baseUrl}?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$orderby=${encodeURIComponent(orderByParam)}&$top=${top}`;
 
@@ -253,13 +248,7 @@ export async function fetchConversationMessages(
 
   const filterParam = `conversationId eq '${conversationId}'`;
   const selectParam = "id,subject,bodyPreview,from,toRecipients,sentDateTime,receivedDateTime,conversationId";
-  const pca = await getMsalInstance();
-  const account = pca.getActiveAccount();
-  const isMe = Boolean(account?.username && account.username.toLowerCase() === mailbox.toLowerCase());
-
-  const url = isMe
-    ? `https://graph.microsoft.com/v1.0/me/messages?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$top=20&$orderby=${encodeURIComponent("receivedDateTime asc")}`
-    : `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/messages?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$top=20&$orderby=${encodeURIComponent("receivedDateTime asc")}`;
+  const url = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/messages?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$top=20&$orderby=${encodeURIComponent("receivedDateTime asc")}`;
 
   const response = await fetch(url, {
     headers: {

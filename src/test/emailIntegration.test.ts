@@ -269,7 +269,7 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
       subject: "Re: Prova do material", // Sem número de O.S.!
       bodyPreview: "Bom dia, conferi o arquivo e está tudo certo, pode rodar.", // Sem número de O.S.!
       from: { emailAddress: { name: "Cliente Alpha", address: "cliente@alpha.com.br" } },
-      toRecipients: [{ emailAddress: { name: "Embalagens", address: "embalagens@primacorgrafica.com.br" } }],
+      toRecipients: [{ emailAddress: { name: "Pré-Impressão", address: "preimpressao@primacorgrafica.com.br" } }],
       sentDateTime: "2026-10-20T11:00:00Z",
       receivedDateTime: "2026-10-20T11:00:00Z",
       conversationId: "conv-thread-100", // Vinculada à thread da OS 73210!
@@ -277,7 +277,7 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
 
     vi.mocked(outlookService.fetchMailboxMessages).mockImplementation(
       async (mailbox, folder) => {
-        if (mailbox === "embalagens@primacorgrafica.com.br" && folder === "inbox") {
+        if (mailbox === "preimpressao@primacorgrafica.com.br" && folder === "inbox") {
           return [replyWithoutNumber];
         }
         return [];
@@ -349,25 +349,25 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
     expect(mockInsertedEvents).toHaveLength(0);
   });
 
-  it("6. Recuperação após falhas temporárias: erro em uma caixa não interrompe a sincronização de outras", async () => {
+  it("6. Recuperação após falhas temporárias: erro em uma pasta não interrompe a sincronização de outras", async () => {
     const validMessage: GraphMessage = {
-      id: "msg-embalagens-005",
+      id: "msg-preimp-005",
       subject: "OS 85000 - Layout Aprovado",
       bodyPreview: "Segue aprovação da OS 85000.",
       from: { emailAddress: { name: "Cliente Beta", address: "beta@empresa.com" } },
-      toRecipients: [{ emailAddress: { name: "Embalagens", address: "embalagens@primacorgrafica.com.br" } }],
+      toRecipients: [{ emailAddress: { name: "Pré-Impressão", address: "preimpressao@primacorgrafica.com.br" } }],
       sentDateTime: "2026-10-20T13:00:00Z",
       receivedDateTime: "2026-10-20T13:00:00Z",
       conversationId: "conv-beta-200",
     };
 
-    // Preimpressao falha temporariamente com erro 503 / timeout, mas Embalagens responde com sucesso
+    // Sentitems falha temporariamente com erro 503 / timeout, mas Inbox responde com sucesso
     vi.mocked(outlookService.fetchMailboxMessages).mockImplementation(
-      async (mailbox, folder) => {
-        if (mailbox === "preimpressao@primacorgrafica.com.br") {
+      async (_mailbox, folder) => {
+        if (folder === "sentitems") {
           throw new Error("Service Unavailable (503): Timeout ao contactar o servidor Exchange");
         }
-        if (mailbox === "embalagens@primacorgrafica.com.br" && folder === "inbox") {
+        if (folder === "inbox") {
           return [validMessage];
         }
         return [];
@@ -376,14 +376,14 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
 
     const result = await runEmailSync();
 
-    // Registra os erros mas continua e processa com sucesso a caixa embalagens!
+    // Registra os erros mas continua e processa com sucesso a pasta inbox!
     expect(result.errors.length).toBeGreaterThan(0);
     expect(result.errors[0]).toContain("503");
     expect(result.newEvents).toBe(1);
     expect(mockInsertedEvents[0]).toMatchObject({
       order_id: "order-uuid-85000",
       os_number: "85000",
-      message_id: "msg-embalagens-005",
+      message_id: "msg-preimp-005",
     });
   });
 });
