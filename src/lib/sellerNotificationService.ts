@@ -589,15 +589,17 @@ export async function retrySellerNotification(notificationId: string): Promise<b
     }
   } catch (err: any) {
     console.error("[SellerNotification] Erro ao retentar envio:", err);
-    await supabase
-      .from("order_seller_notifications")
-      .update({
-        error_message: err?.message || "Erro ao retentar",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", notificationId)
-      .then(() => null)
-      .catch(() => null);
+    try {
+      await supabase
+        .from("order_seller_notifications")
+        .update({
+          error_message: err?.message || "Erro ao retentar",
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", notificationId);
+    } catch {
+      // Ignora falha secundária de gravação
+    }
     return false;
   }
 }

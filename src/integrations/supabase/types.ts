@@ -861,18 +861,125 @@ export type Database = {
           created_at: string
           id: string
           nome: string
+          email: string | null
+          user_id: string | null
         }
         Insert: {
           created_at?: string
           id?: string
           nome: string
+          email?: string | null
+          user_id?: string | null
         }
         Update: {
           created_at?: string
           id?: string
           nome?: string
+          email?: string | null
+          user_id?: string | null
         }
         Relationships: []
+      }
+      profiles: {
+        Row: {
+          id: string
+          user_id: string
+          nome: string
+          email: string | null
+          setor_vinculado: string | null
+          modulos_acesso: string[] | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          nome: string
+          email?: string | null
+          setor_vinculado?: string | null
+          modulos_acesso?: string[] | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          nome?: string
+          email?: string | null
+          setor_vinculado?: string | null
+          modulos_acesso?: string[] | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      order_seller_notifications: {
+        Row: {
+          id: string
+          order_id: string
+          os_number: string
+          cliente: string
+          status: string
+          vendedor_nome: string | null
+          vendedor_email: string
+          subject: string
+          body_html: string
+          link_card: string
+          sent_status: "pending" | "sent" | "failed"
+          error_message: string | null
+          attempts: number
+          last_attempt_at: string | null
+          sent_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          order_id: string
+          os_number: string
+          cliente: string
+          status?: string
+          vendedor_nome?: string | null
+          vendedor_email: string
+          subject: string
+          body_html: string
+          link_card: string
+          sent_status?: "pending" | "sent" | "failed"
+          error_message?: string | null
+          attempts?: number
+          last_attempt_at?: string | null
+          sent_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          order_id?: string
+          os_number?: string
+          cliente?: string
+          status?: string
+          vendedor_nome?: string | null
+          vendedor_email?: string
+          subject?: string
+          body_html?: string
+          link_card?: string
+          sent_status?: "pending" | "sent" | "failed"
+          error_message?: string | null
+          attempts?: number
+          last_attempt_at?: string | null
+          sent_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_seller_notifications_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       crm_etapas_funil: {
         Row: {

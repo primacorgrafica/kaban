@@ -138,11 +138,12 @@ export function OrderSlideOver({
   const statusInfo = STATUS_CONFIG[order.status] || { label: order.status, colorKey: "novo" };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className="w-full sm:max-w-2xl p-0 flex flex-col bg-card/95 backdrop-blur-2xl border-l border-border/80 shadow-2xl"
-      >
+    <>
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent
+          side="right"
+          className="w-full sm:max-w-2xl p-0 flex flex-col bg-card/95 backdrop-blur-2xl border-l border-border/80 shadow-2xl"
+        >
         {/* Top Header */}
         <div className="p-5 border-b border-border/60 bg-muted/20">
           <div className="flex items-start justify-between gap-3">
@@ -630,5 +631,6 @@ export function OrderSlideOver({
         onUpdate={onUpdate}
       />
     )}
+    </>
   );
 }

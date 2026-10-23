@@ -430,6 +430,8 @@ export default function UserManagementPage() {
     );
   }
 
+  const dirtyCount = users.filter((u) => u.dirty).length;
+
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
