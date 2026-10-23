@@ -194,6 +194,21 @@ export default function UserManagementPage() {
         // Coluna email ainda em processo de migração, usa emailMap de auth.users
       }
 
+      // Tenta carregar emails de auth.users via RPC dedicada admin_get_user_emails
+      const rpcEmails: Record<string, string> = {};
+      const rpcLastSignIns: Record<string, string | null> = {};
+      try {
+        const { data: rpcEmailData, error: rpcErr } = await supabase.rpc("admin_get_user_emails" as any);
+        if (!rpcErr && Array.isArray(rpcEmailData)) {
+          rpcEmailData.forEach((item: any) => {
+            if (item.user_id && item.email) rpcEmails[item.user_id] = item.email;
+            if (item.user_id && item.last_sign_in_at) rpcLastSignIns[item.user_id] = item.last_sign_in_at;
+          });
+        }
+      } catch {
+        // RPC ainda não criada
+      }
+
       if (profiles && Array.isArray(profiles)) {
         const roleMap: Record<string, AppRole> = {};
         roles?.forEach((r: any) => { roleMap[r.user_id] = r.role; });
@@ -202,12 +217,12 @@ export default function UserManagementPage() {
           profiles.map((p: any) => ({
             user_id: p.user_id,
             nome: p.nome,
-            email: profileEmailMap[p.user_id] || (p as any).email || emailMap[p.user_id] || undefined,
+            email: profileEmailMap[p.user_id] || (p as any).email || rpcEmails[p.user_id] || emailMap[p.user_id] || undefined,
             role: roleMap[p.user_id] || null,
             setor_vinculado: p.setor_vinculado || null,
             modulos_acesso: Array.isArray(p.modulos_acesso) ? p.modulos_acesso : [],
             dirty: false,
-            last_sign_in_at: lastSignInMap[p.user_id] || null,
+            last_sign_in_at: rpcLastSignIns[p.user_id] || lastSignInMap[p.user_id] || null,
             presence: presenceMap[p.user_id] || null,
           }))
         );
@@ -259,10 +274,26 @@ export default function UserManagementPage() {
         }
       }
 
-      await supabase
-        .from("profiles")
-        .update({ modulos_acesso: u.modulos_acesso } as any)
-        .eq("user_id", u.user_id);
+      // Salva modulos_acesso via RPC (com fallback para update direto)
+      let modSaved = false;
+      try {
+        const { data: rpcRes, error: rpcErr } = await supabase.rpc("admin_update_user_profile" as any, {
+          p_user_id: u.user_id,
+          p_nome: u.nome,
+          p_email: u.email || null,
+          p_modulos_acesso: u.modulos_acesso,
+        });
+        if (!rpcErr && (rpcRes as any)?.success === true) {
+          modSaved = true;
+        }
+      } catch { /* rpc fallback */ }
+
+      if (!modSaved) {
+        await supabase
+          .from("profiles")
+          .update({ modulos_acesso: u.modulos_acesso } as any)
+          .eq("user_id", u.user_id);
+      }
 
     }
 
@@ -387,9 +418,10 @@ export default function UserManagementPage() {
     }
 
     setEditing(true);
-    try {
-      let saved = false;
+    let saved = false;
+    let errorMessage: string | null = null;
 
+    try {
       // 1. Tenta atualizar via RPC dedicada admin_update_user_profile (PostgreSQL SECURITY DEFINER)
       try {
         const { data: rpcRes, error: rpcErr } = await supabase.rpc("admin_update_user_profile" as any, {
@@ -397,16 +429,41 @@ export default function UserManagementPage() {
           p_nome: editForm.nome.trim(),
           p_email: trimmedEmail || null,
           p_modulos_acesso: editForm.modulos_acesso,
+          p_password: editForm.password ? editForm.password.trim() : null,
         });
 
-        if (!rpcErr && (rpcRes as any)?.success !== false) {
+        if (!rpcErr && (rpcRes as any)?.success === true) {
           saved = true;
+        } else if (rpcErr && !rpcErr.message?.includes("Could not find the function")) {
+          errorMessage = rpcErr.message;
         }
-      } catch {
-        // RPC pode não estar criada ainda no banco
+      } catch (err: any) {
+        console.warn("[UserManagement] RPC admin_update_user_profile falhou:", err);
       }
 
-      // 2. Se a RPC não foi executada, tenta atualização direta em profiles e vendedores
+      // 2. Se a RPC não foi executada, tenta Edge Function edit-user caso esteja implantada
+      if (!saved) {
+        try {
+          const body: any = { 
+            user_id: editTarget.user_id, 
+            nome: editForm.nome.trim(), 
+            modulos_acesso: editForm.modulos_acesso 
+          };
+          if (trimmedEmail) body.email = trimmedEmail;
+          if (editForm.password) body.password = editForm.password;
+
+          const res = await supabase.functions.invoke("edit-user", { body });
+          if (!res.error && !res.data?.error) {
+            saved = true;
+          } else if (res.error?.message && !res.error.message.includes("404")) {
+            errorMessage = res.data?.error || res.error.message;
+          }
+        } catch {
+          // Edge function 404
+        }
+      }
+
+      // 3. Tenta atualização direta em profiles e vendedores com verificação estrita de linhas afetadas
       if (!saved) {
         try {
           const profilePayload: any = {
@@ -417,10 +474,11 @@ export default function UserManagementPage() {
             profilePayload.email = trimmedEmail;
           }
 
-          let { error: updateErr } = await supabase
+          let { data: updatedRows, error: updateErr } = await supabase
             .from("profiles")
             .update(profilePayload as any)
-            .eq("user_id", editTarget.user_id);
+            .eq("user_id", editTarget.user_id)
+            .select();
 
           // Se falhou porque a coluna email ainda não existe, tenta atualizar sem ela
           if (updateErr && updateErr.message?.toLowerCase().includes("email")) {
@@ -428,15 +486,21 @@ export default function UserManagementPage() {
             const retry = await supabase
               .from("profiles")
               .update(profilePayload as any)
-              .eq("user_id", editTarget.user_id);
+              .eq("user_id", editTarget.user_id)
+              .select();
             updateErr = retry.error;
+            updatedRows = retry.data;
           }
 
-          if (!updateErr) {
+          if (!updateErr && updatedRows && updatedRows.length > 0) {
             saved = true;
+          } else if (!updateErr && (!updatedRows || updatedRows.length === 0)) {
+            errorMessage = "O banco de dados não autorizou a gravação (bloqueio de RLS). Execute o script 'atualizar_emails_e_permissoes_supabase.sql' no Supabase SQL Editor para liberar o salvamento de usuários.";
+          } else if (updateErr) {
+            errorMessage = updateErr.message;
           }
-        } catch {
-          // Continua para outros métodos
+        } catch (err: any) {
+          errorMessage = err?.message || errorMessage;
         }
 
         // Tenta sincronizar vendedores por user_id e nome
@@ -447,22 +511,6 @@ export default function UserManagementPage() {
           try {
             await supabase.from("vendedores").update({ email: trimmedEmail } as any).ilike("nome", editForm.nome.trim());
           } catch { /* ignore */ }
-        }
-      }
-
-      // 3. Tenta Edge Function edit-user caso esteja implantada
-      if (!saved) {
-        try {
-          const body: any = { user_id: editTarget.user_id, nome: editForm.nome.trim(), modulos_acesso: editForm.modulos_acesso };
-          if (trimmedEmail) body.email = trimmedEmail;
-          if (editForm.password) body.password = editForm.password;
-
-          const res = await supabase.functions.invoke("edit-user", { body });
-          if (!res.error && !res.data?.error) {
-            saved = true;
-          }
-        } catch {
-          // Edge function 404
         }
       }
 
@@ -482,9 +530,11 @@ export default function UserManagementPage() {
         );
         setEditOpen(false);
         setEditTarget(null);
+        await fetchUsers();
       } else {
         toast.error(
-          "Não foi possível salvar no banco. Execute o script SQL no Supabase para habilitar a atualização de perfis e e-mails."
+          errorMessage || "Não foi possível salvar as alterações no banco. Execute o script 'atualizar_emails_e_permissoes_supabase.sql' no Supabase SQL Editor.",
+          { duration: 9000 }
         );
       }
     } catch (err: any) {

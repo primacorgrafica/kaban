@@ -342,49 +342,103 @@ CREATE POLICY "Admins can update all profiles"
     OR public.has_role(auth.uid(), 'admin'::app_role)
   );
 
+-- 6. RPC para listar e-mails de auth.users com segurança (sem depender de Edge Functions)
+CREATE OR REPLACE FUNCTION public.admin_get_user_emails()
+RETURNS TABLE (
+  user_id UUID,
+  email TEXT,
+  last_sign_in_at TIMESTAMPTZ
+)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public, auth
+AS $$
+  SELECT 
+    id as user_id,
+    email::text,
+    last_sign_in_at
+  FROM auth.users;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.admin_get_user_emails() TO authenticated;
+
+-- 7. RPC definitiva para salvar usuário, e-mail, senha e módulos com privilégios de Admin
 CREATE OR REPLACE FUNCTION public.admin_update_user_profile(
   p_user_id UUID,
   p_nome TEXT,
-  p_email TEXT,
-  p_modulos_acesso TEXT[] DEFAULT NULL
+  p_email TEXT DEFAULT NULL,
+  p_modulos_acesso TEXT[] DEFAULT NULL,
+  p_password TEXT DEFAULT NULL
 )
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-SET search_path = public
+SET search_path = public, auth
 AS $$
+DECLARE
+  v_caller_is_admin BOOLEAN;
+  v_clean_email TEXT;
 BEGIN
-  IF NOT (public.get_user_role(auth.uid()) = 'admin' OR public.has_role(auth.uid(), 'admin'::app_role)) THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Apenas administradores podem atualizar perfis.');
+  -- Verifica autorização (admin ou próprio usuário)
+  v_caller_is_admin := (
+    public.get_user_role(auth.uid()) = 'admin' 
+    OR public.has_role(auth.uid(), 'admin'::app_role)
+  );
+
+  IF NOT (v_caller_is_admin OR auth.uid() = p_user_id) THEN
+    RETURN jsonb_build_object('success', false, 'error', 'Apenas administradores podem atualizar usuários.');
   END IF;
 
+  v_clean_email := NULLIF(LOWER(TRIM(p_email)), '');
+
+  -- Atualiza public.profiles (sem updated_at pois a tabela profiles não possui este campo)
   UPDATE public.profiles
   SET
     nome = COALESCE(NULLIF(trim(p_nome), ''), nome),
-    email = NULLIF(trim(p_email), ''),
-    modulos_acesso = COALESCE(p_modulos_acesso, modulos_acesso),
-    updated_at = now()
+    email = COALESCE(v_clean_email, email),
+    modulos_acesso = COALESCE(p_modulos_acesso, modulos_acesso)
   WHERE user_id = p_user_id;
 
-  -- Tenta atualizar na tabela auth.users se possível
-  BEGIN
+  -- Atualiza auth.users
+  IF v_clean_email IS NOT NULL THEN
     UPDATE auth.users
-    SET email = LOWER(TRIM(p_email)), updated_at = now()
-    WHERE id = p_user_id AND p_email IS NOT NULL AND p_email <> '';
-  EXCEPTION WHEN OTHERS THEN
-    -- Ignora se o schema auth tiver restrições adicionais
-  END;
+    SET 
+      email = v_clean_email,
+      raw_user_meta_data = jsonb_set(COALESCE(raw_user_meta_data, '{}'::jsonb), '{nome}', to_jsonb(trim(p_nome))),
+      updated_at = now()
+    WHERE id = p_user_id;
 
-  -- Sincroniza em vendedores
-  UPDATE public.vendedores
-  SET
-    nome = COALESCE(NULLIF(trim(p_nome), ''), nome),
-    email = NULLIF(trim(p_email), '')
-  WHERE user_id = p_user_id OR lower(trim(nome)) = lower(trim(p_nome));
+    UPDATE auth.identities
+    SET 
+      identity_data = jsonb_set(COALESCE(identity_data, '{}'::jsonb), '{email}', to_jsonb(v_clean_email)),
+      updated_at = now()
+    WHERE user_id = p_user_id AND provider = 'email';
+  END IF;
+
+  -- Atualiza senha se informada
+  IF p_password IS NOT NULL AND length(trim(p_password)) >= 6 THEN
+    UPDATE auth.users
+    SET 
+      encrypted_password = crypt(trim(p_password), gen_salt('bf')),
+      updated_at = now()
+    WHERE id = p_user_id;
+  END IF;
+
+  -- Sincroniza tabela de vendedores
+  IF v_clean_email IS NOT NULL THEN
+    UPDATE public.vendedores
+    SET
+      nome = COALESCE(NULLIF(trim(p_nome), ''), nome),
+      email = v_clean_email,
+      user_id = p_user_id
+    WHERE user_id = p_user_id OR lower(trim(nome)) = lower(trim(p_nome));
+  END IF;
 
   RETURN jsonb_build_object('success', true);
+EXCEPTION WHEN OTHERS THEN
+  RETURN jsonb_build_object('success', false, 'error', SQLERRM);
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.admin_update_user_profile(UUID, TEXT, TEXT, TEXT[]) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.admin_update_user_profile(UUID, TEXT, TEXT, TEXT[], TEXT) TO authenticated;
 
