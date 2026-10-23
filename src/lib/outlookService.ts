@@ -66,34 +66,56 @@ export async function getEmailAccessToken(interactiveFallback = true): Promise<s
     throw new Error("Sessão Microsoft não autenticada para leitura de e-mails.");
   }
 
-  // 3. Popup interativo
+  // 3. Popup interativo com limpeza de travas e consentimento direto em janela única
+  clearMsalInteractions();
+
   try {
-    const popupResponse = await pca.acquireTokenPopup({
+    const authResult = await pca.loginPopup({
       scopes: EMAIL_SCOPES,
-      account: account || undefined,
-      loginHint: account?.username,
+      loginHint: account?.username || undefined,
     });
-    if (popupResponse?.account) {
-      pca.setActiveAccount(popupResponse.account);
-      saveStoredMicrosoftAccount(popupResponse.account);
+
+    if (authResult?.account) {
+      pca.setActiveAccount(authResult.account);
+      saveStoredMicrosoftAccount(authResult.account);
+      account = authResult.account;
     }
-    return popupResponse.accessToken;
+
+    if (authResult?.accessToken) {
+      return authResult.accessToken;
+    }
+
+    // Se loginPopup completou o consentimento mas retornou idToken, obtém o token de acesso silenciosamente
+    if (account) {
+      const silentRes = await pca.acquireTokenSilent({
+        scopes: EMAIL_SCOPES,
+        account,
+      });
+      if (silentRes?.accessToken) {
+        return silentRes.accessToken;
+      }
+    }
+
+    throw new Error("Não foi possível obter o token de acesso após a autorização.");
   } catch (popupError: any) {
+    if (popupError?.errorCode === "popup_window_error" || popupError?.message?.includes("popup")) {
+      throw new Error(
+        "O navegador bloqueou a janela pop-up do Microsoft 365. Por favor, permita pop-ups para este site na barra de endereços (ícone ao lado do cadeado) e tente novamente."
+      );
+    }
+
+    if (popupError?.errorCode === "user_cancelled") {
+      throw new Error("Autorização cancelada pelo usuário.");
+    }
+
     if (
       popupError?.errorCode === "interaction_in_progress" ||
       popupError?.message?.includes("interaction_in_progress")
     ) {
       clearMsalInteractions();
-      await new Promise((r) => setTimeout(r, 400));
-      const retryResponse = await pca.acquireTokenPopup({
-        scopes: EMAIL_SCOPES,
-      });
-      if (retryResponse?.account) {
-        pca.setActiveAccount(retryResponse.account);
-        saveStoredMicrosoftAccount(retryResponse.account);
-      }
-      return retryResponse.accessToken;
+      throw new Error("Uma janela de login do Microsoft 365 já estava aberta. Feche janelas anteriores e tente novamente.");
     }
+
     throw popupError;
   }
 }

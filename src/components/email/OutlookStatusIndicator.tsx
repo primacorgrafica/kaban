@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Mail, RefreshCw, CheckCircle2, AlertCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +26,24 @@ export function OutlookStatusIndicator() {
     hasMicrosoftAccount,
   } = useEmailMonitor(true);
 
+  const [isAuthorizing, setIsAuthorizing] = useState(false);
+
+  const handleConnect = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (isAuthorizing) return;
+    setIsAuthorizing(true);
+    try {
+      await connectOutlook();
+    } catch {
+      // erro já tratado no hook com toast e lastError
+    } finally {
+      setIsAuthorizing(false);
+    }
+  };
+
   const formattedLastSync = (() => {
     if (!lastSyncAt) return "Ainda não sincronizado";
     try {
@@ -41,13 +59,15 @@ export function OutlookStatusIndicator() {
         lastError.includes("interaction_required") ||
         lastError.includes("interaction_in_progress") ||
         lastError.includes("Acesso negado (401)") ||
-        lastError.includes("401"))
+        (lastError.includes("401") && !lastError.includes("embalagens@primacorgrafica.com.br")) ||
+        (lastError.includes("preimpressao@primacorgrafica.com.br") && lastError.includes("401")))
   );
 
   const isSecondaryMailboxWarning = Boolean(
     lastError &&
       !isAuthError &&
-      (lastError.includes("404") ||
+      (lastError.includes("embalagens") ||
+        lastError.includes("404") ||
         lastError.includes("not found in the store") ||
         lastError.includes("Default folder"))
   );
@@ -57,13 +77,15 @@ export function OutlookStatusIndicator() {
       <Button
         variant="ghost"
         size="sm"
-        onClick={() => void connectOutlook()}
-        disabled={isSyncing}
+        onClick={() => void handleConnect()}
+        disabled={isAuthorizing || isSyncing}
         className="h-9 px-2.5 text-xs text-muted-foreground hover:text-sky-400 hover:bg-sky-500/10 border border-border rounded-xl flex items-center gap-1.5 font-mono-tech transition-all"
         title="Conectar ao Microsoft 365 / Outlook para monitorar e-mails"
       >
         <Mail className="h-3.5 w-3.5 text-sky-400" />
-        <span className="hidden xl:inline text-[11px]">Conectar Outlook</span>
+        <span className="hidden xl:inline text-[11px]">
+          {isAuthorizing ? "Conectando..." : "Conectar Outlook"}
+        </span>
       </Button>
     );
   }
@@ -81,7 +103,7 @@ export function OutlookStatusIndicator() {
             <Mail className="h-3.5 w-3.5 text-sky-400" />
             <span
               className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${
-                isSyncing
+                isSyncing || isAuthorizing
                   ? "bg-amber-400 animate-spin"
                   : isAuthError
                   ? "bg-rose-500"
@@ -92,12 +114,12 @@ export function OutlookStatusIndicator() {
             />
           </div>
           <span className="hidden lg:inline text-[11px]">
-            {isSyncing ? "Sincronizando..." : "Outlook"}
+            {isAuthorizing ? "Conectando..." : isSyncing ? "Sincronizando..." : "Outlook"}
           </span>
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-80 p-2">
+      <DropdownMenuContent align="end" className="w-84 p-2.5">
         <DropdownMenuLabel className="font-semibold text-xs flex items-center gap-2">
           <Mail className="h-4 w-4 text-sky-400" />
           <span>Monitoramento Outlook</span>
@@ -130,26 +152,45 @@ export function OutlookStatusIndicator() {
 
           {/* Card de erro de autenticação real */}
           {isAuthError && (
-            <div className="mt-2 p-2 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-200 space-y-1.5">
+            <div className="mt-2 p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-200 space-y-2">
               <div className="flex items-center gap-1.5 text-xs font-bold text-rose-400">
                 <AlertCircle className="h-3.5 w-3.5 shrink-0" />
                 <span>Autorização Necessária</span>
               </div>
               <p className="text-[10.5px] text-muted-foreground leading-snug">
-                A sessão Microsoft precisa de autorização nesta conta. Clique no botão abaixo para conectar.
+                A sessão Microsoft precisa de autorização para sincronizar caixas de e-mail. Clique no botão abaixo para abrir a janela de consentimento da Microsoft.
               </p>
+
+              {lastError && !lastError.includes("não autenticada") && (
+                <div className="text-[10px] text-rose-300/90 bg-rose-950/60 p-2 rounded-lg border border-rose-500/30 font-mono-tech break-words leading-tight">
+                  {lastError}
+                </div>
+              )}
+
               <Button
                 size="sm"
-                onClick={() => void connectOutlook()}
-                className="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs h-7 rounded-lg flex items-center justify-center gap-1.5 shadow-xs"
+                type="button"
+                disabled={isAuthorizing || isSyncing}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => void handleConnect(e)}
+                className="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs h-8 rounded-lg flex items-center justify-center gap-1.5 shadow-sm transition-all"
               >
-                <Mail className="h-3.5 w-3.5" />
-                <span>Autorizar Outlook Agora</span>
+                {isAuthorizing ? (
+                  <>
+                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                    <span>Abrindo Microsoft 365...</span>
+                  </>
+                ) : (
+                  <>
+                    <Mail className="h-3.5 w-3.5" />
+                    <span>Autorizar Outlook Agora</span>
+                  </>
+                )}
               </Button>
             </div>
           )}
 
-          {/* Card informativo de caixa compartilhada 404 */}
+          {/* Card informativo de caixa secundária */}
           {isSecondaryMailboxWarning && (
             <div className="mt-2 p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-foreground space-y-1">
               <div className="flex items-center gap-1.5 text-xs font-bold text-sky-400">
@@ -176,7 +217,7 @@ export function OutlookStatusIndicator() {
               {MONITORED_MAILBOXES.map((box) => {
                 const isBoxWarning =
                   Boolean(lastError?.includes(box)) &&
-                  (lastError!.includes("404") || lastError!.includes("not found"));
+                  (lastError!.includes("404") || lastError!.includes("not found") || lastError!.includes("403"));
 
                 return (
                   <div key={box} className="flex items-center justify-between text-foreground/80">
@@ -190,7 +231,7 @@ export function OutlookStatusIndicator() {
                     </div>
                     {isBoxWarning ? (
                       <span className="text-[9px] text-amber-400 font-sans ml-1 shrink-0">
-                        Aviso (404)
+                        {lastError?.includes("403") ? "Permissão (403)" : "Aviso (404)"}
                       </span>
                     ) : (
                       <span className="text-[9px] text-emerald-400 font-sans ml-1 shrink-0">
@@ -207,7 +248,7 @@ export function OutlookStatusIndicator() {
         <DropdownMenuSeparator />
 
         <DropdownMenuItem
-          disabled={isSyncing}
+          disabled={isSyncing || isAuthorizing}
           onClick={() => void syncNow(true)}
           className="text-xs cursor-pointer flex items-center gap-2"
         >
@@ -216,11 +257,15 @@ export function OutlookStatusIndicator() {
         </DropdownMenuItem>
 
         <DropdownMenuItem
-          onClick={() => void connectOutlook()}
+          disabled={isAuthorizing || isSyncing}
+          onSelect={(e) => {
+            e.preventDefault();
+            void handleConnect();
+          }}
           className="text-xs cursor-pointer text-muted-foreground flex items-center gap-2"
         >
           <Mail className="h-3.5 w-3.5" />
-          <span>Renovar permissões de e-mail</span>
+          <span>{isAuthorizing ? "Conectando..." : "Renovar permissões de e-mail"}</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

@@ -138,11 +138,15 @@ export function useEmailMonitor(enabled = true): UseEmailMonitorReturn {
     try {
       await getEmailAccessToken(true);
       setHasMicrosoftAccount(true);
+      setLastError(null);
       toast.success("Outlook conectado com sucesso! Iniciando sincronização...");
       void syncNow();
     } catch (err: any) {
       console.error("[useEmailMonitor] Erro ao conectar Outlook:", err);
-      toast.error(`Falha ao conectar Outlook: ${err?.message || err}`);
+      const msg = err?.message || String(err);
+      setLastError(msg);
+      toast.error(`Falha ao conectar Outlook: ${msg}`, { duration: 9000 });
+      throw err;
     }
   }, [syncNow]);
 
