@@ -73,6 +73,7 @@ Deno.serve(async (req) => {
     // Update profile fields with admin privileges
     const profileUpdate: Record<string, unknown> = {};
     if (nome) profileUpdate.nome = nome;
+    if (email) profileUpdate.email = email.trim().toLowerCase();
     if (Array.isArray(modulos_acesso)) profileUpdate.modulos_acesso = modulos_acesso;
 
     if (Object.keys(profileUpdate).length > 0) {
@@ -86,6 +87,18 @@ Deno.serve(async (req) => {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
+      }
+
+      // Sincroniza tabela vendedores se este usuário for vendedor
+      try {
+        const updateObj: Record<string, string> = {};
+        if (nome) updateObj.nome = nome;
+        if (email) updateObj.email = email.trim().toLowerCase();
+        if (Object.keys(updateObj).length > 0) {
+          await adminClient.from("vendedores").update(updateObj).eq("user_id", user_id);
+        }
+      } catch (vendErr) {
+        console.warn("edit-user vendedores sync warning:", vendErr);
       }
     }
 

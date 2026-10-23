@@ -122,6 +122,7 @@ export interface Profile {
   id: string;
   user_id: string;
   nome: string;
+  email?: string | null;
   created_at: string;
 }
 

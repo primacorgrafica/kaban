@@ -1108,6 +1108,8 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                   <OrderEmailEventsSection
                     orderId={order.id}
                     orderTitulo={order.titulo}
+                    orderStatus={order.status}
+                    vendedorNome={order.vendedor}
                   />
                 </div>
               </div>

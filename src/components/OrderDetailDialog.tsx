@@ -724,6 +724,8 @@ export function OrderDetailDialog({
                     <OrderEmailEventsSection
                       orderId={order.id}
                       orderTitulo={order.titulo}
+                      orderStatus={order.status}
+                      vendedorNome={order.vendedor}
                     />
                   </div>
                 </div>

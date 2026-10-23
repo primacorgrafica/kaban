@@ -500,6 +500,8 @@ export function OrderSlideOver({
               <OrderEmailEventsSection
                 orderId={order.id}
                 orderTitulo={order.titulo}
+                orderStatus={order.status}
+                vendedorNome={order.vendedor}
               />
             </TabsContent>
 

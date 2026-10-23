@@ -140,10 +140,22 @@ Deno.serve(async (req) => {
 
     const { data: profile, error: profileError } = await adminClient
       .from("profiles")
-      .update({ modulos_acesso })
+      .update({ modulos_acesso, email })
       .eq("user_id", newUser.user.id)
       .select("user_id")
       .maybeSingle();
+
+    if (role === "vendedor") {
+      try {
+        await adminClient.from("vendedores").insert({
+          nome,
+          email,
+          user_id: newUser.user.id,
+        });
+      } catch (vendErr) {
+        console.warn("create-user vendedores sync warning:", vendErr);
+      }
+    }
 
     if (profileError || !profile) {
       await adminClient.auth.admin.deleteUser(newUser.user.id);

@@ -136,9 +136,33 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
         };
       }
 
+      const createFallbackChainable = () => {
+        const fallbackBuilder: any = {
+          data: null,
+          error: null,
+          eq: vi.fn().mockImplementation(() => fallbackBuilder),
+          neq: vi.fn().mockImplementation(() => fallbackBuilder),
+          gte: vi.fn().mockImplementation(() => fallbackBuilder),
+          lte: vi.fn().mockImplementation(() => fallbackBuilder),
+          ilike: vi.fn().mockImplementation(() => fallbackBuilder),
+          not: vi.fn().mockImplementation(() => fallbackBuilder),
+          limit: vi.fn().mockImplementation(() => fallbackBuilder),
+          single: vi.fn().mockResolvedValue({ data: { id: "mock-notif-fallback-id" }, error: null }),
+          maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+          then: vi.fn().mockImplementation((cb) =>
+            Promise.resolve(cb ? cb({ data: [], error: null }) : { data: [], error: null })
+          ),
+        };
+        return fallbackBuilder;
+      };
+
       return {
-        select: vi.fn().mockResolvedValue({ data: [], error: null }),
-        insert: vi.fn().mockResolvedValue({ error: null }),
+        select: vi.fn().mockImplementation(() => createFallbackChainable()),
+        insert: vi.fn().mockImplementation(() => ({
+          select: vi.fn().mockImplementation(() => createFallbackChainable()),
+          then: vi.fn().mockImplementation((cb) => Promise.resolve(cb ? cb({ error: null }) : { error: null })),
+        })),
+        update: vi.fn().mockImplementation(() => createFallbackChainable()),
       };
     });
   });

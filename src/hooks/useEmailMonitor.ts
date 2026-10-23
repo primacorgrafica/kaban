@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { runEmailSync, type SyncResult, LAST_EMAIL_SYNC_KEY } from "@/lib/emailSyncEngine";
 import { getStoredMicrosoftUser, getActiveMicrosoftAccount } from "@/lib/msalClient";
 import { getEmailAccessToken } from "@/lib/outlookService";
+import { processPendingSellerNotifications } from "@/lib/sellerNotificationService";
 import { toast } from "sonner";
 
 export interface UseEmailMonitorReturn {
@@ -88,6 +89,11 @@ export function useEmailMonitor(enabled = true): UseEmailMonitorReturn {
       setProcessedCount((prev) => prev + result.processed);
       setNewEventsCount((prev) => prev + result.newEvents);
       setLastSyncAt(result.lastSyncAt);
+
+      // Processa eventuais notificações de vendedores pendentes
+      void processPendingSellerNotifications().catch((e) => {
+        console.warn("[useEmailMonitor] Aviso ao processar notificações pendentes:", e);
+      });
 
       if (result.errors.length > 0) {
         setLastError(result.errors.join("; "));

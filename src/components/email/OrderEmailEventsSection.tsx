@@ -7,13 +7,21 @@ import { Button } from "@/components/ui/button";
 import { useOrderEmails } from "@/hooks/useOrderEmails";
 import { isApprovalResponse } from "@/lib/emailMatcher";
 import type { OrderEmailEvent } from "@/types/email";
+import { SellerNotificationBadge } from "./SellerNotificationBadge";
 
 interface OrderEmailEventsSectionProps {
   orderId: string;
   orderTitulo: string;
+  orderStatus?: string;
+  vendedorNome?: string | null;
 }
 
-export function OrderEmailEventsSection({ orderId, orderTitulo }: OrderEmailEventsSectionProps) {
+export function OrderEmailEventsSection({
+  orderId,
+  orderTitulo,
+  orderStatus,
+  vendedorNome,
+}: OrderEmailEventsSectionProps) {
   const { events, loading, refetch } = useOrderEmails(orderId);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -79,6 +87,13 @@ export function OrderEmailEventsSection({ orderId, orderTitulo }: OrderEmailEven
           Atualizar
         </Button>
       </div>
+
+      {/* Notificação ao vendedor (se aplicável) */}
+      <SellerNotificationBadge
+        orderId={orderId}
+        orderStatus={orderStatus || ""}
+        vendedorNome={vendedorNome}
+      />
 
       {/* Lista de eventos de e-mail */}
       {loading && deduplicatedEvents.length === 0 ? (

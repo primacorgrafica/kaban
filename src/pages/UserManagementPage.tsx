@@ -29,7 +29,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Link } from "react-router-dom";
-import { ArrowLeft, LogOut, Shield, Users, Save, UserPlus, Trash2, Pencil, Circle } from "lucide-react";
+import { ArrowLeft, LogOut, Shield, Users, Save, UserPlus, Trash2, Pencil, Circle, Mail } from "lucide-react";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -166,7 +166,7 @@ export default function UserManagementPage() {
       return;
     }
     const [{ data: profiles }, { data: roles }, emailRes, { data: presenceData }] = await Promise.all([
-      supabase.from("profiles").select("user_id, nome, setor_vinculado, modulos_acesso" as any),
+      supabase.from("profiles").select("user_id, nome, email, setor_vinculado, modulos_acesso" as any),
       supabase.from("user_roles").select("user_id, role"),
       supabase.functions.invoke("list-users"),
       supabase.from("user_presence").select("*"),
@@ -192,14 +192,13 @@ export default function UserManagementPage() {
         profiles.map((p: any) => ({
           user_id: p.user_id,
           nome: p.nome,
-          email: emailMap[p.user_id] || undefined,
+          email: p.email || emailMap[p.user_id] || undefined,
           role: roleMap[p.user_id] || null,
           setor_vinculado: p.setor_vinculado || null,
           modulos_acesso: Array.isArray(p.modulos_acesso) ? p.modulos_acesso : [],
           dirty: false,
           last_sign_in_at: lastSignInMap[p.user_id] || null,
           presence: presenceMap[p.user_id] || null,
-
         }))
       );
     }
@@ -287,8 +286,13 @@ export default function UserManagementPage() {
 
     const normalizedEmail = newUser.email.trim().toLowerCase();
     const normalizedName = newUser.nome.trim();
+    const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!normalizedEmail || !newUser.password || !normalizedName || !newUser.role) {
-      toast.error("Preencha todos os campos obrigatórios (incluindo perfil)");
+      toast.error("Preencha todos os campos obrigatórios (incluindo perfil e e-mail)");
+      return;
+    }
+    if (!EMAIL_REGEX.test(normalizedEmail)) {
+      toast.error("Informe um endereço de e-mail válido (exemplo: usuario@primacorgrafica.com.br)");
       return;
     }
     if (newUser.password.length < 6) {
@@ -366,10 +370,19 @@ export default function UserManagementPage() {
       return;
     }
 
+    const trimmedEmail = editForm.email.trim().toLowerCase();
+    if (trimmedEmail) {
+      const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!EMAIL_REGEX.test(trimmedEmail)) {
+        toast.error("Informe um formato de e-mail válido (ex: usuario@primacorgrafica.com.br)");
+        return;
+      }
+    }
+
     setEditing(true);
     try {
       const body: any = { user_id: editTarget.user_id, nome: editForm.nome.trim(), modulos_acesso: editForm.modulos_acesso };
-      if (editForm.email.trim()) body.email = editForm.email.trim();
+      if (trimmedEmail) body.email = trimmedEmail;
       if (editForm.password) body.password = editForm.password;
 
       const res = await supabase.functions.invoke("edit-user", { body });
@@ -617,7 +630,16 @@ export default function UserManagementPage() {
                       <TableCell>
                         <div>
                           <div className="font-medium text-sm">{u.nome}</div>
-                          <div className="text-xs text-muted-foreground">{u.email || "—"}</div>
+                          {u.email ? (
+                            <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                              <Mail className="h-3 w-3 text-primary/70 shrink-0" />
+                              <span className="truncate max-w-[200px]">{u.email}</span>
+                            </div>
+                          ) : (
+                            <div className="text-[10px] text-amber-500 font-medium flex items-center gap-1 mt-0.5">
+                              <span>⚠ Sem e-mail cadastrado</span>
+                            </div>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -785,14 +807,17 @@ export default function UserManagementPage() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="edit-email">Novo E-mail</Label>
+              <Label htmlFor="edit-email">E-mail</Label>
               <Input
                 id="edit-email"
                 type="email"
                 value={editForm.email}
                 onChange={(e) => setEditForm((p) => ({ ...p, email: e.target.value }))}
-                placeholder="Deixe vazio para manter o atual"
+                placeholder="email@primacorgrafica.com.br"
               />
+              <p className="text-[11px] text-muted-foreground">
+                Utilizado para login e recebimento de notificações automáticas de O.S.
+              </p>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="edit-password">Nova Senha</Label>

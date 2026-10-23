@@ -15,6 +15,7 @@ import { fetchMailboxMessages, fetchConversationMessages } from "./outlookServic
 import { findOsInEmail, isApprovalResponse } from "./emailMatcher";
 import { MONITORED_MAILBOXES, type MonitoredMailbox, type GraphMessage } from "@/types/email";
 import { trackGraphApiTelemetry } from "@/lib/autonomousEngine/telemetry";
+import { triggerSellerApprovalNotification } from "./sellerNotificationService";
 
 export const LAST_EMAIL_SYNC_KEY = "kaban_last_email_sync_timestamp";
 
@@ -276,7 +277,9 @@ export async function runEmailSync(): Promise<SyncResult> {
               if (moveError) {
                 console.warn(`[EmailSync] Erro ao mover O.S. #${matchedOs} para aguardando_aprovacao:`, moveError.message);
               } else {
-                console.info(`[EmailSync] O.S. #${matchedOs} movida automaticamente para AGUARDANDO APROVAÇÃO (sem aviso)`);
+                console.info(`[EmailSync] O.S. #${matchedOs} movida automaticamente para AGUARDANDO APROVAÇÃO`);
+                // Dispara notificação por e-mail ao vendedor responsável
+                void triggerSellerApprovalNotification(matchedOrderId);
               }
             } else {
               // 2. Resposta de e-mail recebida do cliente

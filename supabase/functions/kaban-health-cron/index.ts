@@ -53,6 +53,12 @@ Deno.serve(async (req) => {
       .select("id", { count: "exact", head: true })
       .gte("created_at", yesterday);
 
+    // 3.1. Auditoria de notificações de vendedores pendentes
+    const { count: pendingSellerNotifs } = await adminClient
+      .from("order_seller_notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("sent_status", "pending");
+
     const totalDurationMs = performance.now() - startTime;
     const status = queryLatencyMs > 2000 ? "DEGRADED" : "HEALTHY";
 
@@ -66,6 +72,7 @@ Deno.serve(async (req) => {
         active_orders: activeCount || 0,
         awaiting_approval: approvalCount || 0,
         recent_email_events_24h: recentEmailCount || 0,
+        pending_seller_notifications: pendingSellerNotifs || 0,
         total_duration_ms: Math.round(totalDurationMs),
         audited_at: new Date().toISOString(),
       },

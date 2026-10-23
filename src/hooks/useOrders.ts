@@ -15,6 +15,7 @@ import { Order, OrderStatus, Profile, STATUS_CONFIG } from "@/types/order";
 import { Department } from "@/types/production";
 import { KANBAN_ESSENTIAL_COLUMNS } from "@/lib/autonomousEngine/queryOptimizer";
 import { measureQueryLatency } from "@/lib/autonomousEngine/telemetry";
+import { triggerSellerApprovalNotification } from "@/lib/sellerNotificationService";
 
 export function useOrders() {
   const { user, authReady } = useAuth();
@@ -24,7 +25,7 @@ export function useOrders() {
   const [loading, setLoading] = useState(true);
 
   const fetchProfiles = useCallback(async () => {
-    const { data } = await supabase.from("profiles").select("id, user_id, nome, created_at");
+    const { data } = await supabase.from("profiles").select("id, user_id, nome, email, created_at");
     if (data) {
       const map: Record<string, Profile> = {};
       data.forEach((p) => { map[p.user_id] = p as Profile; });
@@ -557,6 +558,10 @@ export function useOrders() {
           },
         },
       });
+    }
+
+    if (newStatus === "aguardando_aprovacao" && oldStatus !== "aguardando_aprovacao") {
+      void triggerSellerApprovalNotification(id);
     }
 
     if (newStatus === "arquivo_liberado") {
