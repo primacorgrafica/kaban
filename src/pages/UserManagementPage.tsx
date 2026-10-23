@@ -341,25 +341,70 @@ export default function UserManagementPage() {
     createRequestInFlight.current = true;
     setCreating(true);
     try {
-      const res = await supabase.functions.invoke("create-user", {
-        body: {
-          email: normalizedEmail,
-          password: newUser.password,
-          nome: normalizedName,
-          role: newUser.role || undefined,
-          modulos_acesso: newUser.modulos_acesso,
-        },
-      });
+      let created = false;
+      let errorMsg = "";
+      let errorCode = "";
 
-      if (res.error || res.data?.error) {
-        const { error: msg, errorCode } = await extractFnResponse(res, "Erro ao criar usuário");
-        toast.error(errorCode === "EMAIL_EXISTS" ? "Já existe um usuário cadastrado com este e-mail." : msg);
-      } else {
+      // 1. Tenta criar via RPC dedicada admin_create_user (PostgreSQL SECURITY DEFINER)
+      try {
+        const { data: rpcRes, error: rpcErr } = await supabase.rpc("admin_create_user" as any, {
+          p_email: normalizedEmail,
+          p_password: newUser.password,
+          p_nome: normalizedName,
+          p_role: newUser.role,
+          p_modulos_acesso: newUser.modulos_acesso,
+        });
+
+        if (!rpcErr && (rpcRes as any)?.success === true) {
+          created = true;
+        } else if (rpcErr && !rpcErr.message?.includes("Could not find the function")) {
+          errorMsg = rpcErr.message;
+        } else if ((rpcRes as any)?.error) {
+          errorMsg = (rpcRes as any).error;
+          errorCode = (rpcRes as any).error_code || "";
+        }
+      } catch (err: any) {
+        console.warn("[UserManagement] RPC admin_create_user:", err);
+      }
+
+      // 2. Fallback para Edge Function create-user caso disponível
+      if (!created && !errorMsg) {
+        try {
+          const res = await supabase.functions.invoke("create-user", {
+            body: {
+              email: normalizedEmail,
+              password: newUser.password,
+              nome: normalizedName,
+              role: newUser.role || undefined,
+              modulos_acesso: newUser.modulos_acesso,
+            },
+          });
+
+          if (!res.error && !res.data?.error) {
+            created = true;
+          } else if (res.error?.message && !res.error.message.includes("Failed to send a request")) {
+            const extracted = await extractFnResponse(res, "Erro ao criar usuário");
+            errorMsg = extracted.error;
+            errorCode = extracted.errorCode;
+          }
+        } catch {
+          // Edge function 404
+        }
+      }
+
+      if (created) {
         toast.success("Usuário criado com sucesso!");
         setCreateOpen(false);
         setNewUser({ nome: "", email: "", password: "", role: "", modulos_acesso: [] });
         setLoading(true);
         fetchUsers();
+      } else {
+        toast.error(
+          errorCode === "EMAIL_EXISTS"
+            ? "Já existe um usuário cadastrado com este e-mail."
+            : (errorMsg || "Erro ao criar usuário. Execute a função admin_create_user no Supabase."),
+          { duration: 7000 }
+        );
       }
     } catch (err: any) {
       toast.error(err.message || "Erro ao criar usuário");
@@ -374,21 +419,71 @@ export default function UserManagementPage() {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const res = await supabase.functions.invoke("delete-user", {
-        body: { user_id: deleteTarget.user_id },
-      });
-      if (res.error || res.data?.error) {
-        const { error: msg } = await extractFnResponse(res, "Erro ao remover usuário");
-        toast.error(msg);
-      } else {
-        toast.success(`Usuário "${deleteTarget.nome}" removido`);
+      let deleted = false;
+      let errorMsg = "";
+
+      // 1. Tenta remover via RPC dedicada admin_delete_user (PostgreSQL SECURITY DEFINER)
+      try {
+        const { data: rpcRes, error: rpcErr } = await supabase.rpc("admin_delete_user" as any, {
+          p_user_id: deleteTarget.user_id,
+        });
+
+        if (!rpcErr && (rpcRes as any)?.success === true) {
+          deleted = true;
+        } else if (rpcErr && !rpcErr.message?.includes("Could not find the function")) {
+          errorMsg = rpcErr.message;
+        } else if ((rpcRes as any)?.error) {
+          errorMsg = (rpcRes as any).error;
+        }
+      } catch (err: any) {
+        console.warn("[UserManagement] RPC admin_delete_user:", err);
+      }
+
+      // 2. Fallback para Edge Function delete-user caso disponível
+      if (!deleted && !errorMsg) {
+        try {
+          const res = await supabase.functions.invoke("delete-user", {
+            body: { user_id: deleteTarget.user_id },
+          });
+          if (!res.error && !res.data?.error) {
+            deleted = true;
+          } else if (res.error?.message && !res.error.message.includes("Failed to send a request")) {
+            const { error: msg } = await extractFnResponse(res, "Erro ao remover usuário");
+            errorMsg = msg;
+          }
+        } catch {
+          // Edge function 404
+        }
+      }
+
+      // 3. Fallback para deleção direta das tabelas se tiver permissão
+      if (!deleted && !errorMsg) {
+        try {
+          await supabase.from("user_roles").delete().eq("user_id", deleteTarget.user_id);
+          const { error: pErr } = await supabase.from("profiles").delete().eq("user_id", deleteTarget.user_id);
+          if (!pErr) {
+            deleted = true;
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      if (deleted) {
+        toast.success(`Usuário "${deleteTarget.nome}" removido com sucesso`);
         setUsers((prev) => prev.filter((u) => u.user_id !== deleteTarget.user_id));
+      } else {
+        toast.error(
+          errorMsg || "Não foi possível remover o usuário. Execute a função admin_delete_user no Supabase.",
+          { duration: 7000 }
+        );
       }
     } catch (err: any) {
       toast.error(err.message || "Erro ao remover usuário");
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
     }
-    setDeleting(false);
-    setDeleteTarget(null);
   };
 
   const openEditDialog = (u: UserRow) => {
