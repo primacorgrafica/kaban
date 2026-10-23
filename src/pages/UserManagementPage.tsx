@@ -59,13 +59,7 @@ const ACCESS_MODULES: { id: string; label: string }[] = [
   { id: "cadastro", label: "Cadastro" },
 ];
 
-const SECTOR_OPTIONS = [
-  { id: "pre_impressao", label: "Pré-Impressão" },
-  { id: "qualidade", label: "Qualidade" },
-  { id: "expedicao", label: "Expedição" },
-  { id: "compras", label: "Compras" },
-  { id: "manutencao", label: "Manutenção" },
-];
+
 
 interface PresenceInfo {
   last_seen: string | null;
@@ -236,14 +230,6 @@ export default function UserManagementPage() {
     );
   };
 
-  const updateSetor = (userId: string, setor: string | null) => {
-    setUsers((prev) =>
-      prev.map((u) =>
-        u.user_id === userId ? { ...u, setor_vinculado: setor, dirty: true } : u
-      )
-    );
-  };
-
   const saveAll = async () => {
     const dirtyUsers = users.filter((u) => u.dirty);
     if (dirtyUsers.length === 0) {
@@ -275,7 +261,7 @@ export default function UserManagementPage() {
 
       await supabase
         .from("profiles")
-        .update({ setor_vinculado: u.setor_vinculado, modulos_acesso: u.modulos_acesso } as any)
+        .update({ modulos_acesso: u.modulos_acesso } as any)
         .eq("user_id", u.user_id);
 
     }
@@ -719,8 +705,7 @@ export default function UserManagementPage() {
                   <TableRow className="bg-muted/50">
                     <TableHead className="w-[200px]">Usuário</TableHead>
                     <TableHead className="w-[180px]">Perfil</TableHead>
-                    <TableHead className="w-[200px]">Setores de Acesso</TableHead>
-                    <TableHead className="w-[160px]">Setor Vinculado</TableHead>
+                    <TableHead className="w-[300px]">Setores de Acesso</TableHead>
                     <TableHead className="w-[180px]">Conexão</TableHead>
                     <TableHead className="w-[100px]">Ações</TableHead>
                   </TableRow>
@@ -776,26 +761,6 @@ export default function UserManagementPage() {
                             })
                           )}
                         </div>
-                      </TableCell>
-                      <TableCell>
-                        {(u.role === "operador" || u.role === "coordenador" || u.role === "impressor") ? (
-                          <Select
-                            value={u.setor_vinculado || "nenhum"}
-                            onValueChange={(v) => updateSetor(u.user_id, v === "nenhum" ? null : v)}
-                          >
-                            <SelectTrigger className="h-8 w-[180px]">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="nenhum">Nenhum (Todos)</SelectItem>
-                              {SECTOR_OPTIONS.map((s) => (
-                                <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
                       </TableCell>
                       <TableCell>
                         {(() => {
