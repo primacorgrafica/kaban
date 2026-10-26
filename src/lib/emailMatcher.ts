@@ -59,6 +59,10 @@ export const APPROVAL_KEYWORDS_REGEX =
 export const REJECTION_NEGATION_REGEX =
   /\b(nao\s+(esta\s+)?(aprovad[oa]s?|aprovacao|autorizad[oa]s?|liberad[oa]s?|de acordo|ok|aceit[oa]s?|validad[oa]s?|confirmad[oa]s?)|reprovad[oa]s?|rejeitad[oa]s?|cancelad[oa]s?|recusad[oa]s?|desaprovad[oa]s?)\b/i;
 
+// Padrões de status pendente, envio interno ou notificação de sistema que NÃO configuram aprovação do cliente
+export const PENDING_OR_SYSTEM_REGEX =
+  /\b(aguardando\s+(a\s+|sua\s+)?aprovac[aã]o|pendente\s+de\s+aprovac[aã]o|(envio|enviad[oa]|segue|mandad[oa]|para)\s+(sua\s+|a\s+)?aprovac[aã]o|solicita[cç][aã]o\s+de\s+aprovac[aã]o|notifica[cç][aã]o\s+de\s+ordem\s+de\s+servi[cç]o|mudou\s+para\s+aguardando\s+aprovac[aã]o)\b/i;
+
 /**
  * Verifica se um texto (assunto ou corpo de e-mail de resposta do cliente)
  * expressa aprovação explícita do material.
@@ -74,6 +78,11 @@ export function isApprovalResponse(text: string): boolean {
 
   // 1. Se houver negação ou rejeição explícita, NÃO é aprovação
   if (REJECTION_NEGATION_REGEX.test(normalized)) {
+    return false;
+  }
+
+  // 2. Se for status de pendência, envio ou notificação ("aguardando aprovação", "para aprovação"), NÃO é aprovação do cliente
+  if (PENDING_OR_SYSTEM_REGEX.test(normalized)) {
     return false;
   }
 

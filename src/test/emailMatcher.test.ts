@@ -149,6 +149,11 @@ describe("emailMatcher - Extração e Validação de O.S. em E-mails", () => {
       "Não autorizo a impressão",
       "Quando fica pronto?",
       "Segue arquivo em anexo para orçamento",
+      "O.S. 72000 - Aguardando Aprovação (CIA INDUSTRIAL CATAGUASES)",
+      "Notificação de Ordem de Serviço mudou para Aguardando Aprovação",
+      "Segue material para aprovação",
+      "Pendente de aprovação",
+      "Envio para sua aprovação",
     ];
 
     it.each(nonApprovalCases)("NÃO deve aprovar mensagens com negações ou dúvidas: '%s'", (text) => {

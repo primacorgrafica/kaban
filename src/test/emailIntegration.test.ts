@@ -386,4 +386,31 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
       message_id: "msg-preimp-005",
     });
   });
+
+  it("7. Notificação interna do sistema enviada para vendedor NÃO deve ser tratada como resposta de cliente", async () => {
+    const notificationMessage: GraphMessage = {
+      id: "msg-notif-seller-001",
+      subject: "O.S. 73210 - Aguardando Aprovação (CIA INDUSTRIAL)",
+      bodyPreview: "Notificação de Ordem de Serviço\nA O.S. 73210 mudou para Aguardando Aprovação.\nAcessar Card no Kaban",
+      from: { emailAddress: { name: "Pré-Impressão", address: "preimpressao@primacorgrafica.com.br" } },
+      toRecipients: [{ emailAddress: { name: "Vendedor Teste", address: "vendedor@primacorgrafica.com.br" } }],
+      sentDateTime: "2026-10-26T15:10:00Z",
+      receivedDateTime: "2026-10-26T15:10:00Z",
+    };
+
+    vi.mocked(outlookService.fetchMailboxMessages).mockImplementation(
+      async (_mailbox, folder) => {
+        if (folder === "sentitems") {
+          return [notificationMessage];
+        }
+        return [];
+      }
+    );
+
+    const result = await runEmailSync();
+
+    // Não deve gerar avisos de cliente respondeu nem novos eventos de resposta
+    expect(mockInsertedAvisos).toHaveLength(0);
+    expect(result.newReceivedReplies).toHaveLength(0);
+  });
 });

@@ -19,6 +19,33 @@ import { triggerSellerApprovalNotification } from "./sellerNotificationService";
 
 export const LAST_EMAIL_SYNC_KEY = "kaban_last_email_sync_timestamp";
 
+/**
+ * Detecta se uma mensagem é uma notificação interna gerada pelo próprio sistema Kaban/Primacor
+ * (como a notificação de O.S. enviada ao vendedor), evitando que seja tratada como e-mail de cliente.
+ */
+export function isSystemNotificationEmail(subject: string, bodyPreview: string): boolean {
+  const normSub = (subject || "").toLowerCase();
+  const normBody = (bodyPreview || "").toLowerCase();
+
+  if (
+    normSub.includes("[kaban]") ||
+    normSub.includes("notificação de ordem de serviço") ||
+    normSub.includes("notificacao de ordem de servico")
+  ) {
+    return true;
+  }
+  if (
+    normBody.includes("notificação de ordem de serviço") ||
+    normBody.includes("notificacao de ordem de servico") ||
+    normBody.includes("mudou para aguardando aprovação") ||
+    normBody.includes("mudou para aguardando aprovacao") ||
+    normBody.includes("acessar card no kaban")
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export interface SyncResult {
   processed: number;
   newEvents: number;
@@ -148,6 +175,24 @@ export async function runEmailSync(): Promise<SyncResult> {
     .then(() => null)
     .catch(() => null);
 
+  // Auto-correção: e-mails enviados pela própria gráfica não devem ter direction 'recebido'
+  await supabase
+    .from("order_email_events")
+    .update({ direction: "enviado" })
+    .eq("direction", "recebido")
+    .ilike("sender", "%@primacorgrafica.com.br")
+    .then(() => null)
+    .catch(() => null);
+
+  // Remove avisos falsos gerados por notificações internas do sistema
+  await supabase
+    .from("avisos")
+    .delete()
+    .ilike("mensagem", "%Remetente: %primacorgrafica.com.br%")
+    .ilike("mensagem", "%Notificação de Ordem de Serviço%")
+    .then(() => null)
+    .catch(() => null);
+
   // 4. Itera sobre cada caixa e pasta monitorada
   for (const mailbox of MONITORED_MAILBOXES) {
     const folders: Array<{ folder: "inbox" | "sentitems"; direction: "recebido" | "enviado" }> = [
@@ -170,6 +215,11 @@ export async function runEmailSync(): Promise<SyncResult> {
 
         // Prevenção de duplicatas por message_id
         if (existingMessageIds.has(msg.id)) {
+          continue;
+        }
+
+        // Se for notificação interna gerada pelo próprio Kaban/Primacor para o vendedor, ignora completamente
+        if (isSystemNotificationEmail(msg.subject || "", msg.bodyPreview || "")) {
           continue;
         }
 
@@ -196,6 +246,12 @@ export async function runEmailSync(): Promise<SyncResult> {
         // Se encontramos uma O.S. correspondente, grava o evento
         if (matchedOs && matchedOrderId) {
           const sender = msg.from?.emailAddress?.address || msg.from?.emailAddress?.name || mailbox;
+          const senderEmail = (msg.from?.emailAddress?.address || "").toLowerCase().trim();
+          const isSenderInternal =
+            senderEmail === mailbox.toLowerCase() ||
+            senderEmail.endsWith("@primacorgrafica.com.br") ||
+            MONITORED_MAILBOXES.some((m) => m.toLowerCase() === senderEmail);
+
           const recipients = (msg.toRecipients || [])
             .map((r) => r.emailAddress.address || r.emailAddress.name)
             .filter(Boolean)
@@ -207,10 +263,11 @@ export async function runEmailSync(): Promise<SyncResult> {
             isApprovalResponse(msg.subject || "") ||
             isApprovalResponse(msg.bodyPreview || "");
 
-          // Se está na Caixa de Entrada (inbox) OU é uma resposta/aprovação, foi RECEBIDO!
-          // Somente mensagens iniciadas em sentitems sem prefixo de resposta são 'enviado'.
+          // Se está na pasta sentitems OU o remetente for a própria gráfica, o e-mail foi ENVIADO por nós
           const effectiveDirection: "enviado" | "recebido" =
-            isReplyOrApproval || folder === "inbox" ? "recebido" : "enviado";
+            folder === "sentitems" || isSenderInternal
+              ? "enviado"
+              : (isReplyOrApproval || folder === "inbox" ? "recebido" : "enviado");
 
           const emailDatetime =
             effectiveDirection === "enviado"
@@ -350,6 +407,16 @@ export async function runEmailSync(): Promise<SyncResult> {
     if (recentReceivedEvents && recentReceivedEvents.length > 0) {
       for (const revt of recentReceivedEvents) {
         if (!revt.os_number) continue;
+
+        // Se o remetente for da própria gráfica ou se o conteúdo for notificação de sistema, NÃO gera aviso
+        const senderEmail = (revt.sender || "").toLowerCase().trim();
+        const isInternalSender =
+          senderEmail.endsWith("@primacorgrafica.com.br") ||
+          MONITORED_MAILBOXES.some((m) => m.toLowerCase() === senderEmail);
+
+        if (isInternalSender || isSystemNotificationEmail(revt.subject || "", revt.body_preview || "")) {
+          continue;
+        }
 
         // Se já foi notificado nesta rodada ou se já existe aviso para esta O.S., NÃO duplica
         const alreadyHasAviso =
