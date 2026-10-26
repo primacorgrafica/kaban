@@ -365,6 +365,8 @@ export type Database = {
           email_datetime: string
           os_number: string
           created_at: string
+          read_at?: string | null
+          read_by?: string | null
         }
         Insert: {
           id?: string
@@ -380,6 +382,8 @@ export type Database = {
           email_datetime: string
           os_number: string
           created_at?: string
+          read_at?: string | null
+          read_by?: string | null
         }
         Update: {
           id?: string
@@ -395,6 +399,8 @@ export type Database = {
           email_datetime?: string
           os_number?: string
           created_at?: string
+          read_at?: string | null
+          read_by?: string | null
         }
         Relationships: [
           {

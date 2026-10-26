@@ -33,6 +33,8 @@ export interface OrderEmailEvent {
   email_datetime: string; // ISO timestamp
   os_number: string; // Número da O.S. extraído (ex: "73210")
   created_at: string;
+  read_at?: string | null;
+  read_by?: string | null;
 }
 
 /**

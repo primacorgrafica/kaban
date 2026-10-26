@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Mail, Send, CornerDownLeft, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { Mail, Send, CornerDownLeft, ChevronDown, ChevronUp, RefreshCw, Check } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useOrderEmails } from "@/hooks/useOrderEmails";
+import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
 import type { OrderEmailEvent } from "@/types/email";
 import { SellerNotificationBadge } from "./SellerNotificationBadge";
 
@@ -22,6 +23,8 @@ export function OrderEmailEventsSection({
   vendedorNome,
 }: OrderEmailEventsSectionProps) {
   const { events, loading, refetch } = useOrderEmails(orderId);
+  const { hasUnread, markAsRead } = useUnreadEmailReplies();
+  const isUnread = hasUnread(orderId);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const toggleExpand = (id: string) => {
@@ -73,17 +76,31 @@ export function OrderEmailEventsSection({
           </div>
         </div>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => void refetch()}
-          disabled={loading}
-          className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-          title="Atualizar lista de e-mails"
-        >
-          <RefreshCw className={`h-3.5 w-3.5 mr-1 ${loading ? "animate-spin" : ""}`} />
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-1.5">
+          {isUnread && (
+            <Button
+              size="sm"
+              onClick={() => void markAsRead(orderId, orderTitulo)}
+              className="h-8 px-2.5 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-xs cursor-pointer animate-pulse"
+              title="Marcar todas as respostas de e-mail desta O.S. como lidas"
+            >
+              <Check className="h-3.5 w-3.5 mr-1 stroke-[3]" />
+              Marcar como Lido
+            </Button>
+          )}
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => void refetch()}
+            disabled={loading}
+            className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
+            title="Atualizar lista de e-mails"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 mr-1 ${loading ? "animate-spin" : ""}`} />
+            Atualizar
+          </Button>
+        </div>
       </div>
 
       {/* Notificação ao vendedor (se aplicável) */}

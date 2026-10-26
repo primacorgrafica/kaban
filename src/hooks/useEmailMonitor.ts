@@ -100,28 +100,13 @@ export function useEmailMonitor(enabled = true): UseEmailMonitorReturn {
       }
 
       if (result.newReceivedReplies && result.newReceivedReplies.length > 0) {
-        for (const reply of result.newReceivedReplies) {
-          playEmailChime();
-          const title = `📩 Nova resposta do cliente — O.S. #${reply.osNumber}`;
-
-          toast.success(title, {
-            description: `${reply.sender}: "${reply.bodyPreview || reply.subject}"`,
-            duration: 15000,
-          });
-
-          if (typeof window !== "undefined" && "Notification" in window) {
-            if (Notification.permission === "granted") {
-              try {
-                new Notification(title, {
-                  body: `${reply.sender}: "${reply.bodyPreview || reply.subject}"`,
-                  icon: "/favicon.ico",
-                });
-              } catch {}
-            } else if (Notification.permission === "default") {
-              void Notification.requestPermission();
-            }
-          }
-        }
+        // Conforme solicitado pelo operador: substitui o pop-up intrusivo (toast/notification)
+        // por notificação visual persistente no CARD e na COLUNA (ícone piscando/aceso).
+        playEmailChime();
+        // Atualiza imediatamente o gerenciador de e-mails não lidos
+        void import("@/lib/unreadEmailsManager").then(({ unreadEmailsManager }) => {
+          void unreadEmailsManager.fetchRecentReceivedEvents();
+        });
       }
     } catch (err: any) {
       console.warn("[useEmailMonitor] Falha no ciclo de sincronização:", err);

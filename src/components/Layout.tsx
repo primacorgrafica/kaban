@@ -183,6 +183,9 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
     const next = naoLidos.find((a) => (
       !shown.includes(a.id)
       && new Date(a.created_at).getTime() >= avisoSessionStartedAt.current
+      // E-mails recebidos não devem abrir popup modal (conforme solicitado pelo operador: ícone no card/coluna)
+      && !a.titulo.toLowerCase().includes("resposta do cliente")
+      && !a.titulo.toLowerCase().includes("resposta por e-mail")
     ));
     if (next) {
       localStorage.setItem(shownKey, JSON.stringify([...shown, next.id].slice(-200)));

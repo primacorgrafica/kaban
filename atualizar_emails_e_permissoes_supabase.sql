@@ -399,3 +399,23 @@ $$;
 
 GRANT EXECUTE ON FUNCTION public.admin_create_user(TEXT, TEXT, TEXT, TEXT, TEXT[]) TO authenticated;
 
+-- ====================================================================
+-- 8. Adiciona suporte a status de leitura de respostas de e-mail (read_at)
+-- ====================================================================
+ALTER TABLE public.order_email_events
+  ADD COLUMN IF NOT EXISTS read_at TIMESTAMP WITH TIME ZONE;
+
+ALTER TABLE public.order_email_events
+  ADD COLUMN IF NOT EXISTS read_by UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+
+CREATE INDEX IF NOT EXISTS idx_order_email_events_read_at
+  ON public.order_email_events(read_at);
+
+DROP POLICY IF EXISTS "Authenticated users can update order email events" ON public.order_email_events;
+CREATE POLICY "Authenticated users can update order email events"
+  ON public.order_email_events
+  FOR UPDATE
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
+

@@ -4,7 +4,8 @@ import { Order, OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
 import { DEPARTMENTS, Department } from "@/types/production";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { RotateCcw, ShoppingBag, Calendar, User, FileText, Archive, Trash2, GripVertical, UserCheck, Clock, AlertTriangle, Send, Truck, Briefcase, Copy, Edit2, MessageSquarePlus, Repeat, Sparkles, Check, Zap } from "lucide-react";
+import { RotateCcw, ShoppingBag, Calendar, User, FileText, Archive, Trash2, GripVertical, UserCheck, Clock, AlertTriangle, Send, Truck, Briefcase, Copy, Edit2, MessageSquarePlus, Repeat, Sparkles, Check, Zap, Mail } from "lucide-react";
+import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -170,6 +171,10 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
   const [open, setOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editing, setEditing] = useState(false);
+  const { hasUnread, getUnreadEvents, markAsRead } = useUnreadEmailReplies();
+  const hasUnreadEmail = hasUnread(order.id);
+  const unreadEmails = hasUnreadEmail ? getUnreadEvents(order.id) : [];
+  const latestUnread = unreadEmails[0] || null;
   const [editData, setEditData] = useState({
     titulo: order.titulo,
     descricao: order.descricao,
@@ -565,7 +570,60 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                 {order.os_anterior && <span className="opacity-90">#{order.os_anterior}</span>}
               </span>
             )}
+            {/* Indicador de e-mail recebido piscando/aceso no card */}
+            {hasUnreadEmail && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void markAsRead(order.id, order.titulo);
+                }}
+                className="font-mono-tech text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-amber-500/25 text-amber-500 dark:text-amber-300 border border-amber-500/60 shrink-0 flex items-center gap-1.5 shadow-[0_0_12px_rgba(245,158,11,0.6)] animate-pulse hover:bg-amber-500/35 transition-all cursor-pointer group"
+                title="Nova resposta de e-mail recebida do cliente! Clique para marcar como lida."
+              >
+                <Mail className="h-3.5 w-3.5 fill-amber-500/30 text-amber-500 animate-bounce shrink-0" />
+                <span>E-MAIL</span>
+                <span className="text-[9px] opacity-75 group-hover:opacity-100 group-hover:underline">✕ LIDO</span>
+              </button>
+            )}
           </div>
+          {/* Card Notice: Resposta de e-mail recebida (piscando até ser lido) */}
+          {hasUnreadEmail && (
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                setOpen(true);
+              }}
+              className="mt-2 p-2 rounded-xl border border-amber-500/50 bg-amber-500/15 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 text-xs flex items-center justify-between gap-2 shadow-[0_0_12px_rgba(245,158,11,0.25)] animate-pulse cursor-pointer hover:bg-amber-500/25 transition-all group"
+              title="Clique para abrir os detalhes da O.S."
+            >
+              <div className="flex items-center gap-1.5 min-w-0">
+                <Mail className="h-4 w-4 text-amber-500 shrink-0 animate-bounce" />
+                <div className="min-w-0 truncate">
+                  <div className="font-extrabold text-[11px] text-amber-700 dark:text-amber-300 tracking-wide uppercase flex items-center gap-1">
+                    <span>📩 Resposta Recebida</span>
+                  </div>
+                  {latestUnread?.body_preview && (
+                    <p className="text-[10px] truncate text-muted-foreground italic">
+                      "{latestUnread.body_preview}"
+                    </p>
+                  )}
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  void markAsRead(order.id, order.titulo);
+                }}
+                className="h-6 px-2 text-[10px] font-bold rounded-lg border-amber-500/60 text-amber-600 dark:text-amber-300 hover:bg-amber-500 hover:text-black shrink-0 transition-colors"
+                title="Marcar resposta de e-mail como lida"
+              >
+                Lido ✓
+              </Button>
+            </div>
+          )}
           {/* Linha 2: Descrição (largura completa) */}
           {order.descricao && (
             <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground min-w-0">

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Order } from "@/types/order";
 import {
   DepartmentStatusConfig,
@@ -7,6 +8,7 @@ import {
 import { ProductionCard } from "./ProductionCard";
 import { ManutencaoCard } from "./ManutencaoCard";
 import { ComprasCard } from "./ComprasCard";
+import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
 
 import { Droppable, Draggable } from "@hello-pangea/dnd";
 import {
@@ -38,6 +40,7 @@ import {
   ArrowRight,
   Clock,
   AlertTriangle,
+  Mail,
 } from "lucide-react";
 import { OffsetIcon } from "./icons/OffsetIcon";
 import { createPortal } from "react-dom";
@@ -139,6 +142,10 @@ export function ProductionColumn({
   const droppableId = `${department.id}__${statusConfig.id}`;
   const StatusIcon = STATUS_ICONS[statusConfig.id] || Inbox;
 
+  const { getUnreadCountForOrders } = useUnreadEmailReplies();
+  const columnOrderIds = useMemo(() => orders.map((o) => o.id), [orders]);
+  const unreadEmailCount = getUnreadCountForOrders(columnOrderIds);
+
   return (
     <div className="flex-shrink-0 w-[80vw] sm:w-72 flex flex-col rounded-2xl glass-bento min-h-full h-fit transition-all duration-200">
       <div
@@ -158,6 +165,18 @@ export function ProductionColumn({
         >
           {statusConfig.label}
         </h3>
+
+        {/* Indicador de respostas de e-mail recebidas não lidas na coluna (conforme caixa vermelha do operador) */}
+        {unreadEmailCount > 0 && (
+          <span
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-500 border border-amber-500/40 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.5)] shrink-0"
+            title={`${unreadEmailCount} O.S. com resposta de e-mail não lida nesta coluna`}
+          >
+            <Mail className="h-3 w-3 fill-amber-500/30" />
+            <span>{unreadEmailCount}</span>
+          </span>
+        )}
+
         <span
           className="text-xs ml-auto rounded-full px-2 py-0.5 font-bold"
           style={{

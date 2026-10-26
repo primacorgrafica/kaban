@@ -12,7 +12,10 @@ import {
   ArrowRight,
   Wrench,
   AlertTriangle,
+  Mail,
 } from "lucide-react";
+import { useMemo } from "react";
+import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
 import { createPortal } from "react-dom";
 
 const PRE_PRESS_STATUS_ICONS: Record<OrderStatus, LucideIcon> = {
@@ -108,6 +111,10 @@ export function KanbanColumn({
     (permissions.canReorderEntry || permissions.canAdvanceCards);
   const StatusIcon = PRE_PRESS_STATUS_ICONS[status];
 
+  const { getUnreadCountForOrders } = useUnreadEmailReplies();
+  const columnOrderIds = useMemo(() => orders.map((o) => o.id), [orders]);
+  const unreadEmailCount = getUnreadCountForOrders(columnOrderIds);
+
   return (
     <div className="flex-shrink-0 w-[82vw] sm:w-[290px] flex flex-col rounded-2xl glass-bento transition-all min-h-full h-fit">
       <div className="flex items-center gap-2.5 px-3.5 py-3 border-b border-border/60 dark:border-[#4A5C6A]/25 flex-shrink-0 rounded-t-2xl bg-muted/30 dark:bg-[#11212D]/40">
@@ -126,6 +133,18 @@ export function KanbanColumn({
         <h3 className="text-xs font-bold uppercase tracking-wider text-foreground font-mono-tech truncate flex-1">
           {config.label}
         </h3>
+
+        {/* Indicador de respostas de e-mail recebidas não lidas na coluna */}
+        {unreadEmailCount > 0 && (
+          <span
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-500 border border-amber-500/40 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.5)] shrink-0"
+            title={`${unreadEmailCount} O.S. com resposta de e-mail não lida nesta coluna`}
+          >
+            <Mail className="h-3 w-3 fill-amber-500/30" />
+            <span>{unreadEmailCount}</span>
+          </span>
+        )}
+
         <span
           className="text-[11px] font-mono-tech font-bold rounded-full px-2 py-0.5 border"
           style={{
