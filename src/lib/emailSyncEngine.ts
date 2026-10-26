@@ -158,12 +158,13 @@ export async function runEmailSync(): Promise<SyncResult> {
   const processedEventKeys = new Set<string>();
   const notifiedOsNumbers = new Set<string>();
 
-  // Auto-correção: mensagens de resposta com prefixo RES: ou RE: devem ter direction: 'recebido'
+  // Auto-correção: mensagens de resposta de clientes com prefixo RES: ou RE: devem ter direction: 'recebido'
   await supabase
     .from("order_email_events")
     .update({ direction: "recebido" })
     .ilike("subject", "res:%")
     .eq("direction", "enviado")
+    .not("sender", "ilike", "%@primacorgrafica.com.br")
     .then(() => null)
     .catch(() => null);
 
@@ -172,6 +173,7 @@ export async function runEmailSync(): Promise<SyncResult> {
     .update({ direction: "recebido" })
     .ilike("subject", "re:%")
     .eq("direction", "enviado")
+    .not("sender", "ilike", "%@primacorgrafica.com.br")
     .then(() => null)
     .catch(() => null);
 
@@ -257,17 +259,13 @@ export async function runEmailSync(): Promise<SyncResult> {
             .filter(Boolean)
             .join(", ") || mailbox;
 
-          // Detecção de resposta: se o assunto começa com RES: ou RE:, ou se contém expressões de aprovação, é RESPOSTA (recebido)!
-          const isReplyOrApproval =
-            /^\s*(re|res|enc|fwd)\s*[:]/i.test(msg.subject || "") ||
-            isApprovalResponse(msg.subject || "") ||
-            isApprovalResponse(msg.bodyPreview || "");
-
-          // Se está na pasta sentitems OU o remetente for a própria gráfica, o e-mail foi ENVIADO por nós
+          // Conforme especificação:
+          // Um e-mail só é considerado RECEBIDO quando:
+          // 1. Está na Caixa de Entrada (folder === "inbox")
+          // 2. O remetente NÃO é da própria gráfica (!isSenderInternal)
+          // E-mails em sentitems ou enviados pela gráfica são sempre "enviado".
           const effectiveDirection: "enviado" | "recebido" =
-            folder === "sentitems" || isSenderInternal
-              ? "enviado"
-              : (isReplyOrApproval || folder === "inbox" ? "recebido" : "enviado");
+            folder === "inbox" && !isSenderInternal ? "recebido" : "enviado";
 
           const emailDatetime =
             effectiveDirection === "enviado"
