@@ -212,7 +212,7 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
     });
   });
 
-  it("2. Recebimento de resposta do cliente: deve registrar aviso de e-mail respondido e NÃO mover CARD para SAÍDA", async () => {
+  it("2. Recebimento de resposta do cliente: deve registrar aviso 'Nova resposta do cliente' e NÃO alterar status do CARD", async () => {
     const receivedReply: GraphMessage = {
       id: "msg-reply-002",
       subject: "Re: Envio de Prova Digital - OS 73210",
@@ -244,41 +244,32 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
       sender: "cliente@alpha.com.br",
     });
 
-    // Verifica que gerou aviso de e-mail respondido
+    // Verifica que gerou aviso interno padronizado de resposta recebida (NUNCA aprovação automática)
     expect(mockInsertedAvisos).toHaveLength(1);
-    expect(mockInsertedAvisos[0].titulo).toContain("E-mail Respondido");
+    expect(mockInsertedAvisos[0].titulo).toBe("Nova resposta do cliente — O.S. 73210");
+    expect(mockInsertedAvisos[0].mensagem).toContain("A O.S. 73210 recebeu uma resposta por e-mail. Acesse o CARD para consultar a mensagem.");
+    expect(mockInsertedAvisos[0].tipo).toBe("info");
 
-    // Valida que o CARD NÃO foi movido para SAÍDA (permanece na coluna atual)
+    // Valida que o CARD NÃO foi movido nem teve status alterado por conta da resposta
     expect(mockUpdatedOrders.some(o => o.status === "arquivo_liberado")).toBe(false);
   });
 
-  it("3. Resposta sem número explícito, mas vinculada à conversa original: deve associar via conversationId", async () => {
-    // Simula evento pré-existente no banco de dados com a conversa vinculada à OS 73210
-    mockExistingEvents = [
-      {
-        message_id: "msg-sent-001",
-        conversation_id: "conv-thread-100",
-        order_id: "order-uuid-73210",
-        os_number: "73210",
-      },
-    ];
-
-    // Nova resposta do cliente sem mencionar o número 73210 no assunto nem no corpo!
-    const replyWithoutNumber: GraphMessage = {
+  it("3. Resposta sem número de O.S. no assunto: NÃO deve ser associada nem gerar notificação de resposta", async () => {
+    // Resposta de cliente onde o assunto não possui o número da O.S.
+    const replyWithoutNumberInSubject: GraphMessage = {
       id: "msg-reply-003",
-      subject: "Re: Prova do material", // Sem número de O.S.!
-      bodyPreview: "Bom dia, conferi o arquivo e está tudo certo, pode rodar.", // Sem número de O.S.!
+      subject: "Re: Prova do material", // Sem número de O.S. no assunto!
+      bodyPreview: "Bom dia, conferi o arquivo da OS 73210 e está tudo certo.",
       from: { emailAddress: { name: "Cliente Alpha", address: "cliente@alpha.com.br" } },
       toRecipients: [{ emailAddress: { name: "Pré-Impressão", address: "preimpressao@primacorgrafica.com.br" } }],
       sentDateTime: "2026-10-20T11:00:00Z",
       receivedDateTime: "2026-10-20T11:00:00Z",
-      conversationId: "conv-thread-100", // Vinculada à thread da OS 73210!
     };
 
     vi.mocked(outlookService.fetchMailboxMessages).mockImplementation(
       async (mailbox, folder) => {
         if (mailbox === "preimpressao@primacorgrafica.com.br" && folder === "inbox") {
-          return [replyWithoutNumber];
+          return [replyWithoutNumberInSubject];
         }
         return [];
       }
@@ -286,14 +277,53 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
 
     const result = await runEmailSync();
 
-    expect(result.newEvents).toBe(1);
-    expect(mockInsertedEvents[0]).toMatchObject({
-      order_id: "order-uuid-73210",
-      os_number: "73210",
-      direction: "recebido",
-      message_id: "msg-reply-003",
-      conversation_id: "conv-thread-100",
-    });
+    // Como o assunto não tem o número da O.S., não deve processar como resposta
+    expect(result.newEvents).toBe(0);
+    expect(mockInsertedEvents).toHaveLength(0);
+    expect(mockInsertedAvisos).toHaveLength(0);
+  });
+
+  it("3b. Resposta com diferentes formatos de assunto da O.S.: deve identificar e notificar corretamente", async () => {
+    const variations = [
+      { subject: "73210", expectedOs: "73210" },
+      { subject: "RE: 73210", expectedOs: "73210" },
+      { subject: "RES: O.S. 73210", expectedOs: "73210" },
+      { subject: "Re: Orçamento - 73210", expectedOs: "73210" },
+    ];
+
+    for (let i = 0; i < variations.length; i++) {
+      const v = variations[i];
+      mockInsertedEvents = [];
+      mockInsertedAvisos = [];
+
+      const msg: GraphMessage = {
+        id: `msg-var-${i}`,
+        subject: v.subject,
+        bodyPreview: "Por favor alterar a quantidade para 1.000 unidades.", // Sem nenhuma palavra de aprovação!
+        from: { emailAddress: { name: "Cliente Teste", address: "cliente@empresa.com" } },
+        toRecipients: [{ emailAddress: { name: "Pré-Impressão", address: "preimpressao@primacorgrafica.com.br" } }],
+        sentDateTime: "2026-10-26T14:00:00Z",
+        receivedDateTime: "2026-10-26T14:00:00Z",
+      };
+
+      vi.mocked(outlookService.fetchMailboxMessages).mockImplementation(
+        async (mailbox, folder) => {
+          if (mailbox === "preimpressao@primacorgrafica.com.br" && folder === "inbox") {
+            return [msg];
+          }
+          return [];
+        }
+      );
+
+      const result = await runEmailSync();
+
+      expect(result.newEvents).toBe(1);
+      expect(mockInsertedAvisos).toHaveLength(1);
+      expect(mockInsertedAvisos[0].titulo).toBe(`Nova resposta do cliente — O.S. ${v.expectedOs}`);
+      expect(mockInsertedAvisos[0].tipo).toBe("info");
+      // Não altera status do card
+      expect(mockUpdatedOrders.some(o => o.status === "arquivo_liberado")).toBe(false);
+    }
   });
 
   it("4. Mensagens com números semelhantes: não deve associar a O.S. inexistente ou incorreta", async () => {

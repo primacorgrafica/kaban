@@ -1,11 +1,10 @@
 import React, { useState, useMemo } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Mail, Send, CornerDownLeft, CheckCircle2, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { Mail, Send, CornerDownLeft, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useOrderEmails } from "@/hooks/useOrderEmails";
-import { isApprovalResponse } from "@/lib/emailMatcher";
 import type { OrderEmailEvent } from "@/types/email";
 import { SellerNotificationBadge } from "./SellerNotificationBadge";
 
@@ -38,8 +37,7 @@ export function OrderEmailEventsSection({
     for (const evt of events) {
       const isReply =
         evt.direction === "recebido" ||
-        /^\s*(re|res|enc|fwd)\s*[:]/i.test(evt.subject || "") ||
-        isApprovalResponse(evt.body_preview || "");
+        /^\s*(re|res|enc|fwd)\s*[:]/i.test(evt.subject || "");
 
       const normSub = (evt.subject || "").trim().toLowerCase().replace(/^(re|res|fwd|enc)\s*:\s*/i, "");
       const normBody = (evt.body_preview || "").trim().toLowerCase().slice(0, 50).replace(/\s+/g, " ");
@@ -112,12 +110,7 @@ export function OrderEmailEventsSection({
           {deduplicatedEvents.map((evt) => {
             const isReply =
               evt.direction === "recebido" ||
-              /^\s*(re|res|enc|fwd)\s*[:]/i.test(evt.subject || "") ||
-              isApprovalResponse(evt.body_preview || "");
-
-            const isApproval =
-              isApprovalResponse(evt.subject || "") ||
-              isApprovalResponse(evt.body_preview || "");
+              /^\s*(re|res|enc|fwd)\s*[:]/i.test(evt.subject || "");
 
             const isExpanded = expandedId === evt.id;
 
@@ -134,30 +127,19 @@ export function OrderEmailEventsSection({
                 key={evt.id}
                 className={`p-3 rounded-xl border transition-all text-xs space-y-1.5 ${
                   isReply
-                    ? isApproval
-                      ? "border-emerald-500/40 bg-emerald-500/10 dark:bg-emerald-950/30 shadow-xs"
-                      : "border-teal-500/30 bg-teal-500/5 dark:bg-teal-950/20"
+                    ? "border-teal-500/30 bg-teal-500/5 dark:bg-teal-950/20"
                     : "border-sky-500/30 bg-sky-500/5 dark:bg-sky-950/20"
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     {isReply ? (
-                      isApproval ? (
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/40"
-                        >
-                          <CheckCircle2 className="h-3 w-3 text-emerald-500" /> Resposta de Aprovação Recebida
-                        </Badge>
-                      ) : (
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 bg-teal-500/15 text-teal-700 dark:text-teal-300 border-teal-500/30"
-                        >
-                          <CornerDownLeft className="h-3 w-3 text-teal-500" /> Resposta do Cliente Recebida
-                        </Badge>
-                      )
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 bg-teal-500/15 text-teal-700 dark:text-teal-300 border-teal-500/30"
+                      >
+                        <CornerDownLeft className="h-3 w-3 text-teal-500" /> Resposta do Cliente Recebida
+                      </Badge>
                     ) : (
                       <Badge
                         variant="outline"

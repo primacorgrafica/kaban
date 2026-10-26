@@ -2,17 +2,16 @@
  * Serviço de extração e validação de números de Ordem de Serviço em mensagens de e-mail.
  *
  * Estratégia de identificação:
- * 1. Extrai candidatos numéricos de 4-6 dígitos do assunto e corpo.
- * 2. Valida cada candidato contra as O.S. ativas no Kanban.
- * 3. Para respostas sem número explícito, utiliza o conversationId do Graph
- *    para vincular à O.S. previamente associada à conversa.
- * 4. Analisa respostas de clientes para detecção de APROVAÇÃO automática.
+ * 1. Para respostas de clientes: identificação EXCLUSIVA pelo número da O.S. no assunto do e-mail.
+ * 2. Extrai candidatos numéricos completos de 4-6 dígitos.
+ * 3. Valida cada candidato contra as O.S. ativas no Kanban.
+ * 4. Nenhuma interpretação de palavras-chave de aprovação ou alteração automática de status.
  */
 
 /**
  * Regex que captura números de 4 a 6 dígitos que representam potenciais O.S.
- * Exige word boundary para evitar substrings dentro de sequências maiores
- * como CPF/CNPJ, telefones ou datas (ex: "20261020" de 8 dígitos não será capturado).
+ * Exige lookbehind e lookahead negativos para evitar substrings parciais
+ * dentro de sequências maiores como CPF/CNPJ, telefones ou datas (ex: "20261020" de 8 dígitos não será capturado).
  */
 const OS_NUMBER_REGEX = /(?<!\d)\d{4,6}(?!\d)/g;
 
@@ -21,97 +20,38 @@ const OS_NUMBER_REGEX = /(?<!\d)\d{4,6}(?!\d)/g;
  * Estes padrões precedem o número e aumentam a confiança de identificação.
  */
 const OS_CONTEXT_PATTERNS = [
-  /\bOS[.\s_#:-]*(\d{4,6})\b/gi,        // "OS 73210", "OS-73210", "OS #73210", "OS: 73210"
-  /\bO\.?S\.?[.\s_#:-]*(\d{4,6})\b/gi,   // "O.S. 73210", "O.S 73210", "O.S. #73210"
-  /#\s*(\d{4,6})\b/gi,                   // "#73210", "# 73210"
-  /\bordem[.\s_#:-]*(\d{4,6})\b/gi,      // "Ordem 73210", "Ordem #73210"
-  /\bserviço[.\s_#:-]*(\d{4,6})\b/gi,    // "Serviço 73210"
-  /\bn[°º]?[.\s_#:-]*(\d{4,6})\b/gi,     // "n° 73210", "nº 73210"
+  /\bO\.?S\.?[.\s_#:-]*(\d{4,6})\b/gi,                   // "O.S. 73210", "O.S 73210", "O.S. #73210", "O.S.: 73210"
+  /\bOS[.\s_#:-]*(\d{4,6})\b/gi,                        // "OS 73210", "OS-73210", "OS #73210", "OS: 73210"
+  /#\s*(\d{4,6})\b/gi,                                   // "#73210", "# 73210"
+  /\bordem(\s+de\s+servi[cç]o)?[.\s_#:-]*(\d{4,6})\b/gi, // "Ordem 73210", "Ordem de Serviço 73210"
+  /\bservi[cç]o[.\s_#:-]*(\d{4,6})\b/gi,                 // "Serviço 73210", "Servico 73210"
+  /\bn[°º]?[.\s_#:-]*(\d{4,6})\b/gi,                     // "n° 73210", "nº 73210"
 ];
 
 /**
- * Frases e expressões que indicam APROVAÇÃO inequívoca por parte do cliente.
+ * Prioriza candidatos numéricos:
+ * - 5 dígitos (padrão principal de O.S. Primacor, ex: 73210) tem prioridade mais alta
+ * - Anos civis comuns (2020 a 2035) têm menor prioridade quando outros números estiverem presentes
  */
-export const APPROVAL_PHRASES = [
-  "aprovado pelo cliente",
-  "aprovada pelo cliente",
-  "aprovado para producao",
-  "aprovada para producao",
-  "aprovacao confirmada",
-  "aprovado sem ressalvas",
-  "aprovada sem ressalvas",
-  "aprovado final",
-  "aprovada final",
-  "pode produzir",
-  "pode rodar",
-  "pode imprimir",
-  "producao liberada",
-  "arte aprovada",
-  "layout aprovado",
-  "servico aprovado",
-  "de acordo",
-];
-
-export const APPROVAL_KEYWORDS_REGEX =
-  /\b(aprovad[oa]s?|aprovac[aã]o|aprovac[oõ]es|autorizad[oa]s?|liberad[oa]s?|validad[oa]s?|confirmad[oa]s?|aceit[oa]s?|ok)\b/i;
-
-// Padrões de negação ou rejeição que invalidam aprovação (ex: "não aprovado", "reprovado")
-export const REJECTION_NEGATION_REGEX =
-  /\b(nao\s+(esta\s+)?(aprovad[oa]s?|aprovacao|autorizad[oa]s?|liberad[oa]s?|de acordo|ok|aceit[oa]s?|validad[oa]s?|confirmad[oa]s?)|reprovad[oa]s?|rejeitad[oa]s?|cancelad[oa]s?|recusad[oa]s?|desaprovad[oa]s?)\b/i;
-
-// Padrões de status pendente, envio interno ou notificação de sistema que NÃO configuram aprovação do cliente
-export const PENDING_OR_SYSTEM_REGEX =
-  /\b(aguardando\s+(a\s+|sua\s+)?aprovac[aã]o|pendente\s+de\s+aprovac[aã]o|(envio|enviad[oa]|segue|mandad[oa]|para)\s+(sua\s+|a\s+)?aprovac[aã]o|solicita[cç][aã]o\s+de\s+aprovac[aã]o|notifica[cç][aã]o\s+de\s+ordem\s+de\s+servi[cç]o|mudou\s+para\s+aguardando\s+aprovac[aã]o)\b/i;
-
-/**
- * Verifica se um texto (assunto ou corpo de e-mail de resposta do cliente)
- * expressa aprovação explícita do material.
- */
-export function isApprovalResponse(text: string): boolean {
-  if (!text || typeof text !== "string") return false;
-
-  const clean = text.trim();
-  const normalized = clean
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase();
-
-  // 1. Se houver negação ou rejeição explícita, NÃO é aprovação
-  if (REJECTION_NEGATION_REGEX.test(normalized)) {
-    return false;
-  }
-
-  // 2. Se for status de pendência, envio ou notificação ("aguardando aprovação", "para aprovação"), NÃO é aprovação do cliente
-  if (PENDING_OR_SYSTEM_REGEX.test(normalized)) {
-    return false;
-  }
-
-  // 2. Busca por frases compostas de aprovação
-  for (const phrase of APPROVAL_PHRASES) {
-    if (normalized.includes(phrase)) {
-      return true;
-    }
-  }
-
-  // 3. Busca por palavras-chave isoladas (com word boundary)
-  if (APPROVAL_KEYWORDS_REGEX.test(clean) || APPROVAL_KEYWORDS_REGEX.test(normalized)) {
-    return true;
-  }
-
-  return false;
+function getCandidatePriority(numStr: string): number {
+  const val = parseInt(numStr, 10);
+  if (val >= 2020 && val <= 2035) return 1;
+  if (numStr.length === 5) return 3;
+  return 2;
 }
 
 /**
  * Extrai todos os candidatos a número de O.S. de um texto (assunto ou corpo de e-mail).
- * Retorna números únicos ordenados por confiança (primeiro os que têm contexto de "OS").
+ * Retorna números únicos completos ordenados por confiança:
+ * primeiro os que possuem contexto inequívoco de O.S., depois genéricos priorizados.
  */
 export function extractOsNumbers(text: string): string[] {
   if (!text || typeof text !== "string") return [];
 
   const contextMatches = new Set<string>();
-  const genericMatches = new Set<string>();
+  const genericCandidates: string[] = [];
 
-  // 1. Busca com contexto (alta confiança)
+  // 1. Busca com contexto (alta confiança: "OS 73210", "O.S. #73210", etc.)
   for (const pattern of OS_CONTEXT_PATTERNS) {
     pattern.lastIndex = 0;
     let match: RegExpExecArray | null;
@@ -120,23 +60,25 @@ export function extractOsNumbers(text: string): string[] {
     }
   }
 
-  // 2. Busca genérica (confiança menor)
+  // 2. Busca genérica de números de 4 a 6 dígitos (sem contexto)
   const genericRegex = new RegExp(OS_NUMBER_REGEX.source, "g");
   let genericMatch: RegExpExecArray | null;
   while ((genericMatch = genericRegex.exec(text)) !== null) {
     const num = genericMatch[0];
-    if (!contextMatches.has(num)) {
-      genericMatches.add(num);
+    if (!contextMatches.has(num) && !genericCandidates.includes(num)) {
+      genericCandidates.push(num);
     }
   }
 
-  // Retorna contextuais primeiro, depois genéricos
-  return [...contextMatches, ...genericMatches];
+  // Ordena os genéricos priorizando O.S. de 5 dígitos sobre anos civis
+  genericCandidates.sort((a, b) => getCandidatePriority(b) - getCandidatePriority(a));
+
+  return [...contextMatches, ...genericCandidates];
 }
 
 /**
  * Dado uma lista de candidatos e um Set de números de O.S. ativas no Kanban,
- * retorna apenas os candidatos que correspondem a ordens reais.
+ * retorna apenas os candidatos que correspondem a ordens reais existentes no Supabase.
  */
 export function validateOsCandidates(
   candidates: string[],
@@ -150,8 +92,37 @@ export function validateOsCandidates(
 }
 
 /**
- * Pipeline completo: extrai do assunto + corpo e valida contra as ordens ativas.
- * Prioriza o assunto (mais confiável que o corpo).
+ * Identifica a O.S. correspondente EXCLUSIVAMENTE a partir do assunto do e-mail.
+ * Utilizado para processar respostas de clientes conforme a regra estrita do Kaban:
+ * a identificação das respostas é feita unicamente pelo número da O.S. presente no assunto.
+ *
+ * Exemplos válidos:
+ * - "73210"
+ * - "RE: 73210"
+ * - "RES: O.S. 73210"
+ * - "Re: Orçamento - 73210"
+ */
+export function findOsInSubject(
+  subject: string,
+  activeOsTitulos: Set<string>
+): { osNumber: string | null; ambiguous: boolean } {
+  if (!subject || typeof subject !== "string") {
+    return { osNumber: null, ambiguous: false };
+  }
+
+  const candidates = extractOsNumbers(subject);
+  const { matches, ambiguous } = validateOsCandidates(candidates, activeOsTitulos);
+
+  if (matches.length > 0) {
+    return { osNumber: matches[0], ambiguous };
+  }
+
+  return { osNumber: null, ambiguous: false };
+}
+
+/**
+ * Busca a O.S. no assunto e opcionalmente no corpo (para e-mails enviados).
+ * Prioriza sempre o assunto.
  */
 export function findOsInEmail(
   subject: string,
@@ -159,27 +130,17 @@ export function findOsInEmail(
   activeOsTitulos: Set<string>
 ): { osNumber: string | null; ambiguous: boolean } {
   // 1. Tenta encontrar no assunto primeiro (alta confiança)
-  const subjectCandidates = extractOsNumbers(subject);
-  const subjectResult = validateOsCandidates(subjectCandidates, activeOsTitulos);
-
-  if (subjectResult.matches.length === 1) {
-    return { osNumber: subjectResult.matches[0], ambiguous: false };
-  }
-
-  if (subjectResult.matches.length > 1) {
-    return { osNumber: subjectResult.matches[0], ambiguous: true };
+  const subjectResult = findOsInSubject(subject, activeOsTitulos);
+  if (subjectResult.osNumber) {
+    return subjectResult;
   }
 
   // 2. Se não encontrou no assunto, busca no corpo
   const bodyCandidates = extractOsNumbers(bodyPreview);
   const bodyResult = validateOsCandidates(bodyCandidates, activeOsTitulos);
 
-  if (bodyResult.matches.length === 1) {
-    return { osNumber: bodyResult.matches[0], ambiguous: false };
-  }
-
-  if (bodyResult.matches.length > 1) {
-    return { osNumber: bodyResult.matches[0], ambiguous: true };
+  if (bodyResult.matches.length > 0) {
+    return { osNumber: bodyResult.matches[0], ambiguous: bodyResult.ambiguous };
   }
 
   // 3. Nenhuma O.S. encontrada

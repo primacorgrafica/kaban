@@ -398,6 +398,61 @@ export async function sendEmailViaGraph(params: {
 }
 
 /**
+ * Registra uma notificação interna na tabela 'avisos' do Kaban referente ao
+ * envio do e-mail de alerta de aprovação ao vendedor responsável.
+ */
+export async function createSellerNotificationAviso(params: {
+  osTitle: string;
+  cliente: string;
+  sellerName: string;
+  sellerEmail?: string | null;
+  success: boolean;
+  error?: string;
+  authorId?: string | null;
+}): Promise<void> {
+  try {
+    const cleanOs = (params.osTitle || "").replace(/^[#\s]+/, "");
+    const avisoTitulo = params.success
+      ? `📧 Notificação enviada ao Vendedor — O.S. #${cleanOs}`
+      : `⚠️ Falha no envio ao Vendedor — O.S. #${cleanOs}`;
+
+    const avisoMensagem = params.success
+      ? `O e-mail informando que a O.S. #${cleanOs} (${params.cliente}) está em Aguardando Aprovação foi enviado com sucesso para o vendedor ${params.sellerName}${params.sellerEmail ? ` (${params.sellerEmail})` : ""}.`
+      : `Não foi possível enviar a notificação da O.S. #${cleanOs} ao vendedor ${params.sellerName}: ${params.error || "Erro desconhecido"}`;
+
+    // Evita duplicar o mesmo aviso nas últimas 12 horas
+    const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+    const { data: existing } = await supabase
+      .from("avisos")
+      .select("id")
+      .eq("titulo", avisoTitulo)
+      .gte("created_at", twelveHoursAgo)
+      .limit(1)
+      .maybeSingle();
+
+    if (existing) {
+      return;
+    }
+
+    let author = params.authorId;
+    if (!author) {
+      const { data: authData } = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+      author = authData?.user?.id || "00000000-0000-0000-0000-000000000000";
+    }
+
+    await supabase.from("avisos").insert({
+      titulo: avisoTitulo,
+      mensagem: avisoMensagem,
+      tipo: params.success ? "info" : "urgente",
+      destinatario_id: null,
+      criado_por: author,
+    });
+  } catch (err) {
+    console.warn("[SellerNotification] Erro ao gravar aviso interno para vendedor:", err);
+  }
+}
+
+/**
  * Dispara a notificação ao vendedor para uma O.S. que mudou para Aguardando Aprovação.
  * Garante idempotência, anti-duplicação e gravação do log em order_seller_notifications.
  */
@@ -478,6 +533,16 @@ export async function triggerSellerApprovalNotification(
         .select("id")
         .single();
 
+      // Registra aviso interno de falha no Kaban
+      await createSellerNotificationAviso({
+        osTitle,
+        cliente,
+        sellerName: sellerInfo.name || order.vendedor || "Não informado",
+        success: false,
+        error: failReason,
+        authorId: order.criado_por,
+      });
+
       return {
         success: false,
         notificationId: inserted?.id,
@@ -534,6 +599,17 @@ export async function triggerSellerApprovalNotification(
         .eq("id", notificationId);
 
       console.info(`[SellerNotification] E-mail enviado com sucesso para ${sellerInfo.email} (O.S. #${osTitle})`);
+
+      // Registra aviso interno de sucesso no Kaban
+      await createSellerNotificationAviso({
+        osTitle,
+        cliente,
+        sellerName: sellerInfo.name || order.vendedor || "Vendedor",
+        sellerEmail: sellerInfo.email,
+        success: true,
+        authorId: order.criado_por,
+      });
+
       return {
         success: true,
         sent: true,
@@ -550,6 +626,18 @@ export async function triggerSellerApprovalNotification(
         .eq("id", notificationId);
 
       console.warn(`[SellerNotification] Falha ao enviar e-mail para ${sellerInfo.email}:`, sendResult.error);
+
+      // Registra aviso interno de falha no Kaban
+      await createSellerNotificationAviso({
+        osTitle,
+        cliente,
+        sellerName: sellerInfo.name || order.vendedor || "Vendedor",
+        sellerEmail: sellerInfo.email,
+        success: false,
+        error: sendResult.error,
+        authorId: order.criado_por,
+      });
+
       return {
         success: false,
         sent: false,
@@ -615,6 +703,15 @@ export async function retrySellerNotification(notificationId: string): Promise<b
           updated_at: nowIso,
         })
         .eq("id", notificationId);
+
+      await createSellerNotificationAviso({
+        osTitle: notif.os_number,
+        cliente: notif.cliente,
+        sellerName: notif.vendedor_nome || "Vendedor",
+        sellerEmail: targetEmail,
+        success: true,
+      });
+
       return true;
     } else {
       await supabase
@@ -627,6 +724,16 @@ export async function retrySellerNotification(notificationId: string): Promise<b
           updated_at: nowIso,
         })
         .eq("id", notificationId);
+
+      await createSellerNotificationAviso({
+        osTitle: notif.os_number,
+        cliente: notif.cliente,
+        sellerName: notif.vendedor_nome || "Vendedor",
+        sellerEmail: targetEmail,
+        success: false,
+        error: sendRes.error,
+      });
+
       return false;
     }
   } catch (err: any) {

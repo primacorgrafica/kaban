@@ -2,8 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   extractOsNumbers,
   validateOsCandidates,
+  findOsInSubject,
   findOsInEmail,
-  isApprovalResponse,
 } from "../lib/emailMatcher";
 
 describe("emailMatcher - Extração e Validação de O.S. em E-mails", () => {
@@ -13,6 +13,7 @@ describe("emailMatcher - Extração e Validação de O.S. em E-mails", () => {
       expect(extractOsNumbers("Referente a O.S. 73210")).toContain("73210");
       expect(extractOsNumbers("O.S 73210 - Prova Digital")).toContain("73210");
       expect(extractOsNumbers("Ordem 73210 - Embalagens")).toContain("73210");
+      expect(extractOsNumbers("Ordem de Serviço 73210")).toContain("73210");
       expect(extractOsNumbers("Segue layout nº 73210 para validação")).toContain("73210");
       expect(extractOsNumbers("OS-73210 aprovada")).toContain("73210");
     });
@@ -71,6 +72,39 @@ describe("emailMatcher - Extração e Validação de O.S. em E-mails", () => {
     });
   });
 
+  describe("findOsInSubject - Identificação Exclusiva no Assunto para Respostas de Clientes", () => {
+    const activeOs = new Set(["73210", "85000", "92100"]);
+
+    const validSubjectCases = [
+      { subject: "73210", expected: "73210" },
+      { subject: "RE: 73210", expected: "73210" },
+      { subject: "RES: O.S. 73210", expected: "73210" },
+      { subject: "Re: Orçamento - 73210", expected: "73210" },
+      { subject: "RES: OS 73210", expected: "73210" },
+      { subject: "Re: OS #73210 - Folder Institucional", expected: "73210" },
+      { subject: "Re: Ordem 73210", expected: "73210" },
+      { subject: "Re: Ordem de Serviço 73210", expected: "73210" },
+      { subject: "RES: O.S.: 73210", expected: "73210" },
+      { subject: "Re: Prova digital nº 73210", expected: "73210" },
+      { subject: "Re: Orçamento 2026 - 73210", expected: "73210" },
+    ];
+
+    it.each(validSubjectCases)("deve identificar O.S. '$expected' no assunto: '$subject'", ({ subject, expected }) => {
+      const result = findOsInSubject(subject, activeOs);
+      expect(result.osNumber).toBe(expected);
+    });
+
+    it("deve retornar null se o assunto não contiver nenhuma O.S. ativa", () => {
+      expect(findOsInSubject("Dúvida sobre entrega", activeOs).osNumber).toBeNull();
+      expect(findOsInSubject("Re: Orçamento sem número", activeOs).osNumber).toBeNull();
+      expect(findOsInSubject("RES: Pedido 99999", activeOs).osNumber).toBeNull();
+    });
+
+    it("não deve associar números parciais no assunto (ex: 7321 para 73210)", () => {
+      expect(findOsInSubject("Re: Pedido 7321", activeOs).osNumber).toBeNull();
+    });
+  });
+
   describe("findOsInEmail", () => {
     const activeOs = new Set(["73210", "85000", "92100"]);
 
@@ -107,57 +141,6 @@ describe("emailMatcher - Extração e Validação de O.S. em E-mails", () => {
       const result = findOsInEmail(subject, body, activeOs);
       expect(result.osNumber).toBeNull();
       expect(result.ambiguous).toBe(false);
-    });
-  });
-  describe("isApprovalResponse - Detecção de Aprovação do Cliente", () => {
-    const approvalCases = [
-      "Aprovado",
-      "Aprovada",
-      "Aprovado pelo cliente",
-      "Aprovado para produção",
-      "Aprovação",
-      "Aprovado final",
-      "De acordo",
-      "Autorizado",
-      "Liberado",
-      "Validado",
-      "Confirmado",
-      "OK",
-      "Aceito",
-      "Aprovado sem ressalvas",
-      "Aprovação confirmada",
-      "Pode produzir",
-      "Produção liberada",
-      "Arte aprovada",
-      "Layout aprovado",
-      "Serviço aprovado",
-      "Bom dia, layout aprovado, pode rodar!",
-      "OK, de acordo com as cores",
-      "Confirmado, estamos de acordo",
-    ];
-
-    it.each(approvalCases)("deve reconhecer como aprovado: '%s'", (text) => {
-      expect(isApprovalResponse(text)).toBe(true);
-    });
-
-    const nonApprovalCases = [
-      "Não aprovado, favor alterar o texto",
-      "Não aprovada a cor, refazer prova",
-      "Reprovado",
-      "Rejeitado pelo cliente",
-      "Não está de acordo com a amostra",
-      "Não autorizo a impressão",
-      "Quando fica pronto?",
-      "Segue arquivo em anexo para orçamento",
-      "O.S. 72000 - Aguardando Aprovação (CIA INDUSTRIAL CATAGUASES)",
-      "Notificação de Ordem de Serviço mudou para Aguardando Aprovação",
-      "Segue material para aprovação",
-      "Pendente de aprovação",
-      "Envio para sua aprovação",
-    ];
-
-    it.each(nonApprovalCases)("NÃO deve aprovar mensagens com negações ou dúvidas: '%s'", (text) => {
-      expect(isApprovalResponse(text)).toBe(false);
     });
   });
 });

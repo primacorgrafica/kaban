@@ -102,9 +102,7 @@ export function useEmailMonitor(enabled = true): UseEmailMonitorReturn {
       if (result.newReceivedReplies && result.newReceivedReplies.length > 0) {
         for (const reply of result.newReceivedReplies) {
           playEmailChime();
-          const title = reply.isApproval
-            ? `✅ Resposta de Aprovação — O.S. #${reply.osNumber}`
-            : `📩 E-mail Respondido — O.S. #${reply.osNumber}`;
+          const title = `📩 Nova resposta do cliente — O.S. #${reply.osNumber}`;
 
           toast.success(title, {
             description: `${reply.sender}: "${reply.bodyPreview || reply.subject}"`,

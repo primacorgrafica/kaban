@@ -176,10 +176,12 @@ describe("Montagem da Mensagem de Notificação (O.S., Cliente, Status e Link)",
 
 describe("Anti-Duplicação e Disparo de Notificações", () => {
   let mockNotificationsTable: any[] = [];
+  let mockAvisosTable: any[] = [];
 
   beforeEach(() => {
     vi.clearAllMocks();
     mockNotificationsTable = [];
+    mockAvisosTable = [];
     global.fetch = vi.fn().mockImplementation(() =>
       Promise.resolve({
         ok: true,
@@ -231,6 +233,19 @@ describe("Anti-Duplicação e Disparo de Notificações", () => {
           }),
         };
       }
+      if (table === "avisos") {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          gte: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+          insert: vi.fn().mockImplementation((payload) => {
+            mockAvisosTable.push(payload);
+            return Promise.resolve({ error: null });
+          }),
+        };
+      }
       if (table === "orders") {
         return {
           select: vi.fn().mockReturnThis(),
@@ -264,6 +279,11 @@ describe("Anti-Duplicação e Disparo de Notificações", () => {
     expect(result.error).toContain("não possui e-mail cadastrado");
     expect(mockNotificationsTable.length).toBe(1);
     expect(mockNotificationsTable[0].sent_status).toBe("failed");
+
+    // Valida que aviso interno de falha foi gerado no Kaban
+    expect(mockAvisosTable).toHaveLength(1);
+    expect(mockAvisosTable[0].titulo).toContain("⚠️ Falha no envio ao Vendedor — O.S. #73210");
+    expect(mockAvisosTable[0].tipo).toBe("urgente");
   });
 
   it("deve registrar e disparar notificação com sucesso quando o vendedor tiver e-mail válido", async () => {
@@ -286,6 +306,19 @@ describe("Anti-Duplicação e Disparo de Notificações", () => {
             return {
               eq: vi.fn().mockResolvedValue({ data: null, error: null }),
             };
+          }),
+        };
+      }
+      if (table === "avisos") {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          gte: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+          insert: vi.fn().mockImplementation((payload) => {
+            mockAvisosTable.push(payload);
+            return Promise.resolve({ error: null });
           }),
         };
       }
@@ -324,6 +357,11 @@ describe("Anti-Duplicação e Disparo de Notificações", () => {
     expect(result.success).toBe(true);
     expect(result.sent).toBe(true);
     expect(result.notificationId).toBe("notif-success-id");
+
+    // Valida que aviso interno de sucesso foi gerado no Kaban
+    expect(mockAvisosTable).toHaveLength(1);
+    expect(mockAvisosTable[0].titulo).toContain("📧 Notificação enviada ao Vendedor — O.S. #99100");
+    expect(mockAvisosTable[0].tipo).toBe("info");
   });
 });
 
