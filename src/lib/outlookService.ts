@@ -173,7 +173,7 @@ export async function fetchMailboxMessages(
   }
 
   // Se retornou 404 (comum em caixas compartilhadas ou com pastas em português "Caixa de Entrada / Itens Enviados")
-  if (response.status === 404 && !isMe) {
+  if (response.status === 404) {
     console.info(`[OutlookService] Pasta padrão '${folder}' retornou 404 para ${mailbox}. Resolvendo pastas reais via Graph API...`);
     try {
       // 1. Tenta listar as pastas reais da caixa para encontrar o ID da pasta localizada (ex: "Caixa de Entrada", "Itens Enviados")

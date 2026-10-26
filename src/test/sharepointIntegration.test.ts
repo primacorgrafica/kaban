@@ -21,6 +21,8 @@ describe("Integração SharePoint - Convenções e Mapeamentos", () => {
     expect(AZURE_TENANT_ID).toBe("62946ce0-3dbb-47b0-9699-8190d4e679b8");
     expect(SHAREPOINT_SCOPES).toContain("User.Read");
     expect(SHAREPOINT_SCOPES).toContain("Sites.ReadWrite.All");
+    expect(SHAREPOINT_SCOPES).toContain("Mail.Send");
+    expect(SHAREPOINT_SCOPES).toContain("Mail.Read.Shared");
   });
 
   it("deve validar as constantes do site e biblioteca corporativa da Primacor", () => {

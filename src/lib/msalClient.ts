@@ -13,14 +13,19 @@ export const AZURE_CLIENT_ID =
 export const AZURE_TENANT_ID =
   import.meta.env.VITE_AZURE_TENANT_ID || "62946ce0-3dbb-47b0-9699-8190d4e679b8";
 
-// Permissões delegadas registradas no Entra ID para o aplicativo "Kaban - Integração SharePoint"
+// Permissões delegadas registradas e concedidas no Entra ID para o aplicativo "Kaban - Integração SharePoint"
 export const SHAREPOINT_SCOPES = import.meta.env.VITE_SHAREPOINT_SCOPES
   ? import.meta.env.VITE_SHAREPOINT_SCOPES.split(",").map((s: string) => s.trim())
   : [
       "User.Read",
       "Sites.ReadWrite.All",
       "Sites.Selected",
+      "Mail.Read",
       "Mail.Read.Shared",
+      "Mail.ReadWrite",
+      "Mail.ReadWrite.Shared",
+      "Mail.Send",
+      "Mail.Send.Shared",
     ];
 
 export const MSAL_ACCOUNT_KEY = "kaban_msal_active_account_id";
