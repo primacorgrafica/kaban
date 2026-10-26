@@ -217,11 +217,27 @@ export async function runEmailSync(): Promise<SyncResult> {
 
         // Prevenção de duplicatas por message_id
         if (existingMessageIds.has(msg.id)) {
-          continue;
-        }
-
-        // Se for notificação interna gerada pelo próprio Kaban/Primacor para o vendedor, ignora completamente
-        if (isSystemNotificationEmail(msg.subject || "", msg.bodyPreview || "")) {
+          // Se o e-mail está na pasta sentitems mas a ordem ainda não foi movida (ex: criada recentemente ou re-sincronizada),
+          // garante que ela seja atualizada para aguardando_aprovacao
+          if (folder === "sentitems") {
+            const { osNumber } = findOsInEmail(
+              msg.subject || "",
+              msg.bodyPreview || "",
+              activeOsNumbers
+            );
+            if (osNumber && osToOrderId.has(osNumber)) {
+              const oId = osToOrderId.get(osNumber)!;
+              await supabase
+                .from("orders")
+                .update({
+                  status: "aguardando_aprovacao",
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", oId)
+                .neq("status", "aguardando_aprovacao")
+                .neq("status", "arquivo_liberado");
+            }
+          }
           continue;
         }
 
@@ -338,6 +354,11 @@ export async function runEmailSync(): Promise<SyncResult> {
               }
             } else {
               // 2. Resposta de e-mail recebida do cliente
+              // Ignora notificações de sistema para nunca confundi-las com resposta de cliente
+              if (isSystemNotificationEmail(msg.subject || "", msg.bodyPreview || "")) {
+                continue;
+              }
+
               // Conforme especificação: NÃO move o card para Saída, apenas gera o aviso com a mensagem do cliente!
               const isApproval =
                 isApprovalResponse(msg.subject || "") ||

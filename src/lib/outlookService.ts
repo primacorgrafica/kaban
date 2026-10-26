@@ -147,15 +147,22 @@ export async function fetchMailboxMessages(
 ): Promise<GraphMessage[]> {
   const token = await getEmailAccessToken(false);
 
+  const pca = await getMsalInstance();
+  const account = pca.getActiveAccount();
+  const isMe = Boolean(account?.username && account.username.toLowerCase() === mailbox.toLowerCase());
+
   const sinceDate = since || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
-  // Usa /users/{email}/mailFolders/{folder}/messages para acessar caixa delegada
-  const filterParam = `receivedDateTime ge ${sinceDate}`;
+  // Em 'sentitems', as mensagens são indexadas por sentDateTime (receivedDateTime pode ser nulo no Exchange)
+  const dateProp = folder === "sentitems" ? "sentDateTime" : "receivedDateTime";
+  const filterParam = `${dateProp} ge ${sinceDate}`;
   const selectParam = "id,subject,bodyPreview,from,toRecipients,sentDateTime,receivedDateTime,conversationId,internetMessageId,parentFolderId,isRead";
-  const orderByParam = "receivedDateTime desc";
+  const orderByParam = `${dateProp} desc`;
 
-  // Consulta via /users/{mailbox}/mailFolders/{folder}/messages compatível com a permissão Mail.Read.Shared
-  const baseUrl = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/mailFolders/${folder}/messages`;
+  // Usa /me quando for a conta conectada ou /users/{email} para caixas delegadas
+  const baseUrl = isMe
+    ? `https://graph.microsoft.com/v1.0/me/mailFolders/${folder}/messages`
+    : `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/mailFolders/${folder}/messages`;
 
   const url = `${baseUrl}?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$orderby=${encodeURIComponent(orderByParam)}&$top=${top}`;
 
@@ -177,7 +184,9 @@ export async function fetchMailboxMessages(
     console.info(`[OutlookService] Pasta padrão '${folder}' retornou 404 para ${mailbox}. Resolvendo pastas reais via Graph API...`);
     try {
       // 1. Tenta listar as pastas reais da caixa para encontrar o ID da pasta localizada (ex: "Caixa de Entrada", "Itens Enviados")
-      const foldersUrl = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/mailFolders?$top=50`;
+      const foldersUrl = isMe
+        ? `https://graph.microsoft.com/v1.0/me/mailFolders?$top=50`
+        : `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/mailFolders?$top=50`;
       const foldersRes = await fetch(foldersUrl, { headers });
 
       if (foldersRes.ok) {
@@ -196,7 +205,10 @@ export async function fetchMailboxMessages(
 
         if (targetFolder?.id) {
           console.info(`[OutlookService] Pasta '${targetFolder.displayName}' (${targetFolder.id}) identificada para ${mailbox}.`);
-          const customFolderUrl = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/mailFolders/${encodeURIComponent(targetFolder.id)}/messages?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$orderby=${encodeURIComponent(orderByParam)}&$top=${top}`;
+          const customFolderBase = isMe
+            ? `https://graph.microsoft.com/v1.0/me/mailFolders/${encodeURIComponent(targetFolder.id)}/messages`
+            : `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/mailFolders/${encodeURIComponent(targetFolder.id)}/messages`;
+          const customFolderUrl = `${customFolderBase}?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$orderby=${encodeURIComponent(orderByParam)}&$top=${top}`;
           const customFolderRes = await fetch(customFolderUrl, { headers });
           if (customFolderRes.ok) {
             const data: GraphMessagesResponse = await customFolderRes.json();
@@ -206,8 +218,10 @@ export async function fetchMailboxMessages(
       }
 
       // 2. Fallback direto: consulta coleção geral de mensagens de /users/{mailbox}/messages sem depender de folder
-      console.info(`[OutlookService] Fallback direto: consultando mensagens de /users/${mailbox}/messages...`);
-      const directMessagesUrl = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/messages?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$orderby=${encodeURIComponent(orderByParam)}&$top=${top}`;
+      console.info(`[OutlookService] Fallback direto: consultando mensagens...`);
+      const directMessagesUrl = isMe
+        ? `https://graph.microsoft.com/v1.0/me/messages?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$orderby=${encodeURIComponent(orderByParam)}&$top=${top}`
+        : `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/messages?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$orderby=${encodeURIComponent(orderByParam)}&$top=${top}`;
       const directRes = await fetch(directMessagesUrl, { headers });
       if (directRes.ok) {
         const data: GraphMessagesResponse = await directRes.json();
@@ -246,9 +260,15 @@ export async function fetchConversationMessages(
 ): Promise<GraphMessage[]> {
   const token = await getEmailAccessToken(false);
 
+  const pca = await getMsalInstance();
+  const account = pca.getActiveAccount();
+  const isMe = Boolean(account?.username && account.username.toLowerCase() === mailbox.toLowerCase());
+
   const filterParam = `conversationId eq '${conversationId}'`;
   const selectParam = "id,subject,bodyPreview,from,toRecipients,sentDateTime,receivedDateTime,conversationId";
-  const url = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/messages?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$top=20&$orderby=${encodeURIComponent("receivedDateTime asc")}`;
+  const url = isMe
+    ? `https://graph.microsoft.com/v1.0/me/messages?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$top=20&$orderby=${encodeURIComponent("receivedDateTime asc")}`
+    : `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/messages?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$top=20&$orderby=${encodeURIComponent("receivedDateTime asc")}`;
 
   const response = await fetch(url, {
     headers: {

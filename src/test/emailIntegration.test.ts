@@ -412,5 +412,12 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
     // Não deve gerar avisos de cliente respondeu nem novos eventos de resposta
     expect(mockInsertedAvisos).toHaveLength(0);
     expect(result.newReceivedReplies).toHaveLength(0);
+
+    // Deve mover a ordem para aguardando_aprovacao
+    expect(mockUpdatedOrders.length).toBeGreaterThan(0);
+    expect(mockUpdatedOrders[0]).toMatchObject({
+      id: "order-uuid-73210",
+      status: "aguardando_aprovacao",
+    });
   });
 });
