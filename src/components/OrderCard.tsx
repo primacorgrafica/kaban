@@ -385,7 +385,6 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
   const shouldBlinkUrgentBanner = isUrgent && !isArquivoLiberado;
 
   const hasEntregaInfo = order.nf || order.protocolo || order.empresa_entrega || order.obs_entrega || (order.tipo_entrega && order.tipo_entrega.length > 0) || order.entrega_para || order.entrega_endereco || order.entrega_ac || order.entrega_data_limite;
-  const hasHeaderPills = isUrgent || order.saida_direta || order.prova_digital || order.prova_email || isSlowAlert || (departmentContext === "producao" && ((order as any).digital_color || (order as any).digital_pb)) || (departmentContext === "expedicao" && order.tipo_entrega && order.tipo_entrega.length > 0) || (order.setor && order.setor !== "desenvolvimento") || order.parent_order_id;
 
   return (
     <>
@@ -417,140 +416,16 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
           </div>
         )}
 
-        {/* Top Header Bar with Badges & Drag Handle */}
-        {(hasHeaderPills || dragHandleProps) && (
-          <div className="flex items-center justify-between gap-1.5 px-3 pt-2.5 pb-1 flex-wrap">
-            <div className="flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
-              {/* Urgent badge */}
-              {isUrgent && (
-                <span
-                  className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-rose-600 text-white shadow-xs ${
-                    shouldBlinkUrgentBanner ? "animate-pulse" : ""
-                  }`}
-                >
-                  <AlertTriangle className="h-2.5 w-2.5 shrink-0" />
-                  <span>Urgente</span>
-                  {isUrgentImpressao && <span className="opacity-80 text-[8px]">(Imp)</span>}
-                  {isUrgentAcabamento && <span className="opacity-80 text-[8px]">(Acab)</span>}
-                  {isUrgentExpedicao && <span className="opacity-80 text-[8px]">(Exp)</span>}
-                  {remainingText && isUrgentProva && (
-                    <span className="font-mono-tech font-bold text-[9px] bg-black/25 px-1 py-0.2 rounded ml-0.5">
-                      {remainingText}
-                    </span>
-                  )}
-                </span>
-              )}
-
-              {/* Saída Direta */}
-              {order.saida_direta && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-400 text-amber-950 border border-amber-500/30 shadow-2xs">
-                  <Zap className="h-2.5 w-2.5 shrink-0" />
-                  <span>Saída Direta</span>
-                </span>
-              )}
-
-              {/* Prova Digital */}
-              {order.prova_digital && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/60">
-                  <span>Prova Digital</span>
-                </span>
-              )}
-
-              {/* Prova E-mail */}
-              {order.prova_email && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-pink-500/15 text-pink-700 dark:text-pink-300 border border-pink-500/30">
-                  <span>Prova E-mail</span>
-                </span>
-              )}
-
-              {/* Slow Alert standalone indicator */}
-              {isSlowAlert && !order.saida_direta && !order.prova_digital && !order.prova_email && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30" title="Mais de 21 horas nesta etapa">
-                  <Clock className="h-2.5 w-2.5 text-amber-500 animate-pulse shrink-0" />
-                  <span>+21h</span>
-                </span>
-              )}
-
-              {/* Digital sector banners: Color and PB */}
-              {departmentContext === "producao" && (order as any).digital_color && (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30">
-                  Color
-                </span>
-              )}
-              {departmentContext === "producao" && (order as any).digital_pb && (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-500/30">
-                  PB
-                </span>
-              )}
-
-              {/* Expedição delivery types */}
-              {departmentContext === "expedicao" && order.tipo_entrega && order.tipo_entrega.includes("CARRO") && (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
-                  Carro
-                </span>
-              )}
-              {departmentContext === "expedicao" && order.tipo_entrega && order.tipo_entrega.includes("MOTO") && (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30">
-                  Moto
-                </span>
-              )}
-              {departmentContext === "expedicao" && order.tipo_entrega && order.tipo_entrega.includes("RETIRA") && (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-500/30">
-                  Retira
-                </span>
-              )}
-
-              {/* Setor em Produção */}
-              {order.setor && order.setor !== "desenvolvimento" && (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 max-w-[210px] truncate" title={`Em Produção — ${DEPARTMENTS.find(d => d.id === order.setor)?.label || order.setor}`}>
-                  Em Prod: {DEPARTMENTS.find(d => d.id === order.setor)?.label || order.setor}
-                  {order.setor_status && (() => {
-                    const dept = DEPARTMENTS.find(d => d.id === order.setor);
-                    const statusLabel = dept?.statuses.find(s => s.id === order.setor_status)?.label;
-                    return statusLabel ? ` › ${statusLabel}` : "";
-                  })()}
-                </span>
-              )}
-
-              {/* Sub-ordem */}
-              {order.parent_order_id && (
-                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider bg-violet-500/10 text-violet-700 dark:text-violet-300 border border-violet-500/25">
-                  Sub-ordem
-                </span>
-              )}
-            </div>
-
-            {/* Drag Handle */}
-            {dragHandleProps && (
-              <div
-                {...dragHandleProps}
-                className="p-1 -mr-1 rounded hover:bg-muted text-muted-foreground/40 hover:text-muted-foreground cursor-grab active:cursor-grabbing transition-colors shrink-0"
-                onClick={(e) => e.stopPropagation()}
-                title="Arrastar cartão"
-              >
-                <GripVertical className="h-3.5 w-3.5" />
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="px-3.5 pb-3 cursor-pointer" onClick={() => setOpen(true)}>
-          {/* Linha 1: Cliente (Primeiro em cima) */}
-          <div className="flex items-start gap-1.5 min-w-0">
-            {isUrgent && <span className="h-2 w-2 rounded-full shrink-0 bg-rose-500 shadow-[0_0_8px_#f43f5e] mt-1" />}
-            <span className="text-sm font-bold text-foreground break-words leading-tight uppercase">
-              {order.cliente}
-            </span>
-          </div>
-
-          {/* Linha 2: O.S. + Badges (REV, REP) */}
-          <div className="flex items-center gap-1.5 mt-1.5 min-w-0">
+        {/* Top Header Bar: NÚMERO O.S (Esquerda) + ESPAÇO PARA AS FLAGS (Direita) */}
+        <div className="flex items-center justify-between gap-1.5 px-3 pt-2.5 pb-1 flex-wrap">
+          {/* Esquerda: NÚMERO DA O.S. + REV / REP */}
+          <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
             <span className="font-mono-tech text-[13px] font-bold px-2 py-0.5 rounded bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/60 shrink-0 tracking-wide">
               #{order.titulo}
             </span>
             {currentRevision >= 2 && (
               <span
-                className="font-mono-tech text-[13px] font-extrabold px-2 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 shrink-0 flex items-center gap-1 shadow-xs animate-pulse tracking-wide"
+                className="font-mono-tech text-[12px] font-extrabold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 shrink-0 flex items-center gap-1 shadow-xs animate-pulse tracking-wide"
                 title={`Revisão ${currentRevision} (Retornou para Preparação)`}
               >
                 <RotateCcw className="h-3 w-3" />
@@ -567,124 +442,168 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
               </span>
             )}
           </div>
-          {/* Linha 2: Descrição (largura completa) */}
-          {order.descricao && (
-            <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground min-w-0">
-              <FileText className="h-3 w-3 inline shrink-0" />
-              <span className="truncate min-w-0">{order.descricao}</span>
-            </div>
-          )}
 
-          {/* Linha 2.5: Observação (se houver e não estiver em paralisado) */}
-          {cleanObs && !(order.status === "paralisado" || order.status === "aguardando_novo_arquivo") && (
-            <p className="text-xs text-muted-foreground line-clamp-1 italic mt-1">
-              {cleanObs}
-            </p>
-          )}
-
-          {/* Linha 3: Vendedor (abaixo, alinhado à esquerda) */}
-          {order.vendedor && (
-            <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground min-w-0">
-              <User className="h-3 w-3 text-muted-foreground/80 shrink-0" />
-              <span className="truncate">{order.vendedor}</span>
-            </div>
-          )}
-
-          {/* Linha 4: Operador (abaixo, alinhado à esquerda) */}
-          {order.operador && (
-            <div className="flex items-center mt-1">
+          {/* Direita: ESPAÇO PARA AS FLAGS & DRAG HANDLE */}
+          <div className="flex items-center gap-1.5 flex-wrap min-w-0 justify-end ml-auto">
+            {/* Urgent badge */}
+            {isUrgent && (
               <span
-                className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#CCD0CF] bg-[#253745] border border-[#4A5C6A]/60 px-1.5 py-0.5 rounded-md shadow-2xs"
-                title={`Operador responsável: ${order.operador}`}
+                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-rose-600 text-white shadow-xs ${
+                  shouldBlinkUrgentBanner ? "animate-pulse" : ""
+                }`}
               >
-                <UserCheck className="h-3 w-3 text-[#9BA8AB] shrink-0" />
-                <span>{order.operador}</span>
+                <AlertTriangle className="h-2.5 w-2.5 shrink-0" />
+                <span>Urgente</span>
+                {isUrgentImpressao && <span className="opacity-80 text-[8px]">(Imp)</span>}
+                {isUrgentAcabamento && <span className="opacity-80 text-[8px]">(Acab)</span>}
+                {isUrgentExpedicao && <span className="opacity-80 text-[8px]">(Exp)</span>}
+                {remainingText && isUrgentProva && (
+                  <span className="font-mono-tech font-bold text-[9px] bg-black/25 px-1 py-0.2 rounded ml-0.5">
+                    {remainingText}
+                  </span>
+                )}
               </span>
-            </div>
-          )}
-          {order.prazo && (
-            <div className="flex items-center justify-between gap-1.5 mt-1.5 pt-1 border-t border-border/40 text-[10px] font-semibold">
-              <span className={`flex items-center gap-1 ${
-                isExpired
-                  ? "text-rose-600 dark:text-rose-400 font-bold"
-                  : isNearDeadline
-                  ? "text-amber-600 dark:text-amber-400 font-bold"
-                  : "text-muted-foreground"
-              }`}>
-                <Clock className="h-3 w-3 shrink-0" />
-                Prazo: {format(new Date(order.prazo), "dd/MM HH:mm", { locale: ptBR })}
+            )}
+
+            {/* Slow Alert standalone indicator */}
+            {isSlowAlert && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30" title="Mais de 21 horas nesta etapa">
+                <Clock className="h-2.5 w-2.5 text-amber-500 animate-pulse shrink-0" />
+                <span>+21h</span>
               </span>
-              {remainingText && (
-                <span className={`px-1.5 py-0.5 rounded text-[9.5px] font-bold uppercase tracking-wider font-mono-tech shrink-0 ${
-                  isExpired
-                    ? "bg-rose-500/20 text-rose-600 dark:text-rose-300 border border-rose-500/30 animate-pulse"
-                    : isNearDeadline
-                    ? "bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30 animate-pulse"
-                    : "bg-muted text-foreground/80 border border-border"
-                }`}>
-                  {remainingText}
+            )}
+
+            {/* Digital sector banners: Color and PB */}
+            {departmentContext === "producao" && (order as any).digital_color && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30">
+                Color
+              </span>
+            )}
+            {departmentContext === "producao" && (order as any).digital_pb && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-500/30">
+                PB
+              </span>
+            )}
+
+            {/* Expedição delivery types */}
+            {departmentContext === "expedicao" && order.tipo_entrega && order.tipo_entrega.includes("CARRO") && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                Carro
+              </span>
+            )}
+            {departmentContext === "expedicao" && order.tipo_entrega && order.tipo_entrega.includes("MOTO") && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30">
+                Moto
+              </span>
+            )}
+            {departmentContext === "expedicao" && order.tipo_entrega && order.tipo_entrega.includes("RETIRA") && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-500/30">
+                Retira
+              </span>
+            )}
+
+            {/* Setor em Produção */}
+            {order.setor && order.setor !== "desenvolvimento" && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 max-w-[210px] truncate" title={`Em Produção — ${DEPARTMENTS.find(d => d.id === order.setor)?.label || order.setor}`}>
+                Em Prod: {DEPARTMENTS.find(d => d.id === order.setor)?.label || order.setor}
+                {order.setor_status && (() => {
+                  const dept = DEPARTMENTS.find(d => d.id === order.setor);
+                  const statusLabel = dept?.statuses.find(s => s.id === order.setor_status)?.label;
+                  return statusLabel ? ` › ${statusLabel}` : "";
+                })()}
+              </span>
+            )}
+
+            {/* Sub-ordem */}
+            {order.parent_order_id && (
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider bg-violet-500/10 text-violet-700 dark:text-violet-300 border border-violet-500/25">
+                Sub-ordem
+              </span>
+            )}
+
+            {/* Drag Handle */}
+            {dragHandleProps && (
+              <div
+                {...dragHandleProps}
+                className="p-1 -mr-1 rounded hover:bg-muted text-muted-foreground/40 hover:text-muted-foreground cursor-grab active:cursor-grabbing transition-colors shrink-0"
+                onClick={(e) => e.stopPropagation()}
+                title="Arrastar cartão"
+              >
+                <GripVertical className="h-3.5 w-3.5" />
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="px-3.5 pb-3 cursor-pointer space-y-1.5" onClick={() => setOpen(true)}>
+          {/* Linha 1: CLIENTE (Esquerda) e VENDEDOR (Direita) */}
+          <div className="flex items-center justify-between gap-2 mt-1 min-w-0">
+            <span className="text-sm font-bold text-foreground truncate uppercase flex-1" title={order.cliente}>
+              {order.cliente}
+            </span>
+            {order.vendedor && (
+              <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0 max-w-[130px]" title={`Vendedor: ${order.vendedor}`}>
+                <User className="h-3 w-3 text-muted-foreground/80 shrink-0" />
+                <span className="truncate">{order.vendedor}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Linha 2: SERVIÇO (Esquerda) e OPERADOR (Direita) */}
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            {order.descricao ? (
+              <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0 flex-1" title={order.descricao}>
+                <FileText className="h-3 w-3 inline shrink-0" />
+                <span className="truncate min-w-0">{order.descricao}</span>
+              </div>
+            ) : (
+              <div className="flex-1" />
+            )}
+
+            {order.operador && (
+              <div className="shrink-0">
+                <span
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#CCD0CF] bg-[#253745] border border-[#4A5C6A]/60 px-1.5 py-0.5 rounded-md shadow-2xs max-w-[130px] truncate"
+                  title={`Operador responsável: ${order.operador}`}
+                >
+                  <UserCheck className="h-3 w-3 text-[#9BA8AB] shrink-0" />
+                  <span className="truncate">{order.operador}</span>
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Linha 3: PROVA DIGITAL OU EMAIL OU SAÍDA DIRETA */}
+          {(order.saida_direta || order.prova_digital || order.prova_email) && (
+            <div className="flex items-center gap-1.5 pt-0.5 flex-wrap min-w-0">
+              {order.saida_direta && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-400 text-amber-950 border border-amber-500/30 shadow-2xs">
+                  <Zap className="h-2.5 w-2.5 shrink-0" />
+                  <span>Saída Direta</span>
+                </span>
+              )}
+              {order.prova_digital && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/60">
+                  <span>Prova Digital</span>
+                </span>
+              )}
+              {order.prova_email && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-pink-500/15 text-pink-700 dark:text-pink-300 border border-pink-500/30">
+                  <span>Prova E-mail</span>
+                </span>
+              )}
+              {order.prova_digital && order.endereco_entrega && (
+                <span className="text-[11px] font-semibold text-muted-foreground truncate max-w-[190px]" title={order.endereco_entrega}>
+                  ({order.endereco_entrega})
                 </span>
               )}
             </div>
           )}
-          {(order.status === "paralisado" || order.status === "aguardando_novo_arquivo") ? (
-            order.observacao && order.observacao.trim() ? (
-              <div
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMotivoTexto(order.observacao || "");
-                  setMotivoDialogOpen(true);
-                }}
-                className="mt-2 p-2.5 rounded-xl border-2 border-amber-500/70 bg-amber-500/15 dark:bg-amber-950/45 hover:bg-amber-500/25 transition-all cursor-pointer shadow-xs space-y-1 group"
-                title="Clique para editar o motivo da parada"
-              >
-                <div className="flex items-center justify-between gap-1.5">
-                  <span className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-amber-800 dark:text-amber-300">
-                    <AlertTriangle className="h-3.5 w-3.5 text-amber-500 animate-pulse shrink-0" />
-                    Motivo da Parada
-                  </span>
-                  <span className="text-[10px] text-amber-700 dark:text-amber-300 font-semibold group-hover:underline flex items-center gap-0.5">
-                    <Edit2 className="h-2.5 w-2.5" /> Editar
-                  </span>
-                </div>
-                <p className="text-xs font-bold text-foreground break-words leading-snug">
-                  {order.observacao}
-                </p>
-              </div>
-            ) : (
-              <div
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMotivoTexto("");
-                  setMotivoDialogOpen(true);
-                }}
-                className="mt-2 p-2.5 rounded-xl border-2 border-dashed border-amber-500/60 bg-amber-500/10 hover:bg-amber-500/20 transition-all flex items-center justify-between gap-2 cursor-pointer shadow-xs"
-                title="Clique para informar o motivo da parada desta OS"
-              >
-                <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
-                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500 animate-bounce shrink-0" />
-                  Informar motivo da parada...
-                </span>
-                <Badge
-                  variant="secondary"
-                  className="text-[10px] px-2 py-0.5 bg-amber-500 text-slate-950 font-extrabold border-none"
-                >
-                  Comentar
-                </Badge>
-              </div>
-            )
-          ) : null}
-          {order.obs_prova && (
-            <p className="text-xs text-amber-700 dark:text-amber-400 mt-1 line-clamp-2 italic">📋 {order.obs_prova}</p>
-          )}
-          {order.prova_digital && order.endereco_entrega && (
-            <p className="text-xs font-bold text-foreground mt-1 truncate">{order.endereco_entrega}</p>
-          )}
 
-          {/* Quadros Especiais: PANTONE - FACA - CLICHÊ (Sempre visíveis no card pronto na coluna) */}
+          {/* Linha 4: MATERIAIS & SUPRIMENTOS (PANTONE, FACA, CLICHÊ, OUTROS e Processos) */}
           {SPECIAL_SUPPLIES.some((s) => isSpecialSupplyActive(order.processos, s.id)) && (
             <div
-              className="flex items-center gap-1.5 mt-2 flex-wrap"
+              className="flex items-center gap-1.5 pt-0.5 flex-wrap"
               onClick={(e) => e.stopPropagation()}
             >
               {SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(order.processos, s.id)).map((item) => {
@@ -739,17 +658,103 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
 
           {/* Processos badges adicionais (se houver, ex: DIG, PLO, CMYK) */}
           {order.processos && order.processos.length > 0 && sortAndFilterProcessos(order.processos).length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-1.5">
+            <div className="flex flex-wrap gap-1 pt-0.5">
               {sortAndFilterProcessos(order.processos).map((p) => (
                 <span key={p} className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${getProcessoCor(p)}`}>{p}</span>
               ))}
             </div>
           )}
 
+          {/* Linha 5: OBS (Observação Geral da O.S. e Obs de Prova) */}
+          {cleanObs && !(order.status === "paralisado" || order.status === "aguardando_novo_arquivo") && (
+            <div className="pt-0.5 text-xs text-muted-foreground min-w-0">
+              <span className="font-bold text-foreground/80">OBS: </span>
+              <span className="italic line-clamp-2">{cleanObs}</span>
+            </div>
+          )}
 
+          {order.obs_prova && (
+            <p className="text-xs text-amber-700 dark:text-amber-400 line-clamp-2 italic">📋 {order.obs_prova}</p>
+          )}
+
+          {/* Motivo da Parada (quando paralisado) */}
+          {(order.status === "paralisado" || order.status === "aguardando_novo_arquivo") ? (
+            order.observacao && order.observacao.trim() ? (
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMotivoTexto(order.observacao || "");
+                  setMotivoDialogOpen(true);
+                }}
+                className="mt-2 p-2.5 rounded-xl border-2 border-amber-500/70 bg-amber-500/15 dark:bg-amber-950/45 hover:bg-amber-500/25 transition-all cursor-pointer shadow-xs space-y-1 group"
+                title="Clique para editar o motivo da parada"
+              >
+                <div className="flex items-center justify-between gap-1.5">
+                  <span className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                    <AlertTriangle className="h-3.5 w-3.5 text-amber-500 animate-pulse shrink-0" />
+                    Motivo da Parada
+                  </span>
+                  <span className="text-[10px] text-amber-700 dark:text-amber-300 font-semibold group-hover:underline flex items-center gap-0.5">
+                    <Edit2 className="h-2.5 w-2.5" /> Editar
+                  </span>
+                </div>
+                <p className="text-xs font-bold text-foreground break-words leading-snug">
+                  {order.observacao}
+                </p>
+              </div>
+            ) : (
+              <div
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMotivoTexto("");
+                  setMotivoDialogOpen(true);
+                }}
+                className="mt-2 p-2.5 rounded-xl border-2 border-dashed border-amber-500/60 bg-amber-500/10 hover:bg-amber-500/20 transition-all flex items-center justify-between gap-2 cursor-pointer shadow-xs"
+                title="Clique para informar o motivo da parada desta OS"
+              >
+                <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
+                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500 animate-bounce shrink-0" />
+                  Informar motivo da parada...
+                </span>
+                <Badge
+                  variant="secondary"
+                  className="text-[10px] px-2 py-0.5 bg-amber-500 text-slate-950 font-extrabold border-none"
+                >
+                  Comentar
+                </Badge>
+              </div>
+            )
+          ) : null}
+
+          {/* Linha 6: Demais coisas que já tem (Prazo, Atualizado por) */}
+          {order.prazo && (
+            <div className="flex items-center justify-between gap-1.5 pt-1.5 border-t border-border/40 text-[10px] font-semibold">
+              <span className={`flex items-center gap-1 ${
+                isExpired
+                  ? "text-rose-600 dark:text-rose-400 font-bold"
+                  : isNearDeadline
+                  ? "text-amber-600 dark:text-amber-400 font-bold"
+                  : "text-muted-foreground"
+              }`}>
+                <Clock className="h-3 w-3 shrink-0" />
+                Prazo: {format(new Date(order.prazo), "dd/MM HH:mm", { locale: ptBR })}
+              </span>
+              {remainingText && (
+                <span className={`px-1.5 py-0.5 rounded text-[9.5px] font-bold uppercase tracking-wider font-mono-tech shrink-0 ${
+                  isExpired
+                    ? "bg-rose-500/20 text-rose-600 dark:text-rose-300 border border-rose-500/30 animate-pulse"
+                    : isNearDeadline
+                    ? "bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/30 animate-pulse"
+                    : "bg-muted text-foreground/80 border border-border"
+                }`}>
+                  {remainingText}
+                </span>
+              )}
+            </div>
+          )}
 
           {updatedByName && (
-            <div className="flex items-center gap-1 mt-1.5 text-[10px] text-muted-foreground/60">
+            <div className="flex items-center gap-1 pt-0.5 text-[10px] text-muted-foreground/60">
               <UserCheck className="h-2.5 w-2.5" />
               <span>{updatedByName}</span>
               <Clock className="h-2.5 w-2.5 ml-1" />
