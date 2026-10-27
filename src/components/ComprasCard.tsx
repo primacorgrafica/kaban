@@ -330,30 +330,40 @@ export function ComprasCard({
                 {pantoneActive && (
                   <div
                     onClick={(e) => toggleItemBought("PANTONE", e)}
-                    className={`flex items-center justify-between px-2 py-1 rounded text-[11px] font-bold border cursor-pointer transition-all ${
+                    className={`flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px] border cursor-pointer transition-all ${
                       pantoneSent
-                        ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/50 shadow-xs"
-                        : "bg-pink-100/90 text-pink-950 dark:text-pink-200 border-pink-300 dark:border-pink-700/60 shadow-2xs"
+                        ? "bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-500/50 shadow-xs font-bold"
+                        : "bg-pink-100 hover:bg-pink-200 text-pink-950 dark:text-pink-950 border-pink-300 dark:border-pink-400 shadow-2xs font-black"
                     }`}
                     title={pantoneSent ? "Pantone Comprado (Clique para alterar)" : "Pantone Pendente (Clique para marcar como comprado)"}
                   >
-                    <span className="truncate">PANTONE {pantoneText ? `(${pantoneText})` : ""}</span>
-                    <span className="shrink-0 font-mono-tech text-[10px]">{pantoneSent ? "COMPRADO ✓" : "COMPRAR ⏳"}</span>
+                    <span className="truncate flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${pantoneSent ? "bg-emerald-500" : "bg-pink-700"}`} />
+                      <span>PANTONE {pantoneText ? `(${pantoneText})` : ""}</span>
+                    </span>
+                    <span className="shrink-0 font-mono-tech text-[10px] font-black">
+                      {pantoneSent ? "COMPRADO ✓" : "COMPRAR ⏳"}
+                    </span>
                   </div>
                 )}
 
                 {outrosActive && (
                   <div
                     onClick={(e) => toggleItemBought("OUTROS", e)}
-                    className={`flex items-center justify-between px-2 py-1 rounded text-[11px] font-bold border cursor-pointer transition-all ${
+                    className={`flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px] border cursor-pointer transition-all ${
                       outrosSent
-                        ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/50 shadow-xs"
-                        : "bg-pink-100/90 text-pink-950 dark:text-pink-200 border-pink-300 dark:border-pink-700/60 shadow-2xs"
+                        ? "bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-500/50 shadow-xs font-bold"
+                        : "bg-pink-100 hover:bg-pink-200 text-pink-950 dark:text-pink-950 border-pink-300 dark:border-pink-400 shadow-2xs font-black"
                     }`}
                     title={outrosSent ? "Outros Comprado (Clique para alterar)" : "Outros Pendente (Clique para marcar como comprado)"}
                   >
-                    <span className="truncate">OUTROS {outrosText ? `(${outrosText})` : ""}</span>
-                    <span className="shrink-0 font-mono-tech text-[10px]">{outrosSent ? "COMPRADO ✓" : "COMPRAR ⏳"}</span>
+                    <span className="truncate flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${outrosSent ? "bg-emerald-500" : "bg-pink-700"}`} />
+                      <span>OUTROS {outrosText ? `(${outrosText})` : ""}</span>
+                    </span>
+                    <span className="shrink-0 font-mono-tech text-[10px] font-black">
+                      {outrosSent ? "COMPRADO ✓" : "COMPRAR ⏳"}
+                    </span>
                   </div>
                 )}
               </div>
