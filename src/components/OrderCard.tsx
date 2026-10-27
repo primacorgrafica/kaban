@@ -416,8 +416,8 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
           </div>
         )}
 
-        {/* Top Header Bar: NÚMERO O.S (Esquerda) + ESPAÇO PARA AS FLAGS (Direita) - Linha única sem quebra */}
-        <div className="flex items-center justify-between gap-2 px-3.5 pt-2.5 pb-1 min-w-0">
+        {/* Top Header Bar: NÚMERO O.S (Esquerda) + FLAGS (Centro/Direita) + DRAG HANDLE (Fixo à Direita) */}
+        <div className="flex items-center justify-between gap-1.5 px-3.5 pt-2.5 pb-1 min-w-0">
           {/* Esquerda: NÚMERO DA O.S. + REV / REP */}
           <div className="flex items-center gap-1.5 shrink-0">
             <span className="font-mono-tech text-[13px] font-bold px-2 py-0.5 rounded bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/60 shrink-0 tracking-wide">
@@ -443,8 +443,8 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
             )}
           </div>
 
-          {/* Direita: ESPAÇO PARA AS FLAGS & DRAG HANDLE */}
-          <div className="flex items-center gap-1.5 shrink-0 justify-end ml-auto">
+          {/* Centro / Direita: FLAGS DE STATUS */}
+          <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-end overflow-hidden">
             {/* Urgent badge */}
             {isUrgent && (
               <span
@@ -457,11 +457,6 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                 {isUrgentImpressao && <span className="opacity-80 text-[8px]">(Imp)</span>}
                 {isUrgentAcabamento && <span className="opacity-80 text-[8px]">(Acab)</span>}
                 {isUrgentExpedicao && <span className="opacity-80 text-[8px]">(Exp)</span>}
-                {remainingText && isUrgentProva && (
-                  <span className="font-mono-tech font-bold text-[9px] bg-black/25 px-1 py-0.2 rounded ml-0.5">
-                    {remainingText}
-                  </span>
-                )}
               </span>
             )}
 
@@ -504,7 +499,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
 
             {/* Setor em Produção */}
             {order.setor && order.setor !== "desenvolvimento" && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 max-w-[140px] truncate shrink-0" title={`Em Produção — ${DEPARTMENTS.find(d => d.id === order.setor)?.label || order.setor}`}>
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 max-w-[110px] truncate shrink-0" title={`Em Produção — ${DEPARTMENTS.find(d => d.id === order.setor)?.label || order.setor}`}>
                 Em Prod: {DEPARTMENTS.find(d => d.id === order.setor)?.label || order.setor}
               </span>
             )}
@@ -515,19 +510,19 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                 Sub
               </span>
             )}
-
-            {/* Drag Handle */}
-            {dragHandleProps && (
-              <div
-                {...dragHandleProps}
-                className="p-1 -mr-1 rounded hover:bg-muted text-muted-foreground/40 hover:text-muted-foreground cursor-grab active:cursor-grabbing transition-colors shrink-0"
-                onClick={(e) => e.stopPropagation()}
-                title="Arrastar cartão"
-              >
-                <GripVertical className="h-3.5 w-3.5" />
-              </div>
-            )}
           </div>
+
+          {/* Drag Handle: FIXO, NUNCA CORTADO E COM VISIBILIDADE CLARA */}
+          {dragHandleProps && (
+            <div
+              {...dragHandleProps}
+              className="p-1 -mr-1 rounded-md hover:bg-muted text-muted-foreground/70 hover:text-foreground cursor-grab active:cursor-grabbing transition-colors shrink-0 flex items-center justify-center bg-muted/20 hover:bg-muted/50 border border-border/40"
+              onClick={(e) => e.stopPropagation()}
+              title="Clique e arraste para mover o cartão"
+            >
+              <GripVertical className="h-3.5 w-3.5" />
+            </div>
+          )}
         </div>
 
         <div className="px-3.5 pb-3 cursor-pointer space-y-1.5" onClick={() => setOpen(true)}>
