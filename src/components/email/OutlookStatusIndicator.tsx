@@ -250,7 +250,7 @@ export function OutlookStatusIndicator() {
 
         <DropdownMenuItem
           disabled={isSyncing || isAuthorizing}
-          onClick={() => void syncNow({ interactive: false, force: true, notifyOnSuccess: true })}
+          onClick={() => void syncNow({ interactive: true, force: true, notifyOnSuccess: true })}
           className="text-xs cursor-pointer flex items-center gap-2"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin text-amber-400" : ""}`} />
@@ -274,7 +274,7 @@ export function OutlookStatusIndicator() {
     <Button
       variant="ghost"
       size="icon"
-      onClick={() => void syncNow({ interactive: false, force: true, notifyOnSuccess: true })}
+      onClick={() => void syncNow({ interactive: true, force: true, notifyOnSuccess: true })}
       disabled={isSyncing || isAuthorizing}
       className="h-9 w-9 text-sky-400 hover:text-sky-300 hover:bg-sky-500/10 border border-sky-500/30 rounded-xl transition-all"
       title="Sincronizar e-mails agora (Instantâneo)"

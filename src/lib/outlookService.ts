@@ -10,7 +10,7 @@
  * Reutiliza a autenticação MSAL existente adicionando apenas Mail.Read.Shared.
  */
 
-import { getMsalInstance, saveStoredMicrosoftAccount, clearMsalInteractions, MSAL_ACCOUNT_KEY, SHAREPOINT_SCOPES } from "./msalClient";
+import { getMsalInstance, saveStoredMicrosoftAccount, clearMsalInteractions, MSAL_ACCOUNT_KEY, SHAREPOINT_SCOPES, getStoredMicrosoftUser } from "./msalClient";
 import { InteractionRequiredAuthError } from "@azure/msal-browser";
 import { MONITORED_MAILBOXES, type GraphMessage, type GraphMessagesResponse, type MonitoredMailbox } from "@/types/email";
 
@@ -20,14 +20,29 @@ import { MONITORED_MAILBOXES, type GraphMessage, type GraphMessagesResponse, typ
  * sejam verificados em conjunto com a caixa compartilhada preimpressao@primacorgrafica.com.br.
  */
 export async function getActiveMailboxAddresses(): Promise<string[]> {
-  const mailboxes = new Set<string>(MONITORED_MAILBOXES.map((m) => m.toLowerCase()));
+  const mailboxes = new Set<string>();
+
+  // 1. Sempre inclui a conta conectada atual (/me)
+  mailboxes.add("me");
+
+  // 2. Sempre inclui as caixas corporativas padrão
+  for (const box of MONITORED_MAILBOXES) {
+    if (box) mailboxes.add(box.toLowerCase().trim());
+  }
+
+  // 3. Inclui a conta do usuário se disponível no localStorage ou cache MSAL
   try {
+    const stored = getStoredMicrosoftUser();
+    if (stored?.username && stored.username.includes("@")) {
+      mailboxes.add(stored.username.toLowerCase().trim());
+    }
     const pca = await getMsalInstance();
-    const account = pca.getActiveAccount();
+    const account = pca.getActiveAccount() || pca.getAllAccounts()[0];
     if (account?.username && account.username.includes("@")) {
       mailboxes.add(account.username.toLowerCase().trim());
     }
   } catch {}
+
   return Array.from(mailboxes);
 }
 
@@ -151,7 +166,7 @@ export async function getEmailAccessToken(interactiveFallback = true): Promise<s
 /**
  * Lista mensagens recentes de uma pasta específica de uma caixa monitorada.
  *
- * @param mailbox Endereço de e-mail da caixa monitorada
+ * @param mailbox Endereço de e-mail da caixa monitorada ou "me"
  * @param folder  Nome da pasta ("inbox" ou "sentitems")
  * @param since   Data mínima (ISO) para filtrar mensagens. Se omitido, busca últimas 24h.
  * @param top     Máximo de mensagens por página
@@ -166,9 +181,15 @@ export async function fetchMailboxMessages(
 
   const pca = await getMsalInstance();
   const account = pca.getActiveAccount();
-  const isMe = Boolean(account?.username && account.username.toLowerCase() === mailbox.toLowerCase());
+  const storedUser = getStoredMicrosoftUser();
+  const isMe = Boolean(
+    mailbox === "me" ||
+    (account?.username && account.username.toLowerCase() === mailbox.toLowerCase()) ||
+    (storedUser?.username && storedUser.username.toLowerCase() === mailbox.toLowerCase())
+  );
 
   const sinceDate = since || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const sinceEpoch = new Date(sinceDate).getTime();
 
   // Em 'sentitems', as mensagens são indexadas por sentDateTime (receivedDateTime pode ser nulo no Exchange)
   const dateProp = folder === "sentitems" ? "sentDateTime" : "receivedDateTime";
@@ -189,11 +210,26 @@ export async function fetchMailboxMessages(
     Prefer: 'outlook.body-content-type="text"',
   };
 
-  const response = await fetch(url, { headers });
+  // 1. Tenta consulta filtrada padrão
+  let response = await fetch(url, { headers });
+
+  // Se der erro 400 (Bad Request devido a incompatibilidade de filtro de data/index no Exchange) ou similar
+  if (!response.ok && response.status !== 401 && response.status !== 403 && response.status !== 404) {
+    // Tenta sem $filter e $orderby (recupera os top 50 mais recentes da pasta de forma direta e sem erro)
+    const directUrl = `${baseUrl}?$select=${selectParam}&$top=${top}`;
+    const retryRes = await fetch(directUrl, { headers });
+    if (retryRes.ok) {
+      response = retryRes;
+    }
+  }
 
   if (response.ok) {
     const data: GraphMessagesResponse = await response.json();
-    return data.value || [];
+    const list = data.value || [];
+    return list.filter((m) => {
+      const msgTime = new Date(m.sentDateTime || m.receivedDateTime || 0).getTime();
+      return !sinceEpoch || isNaN(sinceEpoch) || msgTime >= sinceEpoch;
+    });
   }
 
   // Se retornou 404 (comum em caixas compartilhadas ou com pastas em português "Caixa de Entrada / Itens Enviados")
@@ -225,29 +261,46 @@ export async function fetchMailboxMessages(
           const customFolderBase = isMe
             ? `https://graph.microsoft.com/v1.0/me/mailFolders/${encodeURIComponent(targetFolder.id)}/messages`
             : `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/mailFolders/${encodeURIComponent(targetFolder.id)}/messages`;
-          const customFolderUrl = `${customFolderBase}?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$orderby=${encodeURIComponent(orderByParam)}&$top=${top}`;
+          const customFolderUrl = `${customFolderBase}?$select=${selectParam}&$top=${top}`;
           const customFolderRes = await fetch(customFolderUrl, { headers });
           if (customFolderRes.ok) {
             const data: GraphMessagesResponse = await customFolderRes.json();
-            return data.value || [];
+            const list = data.value || [];
+            return list.filter((m) => {
+              const msgTime = new Date(m.sentDateTime || m.receivedDateTime || 0).getTime();
+              return !sinceEpoch || isNaN(sinceEpoch) || msgTime >= sinceEpoch;
+            });
           }
         }
       }
 
-      // 2. Fallback direto: consulta coleção geral de mensagens de /users/{mailbox}/messages sem depender de folder
-      console.info(`[OutlookService] Fallback direto: consultando mensagens...`);
+      // 2. Fallback direto: consulta coleção geral de mensagens de /messages sem depender de folder
+      console.info(`[OutlookService] Fallback direto: consultando coleção de mensagens de ${mailbox}...`);
       const directMessagesUrl = isMe
-        ? `https://graph.microsoft.com/v1.0/me/messages?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$orderby=${encodeURIComponent(orderByParam)}&$top=${top}`
-        : `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/messages?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$orderby=${encodeURIComponent(orderByParam)}&$top=${top}`;
+        ? `https://graph.microsoft.com/v1.0/me/messages?$select=${selectParam}&$top=${top}`
+        : `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/messages?$select=${selectParam}&$top=${top}`;
       const directRes = await fetch(directMessagesUrl, { headers });
       if (directRes.ok) {
         const data: GraphMessagesResponse = await directRes.json();
         const allMessages: GraphMessage[] = data.value || [];
-        if (folder === "sentitems") {
-          return allMessages.filter((m) => m.from?.emailAddress?.address?.toLowerCase() === mailbox.toLowerCase());
-        } else {
-          return allMessages.filter((m) => m.from?.emailAddress?.address?.toLowerCase() !== mailbox.toLowerCase());
-        }
+        const userMail = (account?.username || storedUser?.username || mailbox || "").toLowerCase();
+        
+        return allMessages.filter((m) => {
+          const msgTime = new Date(m.sentDateTime || m.receivedDateTime || 0).getTime();
+          if (sinceEpoch && !isNaN(sinceEpoch) && msgTime < sinceEpoch) return false;
+          
+          const fromAddr = (m.from?.emailAddress?.address || "").toLowerCase();
+          const isSenderInternal =
+            fromAddr === userMail ||
+            fromAddr.endsWith("@primacorgrafica.com.br") ||
+            MONITORED_MAILBOXES.some((box) => box.toLowerCase() === fromAddr);
+
+          if (folder === "sentitems") {
+            return isSenderInternal;
+          } else {
+            return !isSenderInternal;
+          }
+        });
       }
     } catch (fallbackErr) {
       console.warn(`[OutlookService] Falha na resolução alternativa de pastas para ${mailbox}:`, fallbackErr);

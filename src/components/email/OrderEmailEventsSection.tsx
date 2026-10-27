@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useOrderEmails } from "@/hooks/useOrderEmails";
 import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
+import { useEmailMonitor } from "@/hooks/useEmailMonitor";
 import type { OrderEmailEvent } from "@/types/email";
 import { SellerNotificationBadge } from "./SellerNotificationBadge";
 
@@ -24,8 +25,17 @@ export function OrderEmailEventsSection({
 }: OrderEmailEventsSectionProps) {
   const { events, loading, refetch } = useOrderEmails(orderId);
   const { hasUnread, markAsRead } = useUnreadEmailReplies();
+  const { syncNow, isSyncing } = useEmailMonitor(false);
   const isUnread = hasUnread(orderId);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+
+  const handleRefreshAndSync = async () => {
+    try {
+      await syncNow({ interactive: true, force: true, notifyOnSuccess: true });
+    } finally {
+      void refetch();
+    }
+  };
 
   const toggleExpand = (id: string) => {
     setExpandedId((prev) => (prev === id ? null : id));
@@ -92,13 +102,13 @@ export function OrderEmailEventsSection({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => void refetch()}
-            disabled={loading}
+            onClick={() => void handleRefreshAndSync()}
+            disabled={loading || isSyncing}
             className="h-8 px-2 text-xs text-muted-foreground hover:text-foreground"
-            title="Atualizar lista de e-mails"
+            title="Sincronizar Outlook e atualizar lista de e-mails"
           >
-            <RefreshCw className={`h-3.5 w-3.5 mr-1 ${loading ? "animate-spin" : ""}`} />
-            Atualizar
+            <RefreshCw className={`h-3.5 w-3.5 mr-1 ${loading || isSyncing ? "animate-spin text-amber-400" : ""}`} />
+            {isSyncing ? "Sincronizando..." : "Sincronizar Outlook"}
           </Button>
         </div>
       </div>
