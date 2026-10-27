@@ -47,10 +47,12 @@ import { toast } from "sonner";
 
 type AppRole = "admin" | "coordenador" | "operador" | "vendedor" | "user" | "orcamentista" | "impressor";
 
-const ACCESS_MODULES: { id: string; label: string }[] = [
+export const ACCESS_MODULES: { id: string; label: string }[] = [
   { id: "comercial", label: "Comercial" },
   { id: "pcp", label: "PCP" },
   { id: "pre_impressao", label: "Pré-Impressão" },
+  { id: "ctp", label: "CTP" },
+  { id: "digital", label: "Digital" },
   { id: "qualidade", label: "Qualidade" },
   { id: "expedicao", label: "Expedição" },
   { id: "entregas", label: "Gestão Entregas" },
@@ -67,6 +69,8 @@ export const normalizeModules = (modules: string[] = []): string[] => {
   modules.forEach((m) => {
     if (m === "producao") {
       set.add("pre_impressao");
+      set.add("ctp");
+      set.add("digital");
       set.add("qualidade");
     } else if (m === "cadastro") {
       set.add("cadastros");

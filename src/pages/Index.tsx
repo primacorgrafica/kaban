@@ -50,6 +50,8 @@ const Index = () => {
     }
     if (hasModule("comercial")) return <Navigate to="/comercial" replace />;
     if (hasModule("pcp")) return <Navigate to="/pcp" replace />;
+    if (hasModule("ctp")) return <Navigate to="/ctp" replace />;
+    if (hasModule("digital")) return <Navigate to="/digital" replace />;
     if (hasModule("qualidade")) return <Navigate to="/qualidade" replace />;
     if (hasModule("expedicao")) return <Navigate to="/expedicao" replace />;
     if (hasModule("entregas") || hasModule("gestao_entregas")) return <Navigate to="/entregas" replace />;

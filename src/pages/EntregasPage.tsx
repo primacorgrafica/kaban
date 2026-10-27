@@ -54,8 +54,8 @@ export default function EntregasPage() {
           if (o.nc_numero) return false;
           // F = Faturamento (sub-order copy)
           if (order.setor === "faturamento") return false;
-          // Q = Qualidade
-          if (order.setor === "qualidade") return false;
+          // Q = Qualidade, CTP, Digital
+          if (order.setor === "qualidade" || order.setor === "ctp" || order.setor === "digital") return false;
           // P = Prova (sub-order copy in expedição from pré-impressão)
           if (order.parent_order_id && order.setor === "expedicao") return false;
           return true;

@@ -95,6 +95,12 @@ function ProducaoRedirect() {
   if (setorVinculado === "qualidade") {
     return <Navigate to="/qualidade" replace />;
   }
+  if (setorVinculado === "ctp") {
+    return <Navigate to="/ctp" replace />;
+  }
+  if (setorVinculado === "digital") {
+    return <Navigate to="/digital" replace />;
+  }
   return <Navigate to="/" replace />;
 }
 
@@ -116,6 +122,8 @@ const App = () => (
                   <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
                   <Route path="/dashboard" element={<ProtectedRoute module="dashboard"><DashboardPage /></ProtectedRoute>} />
                   <Route path="/arquivados" element={<ProtectedRoute module="trabalhos_concluidos"><Index /></ProtectedRoute>} />
+                  <Route path="/ctp" element={<ProtectedRoute module="ctp"><ProductionPage /></ProtectedRoute>} />
+                  <Route path="/digital" element={<ProtectedRoute module="digital"><ProductionPage /></ProtectedRoute>} />
                   <Route path="/qualidade" element={<ProtectedRoute module="qualidade"><ProductionPage /></ProtectedRoute>} />
                   <Route path="/producao/:departamento" element={<ProtectedRoute module="producao"><ProductionPage /></ProtectedRoute>} />
                   <Route path="/producao" element={<ProtectedRoute module="producao"><ProducaoRedirect /></ProtectedRoute>} />

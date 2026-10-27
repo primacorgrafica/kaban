@@ -238,6 +238,10 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
     ...(hasModule("pcp") ? [{ to: "/pcp", label: "PCP", icon: ClipboardList }] : []),
     // 4. PRÉ-IMPRESSÃO
     ...(canAccessSector("pre_impressao") ? [{ to: "/", label: "Pré-Impressão", icon: Monitor, count: deptCountsLoaded ? (deptCounts["pre_impressao"] ?? 0) : undefined }] : []),
+    // CTP
+    ...(canAccessSector("ctp") ? [{ to: "/ctp", label: "CTP", icon: Layers, count: deptCountsLoaded ? (deptCounts["ctp"] ?? 0) : undefined }] : []),
+    // DIGITAL
+    ...(canAccessSector("digital") ? [{ to: "/digital", label: "Digital", icon: PrinterCheck, count: deptCountsLoaded ? (deptCounts["digital"] ?? 0) : undefined }] : []),
     // 5. QUALIDADE
     ...(canAccessSector("qualidade") ? [{ to: "/qualidade", label: "Qualidade", icon: Search, count: deptCountsLoaded ? (deptCounts["qualidade"] ?? 0) : undefined }] : []),
     // 6. EXPEDIÇÃO
@@ -282,7 +286,10 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
   };
 
   const renderNavLink = (item: { to: string; label: string; icon: any; count?: number }) => {
-    const isActive = location.pathname === item.to || (item.to === "/qualidade" && location.pathname === "/producao/qualidade");
+    const isActive = location.pathname === item.to || 
+      (item.to === "/qualidade" && location.pathname === "/producao/qualidade") ||
+      (item.to === "/ctp" && location.pathname === "/producao/ctp") ||
+      (item.to === "/digital" && location.pathname === "/producao/digital");
     return (
       <Link
         key={item.to}
@@ -598,6 +605,8 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
           {sectorName && (() => {
             const sectorIconMap: Record<string, LucideIcon> = {
               "Qualidade": Search,
+              "CTP": Layers,
+              "Digital": PrinterCheck,
               "Expedição": Truck,
               "Compras": ShoppingCart,
               "Manutenção": Wrench,

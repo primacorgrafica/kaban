@@ -27,6 +27,7 @@ import {
   Briefcase,
   Layers,
   MessageSquare,
+  PrinterCheck,
 } from "lucide-react";
 import { Order } from "@/types/order";
 import { useTheme } from "next-themes";
@@ -163,6 +164,14 @@ export function CommandPalette({
           <CommandItem onSelect={() => handleSelectNav("/pcp")} className="cursor-pointer py-2">
             <Layers className="mr-2 h-4 w-4 text-[#CCD0CF]" />
             <span className="text-xs">PCP — Painel de Carga de Máquinas</span>
+          </CommandItem>
+          <CommandItem onSelect={() => handleSelectNav("/ctp")} className="cursor-pointer py-2">
+            <Layers className="mr-2 h-4 w-4 text-cyan-400" />
+            <span className="text-xs">CTP — Gravação de Chapas (Quadro Kanban)</span>
+          </CommandItem>
+          <CommandItem onSelect={() => handleSelectNav("/digital")} className="cursor-pointer py-2">
+            <PrinterCheck className="mr-2 h-4 w-4 text-sky-400" />
+            <span className="text-xs">Digital — Impressão Digital (Quadro Kanban)</span>
           </CommandItem>
           <CommandItem onSelect={() => handleSelectNav("/comercial")} className="cursor-pointer py-2">
             <Briefcase className="mr-2 h-4 w-4 text-amber-400" />

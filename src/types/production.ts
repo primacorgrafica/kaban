@@ -1,5 +1,7 @@
 export type Department = 
   | "qualidade"
+  | "ctp"
+  | "digital"
   | "expedicao" 
   | "compras"
   | "manutencao";
@@ -25,6 +27,24 @@ export interface DepartmentConfig {
 export const QUALIDADE_DEPARTMENT: DepartmentConfig = {
   id: "qualidade",
   label: "Qualidade",
+  statuses: [
+    { id: "entrada", label: "Entrada", colorKey: "entrada" },
+    { id: "saida", label: "Saída", colorKey: "concluido" },
+  ],
+};
+
+export const CTP_DEPARTMENT: DepartmentConfig = {
+  id: "ctp",
+  label: "CTP",
+  statuses: [
+    { id: "entrada", label: "Entrada", colorKey: "entrada" },
+    { id: "saida", label: "Saída", colorKey: "concluido" },
+  ],
+};
+
+export const DIGITAL_DEPARTMENT: DepartmentConfig = {
+  id: "digital",
+  label: "Digital",
   statuses: [
     { id: "entrada", label: "Entrada", colorKey: "entrada" },
     { id: "saida", label: "Saída", colorKey: "concluido" },
@@ -70,6 +90,8 @@ export const EXPEDICAO_DEPARTMENT: DepartmentConfig = {
 
 export const DEPARTMENTS: DepartmentConfig[] = [
   QUALIDADE_DEPARTMENT,
+  CTP_DEPARTMENT,
+  DIGITAL_DEPARTMENT,
 ];
 
 export const DEPARTMENT_MAP: Record<Department, DepartmentConfig> = 

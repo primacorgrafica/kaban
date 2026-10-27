@@ -17,7 +17,7 @@ import { LayoutGrid, TableProperties } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProductionTable } from "@/components/ProductionTable";
 
-const VALID_DEPARTMENTS: Department[] = ["qualidade", "compras", "manutencao"];
+const VALID_DEPARTMENTS: Department[] = ["qualidade", "ctp", "digital", "compras", "manutencao"];
 
 export default function ProductionPage() {
   const { departamento } = useParams<{ departamento: string }>();
@@ -76,6 +76,10 @@ export default function ProductionPage() {
     "/manutencao": "manutencao",
     "/qualidade": "qualidade",
     "/producao/qualidade": "qualidade",
+    "/ctp": "ctp",
+    "/producao/ctp": "ctp",
+    "/digital": "digital",
+    "/producao/digital": "digital",
   };
   const activeDepartment: Department = PATH_TO_DEPT[location.pathname] || (departamento as Department) || "qualidade";
 

@@ -132,7 +132,7 @@ export default function ComercialPage() {
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
   const monthStart = startOfMonth(now);
 
-  const PRODUCTION_SECTORS = ["qualidade", "expedicao"];
+  const PRODUCTION_SECTORS = ["ctp", "digital", "qualidade", "expedicao"];
   const filteredAllParents = useMemo(() => filteredAll.filter(o => !o.parent_order_id), [filteredAll]);
   const filteredProdParents = useMemo(() => filteredProd.filter(o => !o.parent_order_id), [filteredProd]);
 
@@ -198,7 +198,7 @@ export default function ComercialPage() {
     },
   ];
 
-  const SECTOR_ORDER = ["qualidade", "expedicao"];
+  const SECTOR_ORDER = ["ctp", "digital", "qualidade", "expedicao"];
 
   const displayDepts: { dept: DepartmentConfig; orders: Order[]; statusField: "setor_status" | "status" }[] = useMemo(() => {
     const result: { dept: DepartmentConfig; orders: Order[]; statusField: "setor_status" | "status" }[] = [];

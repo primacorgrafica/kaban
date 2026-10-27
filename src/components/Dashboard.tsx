@@ -264,19 +264,23 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
   const allDepts = useMemo(() => [...DEPARTMENTS, EXPEDICAO_DEPARTMENT], []);
 
   const preImpressaoOrders = useMemo(() => {
-    return activeNonArchived.filter((o) => !o.setor || !["qualidade", "expedicao", "compras", "manutencao"].includes(o.setor));
+    return activeNonArchived.filter((o) => !o.setor || !["qualidade", "ctp", "digital", "expedicao", "compras", "manutencao"].includes(o.setor));
   }, [activeNonArchived]);
 
   const sectorCounts = useMemo(() => {
     const chaoDeFabrica = activeNonArchived.filter(
-      (o) => o.setor && !["compras", "manutencao", "qualidade", "expedicao"].includes(o.setor) && o.setor_status !== "saida"
+      (o) => o.setor && !["compras", "manutencao", "qualidade", "ctp", "digital", "expedicao"].includes(o.setor) && o.setor_status !== "saida"
     ).length;
+    const ctp = activeNonArchived.filter((o) => o.setor === "ctp" && o.setor_status !== "saida").length;
+    const digital = activeNonArchived.filter((o) => o.setor === "digital" && o.setor_status !== "saida").length;
     const qualidade = activeNonArchived.filter((o) => o.setor === "qualidade" && o.setor_status !== "saida").length;
     const expedicao = activeNonArchived.filter((o) => o.setor === "expedicao" && o.setor_status !== "saida").length;
     const compras = activeNonArchived.filter((o) => o.setor === "compras" && o.setor_status !== "saida").length;
     return {
       pre_impressao: preImpressaoOrders.length,
       chao_de_fabrica: chaoDeFabrica,
+      ctp,
+      digital,
       qualidade,
       expedicao,
       compras,
@@ -369,7 +373,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
     // Sector filter
     if (selectedSector === "pre_impressao") {
-      list = list.filter((o) => !o.setor || !["qualidade", "expedicao", "compras", "manutencao"].includes(o.setor));
+      list = list.filter((o) => !o.setor || !["qualidade", "ctp", "digital", "expedicao", "compras", "manutencao"].includes(o.setor));
     } else if (selectedSector !== "all") {
       list = list.filter((o) => o.setor === selectedSector);
     }
@@ -2372,6 +2376,22 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                 className="h-8 text-xs rounded-xl px-3"
               >
                 Pré-Imp ({sectorCounts.pre_impressao})
+              </Button>
+              <Button
+                variant={selectedSector === "ctp" ? "default" : "outline"}
+                size="sm"
+                onClick={() => handleSelectSectorFilter("ctp")}
+                className="h-8 text-xs rounded-xl px-3"
+              >
+                CTP ({sectorCounts.ctp})
+              </Button>
+              <Button
+                variant={selectedSector === "digital" ? "default" : "outline"}
+                size="sm"
+                onClick={() => handleSelectSectorFilter("digital")}
+                className="h-8 text-xs rounded-xl px-3"
+              >
+                Digital ({sectorCounts.digital})
               </Button>
               <Button
                 variant={selectedSector === "qualidade" ? "default" : "outline"}

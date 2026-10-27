@@ -261,22 +261,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Compatibilidade retroativa com módulos legados
       if (mod === "pre_impressao" && modulosAcesso.includes("producao")) return true;
       if (mod === "qualidade" && modulosAcesso.includes("producao")) return true;
+      if (mod === "ctp" && modulosAcesso.includes("producao")) return true;
+      if (mod === "digital" && modulosAcesso.includes("producao")) return true;
       if ((mod === "entregas" || mod === "gestao_entregas") && (modulosAcesso.includes("entregas") || modulosAcesso.includes("gestao_entregas"))) return true;
       if ((mod === "cadastros" || mod === "cadastro") && (modulosAcesso.includes("cadastros") || modulosAcesso.includes("cadastro"))) return true;
       return false;
     }
     // Fallback seguro: default-deny baseado na role caso não haja módulos explicitamente configurados
     if (role === "coordenador") {
-      return ["comercial", "pcp", "pre_impressao", "qualidade", "producao", "expedicao", "entregas", "gestao_entregas", "trabalhos_concluidos", "compras", "manutencao", "dashboard", "cadastros", "cadastro", "utilidades"].includes(mod);
+      return ["comercial", "pcp", "pre_impressao", "ctp", "digital", "qualidade", "producao", "expedicao", "entregas", "gestao_entregas", "trabalhos_concluidos", "compras", "manutencao", "dashboard", "cadastros", "cadastro", "utilidades"].includes(mod);
     }
     if (role === "vendedor") {
       return ["comercial", "utilidades"].includes(mod);
     }
     if (role === "orcamentista") {
-      return ["comercial", "pcp", "pre_impressao", "producao", "utilidades"].includes(mod);
+      return ["comercial", "pcp", "pre_impressao", "ctp", "digital", "producao", "utilidades"].includes(mod);
     }
     if (role === "operador" || role === "impressor") {
-      return ["pre_impressao", "qualidade", "producao", "utilidades"].includes(mod);
+      return ["pre_impressao", "ctp", "digital", "qualidade", "producao", "utilidades"].includes(mod);
     }
     return false;
   };
