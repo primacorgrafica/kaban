@@ -53,7 +53,7 @@ export const IMPRESSAO_TIPOS: ProcessoItem[] = [
   { sigla: "CMYK", cor: "bg-blue-100 text-blue-800 border-blue-300" },
   { sigla: "CMYK+IR", cor: "bg-blue-100 text-blue-800 border-blue-300" },
   { sigla: "CMYK+VM", cor: "bg-blue-100 text-blue-800 border-blue-300" },
-  { sigla: "PANTONE", cor: "bg-blue-100 text-blue-800 border-blue-300" },
+  { sigla: "PANTONE", cor: "bg-pink-100 text-pink-800 border-pink-300 dark:bg-pink-950/60 dark:text-pink-300 dark:border-pink-800" },
 ];
 
 // Processos de impressão (badges)
@@ -161,6 +161,58 @@ export function isSpecialSupplySent(processos: string[] | undefined | null, id: 
         p.startsWith(`${name}:ok:`)
     )
   );
+}
+
+/**
+ * Verifica se a O.S. possui suprimentos necessários para ser enviada/exibida em Compras.
+ * Regra: "Ela só chegará em COMPRAS quando HOUVER habilitado ou PANTONE ou OUTROS..."
+ */
+export function hasSpecialSuppliesForCompras(processos: string[] | undefined | null): boolean {
+  return isSpecialSupplyActive(processos, "PANTONE") || isSpecialSupplyActive(processos, "OUTROS");
+}
+
+/**
+ * Retorna as classes Tailwind para a tarja do suprimento especial no card.
+ * Regra do usuário:
+ * - FACA e CLICHÊ: continuam AMARELOS quando pendentes;
+ * - PANTONE e OUTROS: agora ficam ROSA CLARINHO quando pendentes;
+ * - Quando enviados (isSent), ficam VERDE esmeralda.
+ */
+export function getSpecialSupplyBadgeClasses(
+  id: SpecialSupplyId,
+  isSent: boolean
+): {
+  badge: string;
+  dot: string;
+  border: string;
+  label: string;
+} {
+  if (isSent) {
+    return {
+      badge: "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 shadow-[0_0_8px_rgba(16,185,129,0.35)] active:scale-95",
+      dot: "bg-white",
+      border: "border-emerald-600",
+      label: "Enviado",
+    };
+  }
+
+  if (id === "PANTONE" || id === "OUTROS") {
+    // ROSA CLARINHO
+    return {
+      badge: "bg-pink-100 hover:bg-pink-200 text-pink-950 border-pink-300 dark:bg-pink-950/80 dark:text-pink-100 dark:border-pink-600/60 shadow-[0_0_8px_rgba(244,114,182,0.25)] active:scale-95",
+      dot: "bg-pink-700 dark:bg-pink-300",
+      border: "border-pink-300 dark:border-pink-600/60",
+      label: "Pendente",
+    };
+  }
+
+  // FACA e CLICHÊ: AMARELO
+  return {
+    badge: "bg-amber-400 hover:bg-amber-500 text-amber-950 border-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.25)] active:scale-95",
+    dot: "bg-amber-950",
+    border: "border-amber-500",
+    label: "Pendente",
+  };
 }
 
 export function getSpecialSupplyCustomText(

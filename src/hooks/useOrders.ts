@@ -16,6 +16,7 @@ import { Department } from "@/types/production";
 import { KANBAN_ESSENTIAL_COLUMNS } from "@/lib/autonomousEngine/queryOptimizer";
 import { measureQueryLatency } from "@/lib/autonomousEngine/telemetry";
 import { triggerSellerApprovalNotification } from "@/lib/sellerNotificationService";
+import { hasSpecialSuppliesForCompras } from "@/lib/processos";
 
 export function useOrders() {
   const { user, authReady } = useAuth();
@@ -391,6 +392,14 @@ export function useOrders() {
     }
     if (!originalOrder) {
       console.warn("OS não encontrada para envio a compras:", orderId);
+      return null;
+    }
+
+    const effectiveProcessos = customProcessos || originalOrder.processos || [];
+
+    // Regra estrita: Ela só chegará em COMPRAS quando HOUVER habilitado ou PANTONE ou OUTROS
+    if (!hasSpecialSuppliesForCompras(effectiveProcessos)) {
+      console.log(`[Compras] O.S. #${originalOrder.titulo} não possui PANTONE nem OUTROS habilitados. Não chega em Compras.`);
       return null;
     }
 

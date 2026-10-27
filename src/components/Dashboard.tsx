@@ -32,6 +32,7 @@ import {
   getSpecialSupplyCustomText,
   getSpecialSupplyDetails,
   SpecialSupplyId,
+  hasSpecialSuppliesForCompras,
   formatSafeDate,
   parseSafeDate,
 } from "@/lib/processos";
@@ -552,7 +553,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
   // ═══ GOVERNANÇA: CENTRAL DE COMPRAS INTEGRADA (PANTONES & OUTROS) ═══
   const comprasOrders = useMemo(() => {
     return orders
-      .filter((o) => !o.arquivado && o.setor === "compras")
+      .filter((o) => !o.arquivado && o.setor === "compras" && (!o.parent_order_id || hasSpecialSuppliesForCompras(o.processos)))
       .map((o) => {
         const pantoneActive = isSpecialSupplyActive(o.processos, "PANTONE");
         const pantoneSent = isSpecialSupplySent(o.processos, "PANTONE");

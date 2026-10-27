@@ -39,6 +39,7 @@ import {
   toggleSpecialSupplySent,
   toggleSpecialSupplyActive,
   getSpecialSupplyDetails,
+  getSpecialSupplyBadgeClasses,
   getSpecialSupplyCustomText,
   setSpecialSupplyCustomText,
   formatSafeDate,
@@ -693,6 +694,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                 const timeOnly = formatSafeDate(details.sentAt, "HH:mm");
                 const op = details.operator || order.operador || updatedByName || null;
                 const labelText = details.displayLabel || item.label;
+                const style = getSpecialSupplyBadgeClasses(item.id, isSent);
                 return (
                   <button
                     key={item.id}
@@ -713,13 +715,9 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                         ? `${labelText}: ENVIADO ${formattedTime ? `em ${formattedTime}` : ""}${op ? ` por ${op}` : ""} (Clique para alterar para pendente)`
                         : `${labelText}: PENDENTE (Clique para marcar como enviado)`
                     }
-                    className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider uppercase transition-all flex items-center gap-1 shadow-xs cursor-pointer border ${
-                      isSent
-                        ? "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 shadow-[0_0_8px_rgba(16,185,129,0.35)] active:scale-95"
-                        : "bg-amber-400 hover:bg-amber-500 text-amber-950 border-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.25)] active:scale-95"
-                    }`}
+                    className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider uppercase transition-all flex items-center gap-1 shadow-xs cursor-pointer border ${style.badge}`}
                   >
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isSent ? "bg-white" : "bg-amber-950"}`} />
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${style.dot}`} />
                     <span>{labelText}</span>
                     {isSent ? (
                       <>

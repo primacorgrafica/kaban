@@ -9,6 +9,8 @@ import {
   getSpecialSupplyCustomText,
   setSpecialSupplyCustomText,
   getSpecialSupplyDisplayLabel,
+  getSpecialSupplyBadgeClasses,
+  hasSpecialSuppliesForCompras,
   sortAndFilterProcessos,
   isInternalProcessTag,
 } from "@/lib/processos";
@@ -147,5 +149,57 @@ describe("Suprimentos e Processos Especiais (PANTONE, FACA, CLICHÊ, OUTROS)", (
     const activeNenhum = SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(cardSemSemSuprimentos(cardSemSuprimentos), s.id));
     function cardSemSemSuprimentos(procs: string[]) { return procs; }
     expect(activeNenhum).toHaveLength(0);
+  });
+
+  it("determina que a O.S. só chega em Compras quando houver habilitado PANTONE ou OUTROS", () => {
+    // 1. Apenas Faca -> NÃO vai para Compras
+    expect(hasSpecialSuppliesForCompras(["FACA"])).toBe(false);
+
+    // 2. Apenas Clichê -> NÃO vai para Compras
+    expect(hasSpecialSuppliesForCompras(["CLICHE"])).toBe(false);
+
+    // 3. Faca e Clichê juntos -> NÃO vai para Compras
+    expect(hasSpecialSuppliesForCompras(["FACA", "CLICHE"])).toBe(false);
+
+    // 4. Nenhum suprimento especial -> NÃO vai para Compras
+    expect(hasSpecialSuppliesForCompras(["CMYK", "DIG", "CORTE"])).toBe(false);
+    expect(hasSpecialSuppliesForCompras([])).toBe(false);
+    expect(hasSpecialSuppliesForCompras(null)).toBe(false);
+
+    // 5. Com PANTONE habilitado -> VAI para Compras
+    expect(hasSpecialSuppliesForCompras(["PANTONE"])).toBe(true);
+    expect(hasSpecialSuppliesForCompras(["PANTONE:info:485%20C"])).toBe(true);
+    expect(hasSpecialSuppliesForCompras(["FACA", "PANTONE"])).toBe(true);
+
+    // 6. Com OUTROS habilitado -> VAI para Compras
+    expect(hasSpecialSuppliesForCompras(["OUTROS"])).toBe(true);
+    expect(hasSpecialSuppliesForCompras(["OUTROS:info:Cola%20Especial"])).toBe(true);
+    expect(hasSpecialSuppliesForCompras(["CLICHE", "OUTROS"])).toBe(true);
+  });
+
+  it("atribui cores corretas às tarjas: FACA/CLICHÊ amarelos e PANTONE/OUTROS rosa clarinho", () => {
+    // Pendentes
+    const facaPending = getSpecialSupplyBadgeClasses("FACA", false);
+    expect(facaPending.badge).toContain("bg-amber-400");
+    expect(facaPending.badge).toContain("text-amber-950");
+
+    const clichePending = getSpecialSupplyBadgeClasses("CLICHE", false);
+    expect(clichePending.badge).toContain("bg-amber-400");
+    expect(clichePending.badge).toContain("text-amber-950");
+
+    const pantonePending = getSpecialSupplyBadgeClasses("PANTONE", false);
+    expect(pantonePending.badge).toContain("bg-pink-100");
+    expect(pantonePending.badge).toContain("text-pink-950");
+
+    const outrosPending = getSpecialSupplyBadgeClasses("OUTROS", false);
+    expect(outrosPending.badge).toContain("bg-pink-100");
+    expect(outrosPending.badge).toContain("text-pink-950");
+
+    // Enviados (todos ficam verde esmeralda)
+    const facaSent = getSpecialSupplyBadgeClasses("FACA", true);
+    expect(facaSent.badge).toContain("bg-emerald-500");
+
+    const pantoneSent = getSpecialSupplyBadgeClasses("PANTONE", true);
+    expect(pantoneSent.badge).toContain("bg-emerald-500");
   });
 });

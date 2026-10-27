@@ -19,7 +19,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Truck, AlertTriangle, RotateCcw, ShieldAlert, Check } from "lucide-react";
-import { isSpecialSupplySent, isSpecialSupplyActive, toggleSpecialSupplySent, SPECIAL_SUPPLIES, type SpecialSupplyId } from "@/lib/processos";
+import { isSpecialSupplySent, isSpecialSupplyActive, toggleSpecialSupplySent, SPECIAL_SUPPLIES, hasSpecialSuppliesForCompras, type SpecialSupplyId } from "@/lib/processos";
 import { toast } from "sonner";
 
 interface Permissions {
@@ -299,7 +299,9 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
             }
           }
         }
-        onSendToCompras(pendingMove.id, procs);
+        if (hasSpecialSuppliesForCompras(procs)) {
+          onSendToCompras(pendingMove.id, procs);
+        }
       }
 
       if (pendingMove.toStatus === "aguardando_novo_arquivo" || pendingMove.toStatus === "paralisado") {
@@ -524,7 +526,7 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
                             {activeSupplies.map((supply) => {
                               const isSent = isSpecialSupplySent(processos, supply.id);
                               const isMarked = markedSuppliesSent[supply.id] || false;
-                              const isSatisfied = isSent || isMarked;
+                              const isPink = supply.id === "PANTONE" || supply.id === "OUTROS";
 
                               return (
                                 <div
@@ -532,6 +534,8 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
                                   className={`p-2.5 rounded-lg border text-xs flex flex-col justify-between gap-1.5 transition-colors ${
                                     isSatisfied
                                       ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-800 dark:text-emerald-300"
+                                      : isPink
+                                      ? "bg-pink-100/90 dark:bg-pink-950/40 border-pink-300 dark:border-pink-700/60 text-pink-950 dark:text-pink-200"
                                       : "bg-amber-500/20 border-amber-500/50 text-amber-900 dark:text-amber-200"
                                   }`}
                                 >

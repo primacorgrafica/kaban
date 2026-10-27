@@ -55,6 +55,7 @@ import {
   toggleSpecialSupplySent,
   toggleSpecialSupplyActive,
   getSpecialSupplyDetails,
+  getSpecialSupplyBadgeClasses,
   getSpecialSupplyCustomText,
   setSpecialSupplyCustomText,
   formatSafeDate,
@@ -517,57 +518,57 @@ export function OrderDetailDialog({
                             const titleText = isSent
                               ? `${details.displayLabel || item.label}: ENVIADO ${formattedTime ? `em ${formattedTime}` : ""}${op ? ` por ${op}` : ""} (Clique para alterar para pendente)`
                               : `${details.displayLabel || item.label}: PENDENTE (Clique para marcar como enviado)`;
+                            const style = getSpecialSupplyBadgeClasses(item.id, isSent);
 
                             return (
                               <button
-                                key={item.id}
-                                type="button"
-                                onClick={() => {
-                                  const updated = toggleSpecialSupplySent(order.processos, item.id, order.operador);
-                                  onUpdate(order.id, { processos: updated });
-                                  if (!isSent) {
-                                    toast.success(`${details.displayLabel || item.label} marcado como ENVIADO! Registrado com data e hora.`);
-                                  } else {
-                                    toast.info(`${details.displayLabel || item.label} desmarcado (pendente).`);
-                                  }
-                                }}
-                                title={titleText}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-black tracking-wider uppercase transition-all flex items-center gap-1.5 shadow-xs border cursor-pointer ${
-                                  isSent
-                                    ? "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 shadow-[0_0_8px_rgba(16,185,129,0.35)]"
-                                    : "bg-amber-400 hover:bg-amber-500 text-amber-950 border-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.25)]"
-                                }`}
-                              >
-                                <span className={`w-2 h-2 rounded-full ${isSent ? "bg-white" : "bg-amber-950"}`} />
-                                <span>{details.displayLabel || item.label}</span>
-                                {isSent ? <Check className="h-3.5 w-3.5 stroke-[3]" /> : <span className="text-[10px]">⏳</span>}
-                                <span className="text-[10px] font-mono-tech ml-1 opacity-90">
-                                  {isSent ? "(Enviado)" : "(Pendente)"}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                        {/* Detalhes de rastreabilidade com data e hora */}
-                        <div className="space-y-1 pt-1">
-                          {SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(order.processos, s.id)).map((item) => {
-                            const details = getSpecialSupplyDetails(order.processos, item.id);
-                            if (!details.sent && !details.customText) return null;
-                            const formattedTime = formatSafeDate(details.sentAt, "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })
-                              || formatSafeDate(order.updated_at, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
-                              || "Registrado";
-                            return (
-                              <p key={`info-${item.id}`} className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono-tech flex items-center gap-1.5 flex-wrap">
-                                <span className={`w-1.5 h-1.5 rounded-full ${details.sent ? "bg-emerald-500" : "bg-amber-500"}`} />
-                                <strong className="font-bold">{item.label}:</strong>
-                                {details.sent ? (
-                                  <>
-                                    Aprovado/Enviado em {formattedTime}
-                                    {details.operator && <span>por <u>{details.operator}</u></span>}
-                                  </>
-                                ) : (
-                                  <span className="text-amber-600 dark:text-amber-400">Pendente de envio</span>
-                                )}
+                                    key={item.id}
+                                    type="button"
+                                    onClick={() => {
+                                      const updated = toggleSpecialSupplySent(order.processos, item.id, order.operador);
+                                      onUpdate(order.id, { processos: updated });
+                                      if (!isSent) {
+                                        toast.success(`${details.displayLabel || item.label} marcado como ENVIADO! Registrado com data e hora.`);
+                                      } else {
+                                        toast.info(`${details.displayLabel || item.label} desmarcado (pendente).`);
+                                      }
+                                    }}
+                                    title={titleText}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-black tracking-wider uppercase transition-all flex items-center gap-1.5 shadow-xs border cursor-pointer ${style.badge}`}
+                                  >
+                                    <span className={`w-2 h-2 rounded-full ${style.dot}`} />
+                                    <span>{details.displayLabel || item.label}</span>
+                                    {isSent ? <Check className="h-3.5 w-3.5 stroke-[3]" /> : <span className="text-[10px]">⏳</span>}
+                                    <span className="text-[10px] font-mono-tech ml-1 opacity-90">
+                                      {isSent ? "(Enviado)" : "(Pendente)"}
+                                    </span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            {/* Detalhes de rastreabilidade com data e hora */}
+                            <div className="space-y-1 pt-1">
+                              {SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(order.processos, s.id)).map((item) => {
+                                const details = getSpecialSupplyDetails(order.processos, item.id);
+                                if (!details.sent && !details.customText) return null;
+                                const isPink = item.id === "PANTONE" || item.id === "OUTROS";
+                                const formattedTime = formatSafeDate(details.sentAt, "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })
+                                  || formatSafeDate(order.updated_at, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                                  || "Registrado";
+                                return (
+                                  <p key={`info-${item.id}`} className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono-tech flex items-center gap-1.5 flex-wrap">
+                                    <span className={`w-1.5 h-1.5 rounded-full ${details.sent ? "bg-emerald-500" : isPink ? "bg-pink-500" : "bg-amber-500"}`} />
+                                    <strong className="font-bold">{item.label}:</strong>
+                                    {details.sent ? (
+                                      <>
+                                        Aprovado/Enviado em {formattedTime}
+                                        {details.operator && <span>por <u>{details.operator}</u></span>}
+                                      </>
+                                    ) : (
+                                      <span className={isPink ? "text-pink-600 dark:text-pink-400 font-bold" : "text-amber-600 dark:text-amber-400"}>
+                                        Pendente de envio
+                                      </span>
+                                    )}
                                 {details.customText && (
                                   <span className="text-foreground/90 font-sans font-medium text-xs ml-1">
                                     — {details.customText}

@@ -11,6 +11,7 @@ import { invalidateApprovalEntry } from "@/lib/approvalEntryCache";
 import { toast } from "sonner";
 import { Order, Profile } from "@/types/order";
 import { Department } from "@/types/production";
+import { hasSpecialSuppliesForCompras } from "@/lib/processos";
 
 export function useProductionOrders() {
   const { user, authReady } = useAuth();
@@ -321,6 +322,10 @@ export function useProductionOrders() {
       if (o.setor !== department) return false;
       if (o.arquivado) return false;
       if (machine && o.maquina !== machine) return false;
+      // Regra de Compras: Ordens de Serviço só chegam/aparecem em Compras se houver PANTONE ou OUTROS habilitados (ordens manuais avulsas sem parent_order_id continuam visíveis)
+      if (department === "compras" && o.parent_order_id) {
+        if (!hasSpecialSuppliesForCompras(o.processos)) return false;
+      }
       return true;
     });
   }, [filteredOrders]);
@@ -338,6 +343,9 @@ export function useProductionOrders() {
     const counts: Record<string, number> = {};
     filteredOrders.filter(o => !o.arquivado).forEach(o => {
       if (o.setor) {
+        if (o.setor === "compras" && o.parent_order_id && !hasSpecialSuppliesForCompras(o.processos)) {
+          return;
+        }
         counts[o.setor] = (counts[o.setor] || 0) + 1;
       }
     });

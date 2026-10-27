@@ -1408,7 +1408,7 @@ export function CreateOrderDialog({
                     </Label>
                   </div>
                   <span className="text-[11px] text-muted-foreground font-mono-tech">
-                    Quadros ficam amarelos por padrão no card
+                    Faca e Clichê ficam amarelos; Pantone e Outros ficam rosa clarinho
                   </span>
                 </div>
 
@@ -1416,6 +1416,7 @@ export function CreateOrderDialog({
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
                   {SPECIAL_SUPPLIES.map((item) => {
                     const active = isSpecialSupplyActive(form.processos, item.id);
+                    const isPink = item.id === "PANTONE" || item.id === "OUTROS";
                     return (
                       <button
                         type="button"
@@ -1428,14 +1429,20 @@ export function CreateOrderDialog({
                         }}
                         className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 text-center cursor-pointer ${
                           active
-                            ? "bg-amber-500/20 border-amber-500 text-amber-700 dark:text-amber-300 font-extrabold shadow-[0_0_15px_rgba(245,158,11,0.25)] scale-[1.02]"
+                            ? isPink
+                              ? "bg-pink-100/90 dark:bg-pink-950/40 border-pink-400 dark:border-pink-500/70 text-pink-800 dark:text-pink-200 font-extrabold shadow-[0_0_15px_rgba(244,114,182,0.25)] scale-[1.02]"
+                              : "bg-amber-500/20 border-amber-500 text-amber-700 dark:text-amber-300 font-extrabold shadow-[0_0_15px_rgba(245,158,11,0.25)] scale-[1.02]"
                             : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent hover:border-border/80"
                         }`}
                       >
                         <div className="flex items-center gap-2">
                           <span
                             className={`w-2.5 h-2.5 rounded-full transition-all ${
-                              active ? "bg-amber-500 shadow-[0_0_8px_#f59e0b]" : "bg-muted-foreground/30"
+                              active
+                                ? isPink
+                                  ? "bg-pink-500 shadow-[0_0_8px_#ec4899]"
+                                  : "bg-amber-500 shadow-[0_0_8px_#f59e0b]"
+                                : "bg-muted-foreground/30"
                             }`}
                           />
                           <span className="font-mono-tech font-black text-sm tracking-wider">
@@ -1452,10 +1459,10 @@ export function CreateOrderDialog({
 
                 {/* CAMPO DE NÚMEROS DO PANTONE */}
                 {isSpecialSupplyActive(form.processos, "PANTONE") && (
-                  <div className="p-3 rounded-xl border border-amber-500/40 bg-amber-500/10 dark:bg-amber-950/20 space-y-1.5 animate-in fade-in-50 duration-200">
+                  <div className="p-3 rounded-xl border border-pink-300 dark:border-pink-800/80 bg-pink-50/70 dark:bg-pink-950/20 space-y-1.5 animate-in fade-in-50 duration-200">
                     <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-amber-700 dark:text-amber-300 uppercase flex items-center gap-1.5">
-                        <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                      <Label className="text-xs font-bold text-pink-700 dark:text-pink-300 uppercase flex items-center gap-1.5">
+                        <Sparkles className="h-3.5 w-3.5 text-pink-500" />
                         Números dos Pantones
                       </Label>
                       <span className="text-[10px] text-muted-foreground font-mono-tech">Ex: 485 C, Reflex Blue, 871 C</span>
@@ -1470,17 +1477,17 @@ export function CreateOrderDialog({
                         }));
                       }}
                       placeholder="Informe os números dos pantones desta O.S..."
-                      className="h-8.5 bg-background border-amber-500/40 text-xs text-foreground placeholder:text-muted-foreground rounded-lg font-mono-tech"
+                      className="h-8.5 bg-background border-pink-300 dark:border-pink-800/80 text-xs text-foreground placeholder:text-muted-foreground rounded-lg font-mono-tech"
                     />
                   </div>
                 )}
 
                 {/* CAMPO DE PREENCHIMENTO MANUAL: OUTROS */}
                 {isSpecialSupplyActive(form.processos, "OUTROS") && (
-                  <div className="p-3 rounded-xl border border-amber-500/40 bg-amber-500/10 dark:bg-amber-950/20 space-y-1.5 animate-in fade-in-50 duration-200">
+                  <div className="p-3 rounded-xl border border-pink-300 dark:border-pink-800/80 bg-pink-50/70 dark:bg-pink-950/20 space-y-1.5 animate-in fade-in-50 duration-200">
                     <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-amber-700 dark:text-amber-300 uppercase flex items-center gap-1.5">
-                        <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                      <Label className="text-xs font-bold text-pink-700 dark:text-pink-300 uppercase flex items-center gap-1.5">
+                        <Sparkles className="h-3.5 w-3.5 text-pink-500" />
                         Especificação de Outros Suprimentos / Processos
                       </Label>
                       <span className="text-[10px] text-muted-foreground font-mono-tech">Preenchimento manual</span>
@@ -1495,7 +1502,7 @@ export function CreateOrderDialog({
                         }));
                       }}
                       placeholder="Descreva o suprimento ou processo especial necessário..."
-                      className="h-8.5 bg-background border-amber-500/40 text-xs text-foreground placeholder:text-muted-foreground rounded-lg"
+                      className="h-8.5 bg-background border-pink-300 dark:border-pink-800/80 text-xs text-foreground placeholder:text-muted-foreground rounded-lg"
                     />
                   </div>
                 )}

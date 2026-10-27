@@ -333,7 +333,7 @@ export function ComprasCard({
                     className={`flex items-center justify-between px-2 py-1 rounded text-[11px] font-bold border cursor-pointer transition-all ${
                       pantoneSent
                         ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/50 shadow-xs"
-                        : "bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/50 animate-pulse"
+                        : "bg-pink-100/90 text-pink-950 dark:text-pink-200 border-pink-300 dark:border-pink-700/60 shadow-2xs"
                     }`}
                     title={pantoneSent ? "Pantone Comprado (Clique para alterar)" : "Pantone Pendente (Clique para marcar como comprado)"}
                   >
@@ -348,7 +348,7 @@ export function ComprasCard({
                     className={`flex items-center justify-between px-2 py-1 rounded text-[11px] font-bold border cursor-pointer transition-all ${
                       outrosSent
                         ? "bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border-emerald-500/50 shadow-xs"
-                        : "bg-amber-500/20 text-amber-800 dark:text-amber-300 border-amber-500/50 animate-pulse"
+                        : "bg-pink-100/90 text-pink-950 dark:text-pink-200 border-pink-300 dark:border-pink-700/60 shadow-2xs"
                     }`}
                     title={outrosSent ? "Outros Comprado (Clique para alterar)" : "Outros Pendente (Clique para marcar como comprado)"}
                   >
@@ -462,7 +462,7 @@ export function ComprasCard({
                     {pantoneActive && (
                       <div className="text-xs flex items-center justify-between p-1.5 rounded bg-muted/60">
                         <span>PANTONE: <strong>{pantoneText || "Especificado no layout"}</strong></span>
-                        <span className={pantoneSent ? "text-emerald-600 font-bold" : "text-amber-600 font-bold"}>
+                        <span className={pantoneSent ? "text-emerald-600 font-bold" : "text-pink-600 dark:text-pink-400 font-bold"}>
                           {pantoneSent ? "COMPRADO ✓" : "COMPRAR ⏳"}
                         </span>
                       </div>
@@ -470,7 +470,7 @@ export function ComprasCard({
                     {outrosActive && (
                       <div className="text-xs flex items-center justify-between p-1.5 rounded bg-muted/60">
                         <span>OUTROS: <strong>{outrosText || "Insumo Especial"}</strong></span>
-                        <span className={outrosSent ? "text-emerald-600 font-bold" : "text-amber-600 font-bold"}>
+                        <span className={outrosSent ? "text-emerald-600 font-bold" : "text-pink-600 dark:text-pink-400 font-bold"}>
                           {outrosSent ? "COMPRADO ✓" : "COMPRAR ⏳"}
                         </span>
                       </div>
