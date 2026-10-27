@@ -349,7 +349,8 @@ export function ArchivedOrders({ orders, onUnarchive, onDelete }: ArchivedOrders
         <div className="space-y-3">
           {visibleOrders.map((order) => {
             const isOM = !!(order as any).om_numero;
-            const isOC = !!(order as any).oc_numero;
+            const isFromOS = (order as any).categoria_compra === "os" || !!order.parent_order_id || (!!order.titulo && order.titulo !== "OC");
+            const isOC = !!(order as any).oc_numero && !isFromOS;
             const isNC = !!(order as any).nc_numero;
             const sectorTimes = getSectorTimes(order);
 
@@ -361,7 +362,7 @@ export function ArchivedOrders({ orders, onUnarchive, onDelete }: ArchivedOrders
             } else if (isNC) {
               titleDisplay = `NC. ${String((order as any).nc_numero).padStart(4, "0")}`;
             } else {
-              titleDisplay = `OS. ${order.titulo}`;
+              titleDisplay = `OS. #${order.titulo.replace(/^#/, "")}`;
             }
 
             return (

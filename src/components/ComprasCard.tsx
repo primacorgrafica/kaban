@@ -106,6 +106,23 @@ export function ComprasCard({
   const ocNumero = (order as any).oc_numero;
   const isPedido = currentStatus.id === "pedido";
 
+  // Identificação da O.S. vinculada: Se a ordem veio de uma O.S. (categoria_compra === "os", possui parent_order_id ou título diferente de "OC"),
+  // exibimos com prioridade o número da O.S. correspondente para identificar de qual O.S foi comprado o insumo.
+  const isFromOS = (order as any).categoria_compra === "os" || !!order.parent_order_id || (!!order.titulo && order.titulo !== "OC");
+  const formattedOsNumber = order.titulo
+    ? order.titulo.toUpperCase().startsWith("OS")
+      ? order.titulo
+      : order.titulo.startsWith("#")
+      ? `OS. ${order.titulo}`
+      : `OS. #${order.titulo}`
+    : "";
+
+  const displayCardNumber = isFromOS && formattedOsNumber
+    ? formattedOsNumber
+    : ocNumero
+    ? `OC. ${String(ocNumero).padStart(4, "0")}`
+    : formattedOsNumber || "OS";
+
   const pantoneActive = isSpecialSupplyActive(order.processos, "PANTONE");
   const pantoneSent = isSpecialSupplySent(order.processos, "PANTONE");
   const pantoneText = getSpecialSupplyCustomText(order.processos, "PANTONE");
@@ -292,8 +309,11 @@ export function ComprasCard({
           <div className="flex items-start justify-between gap-2 min-w-0">
             <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
               {isUrgent && <span className="h-2 w-2 rounded-full shrink-0 bg-red-500 animate-pulse mt-0.5" />}
-              <span className="font-mono-tech text-[12px] font-bold px-1.5 py-0.5 rounded bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/50 shrink-0">
-                {ocNumero ? `OC. ${String(ocNumero).padStart(4, "0")}` : `OS. #${order.titulo}`}
+              <span
+                className="font-mono-tech text-[12px] font-bold px-1.5 py-0.5 rounded bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/50 shrink-0"
+                title={ocNumero ? `Ordem de Compra: OC. ${String(ocNumero).padStart(4, "0")}` : undefined}
+              >
+                {displayCardNumber}
               </span>
               {order.cliente && (
                 <span className="text-xs font-bold text-foreground truncate uppercase max-w-[170px]" title={order.cliente}>
@@ -428,7 +448,12 @@ export function ComprasCard({
         <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <span>{ocNumero ? `OC. ${String(ocNumero).padStart(4, "0")}` : `OS. #${order.titulo}`}</span>
+              <span>{displayCardNumber}</span>
+              {isFromOS && ocNumero && (
+                <span className="text-xs text-muted-foreground font-mono-tech font-normal">
+                  (OC. {String(ocNumero).padStart(4, "0")})
+                </span>
+              )}
               {order.cliente && <span className="text-muted-foreground font-normal text-sm">— {order.cliente}</span>}
             </DialogTitle>
           </DialogHeader>
