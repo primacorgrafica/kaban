@@ -416,10 +416,10 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
           </div>
         )}
 
-        {/* Top Header Bar: NÚMERO O.S (Esquerda) + ESPAÇO PARA AS FLAGS (Direita) */}
-        <div className="flex items-center justify-between gap-1.5 px-3 pt-2.5 pb-1 flex-wrap">
+        {/* Top Header Bar: NÚMERO O.S (Esquerda) + ESPAÇO PARA AS FLAGS (Direita) - Linha única sem quebra */}
+        <div className="flex items-center justify-between gap-2 px-3.5 pt-2.5 pb-1 min-w-0">
           {/* Esquerda: NÚMERO DA O.S. + REV / REP */}
-          <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+          <div className="flex items-center gap-1.5 shrink-0">
             <span className="font-mono-tech text-[13px] font-bold px-2 py-0.5 rounded bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/60 shrink-0 tracking-wide">
               #{order.titulo}
             </span>
@@ -444,11 +444,11 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
           </div>
 
           {/* Direita: ESPAÇO PARA AS FLAGS & DRAG HANDLE */}
-          <div className="flex items-center gap-1.5 flex-wrap min-w-0 justify-end ml-auto">
+          <div className="flex items-center gap-1.5 shrink-0 justify-end ml-auto">
             {/* Urgent badge */}
             {isUrgent && (
               <span
-                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-rose-600 text-white shadow-xs ${
+                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-rose-600 text-white shadow-xs shrink-0 ${
                   shouldBlinkUrgentBanner ? "animate-pulse" : ""
                 }`}
               >
@@ -467,7 +467,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
 
             {/* Slow Alert standalone indicator */}
             {isSlowAlert && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30" title="Mais de 21 horas nesta etapa">
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 shrink-0" title="Mais de 21 horas nesta etapa">
                 <Clock className="h-2.5 w-2.5 text-amber-500 animate-pulse shrink-0" />
                 <span>+21h</span>
               </span>
@@ -475,49 +475,44 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
 
             {/* Digital sector banners: Color and PB */}
             {departmentContext === "producao" && (order as any).digital_color && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 shrink-0">
                 Color
               </span>
             )}
             {departmentContext === "producao" && (order as any).digital_pb && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-500/30">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-500/30 shrink-0">
                 PB
               </span>
             )}
 
             {/* Expedição delivery types */}
             {departmentContext === "expedicao" && order.tipo_entrega && order.tipo_entrega.includes("CARRO") && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 shrink-0">
                 Carro
               </span>
             )}
             {departmentContext === "expedicao" && order.tipo_entrega && order.tipo_entrega.includes("MOTO") && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 shrink-0">
                 Moto
               </span>
             )}
             {departmentContext === "expedicao" && order.tipo_entrega && order.tipo_entrega.includes("RETIRA") && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-500/30">
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-500/30 shrink-0">
                 Retira
               </span>
             )}
 
             {/* Setor em Produção */}
             {order.setor && order.setor !== "desenvolvimento" && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 max-w-[210px] truncate" title={`Em Produção — ${DEPARTMENTS.find(d => d.id === order.setor)?.label || order.setor}`}>
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 max-w-[140px] truncate shrink-0" title={`Em Produção — ${DEPARTMENTS.find(d => d.id === order.setor)?.label || order.setor}`}>
                 Em Prod: {DEPARTMENTS.find(d => d.id === order.setor)?.label || order.setor}
-                {order.setor_status && (() => {
-                  const dept = DEPARTMENTS.find(d => d.id === order.setor);
-                  const statusLabel = dept?.statuses.find(s => s.id === order.setor_status)?.label;
-                  return statusLabel ? ` › ${statusLabel}` : "";
-                })()}
               </span>
             )}
 
             {/* Sub-ordem */}
             {order.parent_order_id && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider bg-violet-500/10 text-violet-700 dark:text-violet-300 border border-violet-500/25">
-                Sub-ordem
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider bg-violet-500/10 text-violet-700 dark:text-violet-300 border border-violet-500/25 shrink-0">
+                Sub
               </span>
             )}
 
@@ -536,41 +531,52 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
         </div>
 
         <div className="px-3.5 pb-3 cursor-pointer space-y-1.5" onClick={() => setOpen(true)}>
-          {/* Linha 1: CLIENTE (Esquerda) e VENDEDOR (Direita) */}
-          <div className="flex items-center justify-between gap-2 mt-1 min-w-0">
-            <span className="text-sm font-bold text-foreground truncate uppercase flex-1" title={order.cliente}>
+          {/* Linha 1 & 2: Grid perfeitamente alinhado - Coluna Esquerda (Cliente / Serviço) e Coluna Direita (Vendedor / Operador) */}
+          <div className="grid grid-cols-[1fr_auto] items-center gap-x-2 gap-y-1.5 mt-1 min-w-0">
+            {/* Coluna 1, Linha 1: CLIENTE */}
+            <span className="text-sm font-bold text-foreground truncate uppercase min-w-0" title={order.cliente}>
               {order.cliente}
             </span>
-            {order.vendedor && (
-              <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0 max-w-[130px]" title={`Vendedor: ${order.vendedor}`}>
-                <User className="h-3 w-3 text-muted-foreground/80 shrink-0" />
-                <span className="truncate">{order.vendedor}</span>
-              </div>
-            )}
-          </div>
 
-          {/* Linha 2: SERVIÇO (Esquerda) e OPERADOR (Direita) */}
-          <div className="flex items-center justify-between gap-2 min-w-0">
-            {order.descricao ? (
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0 flex-1" title={order.descricao}>
-                <FileText className="h-3 w-3 inline shrink-0" />
-                <span className="truncate min-w-0">{order.descricao}</span>
-              </div>
-            ) : (
-              <div className="flex-1" />
-            )}
-
-            {order.operador && (
-              <div className="shrink-0">
+            {/* Coluna 2, Linha 1: VENDEDOR */}
+            <div className="flex justify-end min-w-0">
+              {order.vendedor ? (
                 <span
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#CCD0CF] bg-[#253745] border border-[#4A5C6A]/60 px-1.5 py-0.5 rounded-md shadow-2xs max-w-[130px] truncate"
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#CCD0CF] bg-[#253745]/70 border border-[#4A5C6A]/50 px-1.5 py-0.5 rounded-md shadow-2xs w-[100px] truncate"
+                  title={`Vendedor: ${order.vendedor}`}
+                >
+                  <User className="h-3 w-3 text-[#9BA8AB] shrink-0" />
+                  <span className="truncate">{order.vendedor}</span>
+                </span>
+              ) : (
+                order.operador ? <div className="w-[100px]" /> : null
+              )}
+            </div>
+
+            {/* Coluna 1, Linha 2: SERVIÇO */}
+            <div className="min-w-0">
+              {order.descricao ? (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate" title={order.descricao}>
+                  <FileText className="h-3 w-3 inline shrink-0" />
+                  <span className="truncate min-w-0">{order.descricao}</span>
+                </div>
+              ) : null}
+            </div>
+
+            {/* Coluna 2, Linha 2: OPERADOR */}
+            <div className="flex justify-end min-w-0">
+              {order.operador ? (
+                <span
+                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#CCD0CF] bg-[#253745] border border-[#4A5C6A]/60 px-1.5 py-0.5 rounded-md shadow-2xs w-[100px] truncate"
                   title={`Operador responsável: ${order.operador}`}
                 >
                   <UserCheck className="h-3 w-3 text-[#9BA8AB] shrink-0" />
                   <span className="truncate">{order.operador}</span>
                 </span>
-              </div>
-            )}
+              ) : (
+                order.vendedor ? <div className="w-[100px]" /> : null
+              )}
+            </div>
           </div>
 
           {/* Linha 3: PROVA DIGITAL OU EMAIL OU SAÍDA DIRETA */}
