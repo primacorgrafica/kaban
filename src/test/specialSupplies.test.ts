@@ -123,4 +123,29 @@ describe("Suprimentos e Processos Especiais (PANTONE, FACA, CLICHÊ, OUTROS)", (
     expect(filtered).toContain("PLO");
     expect(filtered).toContain("HOT");
   });
+
+  it("deve identificar estritamente apenas os suprimentos especiais ativos no card", () => {
+    // Cenário 1: Card criado SOMENTE com FACA
+    const cardApenasFaca = ["CORTE", "FACA", "HOT"];
+    const activeFaca = SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(cardApenasFaca, s.id));
+    expect(activeFaca.map((s) => s.id)).toEqual(["FACA"]);
+    expect(activeFaca.some((s) => s.id === "CLICHE")).toBe(false);
+
+    // Cenário 2: Card criado SOMENTE com CLICHÊ
+    const cardApenasCliche = ["FLEXO", "CLICHE:info:3%20cores"];
+    const activeCliche = SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(cardApenasCliche, s.id));
+    expect(activeCliche.map((s) => s.id)).toEqual(["CLICHE"]);
+    expect(activeCliche.some((s) => s.id === "FACA")).toBe(false);
+
+    // Cenário 3: Card criado com FACA e CLICHÊ
+    const cardFacaECliche = ["CORTE", "FACA", "CLICHE"];
+    const activeAmbos = SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(cardFacaECliche, s.id));
+    expect(activeAmbos.map((s) => s.id)).toEqual(["FACA", "CLICHE"]);
+
+    // Cenário 4: Card SEM suprimentos especiais (apenas processos regulares)
+    const cardSemSuprimentos = ["DIG", "CORTE", "DOBRA"];
+    const activeNenhum = SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(cardSemSemSuprimentos(cardSemSuprimentos), s.id));
+    function cardSemSemSuprimentos(procs: string[]) { return procs; }
+    expect(activeNenhum).toHaveLength(0);
+  });
 });
