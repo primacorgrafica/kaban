@@ -417,24 +417,24 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
         )}
 
         {/* Top Header Bar: NÚMERO O.S (Esquerda) + FLAGS (Centro/Direita) + DRAG HANDLE (Fixo à Direita) */}
-        <div className="flex items-center justify-between gap-1.5 px-3.5 pt-2.5 pb-1 min-w-0">
+        <div className="flex items-center justify-between gap-1 px-3 pt-2 pb-0.5 min-w-0">
           {/* Esquerda: NÚMERO DA O.S. + REV / REP */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="font-mono-tech text-[13px] font-bold px-2 py-0.5 rounded bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/60 shrink-0 tracking-wide">
+          <div className="flex items-center gap-1 shrink-0">
+            <span className="font-mono-tech text-[11.5px] font-bold px-1.5 py-0.5 rounded bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/60 shrink-0 tracking-wide">
               #{order.titulo}
             </span>
             {currentRevision >= 2 && (
               <span
-                className="font-mono-tech text-[12px] font-extrabold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 shrink-0 flex items-center gap-1 shadow-xs animate-pulse tracking-wide"
+                className="font-mono-tech text-[10px] font-bold px-1 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 shrink-0 flex items-center gap-0.5 shadow-xs animate-pulse tracking-wide"
                 title={`Revisão ${currentRevision} (Retornou para Preparação)`}
               >
-                <RotateCcw className="h-3 w-3" />
+                <RotateCcw className="h-2.5 w-2.5" />
                 <span>REV{currentRevision}</span>
               </span>
             )}
             {(order.tipo_trabalho === "repeticao" || order.os_anterior) && (
               <span
-                className="font-mono-tech text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shrink-0 flex items-center gap-1"
+                className="font-mono-tech text-[9px] font-bold px-1 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shrink-0 flex items-center gap-0.5"
                 title={order.os_anterior ? `Repetição da O.S. Anterior: ${order.os_anterior}` : "Repetição"}
               >
                 <span>REP</span>
@@ -444,79 +444,79 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
           </div>
 
           {/* Centro / Direita: FLAGS DE STATUS */}
-          <div className="flex items-center gap-1.5 min-w-0 flex-1 justify-end overflow-hidden">
+          <div className="flex items-center gap-1 min-w-0 flex-1 justify-end overflow-hidden">
             {/* Urgent badge */}
             {isUrgent && (
               <span
-                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-rose-600 text-white shadow-xs shrink-0 ${
+                className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-rose-600 text-white shadow-xs shrink-0 ${
                   shouldBlinkUrgentBanner ? "animate-pulse" : ""
                 }`}
               >
-                <AlertTriangle className="h-2.5 w-2.5 shrink-0" />
+                <AlertTriangle className="h-2 w-2 shrink-0" />
                 <span>Urgente</span>
-                {isUrgentImpressao && <span className="opacity-80 text-[8px]">(Imp)</span>}
-                {isUrgentAcabamento && <span className="opacity-80 text-[8px]">(Acab)</span>}
-                {isUrgentExpedicao && <span className="opacity-80 text-[8px]">(Exp)</span>}
+                {isUrgentImpressao && <span className="opacity-80 text-[7.5px]">(Imp)</span>}
+                {isUrgentAcabamento && <span className="opacity-80 text-[7.5px]">(Acab)</span>}
+                {isUrgentExpedicao && <span className="opacity-80 text-[7.5px]">(Exp)</span>}
               </span>
             )}
 
             {/* Slow Alert standalone indicator */}
             {isSlowAlert && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 shrink-0" title="Mais de 21 horas nesta etapa">
-                <Clock className="h-2.5 w-2.5 text-amber-500 animate-pulse shrink-0" />
+              <span className="inline-flex items-center gap-0.5 px-1 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30 shrink-0" title="Mais de 21 horas nesta etapa">
+                <Clock className="h-2 w-2 text-amber-500 animate-pulse shrink-0" />
                 <span>+21h</span>
               </span>
             )}
 
             {/* Digital sector banners: Color and PB */}
             {departmentContext === "producao" && (order as any).digital_color && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 shrink-0">
+              <span className="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 shrink-0">
                 Color
               </span>
             )}
             {departmentContext === "producao" && (order as any).digital_pb && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-500/30 shrink-0">
+              <span className="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-500/30 shrink-0">
                 PB
               </span>
             )}
 
             {/* Expedição delivery types */}
             {departmentContext === "expedicao" && order.tipo_entrega && order.tipo_entrega.includes("CARRO") && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 shrink-0">
+              <span className="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 shrink-0">
                 Carro
               </span>
             )}
             {departmentContext === "expedicao" && order.tipo_entrega && order.tipo_entrega.includes("MOTO") && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 shrink-0">
+              <span className="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider bg-blue-500/15 text-blue-700 dark:text-blue-300 border border-blue-500/30 shrink-0">
                 Moto
               </span>
             )}
             {departmentContext === "expedicao" && order.tipo_entrega && order.tipo_entrega.includes("RETIRA") && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-500/30 shrink-0">
+              <span className="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-semibold uppercase tracking-wider bg-slate-500/15 text-slate-700 dark:text-slate-300 border border-slate-500/30 shrink-0">
                 Retira
               </span>
             )}
 
             {/* Setor em Produção */}
             {order.setor && order.setor !== "desenvolvimento" && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 max-w-[110px] truncate shrink-0" title={`Em Produção — ${DEPARTMENTS.find(d => d.id === order.setor)?.label || order.setor}`}>
+              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium uppercase tracking-wider bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 max-w-[100px] truncate shrink-0" title={`Em Produção — ${DEPARTMENTS.find(d => d.id === order.setor)?.label || order.setor}`}>
                 Em Prod: {DEPARTMENTS.find(d => d.id === order.setor)?.label || order.setor}
               </span>
             )}
 
             {/* Sub-ordem */}
             {order.parent_order_id && (
-              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider bg-violet-500/10 text-violet-700 dark:text-violet-300 border border-violet-500/25 shrink-0">
+              <span className="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-medium uppercase tracking-wider bg-violet-500/10 text-violet-700 dark:text-violet-300 border border-violet-500/25 shrink-0">
                 Sub
               </span>
             )}
           </div>
 
-          {/* Drag Handle: FIXO, NUNCA CORTADO E COM VISIBILIDADE CLARA */}
+          {/* Drag Handle: FIXO, COMPACTO E VISÍVEL */}
           {dragHandleProps && (
             <div
               {...dragHandleProps}
-              className="p-1 -mr-1 rounded-md hover:bg-muted text-muted-foreground/70 hover:text-foreground cursor-grab active:cursor-grabbing transition-colors shrink-0 flex items-center justify-center bg-muted/20 hover:bg-muted/50 border border-border/40"
+              className="p-1 -mr-1 rounded hover:bg-muted text-muted-foreground/60 hover:text-foreground cursor-grab active:cursor-grabbing transition-colors shrink-0 flex items-center justify-center"
               onClick={(e) => e.stopPropagation()}
               title="Clique e arraste para mover o cartão"
             >
@@ -525,11 +525,11 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
           )}
         </div>
 
-        <div className="px-3.5 pb-3 cursor-pointer space-y-1.5" onClick={() => setOpen(true)}>
-          {/* Linha 1 & 2: Grid perfeitamente alinhado - Coluna Esquerda (Cliente / Serviço) e Coluna Direita (Vendedor / Operador) */}
-          <div className="grid grid-cols-[1fr_auto] items-center gap-x-2 gap-y-1.5 mt-1 min-w-0">
+        <div className="px-3 pb-2.5 cursor-pointer space-y-1" onClick={() => setOpen(true)}>
+          {/* Linha 1 & 2: Grid perfeitamente alinhado e compacto - Coluna Esquerda (Cliente / Serviço) e Coluna Direita (Vendedor / Operador) */}
+          <div className="grid grid-cols-[1fr_auto] items-center gap-x-2 gap-y-0.5 mt-0.5 min-w-0">
             {/* Coluna 1, Linha 1: CLIENTE */}
-            <span className="text-sm font-bold text-foreground truncate uppercase min-w-0" title={order.cliente}>
+            <span className="text-[12.5px] font-bold text-foreground truncate uppercase min-w-0 leading-tight" title={order.cliente}>
               {order.cliente}
             </span>
 
@@ -537,22 +537,22 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
             <div className="flex justify-end min-w-0">
               {order.vendedor ? (
                 <span
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#CCD0CF] bg-[#253745]/70 border border-[#4A5C6A]/50 px-1.5 py-0.5 rounded-md shadow-2xs w-[100px] truncate"
+                  className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#CCD0CF] bg-[#253745]/70 border border-[#4A5C6A]/50 px-1.5 py-0.5 rounded shadow-2xs w-[84px] truncate"
                   title={`Vendedor: ${order.vendedor}`}
                 >
-                  <User className="h-3 w-3 text-[#9BA8AB] shrink-0" />
+                  <User className="h-2.5 w-2.5 text-[#9BA8AB] shrink-0" />
                   <span className="truncate">{order.vendedor}</span>
                 </span>
               ) : (
-                order.operador ? <div className="w-[100px]" /> : null
+                order.operador ? <div className="w-[84px]" /> : null
               )}
             </div>
 
             {/* Coluna 1, Linha 2: SERVIÇO */}
             <div className="min-w-0">
               {order.descricao ? (
-                <div className="flex items-center gap-1.5 text-xs text-muted-foreground truncate" title={order.descricao}>
-                  <FileText className="h-3 w-3 inline shrink-0" />
+                <div className="flex items-center gap-1 text-[11px] text-muted-foreground truncate leading-tight" title={order.descricao}>
+                  <FileText className="h-2.5 w-2.5 inline shrink-0 opacity-80" />
                   <span className="truncate min-w-0">{order.descricao}</span>
                 </div>
               ) : null}
@@ -562,39 +562,39 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
             <div className="flex justify-end min-w-0">
               {order.operador ? (
                 <span
-                  className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#CCD0CF] bg-[#253745] border border-[#4A5C6A]/60 px-1.5 py-0.5 rounded-md shadow-2xs w-[100px] truncate"
+                  className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#CCD0CF] bg-[#253745] border border-[#4A5C6A]/60 px-1.5 py-0.5 rounded shadow-2xs w-[84px] truncate"
                   title={`Operador responsável: ${order.operador}`}
                 >
-                  <UserCheck className="h-3 w-3 text-[#9BA8AB] shrink-0" />
+                  <UserCheck className="h-2.5 w-2.5 text-[#9BA8AB] shrink-0" />
                   <span className="truncate">{order.operador}</span>
                 </span>
               ) : (
-                order.vendedor ? <div className="w-[100px]" /> : null
+                order.vendedor ? <div className="w-[84px]" /> : null
               )}
             </div>
           </div>
 
           {/* Linha 3: PROVA DIGITAL OU EMAIL OU SAÍDA DIRETA */}
           {(order.saida_direta || order.prova_digital || order.prova_email) && (
-            <div className="flex items-center gap-1.5 pt-0.5 flex-wrap min-w-0">
+            <div className="flex items-center gap-1 pt-0.5 flex-wrap min-w-0">
               {order.saida_direta && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-400 text-amber-950 border border-amber-500/30 shadow-2xs">
-                  <Zap className="h-2.5 w-2.5 shrink-0" />
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-amber-400 text-amber-950 border border-amber-500/30 shadow-2xs">
+                  <Zap className="h-2 w-2 shrink-0" />
                   <span>Saída Direta</span>
                 </span>
               )}
               {order.prova_digital && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/60">
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/60">
                   <span>Prova Digital</span>
                 </span>
               )}
               {order.prova_email && (
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-pink-500/15 text-pink-700 dark:text-pink-300 border border-pink-500/30">
+                <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-pink-500/15 text-pink-700 dark:text-pink-300 border border-pink-500/30">
                   <span>Prova E-mail</span>
                 </span>
               )}
               {order.prova_digital && order.endereco_entrega && (
-                <span className="text-[11px] font-semibold text-muted-foreground truncate max-w-[190px]" title={order.endereco_entrega}>
+                <span className="text-[10px] font-medium text-muted-foreground truncate max-w-[170px]" title={order.endereco_entrega}>
                   ({order.endereco_entrega})
                 </span>
               )}
@@ -604,7 +604,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
           {/* Linha 4: MATERIAIS & SUPRIMENTOS (PANTONE, FACA, CLICHÊ, OUTROS e Processos) */}
           {SPECIAL_SUPPLIES.some((s) => isSpecialSupplyActive(order.processos, s.id)) && (
             <div
-              className="flex items-center gap-1.5 pt-0.5 flex-wrap"
+              className="flex items-center gap-1 pt-0.5 flex-wrap"
               onClick={(e) => e.stopPropagation()}
             >
               {SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(order.processos, s.id)).map((item) => {
@@ -635,21 +635,21 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                         ? `${labelText}: ENVIADO ${formattedTime ? `em ${formattedTime}` : ""}${op ? ` por ${op}` : ""} (Clique para alterar para pendente)`
                         : `${labelText}: PENDENTE (Clique para marcar como enviado)`
                     }
-                    className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider uppercase transition-all flex items-center gap-1 shadow-xs cursor-pointer border ${style.badge}`}
+                    className={`px-1.5 py-0.5 rounded text-[9px] font-bold tracking-tight uppercase transition-all flex items-center gap-1 shadow-2xs cursor-pointer border ${style.badge}`}
                   >
-                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${style.dot}`} />
+                    <span className={`w-1 h-1 rounded-full shrink-0 ${style.dot}`} />
                     <span>{labelText}</span>
                     {isSent ? (
                       <>
-                        <Check className="h-3 w-3 stroke-[3]" />
+                        <Check className="h-2.5 w-2.5 stroke-[3]" />
                         {timeOnly && (
-                          <span className="text-[9px] font-mono-tech opacity-90 tracking-tight bg-black/20 px-1 rounded">
+                          <span className="text-[8px] font-mono-tech opacity-90 tracking-tight bg-black/20 px-0.5 rounded">
                             {timeOnly}
                           </span>
                         )}
                       </>
                     ) : (
-                      <span className="text-[9px] opacity-75">⏳</span>
+                      <span className="text-[8px] opacity-75">⏳</span>
                     )}
                   </button>
                 );
@@ -661,21 +661,21 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
           {order.processos && order.processos.length > 0 && sortAndFilterProcessos(order.processos).length > 0 && (
             <div className="flex flex-wrap gap-1 pt-0.5">
               {sortAndFilterProcessos(order.processos).map((p) => (
-                <span key={p} className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${getProcessoCor(p)}`}>{p}</span>
+                <span key={p} className={`text-[8.5px] font-bold px-1 py-0.2 rounded border ${getProcessoCor(p)}`}>{p}</span>
               ))}
             </div>
           )}
 
           {/* Linha 5: OBS (Observação Geral da O.S. e Obs de Prova) */}
           {cleanObs && !(order.status === "paralisado" || order.status === "aguardando_novo_arquivo") && (
-            <div className="pt-0.5 text-xs text-muted-foreground min-w-0">
-              <span className="font-bold text-foreground/80">OBS: </span>
+            <div className="pt-0.5 text-[10.5px] text-muted-foreground min-w-0 leading-tight">
+              <span className="font-bold text-foreground/80 text-[10px]">OBS: </span>
               <span className="italic line-clamp-2">{cleanObs}</span>
             </div>
           )}
 
           {order.obs_prova && (
-            <p className="text-xs text-amber-700 dark:text-amber-400 line-clamp-2 italic">📋 {order.obs_prova}</p>
+            <p className="text-[10px] text-amber-700 dark:text-amber-400 line-clamp-2 italic leading-tight">📋 {order.obs_prova}</p>
           )}
 
           {/* Motivo da Parada (quando paralisado) */}
@@ -687,19 +687,19 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                   setMotivoTexto(order.observacao || "");
                   setMotivoDialogOpen(true);
                 }}
-                className="mt-2 p-2.5 rounded-xl border-2 border-amber-500/70 bg-amber-500/15 dark:bg-amber-950/45 hover:bg-amber-500/25 transition-all cursor-pointer shadow-xs space-y-1 group"
+                className="mt-1.5 p-2 rounded-xl border-2 border-amber-500/70 bg-amber-500/15 dark:bg-amber-950/45 hover:bg-amber-500/25 transition-all cursor-pointer shadow-xs space-y-0.5 group"
                 title="Clique para editar o motivo da parada"
               >
-                <div className="flex items-center justify-between gap-1.5">
-                  <span className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-wider text-amber-800 dark:text-amber-300">
-                    <AlertTriangle className="h-3.5 w-3.5 text-amber-500 animate-pulse shrink-0" />
+                <div className="flex items-center justify-between gap-1">
+                  <span className="flex items-center gap-1 text-[9.5px] font-extrabold uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                    <AlertTriangle className="h-3 w-3 text-amber-500 animate-pulse shrink-0" />
                     Motivo da Parada
                   </span>
-                  <span className="text-[10px] text-amber-700 dark:text-amber-300 font-semibold group-hover:underline flex items-center gap-0.5">
-                    <Edit2 className="h-2.5 w-2.5" /> Editar
+                  <span className="text-[9.5px] text-amber-700 dark:text-amber-300 font-semibold group-hover:underline flex items-center gap-0.5">
+                    <Edit2 className="h-2 w-2" /> Editar
                   </span>
                 </div>
-                <p className="text-xs font-bold text-foreground break-words leading-snug">
+                <p className="text-[11px] font-bold text-foreground break-words leading-snug">
                   {order.observacao}
                 </p>
               </div>
@@ -710,16 +710,16 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                   setMotivoTexto("");
                   setMotivoDialogOpen(true);
                 }}
-                className="mt-2 p-2.5 rounded-xl border-2 border-dashed border-amber-500/60 bg-amber-500/10 hover:bg-amber-500/20 transition-all flex items-center justify-between gap-2 cursor-pointer shadow-xs"
+                className="mt-1.5 p-2 rounded-xl border-2 border-dashed border-amber-500/60 bg-amber-500/10 hover:bg-amber-500/20 transition-all flex items-center justify-between gap-2 cursor-pointer shadow-xs"
                 title="Clique para informar o motivo da parada desta OS"
               >
-                <span className="text-[11px] font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5">
-                  <AlertTriangle className="h-3.5 w-3.5 text-amber-500 animate-bounce shrink-0" />
+                <span className="text-[10px] font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3 text-amber-500 animate-bounce shrink-0" />
                   Informar motivo da parada...
                 </span>
                 <Badge
                   variant="secondary"
-                  className="text-[10px] px-2 py-0.5 bg-amber-500 text-slate-950 font-extrabold border-none"
+                  className="text-[9px] px-1.5 py-0.2 bg-amber-500 text-slate-950 font-extrabold border-none"
                 >
                   Comentar
                 </Badge>
@@ -729,7 +729,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
 
           {/* Linha 6: Demais coisas que já tem (Prazo, Atualizado por) */}
           {order.prazo && (
-            <div className="flex items-center justify-between gap-1.5 pt-1.5 border-t border-border/40 text-[10px] font-semibold">
+            <div className="flex items-center justify-between gap-1 pt-1 mt-1 border-t border-border/40 text-[9.5px] font-semibold">
               <span className={`flex items-center gap-1 ${
                 isExpired
                   ? "text-rose-600 dark:text-rose-400 font-bold"
@@ -737,11 +737,11 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                   ? "text-amber-600 dark:text-amber-400 font-bold"
                   : "text-muted-foreground"
               }`}>
-                <Clock className="h-3 w-3 shrink-0" />
+                <Clock className="h-2.5 w-2.5 shrink-0" />
                 Prazo: {format(new Date(order.prazo), "dd/MM HH:mm", { locale: ptBR })}
               </span>
               {remainingText && (
-                <span className={`px-1.5 py-0.5 rounded text-[9.5px] font-bold uppercase tracking-wider font-mono-tech shrink-0 ${
+                <span className={`px-1 py-0.2 rounded text-[8.5px] font-bold uppercase tracking-wider font-mono-tech shrink-0 ${
                   isExpired
                     ? "bg-rose-500/20 text-rose-600 dark:text-rose-300 border border-rose-500/30 animate-pulse"
                     : isNearDeadline
@@ -755,10 +755,10 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
           )}
 
           {updatedByName && (
-            <div className="flex items-center gap-1 pt-0.5 text-[10px] text-muted-foreground/60">
-              <UserCheck className="h-2.5 w-2.5" />
+            <div className="flex items-center gap-1 pt-0.5 text-[9px] text-muted-foreground/60">
+              <UserCheck className="h-2 w-2" />
               <span>{updatedByName}</span>
-              <Clock className="h-2.5 w-2.5 ml-1" />
+              <Clock className="h-2 w-2 ml-0.5" />
               <span>{format(new Date(order.updated_at), "dd/MM HH:mm", { locale: ptBR })}</span>
             </div>
           )}
