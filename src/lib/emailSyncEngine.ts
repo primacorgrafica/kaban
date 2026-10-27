@@ -74,22 +74,50 @@ export async function runEmailSync(): Promise<SyncResult> {
     newReceivedReplies: [],
   };
 
-  // Obtém o ID do usuário autenticado no Supabase para satisfazer as políticas de RLS da tabela 'avisos'
-  let currentUserId: string | null = null;
-  try {
-    const { data: authData } = await supabase.auth.getUser();
-    currentUserId = authData?.user?.id || null;
-    if (!currentUserId) {
+  const rollingCutoff = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+
+  // 1. Define janela temporal inteligente: se sincronizado recentemente, busca com margem de segurança de 2h
+  let since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  if (typeof window !== "undefined") {
+    try {
+      const storedLastSync = localStorage.getItem(LAST_EMAIL_SYNC_KEY);
+      if (storedLastSync) {
+        const lastSyncTime = new Date(storedLastSync).getTime();
+        if (!isNaN(lastSyncTime) && Date.now() - lastSyncTime < 24 * 60 * 60 * 1000) {
+          const bufferTime = Math.max(Date.now() - 24 * 60 * 60 * 1000, lastSyncTime - 2 * 60 * 60 * 1000);
+          since = new Date(bufferTime).toISOString();
+        }
+      }
+    } catch {}
+  }
+
+  // 2. Carrega todos os dados iniciais em paralelo (ordens ativas, eventos recentes, avisos e sessão)
+  const [authRes, ordersRes, eventsRes, avisosRes] = await Promise.all([
+    supabase.auth.getUser().catch(() => ({ data: { user: null }, error: null })),
+    supabase
+      .from("orders")
+      .select("id, titulo, criado_por")
+      .neq("status", "arquivado"),
+    supabase
+      .from("order_email_events")
+      .select("id, message_id, conversation_id, order_id, os_number, subject, body_preview, email_datetime, direction")
+      .gte("email_datetime", rollingCutoff),
+    supabase
+      .from("avisos")
+      .select("id, titulo, mensagem, created_at")
+      .gte("created_at", since),
+  ]);
+
+  let currentUserId: string | null = (authRes as any)?.data?.user?.id || null;
+  if (!currentUserId) {
+    try {
       const { data: sessData } = await supabase.auth.getSession();
       currentUserId = sessData?.session?.user?.id || null;
-    }
-  } catch {}
+    } catch {}
+  }
 
-  // 1. Carrega todas as O.S. ativas para cruzamento rápido
-  const { data: activeOrders, error: ordersError } = await supabase
-    .from("orders")
-    .select("id, titulo, criado_por")
-    .neq("status", "arquivado");
+  const activeOrders = ordersRes.data;
+  const ordersError = ordersRes.error;
 
   if (ordersError || !activeOrders || activeOrders.length === 0) {
     if (ordersError) {
@@ -117,15 +145,9 @@ export async function runEmailSync(): Promise<SyncResult> {
     }
   }
 
-  // 2. Carrega eventos da janela deslizante (últimos 30 dias) para mapear conversation_ids e evitar duplicatas
-  const rollingCutoff = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
-  const { data: existingEvents, error: eventsError } = await supabase
-    .from("order_email_events")
-    .select("id, message_id, conversation_id, order_id, os_number, subject, body_preview, email_datetime, direction")
-    .gte("email_datetime", rollingCutoff);
-
-  if (eventsError) {
-    console.warn("[EmailSync] Aviso ao consultar eventos existentes:", eventsError.message);
+  const existingEvents = eventsRes.data;
+  if (eventsRes.error) {
+    console.warn("[EmailSync] Aviso ao consultar eventos existentes:", eventsRes.error.message);
   }
 
   const existingMessageIds = new Set<string>(
@@ -152,76 +174,69 @@ export async function runEmailSync(): Promise<SyncResult> {
     existingFingerprints.add(`${evt.order_id}|${isReply ? "resp" : "env"}|${normSub}|${normBody}|${timeMin}`);
   }
 
-  // 3. Define janela temporal: busca as últimas 24h
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
-  // Carrega avisos recentes para evitar duplicar avisos na mesma O.S.
-  const { data: recentAvisosData } = await supabase
-    .from("avisos")
-    .select("id, titulo, mensagem, created_at")
-    .gte("created_at", since);
-  const existingAvisosList: Array<{ id?: string; titulo: string; mensagem: string }> = recentAvisosData || [];
+  const existingAvisosList: Array<{ id?: string; titulo: string; mensagem: string }> = avisosRes.data || [];
 
   // Conjunto para evitar processamento duplicado durante a execução
   const processedEventKeys = new Set<string>();
   const notifiedOsNumbers = new Set<string>();
 
-  // Auto-correção: mensagens de resposta de clientes com prefixo RES: ou RE: devem ter direction: 'recebido'
-  await supabase
-    .from("order_email_events")
-    .update({ direction: "recebido" })
-    .ilike("subject", "res:%")
-    .eq("direction", "enviado")
-    .not("sender", "ilike", "%@primacorgrafica.com.br")
-    .then(() => null)
-    .catch(() => null);
+  // Auto-correção em paralelo: executada de forma concorrente sem bloquear as requisições de e-mail
+  const maintenancePromise = Promise.allSettled([
+    supabase
+      .from("order_email_events")
+      .update({ direction: "recebido" })
+      .ilike("subject", "res:%")
+      .eq("direction", "enviado")
+      .not("sender", "ilike", "%@primacorgrafica.com.br")
+      .then(() => null)
+      .catch(() => null),
+    supabase
+      .from("order_email_events")
+      .update({ direction: "recebido" })
+      .ilike("subject", "re:%")
+      .eq("direction", "enviado")
+      .not("sender", "ilike", "%@primacorgrafica.com.br")
+      .then(() => null)
+      .catch(() => null),
+    supabase
+      .from("order_email_events")
+      .update({ direction: "enviado" })
+      .eq("direction", "recebido")
+      .ilike("sender", "%@primacorgrafica.com.br")
+      .then(() => null)
+      .catch(() => null),
+    supabase
+      .from("avisos")
+      .delete()
+      .ilike("mensagem", "%Remetente: %primacorgrafica.com.br%")
+      .ilike("mensagem", "%Notificação de Ordem de Serviço%")
+      .then(() => null)
+      .catch(() => null),
+  ]);
 
-  await supabase
-    .from("order_email_events")
-    .update({ direction: "recebido" })
-    .ilike("subject", "re:%")
-    .eq("direction", "enviado")
-    .not("sender", "ilike", "%@primacorgrafica.com.br")
-    .then(() => null)
-    .catch(() => null);
+  // 3. Busca em paralelo todas as pastas (sentitems e inbox) de todas as caixas monitoradas
+  const folderTasks = MONITORED_MAILBOXES.flatMap((mailbox) => [
+    { mailbox, folder: "sentitems" as const, direction: "enviado" as const },
+    { mailbox, folder: "inbox" as const, direction: "recebido" as const },
+  ]);
 
-  // Auto-correção: e-mails enviados pela própria gráfica não devem ter direction 'recebido'
-  await supabase
-    .from("order_email_events")
-    .update({ direction: "enviado" })
-    .eq("direction", "recebido")
-    .ilike("sender", "%@primacorgrafica.com.br")
-    .then(() => null)
-    .catch(() => null);
-
-  // Remove avisos falsos gerados por notificações internas do sistema
-  await supabase
-    .from("avisos")
-    .delete()
-    .ilike("mensagem", "%Remetente: %primacorgrafica.com.br%")
-    .ilike("mensagem", "%Notificação de Ordem de Serviço%")
-    .then(() => null)
-    .catch(() => null);
-
-  // 4. Itera sobre cada caixa e pasta monitorada
-  for (const mailbox of MONITORED_MAILBOXES) {
-    const folders: Array<{ folder: "inbox" | "sentitems"; direction: "recebido" | "enviado" }> = [
-      { folder: "sentitems", direction: "enviado" },
-      { folder: "inbox", direction: "recebido" },
-    ];
-
-    for (const { folder } of folders) {
-      let messages: GraphMessage[] = [];
+  const fetchedFolders = await Promise.all(
+    folderTasks.map(async (task) => {
       try {
-        messages = await fetchMailboxMessages(mailbox, folder, since);
+        const messages = await fetchMailboxMessages(task.mailbox, task.folder, since);
+        return { ...task, messages, error: null };
       } catch (err: any) {
-        console.warn(`[EmailSync] Erro ao buscar e-mails de ${mailbox}/${folder}:`, err.message);
-        result.errors.push(`${mailbox}/${folder}: ${err.message}`);
-        continue;
+        console.warn(`[EmailSync] Erro ao buscar e-mails de ${task.mailbox}/${task.folder}:`, err.message);
+        result.errors.push(`${task.mailbox}/${task.folder}: ${err.message}`);
+        return { ...task, messages: [] as GraphMessage[], error: err };
       }
+    })
+  );
 
-      for (const msg of messages) {
-        result.processed++;
+  // 4. Itera sobre as mensagens retornadas em paralelo
+  for (const { mailbox, folder, messages } of fetchedFolders) {
+    for (const msg of messages) {
+      result.processed++;
 
         const sender = msg.from?.emailAddress?.address || msg.from?.emailAddress?.name || mailbox;
         const senderEmail = (msg.from?.emailAddress?.address || "").toLowerCase().trim();
@@ -436,7 +451,6 @@ export async function runEmailSync(): Promise<SyncResult> {
         }
       }
     }
-  }
 
   // 5. Verificação retroativa de avisos para respostas recebidas nas últimas 24h
   // Garante que mesmo e-mails já gravados em 'order_email_events' em sincronização anterior tenham seus devidos avisos emitidos
@@ -532,6 +546,9 @@ export async function runEmailSync(): Promise<SyncResult> {
   if (typeof window !== "undefined") {
     localStorage.setItem(LAST_EMAIL_SYNC_KEY, result.lastSyncAt);
   }
+
+  // Aguarda tarefas de manutenção se ainda em andamento
+  await maintenancePromise.catch(() => null);
 
   // Telemetria autônoma da operação de sincronização do Outlook
   const syncDurationMs = performance.now() - syncStartTime;

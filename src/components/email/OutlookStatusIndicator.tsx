@@ -91,35 +91,36 @@ export function OutlookStatusIndicator() {
   }
 
   return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-9 px-2.5 text-xs text-sky-400 hover:text-sky-300 hover:bg-sky-500/10 border border-sky-500/30 rounded-xl flex items-center gap-1.5 font-mono-tech transition-all"
-          title={`Outlook Conectado. Último sync: ${formattedLastSync}`}
-        >
-          <div className="relative flex items-center justify-center">
-            <Mail className="h-3.5 w-3.5 text-sky-400" />
-            <span
-              className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${
-                isSyncing || isAuthorizing
-                  ? "bg-amber-400 animate-spin"
-                  : isAuthError
-                  ? "bg-rose-500"
-                  : isSecondaryMailboxWarning
-                  ? "bg-emerald-400"
-                  : "bg-emerald-400 animate-pulse"
-              }`}
-            />
-          </div>
-          <span className="hidden lg:inline text-[11px]">
-            {isAuthorizing ? "Conectando..." : isSyncing ? "Sincronizando..." : "Outlook"}
-          </span>
-        </Button>
-      </DropdownMenuTrigger>
+    <div className="flex items-center gap-1.5">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-9 px-2.5 text-xs text-sky-400 hover:text-sky-300 hover:bg-sky-500/10 border border-sky-500/30 rounded-xl flex items-center gap-1.5 font-mono-tech transition-all"
+            title={`Outlook Conectado. Último sync: ${formattedLastSync}. Clique para ver detalhes e configurações.`}
+          >
+            <div className="relative flex items-center justify-center">
+              <Mail className="h-3.5 w-3.5 text-sky-400" />
+              <span
+                className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${
+                  isSyncing || isAuthorizing
+                    ? "bg-amber-400 animate-spin"
+                    : isAuthError
+                    ? "bg-rose-500"
+                    : isSecondaryMailboxWarning
+                    ? "bg-emerald-400"
+                    : "bg-emerald-400 animate-pulse"
+                }`}
+              />
+            </div>
+            <span className="hidden lg:inline text-[11px]">
+              {isAuthorizing ? "Conectando..." : isSyncing ? "Sincronizando..." : "Outlook"}
+            </span>
+          </Button>
+        </DropdownMenuTrigger>
 
-      <DropdownMenuContent align="end" className="w-84 p-2.5">
+        <DropdownMenuContent align="end" className="w-84 p-2.5">
         <DropdownMenuLabel className="font-semibold text-xs flex items-center gap-2">
           <Mail className="h-4 w-4 text-sky-400" />
           <span>Monitoramento Outlook</span>
@@ -249,10 +250,10 @@ export function OutlookStatusIndicator() {
 
         <DropdownMenuItem
           disabled={isSyncing || isAuthorizing}
-          onClick={() => void syncNow(true)}
+          onClick={() => void syncNow({ interactive: false, force: true, notifyOnSuccess: true })}
           className="text-xs cursor-pointer flex items-center gap-2"
         >
-          <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}`} />
+          <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin text-amber-400" : ""}`} />
           <span>Sincronizar e-mails agora</span>
         </DropdownMenuItem>
 
@@ -269,5 +270,17 @@ export function OutlookStatusIndicator() {
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => void syncNow({ interactive: false, force: true, notifyOnSuccess: true })}
+      disabled={isSyncing || isAuthorizing}
+      className="h-9 w-9 text-sky-400 hover:text-sky-300 hover:bg-sky-500/10 border border-sky-500/30 rounded-xl transition-all"
+      title="Sincronizar e-mails agora (Instantâneo)"
+    >
+      <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin text-amber-400" : ""}`} />
+    </Button>
+  </div>
   );
 }

@@ -621,7 +621,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
           })()}
           <div className="flex items-center gap-2 ml-auto order-2">
             {(isAdmin || role === "coordenador") && <SharePointStatusIndicator />}
-            {(isAdmin || role === "coordenador") && <OutlookStatusIndicator />}
+            {(isAdmin || role === "coordenador" || Boolean(typeof window !== "undefined" && localStorage.getItem("kaban_msal_user_info"))) && <OutlookStatusIndicator />}
             <Button
               variant="ghost"
               size="sm"
