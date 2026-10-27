@@ -1,5 +1,5 @@
 import { getOrderRevision, setObservationRevision, isReturnToPreparation } from "@/lib/orderRevision";
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import {
@@ -17,6 +17,8 @@ import { KANBAN_ESSENTIAL_COLUMNS } from "@/lib/autonomousEngine/queryOptimizer"
 import { measureQueryLatency } from "@/lib/autonomousEngine/telemetry";
 import { triggerSellerApprovalNotification } from "@/lib/sellerNotificationService";
 import { hasSpecialSuppliesForCompras } from "@/lib/processos";
+import { syncOrderToCompras } from "@/lib/comprasSync";
+
 
 export function useOrders() {
   const { user, authReady } = useAuth();
@@ -140,6 +142,84 @@ export function useOrders() {
     return profiles[userId]?.nome || null;
   }, [profiles]);
 
+  const copyOrderFields = (o: Order) => ({
+    titulo: o.titulo,
+    descricao: o.descricao,
+    cliente: o.cliente,
+    observacao: o.observacao,
+    status: o.status,
+    saida_direta: o.saida_direta,
+    prova_digital: o.prova_digital,
+    prova_email: o.prova_email,
+    prioridade: o.prioridade,
+    urgente: o.urgente,
+    prazo: o.prazo,
+    vendedor: o.vendedor,
+    tipo_trabalho: o.tipo_trabalho,
+    revisao: o.revisao,
+    equipamentos: o.equipamentos,
+    acabamentos: o.acabamentos,
+    processos: o.processos,
+    nf: o.nf,
+    protocolo: o.protocolo,
+    empresa_entrega: o.empresa_entrega,
+    obs_entrega: o.obs_entrega,
+    endereco_entrega: o.endereco_entrega,
+    destinatario: o.destinatario,
+    tipo_entrega: o.tipo_entrega || [],
+    entrega_para: o.entrega_para,
+    entrega_endereco: o.entrega_endereco,
+    entrega_ac: o.entrega_ac,
+    entrega_data_limite: o.entrega_data_limite,
+  });
+
+  const sendToCompras = useCallback(
+    async (
+      orderId: string,
+      customProcessos?: string[],
+      preloadedOrder?: Order,
+      options?: { silent?: boolean }
+    ) => {
+      let originalOrder = preloadedOrder || orders.find((o) => o.id === orderId);
+      if (!originalOrder) {
+        const { data } = await supabase.from("orders").select("*").eq("id", orderId).maybeSingle();
+        if (data) {
+          originalOrder = data as Order;
+        }
+      }
+      if (!originalOrder) {
+        console.warn("OS não encontrada para envio a compras:", orderId);
+        return null;
+      }
+
+      const effectiveProcessos = customProcessos || originalOrder.processos || [];
+
+      // Regra estrita: Ela só chegará em COMPRAS quando HOUVER habilitado ou PANTONE ou OUTROS
+      if (!hasSpecialSuppliesForCompras(effectiveProcessos)) {
+        console.log(`[Compras] O.S. #${originalOrder.titulo} não possui PANTONE nem OUTROS habilitados. Não chega em Compras.`);
+        return null;
+      }
+
+      const createdId = await syncOrderToCompras(originalOrder, {
+        customProcessos: effectiveProcessos,
+        userId: user?.id,
+      });
+
+      if (createdId) {
+        if (!options?.silent) {
+          toast.success("Card da O.S. criado em Compras!");
+        }
+        return createdId;
+      } else {
+        if (!options?.silent) {
+          toast.error("Erro ao sincronizar card em compras");
+        }
+        return null;
+      }
+    },
+    [user, orders]
+  );
+
   const addOrder = useCallback(
     async (data: {
       titulo: string; descricao: string; cliente: string; observacao?: string; obs_prova?: string;
@@ -254,10 +334,17 @@ export function useOrders() {
         console.error(error);
         return null;
       }
+
+      // Se a OS criada possui PANTONE ou OUTROS habilitados, envia IMEDIATAMENTE para o setor de compras
+      if (created && hasSpecialSuppliesForCompras(created.processos) && (!sendToSetor || sendToSetor !== "compras")) {
+        void sendToCompras(created.id, created.processos, created as Order, { silent: false });
+      }
+
       return created as Order;
     },
-    [user]
+    [user, sendToCompras]
   );
+
 
   const duplicateOrder = useCallback(
     async (order: Order) => {
@@ -346,121 +433,36 @@ export function useOrders() {
       if (error) {
         toast.error("Erro ao atualizar OS.");
         console.error(error);
+      } else {
+        // Se os processos foram atualizados e possuem PANTONE ou OUTROS, garante envio/sincronização com Compras
+        if (data.processos && hasSpecialSuppliesForCompras(data.processos)) {
+          void sendToCompras(id, data.processos);
+        }
       }
     },
-    [user, orders]
+    [user, orders, sendToCompras]
   );
 
-    const copyOrderFields = (o: Order) => ({
-    titulo: o.titulo,
-    descricao: o.descricao,
-    cliente: o.cliente,
-    observacao: o.observacao,
-    status: o.status,
-    saida_direta: o.saida_direta,
-    prova_digital: o.prova_digital,
-    prova_email: o.prova_email,
-    prioridade: o.prioridade,
-    urgente: o.urgente,
-    prazo: o.prazo,
-    vendedor: o.vendedor,
-    tipo_trabalho: o.tipo_trabalho,
-    revisao: o.revisao,
-    equipamentos: o.equipamentos,
-    acabamentos: o.acabamentos,
-    processos: o.processos,
-    nf: o.nf,
-    protocolo: o.protocolo,
-    empresa_entrega: o.empresa_entrega,
-    obs_entrega: o.obs_entrega,
-    endereco_entrega: o.endereco_entrega,
-    destinatario: o.destinatario,
-    tipo_entrega: o.tipo_entrega || [],
-    entrega_para: o.entrega_para,
-    entrega_endereco: o.entrega_endereco,
-    entrega_ac: o.entrega_ac,
-    entrega_data_limite: o.entrega_data_limite,
-  });
+  // Auto-sincronização de OSs ativas de pré-impressão que possuem PANTONE ou OUTROS
+  const syncedComprasRef = useRef<Set<string>>(new Set());
 
-  const sendToCompras = useCallback(async (orderId: string, customProcessos?: string[]) => {
-    let originalOrder = orders.find(o => o.id === orderId);
-    if (!originalOrder) {
-      const { data } = await supabase.from("orders").select("*").eq("id", orderId).maybeSingle();
-      if (data) {
-        originalOrder = data as Order;
-      }
-    }
-    if (!originalOrder) {
-      console.warn("OS não encontrada para envio a compras:", orderId);
-      return null;
-    }
+  useEffect(() => {
+    if (!orders || orders.length === 0) return;
+    const candidates = orders.filter(
+      (o) =>
+        !o.arquivado &&
+        (!o.setor || o.setor !== "compras") &&
+        hasSpecialSuppliesForCompras(o.processos) &&
+        !syncedComprasRef.current.has(o.id)
+    );
+    if (candidates.length === 0) return;
 
-    const effectiveProcessos = customProcessos || originalOrder.processos || [];
+    candidates.forEach((o) => {
+      syncedComprasRef.current.add(o.id);
+      void sendToCompras(o.id, o.processos, o, { silent: true });
+    });
+  }, [orders, sendToCompras]);
 
-    // Regra estrita: Ela só chegará em COMPRAS quando HOUVER habilitado ou PANTONE ou OUTROS
-    if (!hasSpecialSuppliesForCompras(effectiveProcessos)) {
-      console.log(`[Compras] O.S. #${originalOrder.titulo} não possui PANTONE nem OUTROS habilitados. Não chega em Compras.`);
-      return null;
-    }
-
-    // Verificar se já existe uma cópia ativa desta OS em compras para não duplicar
-    const { data: existing } = await supabase
-      .from("orders")
-      .select("id")
-      .eq("setor", "compras")
-      .eq("parent_order_id", orderId)
-      .eq("arquivado", false)
-      .limit(1);
-
-    if (existing && existing.length > 0) {
-      console.log("Card em Compras já existente para esta OS:", existing[0].id);
-      return existing[0].id;
-    }
-
-    const copied = copyOrderFields(originalOrder);
-    delete (copied as any).os_anterior;
-
-    const insertPayload: any = {
-      ...copied,
-      status: "fila_de_entrada",
-      setor: "compras",
-      setor_status: "entrada",
-      categoria_compra: "os",
-      parent_order_id: orderId,
-      posicao: originalOrder.urgente ? 0 : 9999,
-      processos: customProcessos || originalOrder.processos || [],
-      criado_por: originalOrder.criado_por || user?.id || null,
-      atualizado_por: user?.id || null,
-    };
-
-    let { data: created, error } = await supabase
-      .from("orders")
-      .insert(insertPayload)
-      .select("id");
-
-    if (error && (error.message?.includes("os_anterior") || (error as any).code === "42703" || (error as any).code === "PGRST204")) {
-      delete insertPayload.os_anterior;
-      const retry = await supabase.from("orders").insert(insertPayload).select("id");
-      created = retry.data;
-      error = retry.error;
-    }
-
-    if (error && (error.message?.includes("revisao") || (error as any).code === "42703" || (error as any).code === "PGRST204")) {
-      delete insertPayload.revisao;
-      const retry = await supabase.from("orders").insert(insertPayload).select("id");
-      created = retry.data;
-      error = retry.error;
-    }
-
-    if (error) {
-      console.error("Erro ao criar card em compras:", error);
-      toast.error("Erro ao criar card em compras: " + (error.message || "Falha na inserção"));
-      return null;
-    } else {
-      toast.success("Card da O.S. criado em Compras!");
-      return created?.[0]?.id;
-    }
-  }, [user, orders]);
 
   const moveOrder = useCallback(async (id: string, newStatus: OrderStatus, newIndex?: number, newRevisao?: number) => {
     const currentOrder = orders.find(o => o.id === id);

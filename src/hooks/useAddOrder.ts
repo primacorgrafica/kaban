@@ -6,6 +6,8 @@ import { useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { hasSpecialSuppliesForCompras } from "@/lib/processos";
+import { syncOrderToCompras } from "@/lib/comprasSync";
 
 export function useAddOrder() {
   const { user } = useAuth();
@@ -138,6 +140,12 @@ export function useAddOrder() {
         console.error(error);
         return null;
       }
+
+      // Se a OS criada possui PANTONE ou OUTROS habilitados, envia IMEDIATAMENTE para o setor de compras
+      if (created && hasSpecialSuppliesForCompras(created.processos) && (!sendToSetor || sendToSetor !== "compras")) {
+        void syncOrderToCompras(created, { userId: user?.id });
+      }
+
       return created as any;
     },
     [user]

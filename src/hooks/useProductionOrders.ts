@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Order, Profile } from "@/types/order";
 import { Department } from "@/types/production";
 import { hasSpecialSuppliesForCompras } from "@/lib/processos";
+import { syncOrderToCompras } from "@/lib/comprasSync";
 
 export function useProductionOrders() {
   const { user, authReady } = useAuth();
@@ -53,7 +54,28 @@ export function useProductionOrders() {
       from += PAGE_SIZE;
     }
     setOrders(all);
-  }, []);
+
+    // Sincronização preventiva de compras: assegura que qualquer OS de pré-impressão com PANTONE ou OUTROS
+    // que ainda não tenha card em compras seja devidamente provisionada
+    void (async () => {
+      try {
+        const { data: missingCandidates } = await supabase
+          .from("orders")
+          .select("*")
+          .is("setor", null)
+          .eq("arquivado", false);
+        if (missingCandidates && missingCandidates.length > 0) {
+          for (const cand of missingCandidates) {
+            if (hasSpecialSuppliesForCompras(cand.processos)) {
+              await syncOrderToCompras(cand as Order, { userId: user?.id });
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("[useProductionOrders] Falha na sincronização preventiva de compras:", err);
+      }
+    })();
+  }, [user]);
 
 
   // PERFORMANCE: merge incremental (ver useOrders.ts).
