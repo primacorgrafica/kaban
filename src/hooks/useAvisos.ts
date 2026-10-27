@@ -72,6 +72,30 @@ export function useAvisos() {
     setLidos((prev) => new Set(prev).add(avisoId));
   };
 
+  const marcarTodosComoLidos = async () => {
+    if (!user || naoLidos.length === 0) return;
+    const rows = naoLidos.map((a) => ({ aviso_id: a.id, user_id: user.id }));
+    await supabase.from("avisos_lidos").upsert(rows, { onConflict: "aviso_id,user_id", ignoreDuplicates: true });
+    setLidos((prev) => {
+      const next = new Set(prev);
+      naoLidos.forEach((a) => next.add(a.id));
+      return next;
+    });
+  };
+
+  const limparAvisos = async () => {
+    if (!user) return;
+    // Remove all read-tracking records for this user
+    await supabase.from("avisos_lidos").delete().eq("user_id", user.id);
+    // Remove avisos targeted to this user or global (null)
+    await supabase
+      .from("avisos")
+      .delete()
+      .or(`destinatario_id.is.null,destinatario_id.eq.${user.id}`);
+    setAvisos([]);
+    setLidos(new Set());
+  };
+
   const enviarAviso = async (aviso: { titulo: string; mensagem: string; tipo: string; destinatario_id: string | null }) => {
     if (!user) return;
     const { error } = await supabase.from("avisos").insert({
@@ -81,5 +105,5 @@ export function useAvisos() {
     return { error };
   };
 
-  return { avisos, naoLidos, lidos, loading, marcarComoLido, enviarAviso, refetch: fetchAvisos };
+  return { avisos, naoLidos, lidos, loading, marcarComoLido, marcarTodosComoLidos, limparAvisos, enviarAviso, refetch: fetchAvisos };
 }

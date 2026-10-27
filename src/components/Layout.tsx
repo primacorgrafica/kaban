@@ -169,7 +169,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
     return () => { unsub(); };
   }, [authReady, user]);
 
-  const { avisos, naoLidos, lidos, loading: avisosLoading, marcarComoLido, enviarAviso } = useAvisos();
+  const { avisos, naoLidos, lidos, loading: avisosLoading, marcarComoLido, marcarTodosComoLidos, limparAvisos, enviarAviso } = useAvisos();
 
   // Exibe apenas avisos recebidos nesta sessão do Layout. A leitura é persistida
   // assim que o popup abre para que uma troca de rota não possa reabri-lo.
@@ -643,6 +643,8 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
               naoLidos={naoLidos}
               lidos={lidos}
               onRead={marcarComoLido}
+              onMarkAllRead={marcarTodosComoLidos}
+              onClear={limparAvisos}
               onViewAviso={(aviso) => setViewingAviso(aviso)}
             />
             {permissions.canCreateOS && location.pathname !== "/faturamento" && location.pathname !== "/comercial" && location.pathname !== "/manutencao" && location.pathname !== "/compras" && location.pathname !== "/entregas" && location.pathname !== "/pcp" && (

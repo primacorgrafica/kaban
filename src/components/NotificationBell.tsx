@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Bell } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Bell, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -12,6 +12,8 @@ interface NotificationBellProps {
   naoLidos: Aviso[];
   lidos: Set<string>;
   onRead: (avisoId: string) => void;
+  onMarkAllRead: () => void;
+  onClear: () => void;
   onViewAviso: (aviso: Aviso) => void;
 }
 
@@ -21,9 +23,16 @@ const TIPO_CONFIG: Record<string, { icon: typeof Info; color: string; bg: string
   lembrete: { icon: Clock, color: "text-warning", bg: "bg-warning/10", label: "LEMBRETE" },
 };
 
-export function NotificationBell({ avisos, naoLidos, lidos, onRead, onViewAviso }: NotificationBellProps) {
+export function NotificationBell({ avisos, naoLidos, lidos, onRead, onMarkAllRead, onClear, onViewAviso }: NotificationBellProps) {
   const [open, setOpen] = useState(false);
   const count = naoLidos.length;
+
+  // When the sheet opens, mark all notifications as read so the badge clears
+  useEffect(() => {
+    if (open && count > 0) {
+      onMarkAllRead();
+    }
+  }, [open]);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -39,8 +48,24 @@ export function NotificationBell({ avisos, naoLidos, lidos, onRead, onViewAviso 
       </SheetTrigger>
       <SheetContent className="w-[380px] sm:w-[420px] p-0 flex flex-col">
         <SheetHeader className="px-4 py-3 border-b border-border/50">
-          <SheetTitle className="text-base">Meus Avisos</SheetTitle>
-          <p className="text-xs text-muted-foreground">{count} não lido(s) · {avisos.length} total</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <SheetTitle className="text-base">Meus Avisos</SheetTitle>
+              <p className="text-xs text-muted-foreground">{count} não lido(s) · {avisos.length} total</p>
+            </div>
+            {avisos.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onClear}
+                className="h-8 px-2.5 text-xs text-destructive hover:text-destructive hover:bg-destructive/10 rounded-lg gap-1.5"
+                title="Limpar todas as notificações"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Limpar tudo
+              </Button>
+            )}
+          </div>
         </SheetHeader>
 
         <ScrollArea className="flex-1">
