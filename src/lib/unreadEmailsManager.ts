@@ -19,6 +19,8 @@ class UnreadEmailsManager {
   private readOrderTimestamps: Map<string, number> = new Map();
   // Mapeamento: orderId -> OrderEmailEvent[] (apenas respostas 'recebido' ainda não lidas)
   private unreadByOrder: Map<string, OrderEmailEvent[]> = new Map();
+  // Conjunto de orderIds que possuem histórico de respostas de e-mail recebidas
+  private allReceivedOrderIds: Set<string> = new Set();
   private subscribers: Set<() => void> = new Set();
   private initialized = false;
   private realtimeChannel: any = null;
@@ -119,8 +121,12 @@ class UnreadEmailsManager {
 
       const rows = (data as unknown as OrderEmailEvent[]) || [];
       const newUnreadMap = new Map<string, OrderEmailEvent[]>();
+      const allReceived = new Set<string>();
 
       for (const evt of rows) {
+        if (evt.order_id) {
+          allReceived.add(evt.order_id);
+        }
         if (this.isEventUnread(evt)) {
           const list = newUnreadMap.get(evt.order_id) || [];
           list.push(evt);
@@ -129,6 +135,7 @@ class UnreadEmailsManager {
       }
 
       this.unreadByOrder = newUnreadMap;
+      this.allReceivedOrderIds = allReceived;
       this.notify();
     } catch (err) {
       console.error("[UnreadEmailsManager] Exceção na inicialização:", err);
@@ -175,6 +182,9 @@ class UnreadEmailsManager {
             const oldRow = payload.old as OrderEmailEvent | undefined;
 
             if (eventType === "INSERT" && newRow && newRow.direction === "recebido") {
+              if (newRow.order_id) {
+                this.allReceivedOrderIds.add(newRow.order_id);
+              }
               if (this.isEventUnread(newRow)) {
                 const list = this.unreadByOrder.get(newRow.order_id) || [];
                 // Evita duplicar o mesmo evento
@@ -185,6 +195,9 @@ class UnreadEmailsManager {
                 }
               }
             } else if (eventType === "UPDATE" && newRow) {
+              if (newRow.order_id) {
+                this.allReceivedOrderIds.add(newRow.order_id);
+              }
               if ((newRow as any).read_at || !this.isEventUnread(newRow)) {
                 // Evento foi marcado como lido
                 this.readEventIds.add(newRow.id);
@@ -228,6 +241,13 @@ class UnreadEmailsManager {
   }
 
   /**
+   * Verifica se uma Ordem de Serviço possui respostas de e-mail e todas já foram lidas/verificadas.
+   */
+  public hasVerified(orderId: string): boolean {
+    return this.allReceivedOrderIds.has(orderId) && !this.hasUnread(orderId);
+  }
+
+  /**
    * Retorna os eventos não lidos de uma O.S.
    */
   public getUnreadEvents(orderId: string): OrderEmailEvent[] {
@@ -242,6 +262,20 @@ class UnreadEmailsManager {
     let count = 0;
     for (const id of orderIds) {
       if (this.hasUnread(id)) {
+        count++;
+      }
+    }
+    return count;
+  }
+
+  /**
+   * Retorna a quantidade de ordens com e-mails verificados/lidos dentre uma lista de orderIds
+   * (usado pelo cabeçalho da coluna do Kanban para exibir a cartinha verde).
+   */
+  public getVerifiedCountForOrders(orderIds: string[]): number {
+    let count = 0;
+    for (const id of orderIds) {
+      if (this.hasVerified(id)) {
         count++;
       }
     }
@@ -274,6 +308,7 @@ class UnreadEmailsManager {
     });
     this.readOrderTimestamps.set(orderId, now);
     this.unreadByOrder.delete(orderId);
+    this.allReceivedOrderIds.add(orderId);
     this.saveToStorage();
     this.notify();
 

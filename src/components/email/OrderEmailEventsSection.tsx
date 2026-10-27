@@ -24,9 +24,10 @@ export function OrderEmailEventsSection({
   vendedorNome,
 }: OrderEmailEventsSectionProps) {
   const { events, loading, refetch } = useOrderEmails(orderId);
-  const { hasUnread, markAsRead } = useUnreadEmailReplies();
+  const { hasUnread, hasVerified, markAsRead } = useUnreadEmailReplies();
   const { syncNow, isSyncing } = useEmailMonitor(false);
   const isUnread = hasUnread(orderId);
+  const isVerified = hasVerified(orderId);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const handleRefreshAndSync = async () => {
@@ -87,7 +88,7 @@ export function OrderEmailEventsSection({
         </div>
 
         <div className="flex items-center gap-1.5">
-          {isUnread && (
+          {isUnread ? (
             <Button
               size="sm"
               onClick={() => void markAsRead(orderId, orderTitulo)}
@@ -97,7 +98,15 @@ export function OrderEmailEventsSection({
               <Check className="h-3.5 w-3.5 mr-1 stroke-[3]" />
               Marcar como Lido
             </Button>
-          )}
+          ) : isVerified ? (
+            <span
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+              title="E-mail verificado pelo operador"
+            >
+              <Check className="h-3.5 w-3.5 stroke-[2.5]" />
+              Verificado
+            </span>
+          ) : null}
 
           <Button
             variant="ghost"

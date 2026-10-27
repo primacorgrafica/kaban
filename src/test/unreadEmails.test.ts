@@ -84,12 +84,16 @@ describe("UnreadEmailsManager - Notificação Visual no Card e Coluna sem Pop-up
     await unreadEmailsManager.markOrderAsRead("order-uuid-404040", "404040");
 
     expect(unreadEmailsManager.hasUnread("order-uuid-404040")).toBe(false);
+    expect(unreadEmailsManager.hasVerified("order-uuid-404040")).toBe(true);
     expect(unreadEmailsManager.getUnreadCountForOrders(["order-uuid-404040"])).toBe(0);
+    expect(unreadEmailsManager.getVerifiedCountForOrders(["order-uuid-404040"])).toBe(1);
   });
 
-  it("calcula corretamente a quantidade de ordens com e-mails não lidos por coluna", () => {
+  it("calcula corretamente a quantidade de ordens com e-mails não lidos e verificados por coluna", () => {
     const orderIdsInColumn = ["order-uuid-404040", "order-uuid-999999"];
-    // Se não há e-mails não lidos, contador da coluna deve ser 0
+    // Se não há e-mails não lidos, contador não lido da coluna deve ser 0
     expect(unreadEmailsManager.getUnreadCountForOrders(orderIdsInColumn)).toBe(0);
+    // order-uuid-404040 foi verificado acima
+    expect(unreadEmailsManager.getVerifiedCountForOrders(orderIdsInColumn)).toBe(1);
   });
 });

@@ -4,8 +4,10 @@ import type { OrderEmailEvent } from "@/types/email";
 
 export interface UseUnreadEmailRepliesReturn {
   hasUnread: (orderId: string) => boolean;
+  hasVerified: (orderId: string) => boolean;
   getUnreadEvents: (orderId: string) => OrderEmailEvent[];
   getUnreadCountForOrders: (orderIds: string[]) => number;
+  getVerifiedCountForOrders: (orderIds: string[]) => number;
   markAsRead: (orderId: string, osNumber?: string) => Promise<void>;
   unreadOrderIds: Set<string>;
 }
@@ -29,12 +31,20 @@ export function useUnreadEmailReplies(): UseUnreadEmailRepliesReturn {
     return unreadEmailsManager.hasUnread(orderId);
   }, []);
 
+  const hasVerified = useCallback((orderId: string) => {
+    return unreadEmailsManager.hasVerified(orderId);
+  }, []);
+
   const getUnreadEvents = useCallback((orderId: string) => {
     return unreadEmailsManager.getUnreadEvents(orderId);
   }, []);
 
   const getUnreadCountForOrders = useCallback((orderIds: string[]) => {
     return unreadEmailsManager.getUnreadCountForOrders(orderIds);
+  }, []);
+
+  const getVerifiedCountForOrders = useCallback((orderIds: string[]) => {
+    return unreadEmailsManager.getVerifiedCountForOrders(orderIds);
   }, []);
 
   const markAsRead = useCallback(async (orderId: string, osNumber?: string) => {
@@ -45,8 +55,10 @@ export function useUnreadEmailReplies(): UseUnreadEmailRepliesReturn {
 
   return {
     hasUnread,
+    hasVerified,
     getUnreadEvents,
     getUnreadCountForOrders,
+    getVerifiedCountForOrders,
     markAsRead,
     unreadOrderIds,
   };

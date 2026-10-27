@@ -142,9 +142,10 @@ export function ProductionColumn({
   const droppableId = `${department.id}__${statusConfig.id}`;
   const StatusIcon = STATUS_ICONS[statusConfig.id] || Inbox;
 
-  const { getUnreadCountForOrders } = useUnreadEmailReplies();
+  const { getUnreadCountForOrders, getVerifiedCountForOrders } = useUnreadEmailReplies();
   const columnOrderIds = useMemo(() => orders.map((o) => o.id), [orders]);
   const unreadEmailCount = getUnreadCountForOrders(columnOrderIds);
+  const verifiedEmailCount = getVerifiedCountForOrders(columnOrderIds);
 
   return (
     <div className="flex-shrink-0 w-[80vw] sm:w-72 flex flex-col rounded-2xl glass-bento min-h-full h-fit transition-all duration-200">
@@ -166,8 +167,8 @@ export function ProductionColumn({
           {statusConfig.label}
         </h3>
 
-        {/* Indicador de respostas de e-mail recebidas não lidas na coluna (conforme caixa vermelha do operador) */}
-        {unreadEmailCount > 0 && (
+        {/* Indicador de respostas de e-mail na coluna: Âmbar quando não lida, VERDE quando verificada */}
+        {unreadEmailCount > 0 ? (
           <span
             className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-500/20 text-amber-500 border border-amber-500/40 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.5)] shrink-0"
             title={`${unreadEmailCount} O.S. com resposta de e-mail não lida nesta coluna`}
@@ -175,7 +176,15 @@ export function ProductionColumn({
             <Mail className="h-3 w-3 fill-amber-500/30" />
             <span>{unreadEmailCount}</span>
           </span>
-        )}
+        ) : verifiedEmailCount > 0 ? (
+          <span
+            className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.3)] shrink-0"
+            title={`${verifiedEmailCount} O.S. com e-mails verificados pelo operador nesta coluna`}
+          >
+            <Mail className="h-3 w-3 fill-emerald-500/30 text-emerald-600 dark:text-emerald-400" />
+            <span>{verifiedEmailCount}</span>
+          </span>
+        ) : null}
 
         <span
           className="text-xs ml-auto rounded-full px-2 py-0.5 font-bold"
