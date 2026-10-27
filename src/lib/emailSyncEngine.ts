@@ -11,7 +11,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
-import { fetchMailboxMessages, fetchConversationMessages } from "./outlookService";
+import { fetchMailboxMessages, fetchConversationMessages, getActiveMailboxAddresses } from "./outlookService";
 import { findOsInEmail, findOsInSubject } from "./emailMatcher";
 import { MONITORED_MAILBOXES, type MonitoredMailbox, type GraphMessage } from "@/types/email";
 import { trackGraphApiTelemetry } from "@/lib/autonomousEngine/telemetry";
@@ -76,27 +76,15 @@ export async function runEmailSync(): Promise<SyncResult> {
 
   const rollingCutoff = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
 
-  // 1. Define janela temporal inteligente: se sincronizado recentemente, busca com margem de segurança de 2h
-  let since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-  if (typeof window !== "undefined") {
-    try {
-      const storedLastSync = localStorage.getItem(LAST_EMAIL_SYNC_KEY);
-      if (storedLastSync) {
-        const lastSyncTime = new Date(storedLastSync).getTime();
-        if (!isNaN(lastSyncTime) && Date.now() - lastSyncTime < 24 * 60 * 60 * 1000) {
-          const bufferTime = Math.max(Date.now() - 24 * 60 * 60 * 1000, lastSyncTime - 2 * 60 * 60 * 1000);
-          since = new Date(bufferTime).toISOString();
-        }
-      }
-    } catch {}
-  }
+  // 1. Define janela temporal de 48h para garantir que mensagens recentes (inclusive com divergência de fuso horário ou do início do expediente) sejam sempre inspecionadas
+  const since = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
 
   // 2. Carrega todos os dados iniciais em paralelo (ordens ativas, eventos recentes, avisos e sessão)
   const [authRes, ordersRes, eventsRes, avisosRes] = await Promise.all([
     supabase.auth.getUser().catch(() => ({ data: { user: null }, error: null })),
     supabase
       .from("orders")
-      .select("id, titulo, criado_por")
+      .select("id, titulo, criado_por, status, setor, setor_status")
       .neq("status", "arquivado"),
     supabase
       .from("order_email_events")
@@ -126,9 +114,10 @@ export async function runEmailSync(): Promise<SyncResult> {
     return result;
   }
 
-  // Mapeamento: numero_os (titulo normalizado) -> order_id & autor
+  // Mapeamento: numero_os (titulo normalizado) -> order_id & autor & status
   const osToOrderId = new Map<string, string>();
   const orderAuthorMap = new Map<string, string>();
+  const orderStatusMap = new Map<string, { status: string; setor: string | null; setor_status: string | null }>();
   const activeOsNumbers = new Set<string>();
 
   for (const ord of activeOrders) {
@@ -137,11 +126,43 @@ export async function runEmailSync(): Promise<SyncResult> {
       const clean = trimmed.replace(/^[#\s]+/, "");
       osToOrderId.set(trimmed, ord.id);
       osToOrderId.set(clean, ord.id);
+      activeOsNumbers.add(trimmed);
+      activeOsNumbers.add(clean);
+
+      // 1. Extrai todas as sequências numéricas de 4 a 6 dígitos do título (ex: "99999" de "O.S. 99999", "99999 - Cartucho", etc.)
+      const rawNumbers = ord.titulo.match(/\b\d{4,6}\b/g) || [];
+      for (const num of rawNumbers) {
+        osToOrderId.set(num, ord.id);
+        activeOsNumbers.add(num);
+      }
+
+      // 2. Extrai sequência contínua de dígitos (ex: "99999" de "99999/26", "99.999", "#99999")
+      const onlyDigits = ord.titulo.replace(/\D/g, "");
+      if (onlyDigits.length >= 4 && onlyDigits.length <= 6) {
+        osToOrderId.set(onlyDigits, ord.id);
+        activeOsNumbers.add(onlyDigits);
+      } else if (onlyDigits.length > 6) {
+        const first5 = onlyDigits.slice(0, 5);
+        osToOrderId.set(first5, ord.id);
+        activeOsNumbers.add(first5);
+      }
+
+      // 3. Normaliza prefixos comuns de O.S. (ex: "OS 99999" -> "99999")
+      const strippedPrefix = trimmed.replace(/^(?:O\.?S\.?|OP|O\.?P\.?|ORDEM(?:\s+DE\s+SERVI[CÇ]O)?)\s*[#:-]?\s*/i, "").trim();
+      if (strippedPrefix) {
+        osToOrderId.set(strippedPrefix, ord.id);
+        activeOsNumbers.add(strippedPrefix);
+      }
+
+      orderStatusMap.set(ord.id, {
+        status: (ord as any).status || "fila_de_entrada",
+        setor: (ord as any).setor || null,
+        setor_status: (ord as any).setor_status || null,
+      });
+
       if (ord.criado_por) {
         orderAuthorMap.set(ord.id, ord.criado_por);
       }
-      activeOsNumbers.add(trimmed);
-      activeOsNumbers.add(clean);
     }
   }
 
@@ -214,10 +235,11 @@ export async function runEmailSync(): Promise<SyncResult> {
       .catch(() => null),
   ]);
 
-  // 3. Busca em paralelo todas as pastas (sentitems e inbox) de todas as caixas monitoradas
-  const folderTasks = MONITORED_MAILBOXES.flatMap((mailbox) => [
-    { mailbox, folder: "sentitems" as const, direction: "enviado" as const },
-    { mailbox, folder: "inbox" as const, direction: "recebido" as const },
+  // 3. Busca em paralelo todas as pastas (sentitems e inbox) de todas as caixas monitoradas e da conta ativa
+  const mailboxesToScan = await getActiveMailboxAddresses().catch(() => MONITORED_MAILBOXES);
+  const folderTasks = mailboxesToScan.flatMap((mailbox) => [
+    { mailbox: mailbox as MonitoredMailbox, folder: "sentitems" as const, direction: "enviado" as const },
+    { mailbox: mailbox as MonitoredMailbox, folder: "inbox" as const, direction: "recebido" as const },
   ]);
 
   const fetchedFolders = await Promise.all(
@@ -243,7 +265,8 @@ export async function runEmailSync(): Promise<SyncResult> {
         const isSenderInternal =
           senderEmail === mailbox.toLowerCase() ||
           senderEmail.endsWith("@primacorgrafica.com.br") ||
-          MONITORED_MAILBOXES.some((m) => m.toLowerCase() === senderEmail);
+          MONITORED_MAILBOXES.some((m) => m.toLowerCase() === senderEmail) ||
+          mailboxesToScan.some((m) => m.toLowerCase() === senderEmail);
 
         const recipients = (msg.toRecipients || [])
           .map((r) => r.emailAddress.address || r.emailAddress.name)
@@ -276,9 +299,10 @@ export async function runEmailSync(): Promise<SyncResult> {
             matchedOrderId = osToOrderId.get(osNumber)!;
           }
         } else {
+          const bodyToSearch = msg.body?.content || msg.bodyPreview || "";
           const { osNumber } = findOsInEmail(
             msg.subject || "",
-            msg.bodyPreview || "",
+            bodyToSearch,
             activeOsNumbers
           );
           if (osNumber && osToOrderId.has(osNumber)) {
@@ -300,10 +324,10 @@ export async function runEmailSync(): Promise<SyncResult> {
               .from("orders")
               .update({
                 status: "aguardando_aprovacao",
+                setor_status: "aguardando_aprovacao",
                 updated_at: new Date().toISOString(),
               })
               .eq("id", matchedOrderId)
-              .neq("status", "aguardando_aprovacao")
               .neq("status", "arquivo_liberado");
 
             if (!moveErr) {
@@ -325,6 +349,17 @@ export async function runEmailSync(): Promise<SyncResult> {
         const eventFingerprint = `${matchedOrderId}|${effectiveDirection === "recebido" ? "resp" : "env"}|${normSub}|${normBody}|${timeMin}`;
 
         if (existingFingerprints.has(eventFingerprint) || processedEventKeys.has(eventFingerprint)) {
+          if (effectiveDirection === "enviado") {
+            await supabase
+              .from("orders")
+              .update({
+                status: "aguardando_aprovacao",
+                setor_status: "aguardando_aprovacao",
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", matchedOrderId)
+              .neq("status", "arquivo_liberado");
+          }
           continue;
         }
         processedEventKeys.add(eventFingerprint);
@@ -369,6 +404,7 @@ export async function runEmailSync(): Promise<SyncResult> {
               .from("orders")
               .update({
                 status: "aguardando_aprovacao",
+                setor_status: "aguardando_aprovacao",
                 updated_at: new Date().toISOString(),
               })
               .eq("id", matchedOrderId)

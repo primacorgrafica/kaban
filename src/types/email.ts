@@ -9,7 +9,8 @@ export type EmailDirection = "enviado" | "recebido";
 /** Caixa corporativa monitorada */
 export type MonitoredMailbox =
   | "embalagens@primacorgrafica.com.br"
-  | "preimpressao@primacorgrafica.com.br";
+  | "preimpressao@primacorgrafica.com.br"
+  | (string & {});
 
 export const MONITORED_MAILBOXES: MonitoredMailbox[] = [
   "preimpressao@primacorgrafica.com.br",

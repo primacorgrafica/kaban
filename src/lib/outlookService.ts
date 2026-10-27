@@ -12,7 +12,24 @@
 
 import { getMsalInstance, saveStoredMicrosoftAccount, clearMsalInteractions, MSAL_ACCOUNT_KEY, SHAREPOINT_SCOPES } from "./msalClient";
 import { InteractionRequiredAuthError } from "@azure/msal-browser";
-import type { GraphMessage, GraphMessagesResponse, MonitoredMailbox } from "@/types/email";
+import { MONITORED_MAILBOXES, type GraphMessage, type GraphMessagesResponse, type MonitoredMailbox } from "@/types/email";
+
+/**
+ * Retorna as caixas monitoradas combinadas com a conta Microsoft 365 atualmente autenticada.
+ * Garante que e-mails enviados a partir da conta pessoal do operador (/me/sentitems)
+ * sejam verificados em conjunto com a caixa compartilhada preimpressao@primacorgrafica.com.br.
+ */
+export async function getActiveMailboxAddresses(): Promise<string[]> {
+  const mailboxes = new Set<string>(MONITORED_MAILBOXES.map((m) => m.toLowerCase()));
+  try {
+    const pca = await getMsalInstance();
+    const account = pca.getActiveAccount();
+    if (account?.username && account.username.includes("@")) {
+      mailboxes.add(account.username.toLowerCase().trim());
+    }
+  } catch {}
+  return Array.from(mailboxes);
+}
 
 /**
  * Escopos necessários para ler e-mails de caixas compartilhadas.
@@ -156,7 +173,7 @@ export async function fetchMailboxMessages(
   // Em 'sentitems', as mensagens são indexadas por sentDateTime (receivedDateTime pode ser nulo no Exchange)
   const dateProp = folder === "sentitems" ? "sentDateTime" : "receivedDateTime";
   const filterParam = `${dateProp} ge ${sinceDate}`;
-  const selectParam = "id,subject,bodyPreview,from,toRecipients,sentDateTime,receivedDateTime,conversationId,internetMessageId,parentFolderId,isRead";
+  const selectParam = "id,subject,bodyPreview,body,from,toRecipients,sentDateTime,receivedDateTime,conversationId,internetMessageId,parentFolderId,isRead";
   const orderByParam = `${dateProp} desc`;
 
   // Usa /me quando for a conta conectada ou /users/{email} para caixas delegadas

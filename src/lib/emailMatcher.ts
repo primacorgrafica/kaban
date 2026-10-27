@@ -22,9 +22,14 @@ const OS_NUMBER_REGEX = /(?<!\d)\d{4,6}(?!\d)/g;
 const OS_CONTEXT_PATTERNS = [
   /\bO\.?S\.?[.\s_#:-]*(\d{4,6})\b/gi,                   // "O.S. 73210", "O.S 73210", "O.S. #73210", "O.S.: 73210"
   /\bOS[.\s_#:-]*(\d{4,6})\b/gi,                        // "OS 73210", "OS-73210", "OS #73210", "OS: 73210"
+  /\b(?:os|o\.s\.)(\d{4,6})\b/gi,                       // "OS73210", "O.S.73210" (sem espaço)
+  /\bO\.?P\.?[.\s_#:-]*(\d{4,6})\b/gi,                   // "OP 73210", "O.P. 73210", "OP: 73210"
+  /\bprova(?:\s+digital)?[.\s_#:-]*(\d{4,6})\b/gi,      // "Prova 73210", "Prova Digital 73210", "Prova - 73210"
+  /\baprov[aá]?[cç][aã]o[.\s_#:-]*(\d{4,6})\b/gi,        // "Aprovação 73210", "Aprovacao - 73210"
   /#\s*(\d{4,6})\b/gi,                                   // "#73210", "# 73210"
   /\bordem(\s+de\s+servi[cç]o)?[.\s_#:-]*(\d{4,6})\b/gi, // "Ordem 73210", "Ordem de Serviço 73210"
   /\bservi[cç]o[.\s_#:-]*(\d{4,6})\b/gi,                 // "Serviço 73210", "Servico 73210"
+  /\bpedido[.\s_#:-]*(\d{4,6})\b/gi,                     // "Pedido 73210"
   /\bn[°º]?[.\s_#:-]*(\d{4,6})\b/gi,                     // "n° 73210", "nº 73210"
 ];
 
@@ -48,14 +53,17 @@ function getCandidatePriority(numStr: string): number {
 export function extractOsNumbers(text: string): string[] {
   if (!text || typeof text !== "string") return [];
 
+  // Normaliza espaços não quebráveis e quebras de linha
+  const cleanText = text.replace(/[\u00a0\u200b\r\n\t]/g, " ").trim();
+
   const contextMatches = new Set<string>();
   const genericCandidates: string[] = [];
 
-  // 1. Busca com contexto (alta confiança: "OS 73210", "O.S. #73210", etc.)
+  // 1. Busca com contexto (alta confiança: "OS 73210", "O.S. #73210", "Prova 73210", etc.)
   for (const pattern of OS_CONTEXT_PATTERNS) {
     pattern.lastIndex = 0;
     let match: RegExpExecArray | null;
-    while ((match = pattern.exec(text)) !== null) {
+    while ((match = pattern.exec(cleanText)) !== null) {
       contextMatches.add(match[1]);
     }
   }
@@ -63,7 +71,7 @@ export function extractOsNumbers(text: string): string[] {
   // 2. Busca genérica de números de 4 a 6 dígitos (sem contexto)
   const genericRegex = new RegExp(OS_NUMBER_REGEX.source, "g");
   let genericMatch: RegExpExecArray | null;
-  while ((genericMatch = genericRegex.exec(text)) !== null) {
+  while ((genericMatch = genericRegex.exec(cleanText)) !== null) {
     const num = genericMatch[0];
     if (!contextMatches.has(num) && !genericCandidates.includes(num)) {
       genericCandidates.push(num);

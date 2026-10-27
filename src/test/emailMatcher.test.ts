@@ -16,6 +16,10 @@ describe("emailMatcher - Extração e Validação de O.S. em E-mails", () => {
       expect(extractOsNumbers("Ordem de Serviço 73210")).toContain("73210");
       expect(extractOsNumbers("Segue layout nº 73210 para validação")).toContain("73210");
       expect(extractOsNumbers("OS-73210 aprovada")).toContain("73210");
+      expect(extractOsNumbers("OS99999")).toContain("99999");
+      expect(extractOsNumbers("Prova 99999 - Embalagem")).toContain("99999");
+      expect(extractOsNumbers("OP 99999")).toContain("99999");
+      expect(extractOsNumbers("Envio O.S. 99999 para aprovação")).toContain("99999");
     });
 
     it("deve extrair números genéricos de 4 a 6 dígitos sem contexto explícito", () => {

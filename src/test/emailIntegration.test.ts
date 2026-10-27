@@ -23,6 +23,7 @@ vi.mock("../lib/outlookService", () => {
     fetchMailboxMessages: vi.fn(),
     fetchConversationMessages: vi.fn(),
     getEmailAccessToken: vi.fn().mockResolvedValue("mock_token"),
+    getActiveMailboxAddresses: vi.fn().mockResolvedValue(["preimpressao@primacorgrafica.com.br"]),
   };
 });
 
@@ -30,6 +31,7 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
   const mockActiveOrders = [
     { id: "order-uuid-73210", titulo: "73210" },
     { id: "order-uuid-85000", titulo: "85000" },
+    { id: "order-uuid-99999", titulo: "O.S. 99999 - CAIXA FARMA" },
   ];
 
   let mockExistingEvents: any[] = [];
@@ -462,5 +464,43 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
     // Não deve gerar avisos de cliente respondeu nem novos eventos de resposta
     expect(mockInsertedAvisos).toHaveLength(0);
     expect(result.newReceivedReplies).toHaveLength(0);
+  });
+
+  it("8. Envio de e-mail com a O.S. 99999: deve identificar e mover o CARD para AGUARDANDO APROVAÇÃO mesmo com título formatado ('O.S. 99999 - CAIXA FARMA')", async () => {
+    const sentMessage99999: GraphMessage = {
+      id: "msg-sent-99999",
+      subject: "Envio de Prova - O.S. 99999",
+      bodyPreview: "Olá, segue em anexo a prova da O.S. 99999 para sua aprovação.",
+      from: { emailAddress: { name: "Pré-Impressão", address: "preimpressao@primacorgrafica.com.br" } },
+      toRecipients: [{ emailAddress: { name: "Cliente Beta", address: "cliente@beta.com.br" } }],
+      sentDateTime: new Date().toISOString(),
+      conversationId: "conv-thread-99999",
+    };
+
+    vi.mocked(outlookService.fetchMailboxMessages).mockImplementation(
+      async (_mailbox, folder) => {
+        if (folder === "sentitems") {
+          return [sentMessage99999];
+        }
+        return [];
+      }
+    );
+
+    const result = await runEmailSync();
+
+    expect(result.newEvents).toBe(1);
+    expect(mockInsertedEvents[0]).toMatchObject({
+      order_id: "order-uuid-99999",
+      os_number: "99999",
+      direction: "enviado",
+    });
+
+    expect(mockUpdatedOrders).toContainEqual(
+      expect.objectContaining({
+        id: "order-uuid-99999",
+        status: "aguardando_aprovacao",
+        setor_status: "aguardando_aprovacao",
+      })
+    );
   });
 });
