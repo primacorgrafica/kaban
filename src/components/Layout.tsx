@@ -361,8 +361,15 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
         } ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
         style={{ background: "var(--gradient-sidebar)" }}
       >
-        <div className={`py-5 border-b border-sidebar-border/60 relative flex items-center ${sidebarCollapsed ? "justify-center px-2" : "justify-between px-4"}`}>
-          <button className="lg:hidden absolute top-3 right-3 text-sidebar-foreground hover:text-foreground" onClick={() => setSidebarOpen(false)}>
+        <div
+          className={`py-5 border-b border-[#253745]/80 bg-gradient-to-b from-[#06141B] to-[#11212D] text-[#CCD0CF] relative flex items-center transition-all ${
+            sidebarCollapsed ? "justify-center px-2" : "justify-between px-4"
+          }`}
+        >
+          <button
+            className="lg:hidden absolute top-3 right-3 text-[#9BA8AB] hover:text-[#CCD0CF] transition-colors"
+            onClick={() => setSidebarOpen(false)}
+          >
             <X className="h-5 w-5" />
           </button>
           
@@ -371,7 +378,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
               <button
                 type="button"
                 onClick={toggleSidebarCollapse}
-                className="w-10 h-10 rounded-xl bg-[#253745]/60 border border-[#4A5C6A]/40 flex items-center justify-center font-extrabold font-mono-tech text-[#CCD0CF] cursor-pointer shadow-xs hover:scale-105 hover:bg-[#253745] transition-all"
+                className="w-10 h-10 rounded-xl bg-[#253745]/80 border border-[#4A5C6A]/60 flex items-center justify-center font-extrabold font-mono-tech text-[#CCD0CF] cursor-pointer shadow-xs hover:scale-105 hover:bg-[#253745] transition-all"
                 title="Expandir barra lateral"
               >
                 P
@@ -392,13 +399,14 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
               variant="ghost"
               size="icon"
               onClick={toggleSidebarCollapse}
-              className="hidden lg:flex h-7 w-7 text-sidebar-foreground/50 hover:text-[#CCD0CF] hover:bg-sidebar-accent/50 rounded-lg transition-colors"
+              className="hidden lg:flex h-7 w-7 text-[#9BA8AB] hover:text-[#CCD0CF] hover:bg-[#253745]/60 rounded-lg transition-colors"
               title="Recolher menu lateral"
             >
               <PanelLeftClose className="h-4 w-4" />
             </Button>
           )}
         </div>
+
 
         <nav className={`flex-1 ${sidebarCollapsed ? "px-2" : "px-3"} py-2 space-y-1 overflow-y-auto scrollbar-none`}>
           {navItems.map(renderNavLink)}
