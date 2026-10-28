@@ -8,12 +8,13 @@ import { ptBR } from "date-fns/locale";
 import { subscribeOrders, subscribeOrdersIncremental } from "@/lib/realtimeManager";
 import {
   Tv, Maximize2, Minimize2, Volume2, VolumeX, Clock,
-  CheckCircle2, Layers, Search, RefreshCw,
+  CheckCircle2, Layers, RefreshCw,
   AlertTriangle, Zap
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import logoSidebar from "@/assets/logo-sidebar.png";
+import logoLight from "@/assets/logo.png";
 
 interface LiberadaEntry {
   order_id: string;
@@ -526,43 +527,35 @@ export default function PcpPage() {
   // Conteúdo principal
   const mainContent = (
     <div className={`flex flex-col h-full font-pcp ${isTvMode ? "bg-[#050811] text-slate-100 p-3 sm:p-4 select-none" : "space-y-3 text-foreground"}`}>
-      {/* BARRA SUPERIOR: CABEÇALHO, BUSCA & RELÓGIO */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl glass-bento shrink-0">
-        {/* Identificação */}
-        <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
-          <div className="flex items-center gap-3">
-            <div className="relative p-2.5 rounded-xl bg-[#253745] border border-[#4A5C6A] text-[#CCD0CF] shadow-xs">
-              <Tv className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 shadow-[0_0_8px_#10b981]" />
-              </span>
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground dark:text-white">
-                  PCP
-                </h1>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                  Painel Operacional
+      {/* BARRA SUPERIOR: CABEÇALHO COM LOGO & RELÓGIO */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl glass-bento shrink-0">
+        {/* Identificação: Logo Primacor à esquerda antes do título PAINEL O.S */}
+        <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto justify-between sm:justify-start">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <img
+              src={logoSidebar}
+              alt="Primacor Gráfica"
+              className={`h-8 sm:h-9 w-auto object-contain shrink-0 ${isTvMode ? "block" : "dark:block hidden"}`}
+            />
+            <img
+              src={logoLight}
+              alt="Primacor Gráfica"
+              className={`h-8 sm:h-9 w-auto object-contain shrink-0 ${isTvMode ? "hidden" : "dark:hidden block"}`}
+            />
+            <div className="h-6 w-px bg-border/80 dark:bg-[#4A5C6A]/60 hidden sm:block" />
+            <div className="flex items-center gap-2.5">
+              <div className="relative p-2 sm:p-2.5 rounded-xl bg-[#253745] border border-[#4A5C6A] text-[#CCD0CF] shadow-xs shrink-0">
+                <Tv className="h-4 w-4 sm:h-5 sm:w-5" />
+                <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 sm:h-3 sm:w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 sm:h-3 sm:w-3 bg-emerald-500 shadow-[0_0_8px_#10b981]" />
                 </span>
               </div>
-              <p className="text-[11px] text-muted-foreground dark:text-slate-400 font-medium">
-                Primacor Gráfica • Emissões e Liberações em Tempo Real
-              </p>
+              <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground dark:text-white uppercase whitespace-nowrap">
+                PAINEL O.S
+              </h1>
             </div>
           </div>
-        </div>
-
-        {/* Campo de Busca Rápida */}
-        <div className="w-full md:w-80 relative">
-          <Search className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Filtrar por O.S., cliente, vendedor..."
-            className="h-8 pl-8 pr-3 text-xs rounded-xl bg-background/70 dark:bg-[#11212D]/70 border-border/80 dark:border-[#4A5C6A]/40"
-          />
         </div>
 
         {/* Relógio Digital & Botões de Ação */}
@@ -1046,7 +1039,7 @@ export default function PcpPage() {
       onAddOrder={() => {}}
       activeCount={0}
       archivedCount={0}
-      sectorName="PCP"
+      sectorName="PAINEL O.S"
       countsLoading={loading}
       permissions={permissions}
     >
