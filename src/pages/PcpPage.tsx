@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Layout } from "@/components/Layout";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -7,10 +7,9 @@ import { format, parseISO, isToday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { subscribeOrders, subscribeOrdersIncremental } from "@/lib/realtimeManager";
 import {
-  Tv, Maximize2, Minimize2, Volume2, VolumeX, Clock, Activity,
-  CheckCircle2, ArrowRight, Layers, Search, Sparkles, RefreshCw,
-  AlertTriangle, TrendingUp, Radio, Zap, ShieldCheck, Flame, Filter,
-  ChevronRight, Calendar
+  Tv, Maximize2, Minimize2, Volume2, VolumeX, Clock,
+  CheckCircle2, Layers, Search, RefreshCw,
+  AlertTriangle, Zap
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -38,6 +37,22 @@ interface EmitidaEntry {
 
 function isSameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function cleanOsTitle(titulo: string): string {
+  if (!titulo) return "";
+  return titulo.replace(/^O\.?S\.?[\s._-]*/i, "").trim() || titulo;
+}
+
+function formatPcpDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return "—";
+  try {
+    const d = typeof dateStr === "string" ? parseISO(dateStr) : new Date(dateStr);
+    if (isNaN(d.getTime())) return "—";
+    return format(d, "dd/MM/yy HH:mm");
+  } catch {
+    return "—";
+  }
 }
 
 // Chime sintetizado via Web Audio API (som de alta fidelidade sem arquivos externos)
@@ -85,11 +100,6 @@ function getFemaleVoice(): SpeechSynthesisVoice | null {
   }
   if (cachedPtVoices.length === 0) return null;
 
-  // 1. Procurar vozes com nomes sabidamente femininos em navegadores modernos:
-  // - Chrome: "Google português do Brasil" (100% feminina)
-  // - Edge: "Microsoft Francisca Online (Natural)", "Brenda", "Thalita", "Elza", "Giovanna", "Leila", "Leticia", "Manuela", "Yara", "Maria"
-  // - Apple: "Luciana", "Joana", "Alice"
-  // - Windows SAPI: "Maria", "Heloisa"
   const femaleKeywords = [
     "francisca", "brenda", "thalita", "maria", "luciana", "elza",
     "giovanna", "leila", "leticia", "manuela", "yara", "joana",
@@ -101,7 +111,6 @@ function getFemaleVoice(): SpeechSynthesisVoice | null {
     if (match) return match;
   }
 
-  // 2. Se nenhuma das palavras-chave bater, pegar qualquer voz pt-BR que NÃO seja sabidamente masculina
   const maleKeywords = ["daniel", "antonio", "donato", "fabiano", "humberto", "julio", "nicolau", "valerio", "male", "homem"];
   const nonMale = cachedPtVoices.find((v) => {
     const n = v.name.toLowerCase();
@@ -109,14 +118,11 @@ function getFemaleVoice(): SpeechSynthesisVoice | null {
   });
   if (nonMale) return nonMale;
 
-  // 3. Fallback: primeira voz disponível
   return cachedPtVoices[0] || null;
 }
 
-// Reprodução garantida de áudio de alerta e locução feminina
 function playFemaleVoice(text: string) {
   try {
-    // 1. Toca chime harmônico de TV
     playTvChime();
 
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
@@ -129,14 +135,14 @@ function playFemaleVoice(text: string) {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "pt-BR";
     utterance.volume = 1.0;
-    utterance.rate = 1.55; // Velocidade ágil e rápida (aprovada)
+    utterance.rate = 1.55;
 
     if (voice && !isMaleName) {
       utterance.voice = voice;
       utterance.pitch = 1.0;
     } else {
       if (voice) utterance.voice = voice;
-      utterance.pitch = 1.35; // Modulação aguda para afinar e soar feminina mesmo se o Windows só tiver voz masculina instalada
+      utterance.pitch = 1.35;
     }
 
     setTimeout(() => {
@@ -147,7 +153,6 @@ function playFemaleVoice(text: string) {
   }
 }
 
-// Anuncia a liberação da O.S. com pronúncia clara
 function speakOsLiberada(titulo: string) {
   const cleanNumber = titulo.replace(/^O\.?S\.?[\s._-]*/i, "").trim();
   const frase = cleanNumber
@@ -169,7 +174,7 @@ export default function PcpPage() {
     return localStorage.getItem("primacor_pcp_tv_mode") === "true";
   });
 
-  // Som e Voz com persistência e Ref para evitar stale closures em WebSockets/Realtime
+  // Som e Voz com persistência e Ref
   const [soundEnabled, setSoundEnabled] = useState(() => {
     return localStorage.getItem("primacor_pcp_sound_enabled") === "true";
   });
@@ -180,8 +185,6 @@ export default function PcpPage() {
 
   const announcedOrderIdsRef = useRef<Set<string>>(new Set());
   const [autoScroll, setAutoScroll] = useState(true);
-  const [activeTabLeft, setActiveTabLeft] = useState<"hoje" | "anteriores">("hoje");
-  const [activeTabRight, setActiveTabRight] = useState<"hoje" | "anteriores">("hoje");
 
   // Relógio ao vivo atualizado a cada segundo
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -205,32 +208,52 @@ export default function PcpPage() {
     }
   };
 
+  const handleToggleSound = () => {
+    const next = !soundEnabled;
+    setSoundEnabled(next);
+    soundEnabledRef.current = next;
+    localStorage.setItem("primacor_pcp_sound_enabled", String(next));
+    if (next) {
+      playTvChime();
+      const recent = liberadas.find((d) => {
+        const diffMs = Date.now() - new Date(d.chegou_em).getTime();
+        return diffMs < 15 * 60 * 1000 && !announcedOrderIdsRef.current.has(d.order_id);
+      });
+      if (recent) {
+        announcedOrderIdsRef.current.add(recent.order_id);
+        setTimeout(() => {
+          speakOsLiberada(recent.titulo);
+        }, 600);
+      }
+    } else {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    }
+  };
+
   const fetchLiberadas = async () => {
     const since = new Date();
-    since.setDate(since.getDate() - 6);
+    since.setDate(since.getDate() - 14);
     since.setHours(0, 0, 0, 0);
     const sinceISO = since.toISOString();
 
     const [statusRes, sectorRes, activePreRes, activeEmbRes] = await Promise.all([
-      // 1. Histórico de saída de pré-impressão
       supabase
         .from("order_status_history")
         .select("order_id, created_at")
         .eq("status_novo", "arquivo_liberado")
         .gte("created_at", sinceISO),
-      // 2. Histórico de transferência do setor de desenvolvimento (embalagens)
       supabase
         .from("sector_history")
         .select("order_id, setor_anterior, setor_novo, setor_status_novo, created_at")
         .or("setor_status_novo.eq.saida,setor_anterior.eq.desenvolvimento")
         .gte("created_at", sinceISO),
-      // 3. Ordens ativas atualmente na coluna Saída de Pré-impressão (status = arquivo_liberado)
       supabase
         .from("orders")
         .select("id, created_at")
         .eq("status", "arquivo_liberado")
         .eq("arquivado", false),
-      // 4. Ordens ativas atualmente na coluna Saída de Embalagens (setor = desenvolvimento e setor_status = saida)
       supabase
         .from("orders")
         .select("id, created_at")
@@ -263,11 +286,8 @@ export default function PcpPage() {
     const isLiberada = (id: string) => {
       const o = stateMap.get(id);
       if (!o) return false;
-      // Na Pré-impressão: coluna Saída (status === arquivo_liberado)
       if (o.status === "arquivo_liberado") return true;
-      // Em Embalagens: coluna Saída (setor === desenvolvimento && setor_status === saida)
       if (o.setor === "desenvolvimento" && o.setor_status === "saida") return true;
-      // Transferido para produção
       if (o.setor && o.setor !== "desenvolvimento") return true;
       return false;
     };
@@ -299,11 +319,8 @@ export default function PcpPage() {
     const deduped = Array.from(latestByKey.values());
     deduped.sort((a, b) => b.chegou_em.localeCompare(a.chegou_em));
 
-    // Checa se houve nova liberação para alerta da TV e voz feminina
     if (knownLiberadaIdsRef.current === null) {
-      // Primeira inicialização: registra as O.S. já liberadas no histórico
       knownLiberadaIdsRef.current = new Set(deduped.map((d) => d.order_id));
-      // Se houver alguma O.S. liberada há menos de 15 minutos e o som já estiver ativo, anuncia!
       const recemLiberada = deduped.find((d) => {
         const diffMs = Date.now() - new Date(d.chegou_em).getTime();
         return diffMs < 15 * 60 * 1000;
@@ -313,12 +330,11 @@ export default function PcpPage() {
         speakOsLiberada(recemLiberada.titulo);
       }
     } else {
-      // Identifica quaisquer O.S. recém movidas para a Saída (tanto pré-impressão quanto embalagens)
       const recemLiberadas = deduped.filter((d) => !knownLiberadaIdsRef.current!.has(d.order_id));
       if (recemLiberadas.length > 0) {
         const newlyLiberada = recemLiberadas[0];
         setLastEventAlert({
-          text: `O.S. ${newlyLiberada.titulo} liberada para Produção! (${newlyLiberada.cliente})`,
+          text: `O.S. ${cleanOsTitle(newlyLiberada.titulo)} liberada para Produção! (${newlyLiberada.cliente})`,
           time: format(new Date(), "HH:mm:ss"),
           type: "liberada"
         });
@@ -339,7 +355,7 @@ export default function PcpPage() {
 
   const fetchEmitidas = async () => {
     const since = new Date();
-    since.setDate(since.getDate() - 6);
+    since.setDate(since.getDate() - 14);
     since.setHours(0, 0, 0, 0);
     const { data } = await supabase
       .from("orders")
@@ -379,7 +395,6 @@ export default function PcpPage() {
     fetchLiberadas();
     fetchEmitidas();
 
-    // 1. Escuta em tempo real direto do Postgres (0ms delay para mudanças de coluna)
     const unsubInc = subscribeOrdersIncremental((payload) => {
       if (!payload) return;
 
@@ -388,17 +403,13 @@ export default function PcpPage() {
         const oldRow = payload.old as any;
         if (!newRow) return;
 
-        // Detecta se foi movida para Saída:
-        // A) Em Pré-impressão: status passou para "arquivo_liberado"
         const preLiberada = newRow.status === "arquivo_liberado" && oldRow?.status !== "arquivo_liberado";
-        // B) Em Embalagens: setor_status passou para "saida" dentro de desenvolvimento
         const embLiberada = newRow.setor === "desenvolvimento" && newRow.setor_status === "saida" && oldRow?.setor_status !== "saida";
-        // C) Transferida de desenvolvimento para fábrica
         const devTransfer = oldRow?.setor === "desenvolvimento" && newRow.setor && newRow.setor !== "desenvolvimento";
 
         if (preLiberada || embLiberada || devTransfer) {
           setLastEventAlert({
-            text: `O.S. ${newRow.titulo} liberada para Produção! (${newRow.cliente || ""})`,
+            text: `O.S. ${cleanOsTitle(newRow.titulo)} liberada para Produção! (${newRow.cliente || ""})`,
             time: format(new Date(), "HH:mm:ss"),
             type: "liberada",
           });
@@ -421,13 +432,11 @@ export default function PcpPage() {
       }
     });
 
-    // 2. Escuta legada agregada
     const unsubOrders = subscribeOrders(() => {
       fetchLiberadasRef.current?.();
       fetchEmitidas();
     });
 
-    // 3. Polling de redundância a cada 15 segundos para atualizar relógio e listas se a TV ficar ligada o dia todo
     const interval = setInterval(() => {
       fetchLiberadasRef.current?.();
       fetchEmitidas();
@@ -457,28 +466,22 @@ export default function PcpPage() {
 
   const liberadasGrouped = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    const antStart = new Date(today); antStart.setDate(antStart.getDate() - 5);
-    const antEnd = new Date(today); antEnd.setDate(antEnd.getDate() - 1); antEnd.setHours(23, 59, 59, 999);
-
     const q = searchQuery.trim().toLowerCase();
     const filterFn = (e: LiberadaEntry) =>
-      !q || e.titulo.toLowerCase().includes(q) || e.cliente.toLowerCase().includes(q) || e.descricao.toLowerCase().includes(q);
+      !q || e.titulo.toLowerCase().includes(q) || e.cliente.toLowerCase().includes(q) || e.descricao.toLowerCase().includes(q) || (e.vendedor || "").toLowerCase().includes(q);
 
     const hoje: LiberadaEntry[] = [];
     const anteriores: LiberadaEntry[] = [];
     liberadas.filter(filterFn).forEach(e => {
       const d = new Date(e.chegou_em);
       if (isSameDay(d, today)) hoje.push(e);
-      else if (d >= antStart && d <= antEnd) anteriores.push(e);
+      else if (d < today) anteriores.push(e);
     });
     return { hoje, anteriores };
   }, [liberadas, searchQuery, dayKey]);
 
   const emitidasGrouped = useMemo(() => {
     const today = new Date(); today.setHours(0, 0, 0, 0);
-    const antStart = new Date(today); antStart.setDate(antStart.getDate() - 5);
-    const antEnd = new Date(today); antEnd.setDate(antEnd.getDate() - 1); antEnd.setHours(23, 59, 59, 999);
-
     const q = searchQuery.trim().toLowerCase();
     const filterFn = (e: EmitidaEntry) =>
       !q || e.titulo.toLowerCase().includes(q) || e.cliente.toLowerCase().includes(q) || e.descricao.toLowerCase().includes(q) || (e.vendedor || "").toLowerCase().includes(q);
@@ -488,23 +491,17 @@ export default function PcpPage() {
     emitidas.filter(filterFn).forEach(e => {
       const d = new Date(e.created_at);
       if (isSameDay(d, today)) hoje.push(e);
-      else if (d >= antStart && d <= antEnd) anteriores.push(e);
+      else if (d < today) anteriores.push(e);
     });
     return { hoje, anteriores };
   }, [emitidas, searchQuery, dayKey]);
 
-  // Contadores e métricas de telemetria
+  // Contadores
   const totalEmitidasHoje = emitidasGrouped.hoje.length;
   const totalLiberadasHoje = liberadasGrouped.hoje.length;
-  const urgentesHoje = useMemo(() => {
-    const uEmitidas = emitidasGrouped.hoje.filter(e => e.urgente).length;
-    const uLiberadas = liberadasGrouped.hoje.filter(e => e.urgente).length;
-    return uEmitidas + uLiberadas;
-  }, [emitidasGrouped, liberadasGrouped]);
-
   const lastLiberada = liberadasGrouped.hoje[0] || liberadas[0] || null;
 
-  // Auto-scroll para TV: alterna suavemente as listas se houver muitos itens
+  // Auto-scroll para TV: rola suavemente a lista de anteriores se houver muitos itens
   const listRefLeft = useRef<HTMLDivElement>(null);
   const listRefRight = useRef<HTMLDivElement>(null);
 
@@ -517,106 +514,96 @@ export default function PcpPage() {
           if (scrollTop + clientHeight >= scrollHeight - 10) {
             ref.current.scrollTo({ top: 0, behavior: "smooth" });
           } else {
-            ref.current.scrollBy({ top: 180, behavior: "smooth" });
+            ref.current.scrollBy({ top: 140, behavior: "smooth" });
           }
         }
       });
-    }, 12000); // Rola a cada 12 segundos para a equipe ler
+    }, 10000);
     return () => clearInterval(interval);
   }, [autoScroll]);
 
-  // O conteúdo principal do display de operações
+  // Conteúdo principal
   const mainContent = (
-    <div className={`flex flex-col h-full ${isTvMode ? "bg-[#050811] text-slate-100 p-3 sm:p-5 select-none" : "space-y-4 text-foreground"}`}>
-      {/* BARRA SUPERIOR: TELEMETRIA INDUSTRIAL & RELÓGIO DE ALTA PRECISÃO */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 rounded-3xl glass-bento shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="relative p-3 rounded-2xl bg-[#253745] border border-[#4A5C6A] text-[#CCD0CF] shadow-xs">
-            <Tv className="h-6 w-6" />
-            <span className="absolute -top-1 -right-1 flex h-3.5 w-3.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 shadow-[0_0_8px_#10b981]" />
-            </span>
-          </div>
-          <div>
-            <div className="flex items-center gap-2.5">
-              <h1 className="text-xl md:text-2xl font-black tracking-tight text-foreground dark:text-white font-mono-tech">
-                PCP
-              </h1>
+    <div className={`flex flex-col h-full font-pcp ${isTvMode ? "bg-[#050811] text-slate-100 p-3 sm:p-4 select-none" : "space-y-3 text-foreground"}`}>
+      {/* BARRA SUPERIOR: CABEÇALHO, BUSCA & RELÓGIO */}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl glass-bento shrink-0">
+        {/* Identificação */}
+        <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+          <div className="flex items-center gap-3">
+            <div className="relative p-2.5 rounded-xl bg-[#253745] border border-[#4A5C6A] text-[#CCD0CF] shadow-xs">
+              <Tv className="h-5 w-5" />
+              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 shadow-[0_0_8px_#10b981]" />
+              </span>
             </div>
-            <p className="text-xs text-muted-foreground dark:text-slate-400 font-medium mt-0.5">
-              Primacor Gráfica • Monitoramento de Emissões e Liberações em Tempo Real
-            </p>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground dark:text-white">
+                  PCP
+                </h1>
+                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                  Painel Operacional
+                </span>
+              </div>
+              <p className="text-[11px] text-muted-foreground dark:text-slate-400 font-medium">
+                Primacor Gráfica • Emissões e Liberações em Tempo Real
+              </p>
+            </div>
           </div>
         </div>
 
-        {/* RELÓGIO DIGITAL GIGANTE & DATA */}
-        <div className="flex items-center gap-4 sm:gap-6">
-          <div className="text-center sm:text-right">
-            <div className="text-2xl sm:text-3xl font-black font-mono-tech text-foreground dark:text-white tracking-wider flex items-center justify-center sm:justify-end gap-1 drop-shadow-[0_0_12px_rgba(255,255,255,0.2)]">
-              <Clock className="h-5 w-5 text-[#CCD0CF] hidden sm:inline" />
+        {/* Campo de Busca Rápida */}
+        <div className="w-full md:w-80 relative">
+          <Search className="h-3.5 w-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Filtrar por O.S., cliente, vendedor..."
+            className="h-8 pl-8 pr-3 text-xs rounded-xl bg-background/70 dark:bg-[#11212D]/70 border-border/80 dark:border-[#4A5C6A]/40"
+          />
+        </div>
+
+        {/* Relógio Digital & Botões de Ação */}
+        <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+          <div className="text-left md:text-right">
+            <div className="text-xl sm:text-2xl font-black text-foreground dark:text-white tracking-wider flex items-center md:justify-end gap-1.5 drop-shadow-[0_0_12px_rgba(255,255,255,0.15)]">
+              <Clock className="h-4 w-4 text-[#CCD0CF] hidden sm:inline" />
               <span>{format(currentTime, "HH:mm:ss")}</span>
             </div>
-            <div className="text-[11px] sm:text-xs font-medium text-muted-foreground dark:text-slate-400 uppercase tracking-wide">
+            <div className="text-[10px] font-medium text-muted-foreground dark:text-slate-400 uppercase tracking-wide">
               {format(currentTime, "EEEE, dd 'de' MMMM", { locale: ptBR })}
             </div>
           </div>
 
-          {/* BOTÕES DE CONTROLE TV (SOM, FULLSCREEN, MODO) */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                const next = !soundEnabled;
-                setSoundEnabled(next);
-                soundEnabledRef.current = next;
-                localStorage.setItem("primacor_pcp_sound_enabled", String(next));
-                if (next) {
-                  // Apenas toca o chime suave de confirmação (sem fala robótica que cause estranhamento)
-                  playTvChime();
-                  // Se houver alguma O.S. liberada recentemente (< 15 minutos) que ainda não foi anunciada, anuncia logo em seguida com voz feminina!
-                  const recent = liberadas.find((d) => {
-                    const diffMs = Date.now() - new Date(d.chegou_em).getTime();
-                    return diffMs < 15 * 60 * 1000 && !announcedOrderIdsRef.current.has(d.order_id);
-                  });
-                  if (recent) {
-                    announcedOrderIdsRef.current.add(recent.order_id);
-                    setTimeout(() => {
-                      speakOsLiberada(recent.titulo);
-                    }, 600);
-                  }
-                } else {
-                  if (typeof window !== "undefined" && "speechSynthesis" in window) {
-                    window.speechSynthesis.cancel();
-                  }
-                }
-              }}
-              className={`h-9 px-2.5 rounded-xl border text-xs gap-1.5 transition-all ${
+              onClick={handleToggleSound}
+              className={`h-8 px-2.5 rounded-xl border text-xs gap-1.5 transition-all ${
                 soundEnabled
                   ? "bg-[#253745] border-[#4A5C6A] text-[#CCD0CF] shadow-xs"
                   : "bg-muted/60 dark:bg-[#11212D]/80 border-border dark:border-[#4A5C6A]/40 text-muted-foreground dark:text-[#CCD0CF] hover:text-foreground dark:hover:text-white"
               }`}
-              title={soundEnabled ? "Som e voz de O.S. liberada ativados (Clique para silenciar)" : "Ativar som e voz de O.S. liberada na TV"}
+              title={soundEnabled ? "Som e voz feminina ativados" : "Ativar som e voz feminina"}
             >
-              {soundEnabled ? <Volume2 className="h-4 w-4 text-[#CCD0CF]" /> : <VolumeX className="h-4 w-4" />}
+              {soundEnabled ? <Volume2 className="h-3.5 w-3.5 text-[#CCD0CF]" /> : <VolumeX className="h-3.5 w-3.5" />}
               <span className="hidden xl:inline">{soundEnabled ? "Som Ativo" : "Mudo"}</span>
             </Button>
-
-
 
             <Button
               variant="outline"
               size="sm"
               onClick={() => setAutoScroll(!autoScroll)}
-              className={`h-9 px-2.5 rounded-xl border text-xs gap-1.5 transition-all ${
+              className={`h-8 px-2.5 rounded-xl border text-xs gap-1.5 transition-all ${
                 autoScroll
                   ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
                   : "bg-muted/60 dark:bg-[#11212D]/80 border-border dark:border-[#4A5C6A]/40 text-muted-foreground dark:text-[#CCD0CF] hover:text-foreground dark:hover:text-white"
               }`}
               title="Rolagem automática da lista de ordens na TV"
             >
-              <RefreshCw className={`h-4 w-4 text-emerald-400 ${autoScroll ? "animate-spin" : ""}`} />
+              <RefreshCw className={`h-3.5 w-3.5 text-emerald-400 ${autoScroll ? "animate-spin" : ""}`} />
               <span className="hidden xl:inline">Auto-Scroll</span>
             </Button>
 
@@ -624,372 +611,380 @@ export default function PcpPage() {
               variant="default"
               size="sm"
               onClick={toggleTvMode}
-              className="h-9 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] font-bold text-xs gap-1.5 shadow-md transition-all"
+              className="h-8 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] font-bold text-xs gap-1.5 shadow-md transition-all"
             >
-              {isTvMode ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+              {isTvMode ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
               <span>{isTvMode ? "Sair TV" : "Modo TV"}</span>
             </Button>
           </div>
         </div>
       </div>
 
-      {/* BANNER DE ALERTA DE EVENTO RECENTE AO VIVO */}
+      {/* BANNER DE ALERTA DE EVENTO RECENTE */}
       {lastEventAlert && (
-        <div className="p-3 rounded-2xl bg-[#253745]/40 border border-[#4A5C6A]/50 text-[#CCD0CF] flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-300 shrink-0 shadow-[0_0_20px_rgba(6,20,27,0.4)]">
-          <div className="flex items-center gap-2.5">
+        <div className="p-2.5 rounded-xl bg-[#253745]/40 border border-[#4A5C6A]/50 text-[#CCD0CF] flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-300 shrink-0 shadow-[0_0_20px_rgba(6,20,27,0.4)]">
+          <div className="flex items-center gap-2">
             <Zap className="h-4 w-4 text-[#CCD0CF] animate-bounce" />
-            <span className="text-xs sm:text-sm font-bold font-mono-tech tracking-wide">
+            <span className="text-xs sm:text-sm font-bold tracking-wide">
               {lastEventAlert.text}
             </span>
           </div>
-          <span className="text-[10px] font-mono-tech bg-card/85 dark:bg-[#11212D]/85 px-2 py-0.5 rounded-lg border border-border/80 dark:border-[#4A5C6A]/35 text-muted-foreground dark:text-[#CCD0CF]">
+          <span className="text-[10px] bg-card/85 dark:bg-[#11212D]/85 px-2 py-0.5 rounded-lg border border-border/80 dark:border-[#4A5C6A]/35 text-muted-foreground dark:text-[#CCD0CF]">
             {lastEventAlert.time}
           </span>
         </div>
       )}
 
-      {/* METRIC HUD TELEMETRY CARDS (GIGANTES PARA ENXERGAR DE LONGE) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 shrink-0 mt-2">
-        {/* Card 1: Emitidas Hoje */}
-        <div className="p-4 rounded-3xl glass-bento border-border dark:border-[#4A5C6A]/40 relative overflow-hidden group">
-          <div className="flex items-center justify-between text-xs font-semibold text-[#9BA8AB] dark:text-[#CCD0CF] uppercase tracking-wider mb-1">
-            <span className="flex items-center gap-1.5">
-              <Layers className="h-4 w-4 text-[#CCD0CF]" /> O.S. Emitidas Hoje
-            </span>
-            <Activity className="h-4 w-4 text-[#9BA8AB]/50" />
+      {/* DUAS COLUNAS PRINCIPAIS: OS EMITIDAS (ESQUERDA) vs OS LIBERADAS (DIREITA) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 flex-1 min-h-0">
+        {/* ========================================================= */}
+        {/* COLUNA ESQUERDA: OS EMITIDAS                              */}
+        {/* ========================================================= */}
+        <div className="flex flex-col rounded-2xl glass-bento border border-blue-500/30 overflow-hidden shadow-sm bg-card/60 dark:bg-[#11212D]/80">
+          {/* TÍTULO PRINCIPAL: OS EMITIDAS */}
+          <div className="py-2.5 px-4 bg-blue-600/10 dark:bg-blue-950/50 border-b border-blue-500/20 text-center flex items-center justify-center gap-2 shrink-0">
+            <Layers className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <h2 className="text-sm sm:text-base font-black tracking-wider text-blue-700 dark:text-blue-400 uppercase">
+              OS EMITIDAS
+            </h2>
           </div>
-          <div className="text-4xl md:text-5xl font-black font-mono-tech text-foreground dark:text-white tracking-tight drop-shadow">
-            {totalEmitidasHoje}
+
+          {/* SEÇÃO 1: HOJE */}
+          <div className="flex flex-col shrink-0 border-b border-blue-500/20">
+            <div className="py-1.5 px-4 bg-blue-100/80 dark:bg-blue-900/30 border-b border-blue-500/20 flex items-center justify-center gap-2 shrink-0">
+              <span className="text-xs font-bold text-blue-900 dark:text-blue-200">
+                Hoje
+              </span>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-600 text-white shadow-xs">
+                {emitidasGrouped.hoje.length}
+              </span>
+            </div>
+
+            <div className="overflow-x-auto max-h-[220px] overflow-y-auto">
+              <table className="w-full text-left text-xs table-fixed">
+                <thead className="sticky top-0 bg-muted/90 dark:bg-[#0c1822]/95 backdrop-blur-xs text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
+                  <tr>
+                    <th className="w-[14%] py-2 pl-3">OS</th>
+                    <th className="w-[26%] py-2">CLIENTE</th>
+                    <th className="w-[34%] py-2">DESCRIÇÃO</th>
+                    <th className="w-[12%] py-2">VENDEDOR</th>
+                    <th className="w-[14%] py-2 pr-3 text-right">CRIADA</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/20">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={5} className="py-4 text-center text-xs text-muted-foreground">
+                        <RefreshCw className="h-4 w-4 animate-spin inline mr-1.5 text-blue-500" />
+                        Carregando...
+                      </td>
+                    </tr>
+                  ) : emitidasGrouped.hoje.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-4 text-center text-xs text-muted-foreground italic font-medium">
+                        Nenhuma OS
+                      </td>
+                    </tr>
+                  ) : (
+                    emitidasGrouped.hoje.map((e) => (
+                      <tr
+                        key={`${e.order_id}-${e.created_at}`}
+                        className={`hover:bg-blue-500/10 transition-colors ${
+                          e.urgente ? "bg-rose-500/10 text-rose-600 dark:text-rose-300 font-semibold" : ""
+                        }`}
+                      >
+                        <td className="py-2 pl-3 font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap truncate">
+                          {cleanOsTitle(e.titulo)}
+                          {e.urgente && (
+                            <span className="ml-1 text-[9px] text-rose-500 font-extrabold" title="Urgente">
+                              🚨
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2 font-semibold text-foreground truncate" title={e.cliente}>
+                          {e.cliente}
+                        </td>
+                        <td className="py-2 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
+                          {e.descricao || "—"}
+                        </td>
+                        <td className="py-2 text-muted-foreground truncate" title={e.vendedor || ""}>
+                          {e.vendedor || "—"}
+                        </td>
+                        <td className="py-2 pr-3 text-right text-muted-foreground whitespace-nowrap">
+                          {formatPcpDate(e.created_at)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div className="flex items-center justify-between text-[11px] text-muted-foreground dark:text-slate-400 mt-2">
-            <span>Entradas no PCP</span>
-            <span className="font-mono-tech font-bold text-[#CCD0CF]">Semana: {emitidas.length}</span>
+
+          {/* SEÇÃO 2: ANTERIORES */}
+          <div className="flex flex-col flex-1 min-h-0">
+            <div className="py-1.5 px-4 bg-blue-100/80 dark:bg-blue-900/30 border-b border-blue-500/20 flex items-center justify-center gap-2 shrink-0">
+              <span className="text-xs font-bold text-blue-900 dark:text-blue-200">
+                Anteriores
+              </span>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-600 text-white shadow-xs">
+                {emitidasGrouped.anteriores.length}
+              </span>
+            </div>
+
+            <div ref={listRefLeft} className="flex-1 overflow-y-auto overflow-x-auto scroll-smooth">
+              <table className="w-full text-left text-xs table-fixed">
+                <thead className="sticky top-0 bg-muted/90 dark:bg-[#0c1822]/95 backdrop-blur-xs text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
+                  <tr>
+                    <th className="w-[14%] py-2 pl-3">OS</th>
+                    <th className="w-[26%] py-2">CLIENTE</th>
+                    <th className="w-[34%] py-2">DESCRIÇÃO</th>
+                    <th className="w-[12%] py-2">VENDEDOR</th>
+                    <th className="w-[14%] py-2 pr-3 text-right">CRIADA</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/20">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={5} className="py-6 text-center text-xs text-muted-foreground">
+                        <RefreshCw className="h-4 w-4 animate-spin inline mr-1.5 text-blue-500" />
+                        Carregando anteriores...
+                      </td>
+                    </tr>
+                  ) : emitidasGrouped.anteriores.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-6 text-center text-xs text-muted-foreground italic font-medium">
+                        Nenhuma OS anterior
+                      </td>
+                    </tr>
+                  ) : (
+                    emitidasGrouped.anteriores.map((e) => (
+                      <tr
+                        key={`${e.order_id}-${e.created_at}`}
+                        className={`hover:bg-blue-500/10 transition-colors ${
+                          e.urgente ? "bg-rose-500/10 text-rose-600 dark:text-rose-300 font-semibold" : ""
+                        }`}
+                      >
+                        <td className="py-2 pl-3 font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap truncate">
+                          {cleanOsTitle(e.titulo)}
+                          {e.urgente && (
+                            <span className="ml-1 text-[9px] text-rose-500 font-extrabold" title="Urgente">
+                              🚨
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2 font-semibold text-foreground truncate" title={e.cliente}>
+                          {e.cliente}
+                        </td>
+                        <td className="py-2 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
+                          {e.descricao || "—"}
+                        </td>
+                        <td className="py-2 text-muted-foreground truncate" title={e.vendedor || ""}>
+                          {e.vendedor || "—"}
+                        </td>
+                        <td className="py-2 pr-3 text-right text-muted-foreground whitespace-nowrap">
+                          {formatPcpDate(e.created_at)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-[#CCD0CF]" />
         </div>
 
-        {/* Card 2: Liberadas Hoje */}
-        <div className="p-4 rounded-3xl glass-bento border-border dark:border-emerald-500/30 relative overflow-hidden group">
-          <div className="flex items-center justify-between text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">
-            <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="h-4 w-4" /> O.S. Liberadas Hoje
-            </span>
-            <Flame className="h-4 w-4 text-emerald-500 animate-pulse" />
+        {/* ========================================================= */}
+        {/* COLUNA DIREITA: OS LIBERADAS                             */}
+        {/* ========================================================= */}
+        <div className="flex flex-col rounded-2xl glass-bento border border-emerald-500/30 overflow-hidden shadow-sm bg-card/60 dark:bg-[#11212D]/80">
+          {/* TÍTULO PRINCIPAL: OS LIBERADAS */}
+          <div className="py-2.5 px-4 bg-emerald-600/10 dark:bg-emerald-950/50 border-b border-emerald-500/20 text-center flex items-center justify-center gap-2 shrink-0">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <h2 className="text-sm sm:text-base font-black tracking-wider text-emerald-700 dark:text-emerald-400 uppercase">
+              OS LIBERADAS
+            </h2>
           </div>
-          <div className="text-4xl md:text-5xl font-black font-mono-tech text-foreground dark:text-white tracking-tight drop-shadow">
-            {totalLiberadasHoje}
-          </div>
-          <div className="flex items-center justify-between text-[11px] text-muted-foreground dark:text-slate-400 mt-2">
-            <span>Para Chão de Fábrica</span>
-            <span className="font-mono-tech font-bold text-emerald-600 dark:text-emerald-400">Semana: {liberadas.length}</span>
-          </div>
-          <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 to-teal-400" />
-        </div>
 
-        {/* Card 3: Fluxo Líquido / Vazão */}
-        <div className="p-4 rounded-3xl glass-bento border-border dark:border-[#4A5C6A]/60 relative overflow-hidden group">
-          <div className="flex items-center justify-between text-xs font-semibold text-foreground dark:text-[#CCD0CF] uppercase tracking-wider mb-1">
-            <span className="flex items-center gap-1.5">
-              <TrendingUp className="h-4 w-4" /> Ritmo de Liberação
-            </span>
-            <Radio className="h-4 w-4 text-[#CCD0CF]" />
-          </div>
-          <div className="text-4xl md:text-5xl font-black font-mono-tech text-foreground dark:text-white tracking-tight drop-shadow">
-            {totalEmitidasHoje > 0 ? `${Math.round((totalLiberadasHoje / totalEmitidasHoje) * 100)}%` : "100%"}
-          </div>
-          <div className="flex items-center justify-between text-[11px] text-muted-foreground dark:text-slate-400 mt-2">
-            <span>Vazão Liberadas / Emitidas</span>
-            <span className="font-mono-tech font-bold text-foreground dark:text-[#CCD0CF]">
-              {totalLiberadasHoje - totalEmitidasHoje >= 0 ? `+${totalLiberadasHoje - totalEmitidasHoje}` : `${totalLiberadasHoje - totalEmitidasHoje}`} saldo
-            </span>
-          </div>
-          <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#253745] to-[#4A5C6A]" />
-        </div>
+          {/* SEÇÃO 1: HOJE */}
+          <div className="flex flex-col shrink-0 border-b border-emerald-500/20">
+            <div className="py-1.5 px-4 bg-emerald-100/80 dark:bg-emerald-900/30 border-b border-emerald-500/20 flex items-center justify-center gap-2 shrink-0">
+              <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
+                Hoje
+              </span>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-600 text-white shadow-xs">
+                {liberadasGrouped.hoje.length}
+              </span>
+            </div>
 
-        {/* Card 4: Alerta de Urgências ou Última Liberação */}
-        <div className={`p-4 rounded-3xl glass-bento border relative overflow-hidden group ${
-          urgentesHoje > 0
-            ? "border-rose-500/50 shadow-[0_0_25px_rgba(244,63,94,0.2)]"
-            : "border-border dark:border-[#4A5C6A]/35"
-        }`}>
-          <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wider mb-1">
-            <span className={`flex items-center gap-1.5 ${urgentesHoje > 0 ? "text-rose-600 dark:text-rose-400 font-bold" : "text-muted-foreground dark:text-slate-400"}`}>
-              {urgentesHoje > 0 ? <AlertTriangle className="h-4 w-4 text-rose-500 animate-bounce" /> : <Clock className="h-4 w-4" />}
-              {urgentesHoje > 0 ? "Urgências Hoje" : "Última Liberação"}
-            </span>
-            <ShieldCheck className="h-4 w-4 text-muted-foreground dark:text-slate-500" />
+            <div className="overflow-x-auto max-h-[220px] overflow-y-auto">
+              <table className="w-full text-left text-xs table-fixed">
+                <thead className="sticky top-0 bg-muted/90 dark:bg-[#0c1822]/95 backdrop-blur-xs text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
+                  <tr>
+                    <th className="w-[14%] py-2 pl-3">OS</th>
+                    <th className="w-[26%] py-2">CLIENTE</th>
+                    <th className="w-[34%] py-2">DESCRIÇÃO</th>
+                    <th className="w-[12%] py-2">VENDEDOR</th>
+                    <th className="w-[14%] py-2 pr-3 text-right">QUANDO</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/20">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={5} className="py-4 text-center text-xs text-muted-foreground">
+                        <RefreshCw className="h-4 w-4 animate-spin inline mr-1.5 text-emerald-500" />
+                        Carregando...
+                      </td>
+                    </tr>
+                  ) : liberadasGrouped.hoje.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-4 text-center text-xs text-muted-foreground italic font-medium">
+                        Nenhuma OS
+                      </td>
+                    </tr>
+                  ) : (
+                    liberadasGrouped.hoje.map((e) => {
+                      const isRecent = isToday(parseISO(e.chegou_em)) && (Date.now() - new Date(e.chegou_em).getTime()) < 1800000;
+                      return (
+                        <tr
+                          key={`${e.order_id}-${e.chegou_em}`}
+                          className={`hover:bg-emerald-500/10 transition-colors ${
+                            e.urgente
+                              ? "bg-rose-500/10 text-rose-600 dark:text-rose-300 font-semibold"
+                              : isRecent
+                              ? "bg-emerald-500/15"
+                              : ""
+                          }`}
+                        >
+                          <td className="py-2 pl-3 font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap truncate">
+                            {cleanOsTitle(e.titulo)}
+                            {e.urgente && (
+                              <span className="ml-1 text-[9px] text-rose-500 font-extrabold" title="Urgente">
+                                🚨
+                              </span>
+                            )}
+                            {isRecent && (
+                              <span className="ml-1 text-[9px] text-emerald-600 dark:text-emerald-300 font-bold" title="Liberada recentemente">
+                                ✨
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2 font-semibold text-foreground truncate" title={e.cliente}>
+                            {e.cliente}
+                          </td>
+                          <td className="py-2 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
+                            {e.descricao || "—"}
+                          </td>
+                          <td className="py-2 text-muted-foreground truncate" title={e.vendedor || ""}>
+                            {e.vendedor || "—"}
+                          </td>
+                          <td className="py-2 pr-3 text-right text-muted-foreground whitespace-nowrap">
+                            {formatPcpDate(e.chegou_em)}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-          {urgentesHoje > 0 ? (
-            <>
-              <div className="text-4xl md:text-5xl font-black font-mono-tech text-rose-600 dark:text-rose-300 tracking-tight drop-shadow">
-                {urgentesHoje} O.S.
-              </div>
-              <p className="text-[11px] text-rose-600 dark:text-rose-400/80 mt-2 font-medium">Prioridade total de entrega</p>
-            </>
-          ) : lastLiberada ? (
-            <>
-              <div className="text-xl md:text-2xl font-black font-mono-tech text-foreground dark:text-white truncate drop-shadow">
-                {lastLiberada.titulo}
-              </div>
-              <p className="text-[11px] text-muted-foreground dark:text-slate-400 truncate mt-1">
-                {lastLiberada.cliente} • {format(parseISO(lastLiberada.chegou_em), "HH:mm")}
-              </p>
-            </>
-          ) : (
-            <div className="text-2xl font-bold text-muted-foreground dark:text-slate-400 mt-2">—</div>
-          )}
-          <div className={`absolute bottom-0 left-0 right-0 h-1.5 ${urgentesHoje > 0 ? "bg-rose-500" : "bg-slate-300 dark:bg-slate-700"}`} />
+
+          {/* SEÇÃO 2: ANTERIORES */}
+          <div className="flex flex-col flex-1 min-h-0">
+            <div className="py-1.5 px-4 bg-emerald-100/80 dark:bg-emerald-900/30 border-b border-emerald-500/20 flex items-center justify-center gap-2 shrink-0">
+              <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
+                Anteriores
+              </span>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-600 text-white shadow-xs">
+                {liberadasGrouped.anteriores.length}
+              </span>
+            </div>
+
+            <div ref={listRefRight} className="flex-1 overflow-y-auto overflow-x-auto scroll-smooth">
+              <table className="w-full text-left text-xs table-fixed">
+                <thead className="sticky top-0 bg-muted/90 dark:bg-[#0c1822]/95 backdrop-blur-xs text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
+                  <tr>
+                    <th className="w-[14%] py-2 pl-3">OS</th>
+                    <th className="w-[26%] py-2">CLIENTE</th>
+                    <th className="w-[34%] py-2">DESCRIÇÃO</th>
+                    <th className="w-[12%] py-2">VENDEDOR</th>
+                    <th className="w-[14%] py-2 pr-3 text-right">QUANDO</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/20">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={5} className="py-6 text-center text-xs text-muted-foreground">
+                        <RefreshCw className="h-4 w-4 animate-spin inline mr-1.5 text-emerald-500" />
+                        Carregando anteriores...
+                      </td>
+                    </tr>
+                  ) : liberadasGrouped.anteriores.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-6 text-center text-xs text-muted-foreground italic font-medium">
+                        Nenhuma OS anterior
+                      </td>
+                    </tr>
+                  ) : (
+                    liberadasGrouped.anteriores.map((e) => (
+                      <tr
+                        key={`${e.order_id}-${e.chegou_em}`}
+                        className={`hover:bg-emerald-500/10 transition-colors ${
+                          e.urgente ? "bg-rose-500/10 text-rose-600 dark:text-rose-300 font-semibold" : ""
+                        }`}
+                      >
+                        <td className="py-2 pl-3 font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap truncate">
+                          {cleanOsTitle(e.titulo)}
+                          {e.urgente && (
+                            <span className="ml-1 text-[9px] text-rose-500 font-extrabold" title="Urgente">
+                              🚨
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2 font-semibold text-foreground truncate" title={e.cliente}>
+                          {e.cliente}
+                        </td>
+                        <td className="py-2 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
+                          {e.descricao || "—"}
+                        </td>
+                        <td className="py-2 text-muted-foreground truncate" title={e.vendedor || ""}>
+                          {e.vendedor || "—"}
+                        </td>
+                        <td className="py-2 pr-3 text-right text-muted-foreground whitespace-nowrap">
+                          {formatPcpDate(e.chegou_em)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* DUAL COMMAND DECK: EMITIDAS (ESQUERDA) vs LIBERADAS (DIREITA) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0 mt-3">
-        {/* COLUNA ESQUERDA: O.S. EMITIDAS */}
-        <div className="flex flex-col rounded-3xl glass-bento border-border dark:border-blue-500/30 overflow-hidden">
-          {/* Header da Coluna */}
-          <div className="p-3.5 sm:p-4 border-b border-border dark:border-blue-500/20 bg-muted/60 dark:bg-blue-950/40 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 shadow-[0_0_12px_rgba(59,130,246,0.3)]">
-                <Layers className="h-4 w-4" />
-              </div>
-              <div>
-                <h2 className="text-base sm:text-lg font-black tracking-tight text-foreground dark:text-white flex items-center gap-2">
-                  OS EMITIDAS <span className="text-blue-600 dark:text-blue-400 font-mono-tech text-xs font-normal">(ENTRADAS)</span>
-                </h2>
-                <span className="text-[11px] text-muted-foreground dark:text-slate-400 font-medium">Cadastradas no sistema</span>
-              </div>
-            </div>
-
-            {/* Alternador Hoje / Anteriores */}
-            <div className="flex items-center gap-1 bg-background/80 dark:bg-[#11212D]/80 backdrop-blur-md p-1 rounded-xl border border-border/70 dark:border-[#4A5C6A]/40">
-              <button
-                onClick={() => setActiveTabLeft("hoje")}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  activeTabLeft === "hoje"
-                    ? "bg-blue-600 text-white shadow-md shadow-blue-600/40"
-                    : "text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
-                }`}
-              >
-                Hoje ({emitidasGrouped.hoje.length})
-              </button>
-              <button
-                onClick={() => setActiveTabLeft("anteriores")}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  activeTabLeft === "anteriores"
-                    ? "bg-blue-600 text-white shadow-md shadow-blue-600/40"
-                    : "text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
-                }`}
-              >
-                Anteriores ({emitidasGrouped.anteriores.length})
-              </button>
-            </div>
-          </div>
-
-          {/* Lista com Cartões de Alta Visibilidade para TV */}
-          <div
-            ref={listRefLeft}
-            className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2.5 scroll-smooth"
-          >
-            {loading ? (
-              <div className="flex flex-col items-center justify-center h-full py-20 text-slate-400 font-mono-tech gap-2">
-                <RefreshCw className="h-6 w-6 animate-spin text-blue-400" />
-                <span className="text-xs">Carregando ordens emitidas...</span>
-              </div>
-            ) : (activeTabLeft === "hoje" ? emitidasGrouped.hoje : emitidasGrouped.anteriores).length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full py-20 text-slate-500 text-sm">
-                Nenhuma O.S. encontrada neste período.
-              </div>
-            ) : (
-              (activeTabLeft === "hoje" ? emitidasGrouped.hoje : emitidasGrouped.anteriores).map((e) => {
-                const isNew = isToday(parseISO(e.created_at)) && (Date.now() - new Date(e.created_at).getTime()) < 3600000; // criada na última hora
-
-                return (
-                  <div
-                    key={`${e.order_id}-${e.created_at}`}
-                    className={`p-3.5 rounded-2xl border transition-all hover:scale-[1.01] ${
-                      e.urgente
-                        ? "bg-rose-500/10 border-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.15)]"
-                        : isNew
-                        ? "bg-blue-500/10 border-blue-400/50 shadow-[0_0_20px_rgba(59,130,246,0.15)]"
-                        : "bg-card/85 dark:bg-[#11212D]/85 border-border/80 dark:border-[#4A5C6A]/35 hover:border-blue-500/40"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono-tech font-black text-lg sm:text-xl text-blue-600 dark:text-blue-300 tracking-wide drop-shadow">
-                          {e.titulo}
-                        </span>
-                        {isNew && (
-                          <Badge className="bg-blue-500 text-white font-mono-tech text-[10px] px-2 py-0 animate-pulse font-bold">
-                            NOVA
-                          </Badge>
-                        )}
-                        {e.urgente && (
-                          <Badge variant="destructive" className="font-mono-tech text-[10px] px-2 py-0 font-bold">
-                            URGENTE
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono-tech text-xs sm:text-sm font-bold text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-lg">
-                          {format(parseISO(e.created_at), activeTabLeft === "hoje" ? "HH:mm" : "dd/MM HH:mm")}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="text-sm sm:text-base font-bold text-foreground dark:text-white tracking-wide truncate">
-                      {e.cliente}
-                    </div>
-
-                    <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-300 line-clamp-2 mt-1 leading-snug">
-                      {e.descricao || "—"}
-                    </div>
-
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground dark:text-slate-400 mt-2.5 pt-2 border-t border-border dark:border-slate-800/60 font-medium">
-                      <span>Vendedor: <strong className="text-foreground dark:text-slate-300 font-semibold">{e.vendedor || "Não informado"}</strong></span>
-                      <span className="font-mono-tech text-muted-foreground">{format(parseISO(e.created_at), "dd/MM/yyyy")}</span>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-
-        {/* COLUNA DIREITA: O.S. LIBERADAS */}
-        <div className="flex flex-col rounded-3xl glass-bento border-border dark:border-emerald-500/30 overflow-hidden">
-          {/* Header da Coluna */}
-          <div className="p-3.5 sm:p-4 border-b border-border dark:border-emerald-500/20 bg-muted/60 dark:bg-emerald-950/40 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.3)]">
-                <CheckCircle2 className="h-4 w-4" />
-              </div>
-              <div>
-                <h2 className="text-base sm:text-lg font-black tracking-tight text-foreground dark:text-white flex items-center gap-2">
-                  OS LIBERADAS <span className="text-emerald-600 dark:text-emerald-400 font-mono-tech text-xs font-normal">(SAÍDA P/ FÁBRICA)</span>
-                </h2>
-                <span className="text-[11px] text-muted-foreground dark:text-slate-400 font-medium">Prontas para produção</span>
-              </div>
-            </div>
-
-            {/* Alternador Hoje / Anteriores */}
-            <div className="flex items-center gap-1 bg-background/80 dark:bg-[#11212D]/80 backdrop-blur-md p-1 rounded-xl border border-border/70 dark:border-[#4A5C6A]/40">
-              <button
-                onClick={() => setActiveTabRight("hoje")}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  activeTabRight === "hoje"
-                    ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/40"
-                    : "text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
-                }`}
-              >
-                Hoje ({liberadasGrouped.hoje.length})
-              </button>
-              <button
-                onClick={() => setActiveTabRight("anteriores")}
-                className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                  activeTabRight === "anteriores"
-                    ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/40"
-                    : "text-muted-foreground dark:text-slate-400 hover:text-foreground dark:hover:text-white"
-                }`}
-              >
-                Anteriores ({liberadasGrouped.anteriores.length})
-              </button>
-            </div>
-          </div>
-
-          {/* Lista com Cartões de Alta Visibilidade para TV */}
-          <div
-            ref={listRefRight}
-            className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-2.5 scroll-smooth"
-          >
-            {loading ? (
-              <div className="flex flex-col items-center justify-center h-full py-20 text-slate-400 font-mono-tech gap-2">
-                <RefreshCw className="h-6 w-6 animate-spin text-emerald-400" />
-                <span className="text-xs">Carregando ordens liberadas...</span>
-              </div>
-            ) : (activeTabRight === "hoje" ? liberadasGrouped.hoje : liberadasGrouped.anteriores).length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full py-20 text-slate-500 text-sm">
-                Nenhuma O.S. liberada neste período.
-              </div>
-            ) : (
-              (activeTabRight === "hoje" ? liberadasGrouped.hoje : liberadasGrouped.anteriores).map((e) => {
-                const isRecent = isToday(parseISO(e.chegou_em)) && (Date.now() - new Date(e.chegou_em).getTime()) < 1800000; // liberada nos últimos 30 min
-
-                return (
-                  <div
-                    key={`${e.order_id}-${e.chegou_em}`}
-                    className={`p-3.5 rounded-2xl border transition-all hover:scale-[1.01] ${
-                      e.urgente
-                        ? "bg-rose-500/10 border-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.15)]"
-                        : isRecent
-                        ? "bg-emerald-500/15 border-emerald-400/60 shadow-[0_0_25px_rgba(16,185,129,0.25)] ring-1 ring-emerald-400/50"
-                        : "bg-card/85 dark:bg-[#11212D]/85 border-border/80 dark:border-[#4A5C6A]/35 hover:border-emerald-500/40"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono-tech font-black text-lg sm:text-xl text-emerald-600 dark:text-emerald-300 tracking-wide drop-shadow">
-                          {e.titulo}
-                        </span>
-                        {isRecent && (
-                          <Badge className="bg-emerald-500 text-slate-950 font-mono-tech text-[10px] px-2 py-0 font-extrabold animate-pulse shadow-[0_0_10px_#10b981]">
-                            LIBERADA AGORA!
-                          </Badge>
-                        )}
-                        {e.urgente && (
-                          <Badge variant="destructive" className="font-mono-tech text-[10px] px-2 py-0 font-bold">
-                            URGENTE
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono-tech text-xs sm:text-sm font-bold text-emerald-600 dark:text-emerald-300 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-lg shadow-sm">
-                          {format(parseISO(e.chegou_em), activeTabRight === "hoje" ? "HH:mm" : "dd/MM HH:mm")}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="text-sm sm:text-base font-bold text-foreground dark:text-white tracking-wide truncate">
-                      {e.cliente}
-                    </div>
-
-                    <div className="text-xs sm:text-sm text-muted-foreground dark:text-slate-300 line-clamp-2 mt-1 leading-snug">
-                      {e.descricao || "—"}
-                    </div>
-
-                    <div className="flex items-center justify-between text-[11px] text-muted-foreground dark:text-slate-400 mt-2.5 pt-2 border-t border-border dark:border-slate-800/60 font-medium">
-                      <span>Vendedor: <strong className="text-foreground dark:text-slate-300 font-semibold">{e.vendedor || "Não informado"}</strong></span>
-                      <span className="font-mono-tech text-muted-foreground">{format(parseISO(e.chegou_em), "dd/MM/yyyy")}</span>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* RODAPÉ: TELEMETRY TICKER ESTILO BLOOMBERG / TV NOTÍCIAS */}
-      <div className="mt-3 p-2.5 rounded-2xl glass-bento flex items-center justify-between gap-4 overflow-hidden shrink-0 text-xs font-mono-tech">
-        <div className="flex items-center gap-2 text-[#CCD0CF] font-bold uppercase tracking-wider shrink-0 bg-muted/60 dark:bg-[#253745]/60 px-3 py-1 rounded-xl border border-border/80 dark:border-[#4A5C6A]/40">
+      {/* RODAPÉ TELEMETRY TICKER */}
+      <div className="p-2 rounded-xl glass-bento flex items-center justify-between gap-3 overflow-hidden shrink-0 text-xs">
+        <div className="flex items-center gap-2 text-[#CCD0CF] font-bold uppercase tracking-wider shrink-0 bg-muted/60 dark:bg-[#253745]/60 px-2.5 py-0.5 rounded-lg border border-border/80 dark:border-[#4A5C6A]/40 text-[10px]">
           <span className="w-2 h-2 rounded-full bg-[#CCD0CF] animate-ping" />
           RADAR PCP
         </div>
 
-        <div className="flex-1 overflow-hidden whitespace-nowrap text-foreground dark:text-slate-300 text-[11px] sm:text-xs">
+        <div className="flex-1 overflow-hidden whitespace-nowrap text-foreground dark:text-slate-300 text-[11px]">
           <span className="inline-block animate-marquee">
-            📢 <strong>PRIMACOR GRÁFICA</strong> • HOJE: {totalEmitidasHoje} EMITIDAS / {totalLiberadasHoje} LIBERADAS • {lastLiberada ? `ÚLTIMA LIBERAÇÃO: ${lastLiberada.titulo} (${lastLiberada.cliente}) • ` : ""}RITMO DE PRODUÇÃO: {totalEmitidasHoje > 0 ? `${Math.round((totalLiberadasHoje / totalEmitidasHoje) * 100)}%` : "100%"}
+            📢 <strong>PRIMACOR GRÁFICA</strong> • HOJE: {totalEmitidasHoje} EMITIDAS / {totalLiberadasHoje} LIBERADAS • {lastLiberada ? `ÚLTIMA LIBERAÇÃO: ${cleanOsTitle(lastLiberada.titulo)} (${lastLiberada.cliente}) • ` : ""}RITMO: {totalEmitidasHoje > 0 ? `${Math.round((totalLiberadasHoje / totalEmitidasHoje) * 100)}%` : "100%"}
           </span>
         </div>
 
-        <div className="hidden sm:flex items-center gap-3 text-muted-foreground dark:text-slate-500 text-[11px] shrink-0 font-medium">
+        <div className="hidden sm:flex items-center gap-3 text-muted-foreground dark:text-slate-500 text-[10px] shrink-0 font-medium">
           <span>Pressione <strong>F11</strong> para Tela Cheia</span>
         </div>
       </div>
     </div>
   );
 
-  // Se estiver em modo TV, renderiza em tela cheia pura (100vw x 100vh) sem a barra lateral
+  // Modo TV em tela cheia
   if (isTvMode) {
     return (
       <div className="fixed inset-0 z-50 bg-[#050811] text-white flex flex-col h-screen w-screen overflow-hidden">
@@ -998,7 +993,7 @@ export default function PcpPage() {
     );
   }
 
-  // Modo padrão com Layout e barra lateral normal
+  // Modo padrão com Layout
   return (
     <Layout
       searchQuery={searchQuery}

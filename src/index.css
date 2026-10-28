@@ -173,6 +173,12 @@
     font-variant-numeric: tabular-nums;
   }
 
+  .font-pcp {
+    font-family: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'zero' 0;
+  }
+
   /* Ultra-minimalist modern transparent scrollbar */
   ::-webkit-scrollbar {
     width: 5px;
