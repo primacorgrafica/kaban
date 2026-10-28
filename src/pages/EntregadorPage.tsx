@@ -13,8 +13,9 @@ import {
   updateDriverDeliveryStatus,
   uploadDeliveryProofFile,
   recordGpsCheckpoint,
+  getEntregadoresList,
 } from "@/lib/deliveryService";
-import type { DeliveryStatus } from "@/types/delivery";
+import type { DeliveryStatus, Entregador } from "@/types/delivery";
 import { DELIVERY_STATUS_CONFIG } from "@/types/delivery";
 import type { Order } from "@/types/order";
 import { Link } from "react-router-dom";
@@ -49,9 +50,12 @@ const INSUCESSO_MOTIVOS = [
 ];
 
 export default function EntregadorPage() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, isAdmin, hasModule } = useAuth();
+  const canManage = isAdmin || hasModule("entregas");
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [availableDrivers, setAvailableDrivers] = useState<Entregador[]>([]);
+  const [selectedDriverId, setSelectedDriverId] = useState<string>("");
   const [driverProfile, setDriverProfile] = useState<{
     nome_completo: string;
     placa_veiculo: string | null;
@@ -115,22 +119,36 @@ export default function EntregadorPage() {
     setLoading(true);
 
     try {
+      if (canManage) {
+        try {
+          const listRes = await getEntregadoresList();
+          if (listRes.data && Array.isArray(listRes.data)) {
+            setAvailableDrivers(listRes.data);
+          }
+        } catch { /* ignore */ }
+      }
+
+      const targetUserId = (canManage && selectedDriverId) ? selectedDriverId : user.id;
+
       // 1. Perfil do entregador
       const { data: driverData } = await supabase
         .from("entregadores" as any)
         .select("nome_completo, placa_veiculo")
-        .eq("user_id", user.id)
+        .eq("user_id", targetUserId)
         .maybeSingle();
 
       if (driverData) {
         setDriverProfile(driverData as any);
+      } else {
+        const found = availableDrivers.find(d => d.user_id === targetUserId);
+        setDriverProfile(found ? { nome_completo: found.nome_completo, placa_veiculo: null } : null);
       }
 
       // 2. Ordens atribuídas ao entregador
       const { data: ordersData, error: ordersError } = await supabase
         .from("orders")
         .select("*")
-        .eq("entregador_id", user.id)
+        .eq("entregador_id", targetUserId)
         .order("ordem_parada", { ascending: true, nullsFirst: false });
 
       if (ordersError) {
@@ -163,7 +181,7 @@ export default function EntregadorPage() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [user]);
+  }, [user, selectedDriverId]);
 
   // Contadores
   const stats = useMemo(() => {
@@ -366,6 +384,31 @@ export default function EntregadorPage() {
 
       {/* Resumo & Abas Mobile */}
       <div className="p-4 flex flex-col gap-3 max-w-lg mx-auto w-full">
+        {/* Seletor de Simulação para Gestores */}
+        {canManage && (
+          <div className="bg-zinc-900/90 border border-zinc-800 rounded-lg p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-zinc-300">Visualizar como:</span>
+              <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30">Gestor</Badge>
+            </div>
+            <Select
+              value={selectedDriverId || user?.id || "me"}
+              onValueChange={(val) => setSelectedDriverId(val === "me" ? (user?.id || "") : val)}
+            >
+              <SelectTrigger className="h-8 w-full sm:w-[220px] bg-zinc-950 border-zinc-700 text-xs">
+                <SelectValue placeholder="Selecione um motoboy..." />
+              </SelectTrigger>
+              <SelectContent className="bg-zinc-900 border-zinc-800 text-zinc-100">
+                <SelectItem value={user?.id || "me"}>Minhas Entregas ({user?.email?.split("@")[0]})</SelectItem>
+                {availableDrivers.map((d) => (
+                  <SelectItem key={d.user_id} value={d.user_id}>
+                    {d.nome_completo}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        )}
         {/* Cards de Contagem */}
         <div className="grid grid-cols-3 gap-2">
           <div className="bg-zinc-900/70 border border-zinc-800 rounded-lg p-2.5 text-center">
@@ -406,11 +449,29 @@ export default function EntregadorPage() {
               Carregando suas entregas...
             </div>
           ) : displayedOrders.length === 0 ? (
-            <div className="text-center py-16 text-zinc-500 text-sm bg-zinc-900/30 rounded-lg border border-zinc-900">
-              <Package className="h-8 w-8 mx-auto mb-2 opacity-40" />
-              {activeTabFilter === "pendentes"
-                ? "Nenhuma entrega pendente no momento!"
-                : "Nenhuma entrega concluída registrada hoje."}
+            <div className="text-center py-12 px-4 text-zinc-400 text-sm bg-zinc-900/40 rounded-xl border border-zinc-800/80 flex flex-col items-center gap-3">
+              <Package className="h-10 w-10 text-zinc-600 mb-1" />
+              <div>
+                <p className="font-semibold text-zinc-200">
+                  {activeTabFilter === "pendentes"
+                    ? "Nenhuma entrega atribuída a este usuário no momento."
+                    : "Nenhuma entrega concluída registrada."}
+                </p>
+                <p className="text-xs text-zinc-500 mt-1 max-w-sm">
+                  O aplicativo do entregador exibe as ordens de serviço atribuídas a cada motoboy.
+                </p>
+              </div>
+
+              {canManage && (
+                <div className="pt-2">
+                  <Button asChild size="sm" className="gap-2 bg-primary text-primary-foreground font-medium text-xs">
+                    <Link to="/entregas">
+                      <Package className="h-3.5 w-3.5" />
+                      Ir para Gestão de Entregas e Atribuir O.S.
+                    </Link>
+                  </Button>
+                </div>
+              )}
             </div>
           ) : (
             displayedOrders.map((order) => {
