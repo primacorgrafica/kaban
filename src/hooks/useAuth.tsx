@@ -57,32 +57,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Use onAuthStateChange for auth events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, nextSession) => {
+      async (event, nextSession) => {
         if (!isMounted) return;
         setSession(nextSession);
         if (nextSession?.user) {
-          setTimeout(() => void fetchRole(nextSession.user.id), 0);
+          try {
+            await fetchRole(nextSession.user.id);
+          } catch (e) {
+            console.error("Erro ao carregar permissões:", e);
+          }
         } else {
           setRole(null);
+          setModulosAcesso([]);
+          setSetorVinculado(null);
         }
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     );
 
     // Also call getSession directly as fallback, with timeout
-    const sessionPromise = supabase.auth.getSession().then(({ data: { session: s } }) => s);
+    const sessionPromise = supabase.auth.getSession().then(async ({ data: { session: s } }) => {
+      if (s?.user) {
+        try {
+          await fetchRole(s.user.id);
+        } catch (e) {
+          console.error("Erro ao carregar permissões:", e);
+        }
+      }
+      return s;
+    });
     const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000));
 
     Promise.race([sessionPromise, timeoutPromise]).then((result) => {
       if (!isMounted) return;
-      // Only set if still loading (onAuthStateChange might have already fired)
-      if (loading) {
-        if (result?.user) {
-          setSession(result);
-          setTimeout(() => void fetchRole(result.user.id), 0);
-        }
-        setLoading(false);
+      if (result?.user) {
+        setSession(result);
       }
+      setLoading(false);
     });
 
     return () => {
@@ -264,12 +277,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (mod === "ctp" && modulosAcesso.includes("producao")) return true;
       if (mod === "digital" && modulosAcesso.includes("producao")) return true;
       if ((mod === "entregas" || mod === "gestao_entregas") && (modulosAcesso.includes("entregas") || modulosAcesso.includes("gestao_entregas"))) return true;
+      if (mod === "entregador" && (modulosAcesso.includes("entregador") || modulosAcesso.includes("entregas") || modulosAcesso.includes("gestao_entregas"))) return true;
       if ((mod === "cadastros" || mod === "cadastro") && (modulosAcesso.includes("cadastros") || modulosAcesso.includes("cadastro"))) return true;
       return false;
     }
     // Fallback seguro: default-deny baseado na role caso não haja módulos explicitamente configurados
     if (role === "coordenador") {
-      return ["comercial", "pcp", "pre_impressao", "ctp", "digital", "qualidade", "producao", "expedicao", "entregas", "gestao_entregas", "trabalhos_concluidos", "compras", "manutencao", "dashboard", "cadastros", "cadastro", "utilidades"].includes(mod);
+      return ["comercial", "pcp", "pre_impressao", "ctp", "digital", "qualidade", "producao", "expedicao", "entregas", "gestao_entregas", "entregador", "trabalhos_concluidos", "compras", "manutencao", "dashboard", "cadastros", "cadastro", "utilidades"].includes(mod);
     }
     if (role === "vendedor") {
       return ["comercial", "utilidades"].includes(mod);

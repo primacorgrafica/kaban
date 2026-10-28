@@ -312,17 +312,18 @@ export default function EntregasPage() {
             PDF
           </Button>
 
-          <Link to="/entregador" target="_blank">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 h-8 text-xs text-muted-foreground hover:text-foreground"
-              title="Abrir visão mobile do entregador em nova aba"
-            >
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="gap-1.5 h-8 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
+            title="Abrir visão mobile do entregador em nova aba"
+          >
+            <Link to="/entregador" target="_blank" rel="noopener noreferrer">
               <Bike className="h-3.5 w-3.5" />
               App Entregador
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </div>
 
         {/* Table */}

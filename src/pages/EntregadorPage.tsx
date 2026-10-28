@@ -17,6 +17,7 @@ import {
 import type { DeliveryStatus } from "@/types/delivery";
 import { DELIVERY_STATUS_CONFIG } from "@/types/delivery";
 import type { Order } from "@/types/order";
+import { Link } from "react-router-dom";
 import {
   Bike,
   Navigation,
@@ -32,6 +33,7 @@ import {
   FileCheck,
   ChevronRight,
   ShieldAlert,
+  ArrowLeft,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -329,6 +331,18 @@ export default function EntregadorPage() {
         </div>
 
         <div className="flex items-center gap-1.5">
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className="h-8 text-xs text-zinc-400 hover:text-zinc-200 gap-1 px-2"
+            title="Voltar ao Painel de Entregas"
+          >
+            <Link to="/entregas">
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Painel</span>
+            </Link>
+          </Button>
           <Button
             variant="ghost"
             size="icon"

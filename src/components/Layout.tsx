@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState, useCallback, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Monitor, Archive, Search, Menu, X, LogOut, BarChart3, Users, Maximize, Minimize, Truck, Megaphone, Lightbulb, Handshake, Square, PrinterCheck, Layers, ChevronDown, ShoppingCart, CircleDollarSign, AlertTriangle, Wrench, Briefcase, ShieldCheck, LucideIcon, Factory, ClipboardList, Settings, Package, KeyRound, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Monitor, Archive, Search, Menu, X, LogOut, BarChart3, Users, Maximize, Minimize, Truck, Megaphone, Lightbulb, Handshake, Square, PrinterCheck, Layers, ChevronDown, ShoppingCart, CircleDollarSign, AlertTriangle, Wrench, Briefcase, ShieldCheck, LucideIcon, Factory, ClipboardList, Settings, Package, KeyRound, PanelLeftClose, PanelLeftOpen, Bike } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChangePasswordDialog } from "./ChangePasswordDialog";
 import logoImg from "@/assets/logo-sidebar.png";
@@ -246,6 +246,8 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
     ...(hasModule("expedicao") ? [{ to: "/expedicao", label: "Expedição", icon: Truck, count: deptCountsLoaded ? (deptCounts["expedicao"] ?? 0) : undefined }] : []),
     // 7. GESTÃO ENTREGAS
     ...(hasModule("entregas") ? [{ to: "/entregas", label: "Gestão Entregas", icon: Package }] : []),
+    // 7b. APP ENTREGADOR
+    ...(hasModule("entregador") || role === "entregador" ? [{ to: "/entregador", label: "App Entregador", icon: Bike }] : []),
     // 8. TRABALHOS CONCLUIDOS
     ...(hasModule("trabalhos_concluidos") ? [{ to: "/arquivados", label: "Trabalhos Concluídos", icon: Archive, count: countsLoading ? undefined : archivedCount }] : []),
     // 9. COMPRAS
