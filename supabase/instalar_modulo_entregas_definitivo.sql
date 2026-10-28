@@ -92,6 +92,7 @@ ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS entregue_em TIMESTAMPTZ;
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS entregue_para TEXT;
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS entregue_por TEXT;
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS obs_entrega TEXT;
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS valor NUMERIC(12, 2) DEFAULT NULL;
 
 -- 5. NORMALIZA OS STATUS EXISTENTES PARA EVITAR CONFLITO DE CONSTRAINT
 UPDATE public.orders 
@@ -113,53 +114,10 @@ CREATE INDEX IF NOT EXISTS idx_orders_entregador_id ON public.orders(entregador_
 CREATE INDEX IF NOT EXISTS idx_orders_status_entrega ON public.orders(status_entrega);
 CREATE INDEX IF NOT EXISTS idx_orders_entregador_status ON public.orders(entregador_id, status_entrega) WHERE entregador_id IS NOT NULL;
 
--- 8. TRIGGER DE SEGURANÇA CONTRA ADULTERAÇÃO (SEM BLOQUEAR GESTORES OU ATUALIZAÇÕES LEGÍTIMAS)
-CREATE OR REPLACE FUNCTION public.guard_order_driver_tampering()
-RETURNS TRIGGER
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-DECLARE
-  v_role TEXT;
-BEGIN
-  v_role := public.get_user_role(auth.uid());
-
-  -- Gestores têm autorização para atualizar qualquer aspecto da O.S.
-  IF v_role IN ('admin', 'coordenador') THEN
-    RETURN NEW;
-  END IF;
-
-  -- Se for entregador puro, bloqueia manipulação de campos industriais ou fiscais
-  IF v_role = 'entregador' THEN
-    -- Não pode trocar entregador responsável
-    IF OLD.entregador_id IS NOT NULL AND NEW.entregador_id IS DISTINCT FROM OLD.entregador_id THEN
-      RAISE EXCEPTION 'Acesso negado: entregadores não podem reatribuir ordens de serviço.';
-    END IF;
-
-    -- Não pode alterar dados comerciais e de produção fundamentais
-    IF NEW.cliente IS DISTINCT FROM OLD.cliente
-       OR NEW.titulo IS DISTINCT FROM OLD.titulo
-       OR NEW.descricao IS DISTINCT FROM OLD.descricao
-       OR NEW.status IS DISTINCT FROM OLD.status THEN
-      RAISE EXCEPTION 'Acesso negado: entregadores não podem modificar dados industriais ou comerciais da O.S.';
-    END IF;
-
-    -- Não pode reverter entrega já concluída
-    IF OLD.status_entrega = 'entregue' AND NEW.status_entrega IS DISTINCT FROM 'entregue' THEN
-      RAISE EXCEPTION 'Acesso negado: uma entrega finalizada não pode ter seu status retrocedido.';
-    END IF;
-  END IF;
-
-  RETURN NEW;
-END;
-$$;
-
-DROP TRIGGER IF EXISTS trg_guard_order_driver_tampering ON public.orders;
-CREATE TRIGGER trg_guard_order_driver_tampering
-  BEFORE UPDATE ON public.orders
-  FOR EACH ROW
-  EXECUTE FUNCTION public.guard_order_driver_tampering();
+-- 8. REMOVE TRIGGERS RESIDUAIS QUE POSSAM BLOQUEAR A TABELA orders
+DROP TRIGGER IF EXISTS trg_guard_order_driver_tampering ON public.orders CASCADE;
+DROP TRIGGER IF EXISTS guard_order_driver_tampering ON public.orders CASCADE;
+DROP FUNCTION IF EXISTS public.guard_order_driver_tampering() CASCADE;
 
 -- 9. RPC CRÍTICA: driver_update_delivery_status
 -- Permite que entregadores atribuídos e gestores atualizem status de rota
