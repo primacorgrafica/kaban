@@ -373,7 +373,7 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
 
         <div
           ref={containerRef}
-          className="flex gap-7 min-h-full items-stretch overflow-x-auto pb-8 px-1 scrollbar-hide select-none"
+          className="flex gap-3.5 min-h-full items-stretch overflow-x-auto pb-8 px-1 scrollbar-hide select-none"
           style={{ WebkitOverflowScrolling: "touch" }}
         >
           {STATUS_ORDER.map((status) => (

@@ -248,7 +248,7 @@ export function ProductionKanbanBoard({
           </button>
         )}
 
-        <div ref={containerRef} className="flex gap-7 min-h-full items-stretch overflow-x-auto pb-8 px-1 scrollbar-hide select-none" style={{ WebkitOverflowScrolling: "touch" }}>
+        <div ref={containerRef} className="flex gap-3.5 min-h-full items-stretch overflow-x-auto pb-8 px-1 scrollbar-hide select-none" style={{ WebkitOverflowScrolling: "touch" }}>
           {department.statuses.map((statusConfig) => (
             <ProductionColumn
               key={statusConfig.id}
