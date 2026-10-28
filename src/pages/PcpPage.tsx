@@ -185,6 +185,7 @@ export default function PcpPage() {
 
   const announcedOrderIdsRef = useRef<Set<string>>(new Set());
   const [autoScroll, setAutoScroll] = useState(true);
+  const [mobileTab, setMobileTab] = useState<"todas" | "emitidas" | "liberadas">("emitidas");
 
   // Relógio ao vivo atualizado a cada segundo
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -611,10 +612,10 @@ export default function PcpPage() {
               variant="default"
               size="sm"
               onClick={toggleTvMode}
-              className="h-8 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] font-bold text-xs gap-1.5 shadow-md transition-all"
+              className="h-8 px-2.5 sm:px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] font-bold text-xs gap-1.5 shadow-md transition-all shrink-0"
             >
               {isTvMode ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-              <span>{isTvMode ? "Sair TV" : "Modo TV"}</span>
+              <span className="hidden sm:inline">{isTvMode ? "Sair TV" : "Modo TV"}</span>
             </Button>
           </div>
         </div>
@@ -635,12 +636,54 @@ export default function PcpPage() {
         </div>
       )}
 
+      {/* SELETOR DE COLUNAS EM TELAS MENORES / MOBILE (< lg) */}
+      <div className="flex lg:hidden items-center justify-between gap-1 p-1 bg-muted/60 dark:bg-[#11212D]/80 rounded-xl border border-border/70 shrink-0 text-xs font-bold">
+        <button
+          onClick={() => setMobileTab("emitidas")}
+          className={`flex-1 py-1.5 px-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+            mobileTab === "emitidas"
+              ? "bg-blue-600 text-white shadow-xs"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Layers className="h-3.5 w-3.5" />
+          <span>Emitidas ({totalEmitidasHoje})</span>
+        </button>
+        <button
+          onClick={() => setMobileTab("liberadas")}
+          className={`flex-1 py-1.5 px-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+            mobileTab === "liberadas"
+              ? "bg-emerald-600 text-white shadow-xs"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          <span>Liberadas ({totalLiberadasHoje})</span>
+        </button>
+        <button
+          onClick={() => setMobileTab("todas")}
+          className={`py-1.5 px-3 rounded-lg transition-all ${
+            mobileTab === "todas"
+              ? "bg-slate-800 text-white dark:bg-slate-700 shadow-xs"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Todas
+        </button>
+      </div>
+
       {/* DUAS COLUNAS PRINCIPAIS: OS EMITIDAS (ESQUERDA) vs OS LIBERADAS (DIREITA) */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5 flex-1 min-h-0">
+      <div className={`gap-3.5 flex-1 min-h-0 ${
+        mobileTab === "todas"
+          ? "flex flex-col lg:grid lg:grid-cols-2 overflow-y-auto lg:overflow-hidden"
+          : "grid grid-cols-1 lg:grid-cols-2"
+      }`}>
         {/* ========================================================= */}
         {/* COLUNA ESQUERDA: OS EMITIDAS                              */}
         {/* ========================================================= */}
-        <div className="flex flex-col rounded-2xl glass-bento border border-blue-500/30 overflow-hidden shadow-sm bg-card/60 dark:bg-[#11212D]/80">
+        <div className={`flex flex-col rounded-2xl glass-bento border border-blue-500/30 overflow-hidden shadow-sm bg-card/60 dark:bg-[#11212D]/80 ${
+          mobileTab === "liberadas" ? "hidden lg:flex" : "flex"
+        } ${mobileTab === "todas" ? "min-h-[440px] lg:min-h-0" : ""}`}>
           {/* TÍTULO PRINCIPAL: OS EMITIDAS */}
           <div className="py-2.5 px-4 bg-blue-600/10 dark:bg-blue-950/50 border-b border-blue-500/20 text-center flex items-center justify-center gap-2 shrink-0">
             <Layers className="h-4 w-4 text-blue-600 dark:text-blue-400" />
@@ -661,14 +704,14 @@ export default function PcpPage() {
             </div>
 
             <div className="overflow-x-auto max-h-[220px] overflow-y-auto">
-              <table className="w-full text-left text-xs table-fixed">
+              <table className="w-full min-w-[500px] text-left text-xs table-fixed">
                 <thead className="sticky top-0 bg-muted/90 dark:bg-[#0c1822]/95 backdrop-blur-xs text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
                   <tr>
-                    <th className="w-[14%] py-2 pl-3">OS</th>
-                    <th className="w-[26%] py-2">CLIENTE</th>
-                    <th className="w-[34%] py-2">DESCRIÇÃO</th>
+                    <th className="w-[15%] py-2 pl-3">OS</th>
+                    <th className="w-[27%] py-2">CLIENTE</th>
+                    <th className="w-[31%] py-2">DESCRIÇÃO</th>
                     <th className="w-[12%] py-2">VENDEDOR</th>
-                    <th className="w-[14%] py-2 pr-3 text-right">CRIADA</th>
+                    <th className="w-[15%] py-2 pr-3 text-right">CRIADA</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
@@ -733,14 +776,14 @@ export default function PcpPage() {
             </div>
 
             <div ref={listRefLeft} className="flex-1 overflow-y-auto overflow-x-auto scroll-smooth">
-              <table className="w-full text-left text-xs table-fixed">
+              <table className="w-full min-w-[500px] text-left text-xs table-fixed">
                 <thead className="sticky top-0 bg-muted/90 dark:bg-[#0c1822]/95 backdrop-blur-xs text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
                   <tr>
-                    <th className="w-[14%] py-2 pl-3">OS</th>
-                    <th className="w-[26%] py-2">CLIENTE</th>
-                    <th className="w-[34%] py-2">DESCRIÇÃO</th>
+                    <th className="w-[15%] py-2 pl-3">OS</th>
+                    <th className="w-[27%] py-2">CLIENTE</th>
+                    <th className="w-[31%] py-2">DESCRIÇÃO</th>
                     <th className="w-[12%] py-2">VENDEDOR</th>
-                    <th className="w-[14%] py-2 pr-3 text-right">CRIADA</th>
+                    <th className="w-[15%] py-2 pr-3 text-right">CRIADA</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
@@ -797,7 +840,9 @@ export default function PcpPage() {
         {/* ========================================================= */}
         {/* COLUNA DIREITA: OS LIBERADAS                             */}
         {/* ========================================================= */}
-        <div className="flex flex-col rounded-2xl glass-bento border border-emerald-500/30 overflow-hidden shadow-sm bg-card/60 dark:bg-[#11212D]/80">
+        <div className={`flex flex-col rounded-2xl glass-bento border border-emerald-500/30 overflow-hidden shadow-sm bg-card/60 dark:bg-[#11212D]/80 ${
+          mobileTab === "emitidas" ? "hidden lg:flex" : "flex"
+        } ${mobileTab === "todas" ? "min-h-[440px] lg:min-h-0" : ""}`}>
           {/* TÍTULO PRINCIPAL: OS LIBERADAS */}
           <div className="py-2.5 px-4 bg-emerald-600/10 dark:bg-emerald-950/50 border-b border-emerald-500/20 text-center flex items-center justify-center gap-2 shrink-0">
             <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -818,14 +863,14 @@ export default function PcpPage() {
             </div>
 
             <div className="overflow-x-auto max-h-[220px] overflow-y-auto">
-              <table className="w-full text-left text-xs table-fixed">
+              <table className="w-full min-w-[500px] text-left text-xs table-fixed">
                 <thead className="sticky top-0 bg-muted/90 dark:bg-[#0c1822]/95 backdrop-blur-xs text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
                   <tr>
-                    <th className="w-[14%] py-2 pl-3">OS</th>
-                    <th className="w-[26%] py-2">CLIENTE</th>
-                    <th className="w-[34%] py-2">DESCRIÇÃO</th>
+                    <th className="w-[15%] py-2 pl-3">OS</th>
+                    <th className="w-[27%] py-2">CLIENTE</th>
+                    <th className="w-[31%] py-2">DESCRIÇÃO</th>
                     <th className="w-[12%] py-2">VENDEDOR</th>
-                    <th className="w-[14%] py-2 pr-3 text-right">QUANDO</th>
+                    <th className="w-[15%] py-2 pr-3 text-right">QUANDO</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
@@ -902,14 +947,14 @@ export default function PcpPage() {
             </div>
 
             <div ref={listRefRight} className="flex-1 overflow-y-auto overflow-x-auto scroll-smooth">
-              <table className="w-full text-left text-xs table-fixed">
+              <table className="w-full min-w-[500px] text-left text-xs table-fixed">
                 <thead className="sticky top-0 bg-muted/90 dark:bg-[#0c1822]/95 backdrop-blur-xs text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
                   <tr>
-                    <th className="w-[14%] py-2 pl-3">OS</th>
-                    <th className="w-[26%] py-2">CLIENTE</th>
-                    <th className="w-[34%] py-2">DESCRIÇÃO</th>
+                    <th className="w-[15%] py-2 pl-3">OS</th>
+                    <th className="w-[27%] py-2">CLIENTE</th>
+                    <th className="w-[31%] py-2">DESCRIÇÃO</th>
                     <th className="w-[12%] py-2">VENDEDOR</th>
-                    <th className="w-[14%] py-2 pr-3 text-right">QUANDO</th>
+                    <th className="w-[15%] py-2 pr-3 text-right">QUANDO</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">

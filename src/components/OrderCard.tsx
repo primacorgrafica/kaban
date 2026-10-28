@@ -789,15 +789,15 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
 
       {/* Detail / Edit Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-4xl p-0 overflow-hidden border border-border bg-card text-card-foreground shadow-2xl backdrop-blur-2xl rounded-2xl flex flex-col max-h-[92vh]">
+        <DialogContent className="w-[95vw] sm:max-w-4xl p-0 overflow-hidden border border-border bg-card text-card-foreground shadow-2xl backdrop-blur-2xl rounded-2xl flex flex-col max-h-[92vh]">
           {/* Header Fixo */}
-          <div className="px-6 py-4 border-b border-border bg-muted/40 flex items-center justify-between shrink-0">
+          <div className="px-4 py-3 sm:px-6 sm:py-4 border-b border-border bg-muted/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 rounded-xl bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center text-[#CCD0CF]">
+              <div className="h-9 w-9 rounded-xl bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center text-[#CCD0CF] shrink-0">
                 <FileText className="h-4 w-4" />
               </div>
-              <div>
-                <div className="flex items-center gap-2">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-mono-tech text-base font-bold text-foreground tracking-wide">
                     O.S. #{order.titulo}
                   </span>
