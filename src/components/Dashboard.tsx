@@ -893,7 +893,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
         >
           <div className="flex items-center justify-between">
             <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-              Atenção & Gargalos
+              Radar de Atenção
             </span>
             <div className="p-2 rounded-xl bg-rose-500/10 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/20 backdrop-blur-md">
               <AlertTriangle className="h-4 w-4" />

@@ -22,12 +22,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { subscribeOrders } from "@/lib/realtimeManager";
 import { ThemeToggle } from "./ThemeToggle";
 import { CommandPalette } from "./CommandPalette";
-import { AiProductionBottlenecksModal } from "./AiProductionBottlenecksModal";
 import { ChatDialog } from "./chat/ChatDialog";
 import { useChatNotification } from "./chat/GlobalChatNotifier";
 import { SharePointStatusIndicator } from "./sharepoint/SharePointStatusIndicator";
 import { OutlookStatusIndicator } from "./email/OutlookStatusIndicator";
-import { Activity, Command, MessageSquare, ExternalLink, Compass } from "lucide-react";
+import { Command, MessageSquare, ExternalLink, Compass } from "lucide-react";
 import { Order, OrderStatus } from "@/types/order";
 import { UTILITIES_CONFIG } from "@/config/utilities";
 import { OrderDetailDialog } from "./OrderDetailDialog";
@@ -80,7 +79,6 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
   const [cadastrosOpen, setCadastrosOpen] = useState(false);
   const [utilidadesOpen, setUtilidadesOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [bottlenecksModalOpen, setBottlenecksModalOpen] = useState(false);
   const [chatDialogOpen, setChatDialogOpen] = useState(false);
   const [inspectOrder, setInspectOrder] = useState<Order | null>(null);
   const avisoSessionStartedAt = useRef(Date.now());
@@ -632,16 +630,6 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
             {(isAdmin || role === "coordenador" || Boolean(typeof window !== "undefined" && localStorage.getItem("kaban_msal_user_info"))) && <OutlookStatusIndicator />}
             <Button
               variant="ghost"
-              size="sm"
-              onClick={() => setBottlenecksModalOpen(true)}
-              className="h-9 px-2.5 text-xs text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-500/10 border border-amber-500/25 rounded-xl hidden md:flex items-center gap-1.5 font-mono-tech transition-all"
-              title="IA: Diagnóstico de Gargalos & Alertas"
-            >
-              <Activity className="h-3.5 w-3.5 text-amber-500" />
-              <span>Gargalos</span>
-            </Button>
-            <Button
-              variant="ghost"
               size="icon"
               onClick={() => setChatDialogOpen(true)}
               className="h-9 w-9 text-muted-foreground hover:text-primary hover:bg-primary/10 border border-border rounded-xl relative transition-all"
@@ -697,13 +685,6 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
       <CommandPalette
         open={commandPaletteOpen}
         onOpenChange={setCommandPaletteOpen}
-        onSelectOrder={(order) => setInspectOrder(order)}
-      />
-
-      {/* AI Production Bottlenecks Diagnostic Modal */}
-      <AiProductionBottlenecksModal
-        open={bottlenecksModalOpen}
-        onOpenChange={setBottlenecksModalOpen}
         onSelectOrder={(order) => setInspectOrder(order)}
       />
 
