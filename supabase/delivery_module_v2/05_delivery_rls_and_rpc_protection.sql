@@ -90,31 +90,38 @@ SET search_path = public, auth
 AS $$
 DECLARE
   v_caller_role TEXT;
-  v_driver_active BOOLEAN;
+  v_driver_active BOOLEAN := FALSE;
   v_driver_name TEXT;
   v_current_order RECORD;
+  v_is_entregador BOOLEAN := FALSE;
+  v_is_gestor BOOLEAN := FALSE;
 BEGIN
   -- 1. Identificação e autenticação do chamador
   IF auth.uid() IS NULL THEN
     RETURN jsonb_build_object('success', false, 'error', 'Sessão não autenticada.');
   END IF;
 
-  v_caller_role := public.get_user_role(auth.uid());
-  IF v_caller_role != 'entregador' AND v_caller_role NOT IN ('admin', 'coordenador') THEN
+  v_caller_role := COALESCE(public.get_user_role(auth.uid()), 'user');
+
+  IF v_caller_role IN ('admin', 'coordenador') THEN
+    v_is_gestor := TRUE;
+  END IF;
+
+  -- Verifica se está cadastrado na tabela pública de entregadores
+  SELECT ativo, nome_completo INTO v_driver_active, v_driver_name
+  FROM public.entregadores
+  WHERE user_id = auth.uid();
+
+  IF v_caller_role = 'entregador' OR v_driver_active IS TRUE THEN
+    v_is_entregador := TRUE;
+  END IF;
+
+  IF NOT v_is_gestor AND NOT v_is_entregador THEN
     RETURN jsonb_build_object('success', false, 'error', 'Apenas entregadores atribuídos ou gestores podem atualizar status de entrega.');
   END IF;
 
-  -- 2. Validação de atividade do entregador
-  IF v_caller_role = 'entregador' THEN
-    SELECT ativo, nome_completo INTO v_driver_active, v_driver_name
-    FROM public.entregadores
-    WHERE user_id = auth.uid();
-
-    IF v_driver_active IS NOT TRUE THEN
-      RETURN jsonb_build_object('success', false, 'error', 'Entregador inativo ou não cadastrado no sistema.');
-    END IF;
-  ELSE
-    SELECT COALESCE(nome, 'Gestor') INTO v_driver_name
+  IF v_driver_name IS NULL THEN
+    SELECT COALESCE(nome, 'Entregador') INTO v_driver_name
     FROM public.profiles
     WHERE user_id = auth.uid();
   END IF;
@@ -143,34 +150,31 @@ BEGIN
     RETURN jsonb_build_object('success', false, 'error', 'Ordem de serviço não encontrada.');
   END IF;
 
-  -- 5. Se for entregador, valida rigorosamente a custódia da ordem
-  IF v_caller_role = 'entregador' AND v_current_order.entregador_id != auth.uid() THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Esta ordem não está atribuída ao usuário autenticado.');
+  -- 5. Se for entregador (e não gestor), valida rigorosamente a custódia da ordem
+  IF NOT v_is_gestor THEN
+    IF v_current_order.entregador_id IS DISTINCT FROM auth.uid() THEN
+      RETURN jsonb_build_object('success', false, 'error', 'Esta ordem não está atribuída ao seu usuário de entregador.');
+    END IF;
   END IF;
 
   -- 6. Imutabilidade de entregas já finalizadas (Terminal State Protection)
-  IF v_current_order.status_entrega = 'entregue' THEN
+  IF COALESCE(v_current_order.status_entrega, 'pendente') = 'entregue' THEN
     RETURN jsonb_build_object('success', false, 'error', 'Esta entrega já foi concluída e não pode mais ser alterada.');
   END IF;
 
   -- 7. Validação da Máquina de Estados Finita (FSM)
-  -- Transições aceitas:
-  -- (atribuido | pendente | insucesso) -> em_rota
-  -- em_rota -> no_local
-  -- (no_local | em_rota) -> entregue (exige recebedor não-nulo)
-  -- (em_rota | no_local) -> insucesso (exige justificativa)
   IF p_new_status = 'em_rota' THEN
-    IF v_current_order.status_entrega NOT IN ('atribuido', 'pendente', 'insucesso') THEN
-      RETURN jsonb_build_object('success', false, 'error', 'Não é possível iniciar rota a partir do status atual.');
+    IF COALESCE(v_current_order.status_entrega, 'pendente') NOT IN ('atribuido', 'pendente', 'insucesso') THEN
+      RETURN jsonb_build_object('success', false, 'error', 'Não é possível iniciar rota a partir do status atual (' || COALESCE(v_current_order.status_entrega, 'indefinido') || ').');
     END IF;
 
   ELSIF p_new_status = 'no_local' THEN
-    IF v_current_order.status_entrega != 'em_rota' THEN
+    IF COALESCE(v_current_order.status_entrega, 'pendente') != 'em_rota' THEN
       RETURN jsonb_build_object('success', false, 'error', 'A ordem deve estar em rota para marcar chegada no local.');
     END IF;
 
   ELSIF p_new_status = 'entregue' THEN
-    IF v_current_order.status_entrega NOT IN ('no_local', 'em_rota') THEN
+    IF COALESCE(v_current_order.status_entrega, 'pendente') NOT IN ('no_local', 'em_rota') THEN
       RETURN jsonb_build_object('success', false, 'error', 'A entrega deve estar no local ou em rota para ser concluída.');
     END IF;
     IF p_entregue_para IS NULL OR trim(p_entregue_para) = '' THEN
@@ -178,7 +182,7 @@ BEGIN
     END IF;
 
   ELSIF p_new_status = 'insucesso' THEN
-    IF v_current_order.status_entrega NOT IN ('em_rota', 'no_local') THEN
+    IF COALESCE(v_current_order.status_entrega, 'pendente') NOT IN ('em_rota', 'no_local') THEN
       RETURN jsonb_build_object('success', false, 'error', 'Insucesso só pode ser registrado após início do deslocamento.');
     END IF;
     IF p_motivo_insucesso IS NULL OR trim(p_motivo_insucesso) = '' THEN
@@ -186,7 +190,7 @@ BEGIN
     END IF;
 
   ELSE
-    RETURN jsonb_build_object('success', false, 'error', 'Status de transição de entrega inválido.');
+    RETURN jsonb_build_object('success', false, 'error', 'Status de transição de entrega inválido: ' || COALESCE(p_new_status, 'vazio'));
   END IF;
 
   -- 8. Atualização atômica exclusiva dos campos de entrega
@@ -210,7 +214,7 @@ BEGIN
       ELSE entregue_para 
     END,
     entregue_por = CASE 
-      WHEN p_new_status = 'entregue' THEN v_driver_name 
+      WHEN p_new_status = 'entregue' THEN COALESCE(v_driver_name, 'Entregador') 
       ELSE entregue_por 
     END,
     motivo_insucesso = CASE 
@@ -226,8 +230,7 @@ BEGIN
 
   RETURN jsonb_build_object('success', true, 'order_id', p_order_id, 'status_entrega', p_new_status);
 EXCEPTION WHEN OTHERS THEN
-  -- Blindagem contra vazamento de detalhes internos/SQLERRM
-  RETURN jsonb_build_object('success', false, 'error', 'Falha interna ao processar a atualização da entrega.');
+  RETURN jsonb_build_object('success', false, 'error', 'Erro no banco (' || SQLSTATE || '): ' || SQLERRM);
 END;
 $$;
 
@@ -339,7 +342,7 @@ BEGIN
 
   RETURN jsonb_build_object('success', true, 'order_id', p_order_id, 'entregador_id', p_entregador_id);
 EXCEPTION WHEN OTHERS THEN
-  RETURN jsonb_build_object('success', false, 'error', 'Falha interna ao processar a atribuição do entregador.');
+  RETURN jsonb_build_object('success', false, 'error', 'Erro no banco ao atribuir entregador (' || SQLSTATE || '): ' || SQLERRM);
 END;
 $$;
 
@@ -357,12 +360,21 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  v_role TEXT;
 BEGIN
+  v_role := public.get_user_role(auth.uid());
+
+  -- Gestores têm autorização para atualizar qualquer aspecto da O.S.
+  IF v_role IN ('admin', 'coordenador') THEN
+    RETURN NEW;
+  END IF;
+
   -- Se o chamador for do papel entregador, bloqueia qualquer tentativa de alteração
   -- que viole o isolamento de privilégios ou adultere dados comerciais/industriais
-  IF public.get_user_role(auth.uid()) = 'entregador' THEN
+  IF v_role = 'entregador' THEN
     -- Entregador não pode reatribuir ordem nem assumir ordens de outros
-    IF OLD.entregador_id IS DISTINCT FROM auth.uid() OR NEW.entregador_id IS DISTINCT FROM OLD.entregador_id THEN
+    IF OLD.entregador_id IS NOT NULL AND NEW.entregador_id IS DISTINCT FROM OLD.entregador_id THEN
       RAISE EXCEPTION 'Acesso negado: entregadores não podem reatribuir ordens de serviço.';
     END IF;
 
