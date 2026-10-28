@@ -1394,7 +1394,7 @@ export function CreateOrderDialog({
                 )}
               </div>
 
-              {/* SUPRIMENTOS & PROCESSOS ESPECIAIS (PANTONE - FACA - CLICHÊ - OUTROS) */}
+              {/* SUPRIMENTOS & PROCESSOS ESPECIAIS (CLICHÊ - FACA - FILME - PANTONE - OUTROS) */}
               <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -1403,13 +1403,13 @@ export function CreateOrderDialog({
                       Suprimentos & Processos Especiais
                     </Label>
                   </div>
-                  <span className="text-[11px] text-muted-foreground font-mono-tech">
-                    Faca e Clichê ficam amarelos; Pantone e Outros ficam rosa clarinho
+                  <span className="text-[11px] text-muted-foreground font-mono-tech hidden sm:inline">
+                    Clichê, Faca e Filme amarelos; Pantone e Outros rosa
                   </span>
                 </div>
 
-                {/* Seleção: PANTONE - FACA - CLICHÊ - OUTROS */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                {/* Seleção alinhada na mesma linha: CLICHÊ - FACA - FILME - PANTONE - OUTROS */}
+                <div className="grid grid-cols-5 gap-1.5 sm:gap-2 pt-1">
                   {SPECIAL_SUPPLIES.map((item) => {
                     const active = isSpecialSupplyActive(form.processos, item.id);
                     const isPink = item.id === "PANTONE" || item.id === "OUTROS";
@@ -1423,25 +1423,25 @@ export function CreateOrderDialog({
                             processos: toggleSpecialSupplyActive(f.processos, item.id),
                           }));
                         }}
-                        className={`p-3 rounded-xl border-2 transition-all flex items-center justify-center text-center cursor-pointer ${
+                        className={`py-2 px-1 sm:px-2 rounded-lg sm:rounded-xl border-2 transition-all flex items-center justify-center text-center cursor-pointer min-w-0 ${
                           active
                             ? isPink
-                              ? "bg-pink-100/90 dark:bg-pink-950/40 border-pink-400 dark:border-pink-500/70 text-pink-800 dark:text-pink-200 font-extrabold shadow-[0_0_15px_rgba(244,114,182,0.25)] scale-[1.02]"
-                              : "bg-amber-500/20 border-amber-500 text-amber-700 dark:text-amber-300 font-extrabold shadow-[0_0_15px_rgba(245,158,11,0.25)] scale-[1.02]"
+                              ? "bg-pink-100/90 dark:bg-pink-950/40 border-pink-400 dark:border-pink-500/70 text-pink-800 dark:text-pink-200 font-extrabold shadow-[0_0_12px_rgba(244,114,182,0.25)] scale-[1.02]"
+                              : "bg-amber-500/20 border-amber-500 text-amber-700 dark:text-amber-300 font-extrabold shadow-[0_0_12px_rgba(245,158,11,0.25)] scale-[1.02]"
                             : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent hover:border-border/80"
                         }`}
                       >
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center justify-center gap-1 sm:gap-1.5 min-w-0">
                           <span
-                            className={`w-2.5 h-2.5 rounded-full transition-all ${
+                            className={`w-2 h-2 rounded-full shrink-0 transition-all ${
                               active
                                 ? isPink
-                                  ? "bg-pink-500 shadow-[0_0_8px_#ec4899]"
-                                  : "bg-amber-500 shadow-[0_0_8px_#f59e0b]"
+                                  ? "bg-pink-500 shadow-[0_0_6px_#ec4899]"
+                                  : "bg-amber-500 shadow-[0_0_6px_#f59e0b]"
                                 : "bg-muted-foreground/30"
                             }`}
                           />
-                          <span className="font-mono-tech font-black text-sm tracking-wider">
+                          <span className="font-mono-tech font-black text-[10px] xs:text-[11px] sm:text-xs tracking-tight truncate">
                             {item.label}
                           </span>
                         </div>

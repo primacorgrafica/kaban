@@ -129,15 +129,16 @@ export function getProcessoCor(sigla: string): string {
   return found?.cor || "bg-muted text-muted-foreground border-border";
 }
 
-// ═══ SUPRIMENTOS & PROCESSOS ESPECIAIS (PANTONE - FACA - CLICHÊ - OUTROS) ═══
+// ═══ SUPRIMENTOS & PROCESSOS ESPECIAIS (CLICHÊ - FACA - FILME - PANTONE - OUTROS) ═══
 export const SPECIAL_SUPPLIES = [
-  { id: "PANTONE", label: "PANTONE", alt: ["PANTONE", "pantone"] },
-  { id: "FACA", label: "FACA", alt: ["FACA", "faca"] },
   { id: "CLICHE", label: "CLICHÊ", alt: ["CLICHE", "CLICHÊ", "cliche", "clichê"] },
+  { id: "FACA", label: "FACA", alt: ["FACA", "faca"] },
+  { id: "FILME", label: "FILME", alt: ["FILME", "filme"] },
+  { id: "PANTONE", label: "PANTONE", alt: ["PANTONE", "pantone"] },
   { id: "OUTROS", label: "OUTROS", alt: ["OUTROS", "outros"] },
 ] as const;
 
-export type SpecialSupplyId = "PANTONE" | "FACA" | "CLICHE" | "OUTROS";
+export type SpecialSupplyId = "CLICHE" | "FACA" | "FILME" | "PANTONE" | "OUTROS";
 
 export function isSpecialSupplyActive(processos: string[] | undefined | null, id: SpecialSupplyId): boolean {
   if (!processos || !Array.isArray(processos)) return false;
@@ -206,7 +207,7 @@ export function getSpecialSupplyBadgeClasses(
     };
   }
 
-  // FACA e CLICHÊ: AMARELO
+  // FACA, CLICHÊ e FILME: AMARELO
   return {
     badge: "bg-amber-400 hover:bg-amber-500 text-amber-950 border-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.25)] active:scale-95",
     dot: "bg-amber-950",

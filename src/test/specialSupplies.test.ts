@@ -21,10 +21,12 @@ describe("Suprimentos e Processos Especiais (PANTONE, FACA, CLICHÊ, OUTROS)", (
     expect(ids).toContain("PANTONE");
     expect(ids).toContain("FACA");
     expect(ids).toContain("CLICHE");
+    expect(ids).toContain("FILME");
     expect(ids).toContain("OUTROS");
 
     const labels = SPECIAL_SUPPLIES.map((s) => s.label);
     expect(labels).toContain("CLICHÊ");
+    expect(labels).toContain("FILME");
   });
 
   it("deve ativar e desativar PANTONE e OUTROS via toggleSpecialSupplyActive", () => {
@@ -142,7 +144,12 @@ describe("Suprimentos e Processos Especiais (PANTONE, FACA, CLICHÊ, OUTROS)", (
     // Cenário 3: Card criado com FACA e CLICHÊ
     const cardFacaECliche = ["CORTE", "FACA", "CLICHE"];
     const activeAmbos = SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(cardFacaECliche, s.id));
-    expect(activeAmbos.map((s) => s.id)).toEqual(["FACA", "CLICHE"]);
+    expect(activeAmbos.map((s) => s.id)).toEqual(["CLICHE", "FACA"]);
+
+    // Cenário 3b: Card criado com FILME
+    const cardComFilme = ["CORTE", "FILME"];
+    const activeFilme = SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(cardComFilme, s.id));
+    expect(activeFilme.map((s) => s.id)).toEqual(["FILME"]);
 
     // Cenário 4: Card SEM suprimentos especiais (apenas processos regulares)
     const cardSemSuprimentos = ["DIG", "CORTE", "DOBRA"];
@@ -186,6 +193,10 @@ describe("Suprimentos e Processos Especiais (PANTONE, FACA, CLICHÊ, OUTROS)", (
     const clichePending = getSpecialSupplyBadgeClasses("CLICHE", false);
     expect(clichePending.badge).toContain("bg-amber-400");
     expect(clichePending.badge).toContain("text-amber-950");
+
+    const filmePending = getSpecialSupplyBadgeClasses("FILME", false);
+    expect(filmePending.badge).toContain("bg-amber-400");
+    expect(filmePending.badge).toContain("text-amber-950");
 
     const pantonePending = getSpecialSupplyBadgeClasses("PANTONE", false);
     expect(pantonePending.badge).toContain("bg-pink-100");
