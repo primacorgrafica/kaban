@@ -18,6 +18,7 @@ import { KanbanFiltersBar, KanbanFilters } from "@/components/KanbanFiltersBar";
 import { toast } from "sonner";
 import { exportEntregasPDF } from "@/lib/pdfExport";
 import type { Order } from "@/types/order";
+import { DeliveryAddressCell } from "@/components/DeliveryAddressCell";
 
 export default function EntregasPage() {
   const { user, authReady } = useAuth();
@@ -285,7 +286,7 @@ export default function EntregasPage() {
           <div className="flex items-center justify-center h-full text-muted-foreground">Carregando dados...</div>
         ) : (
           <div className="border rounded-lg overflow-x-auto overflow-y-auto flex-1 scrollbar-light">
-            <Table className="table-fixed min-w-[1100px]">
+            <Table className="table-fixed min-w-[1140px]">
               <TableHeader>
                  <TableRow className="bg-muted/50 [&>th]:px-2 [&>th]:py-2 [&>th]:h-9">
                   <TableHead className="whitespace-nowrap w-[50px]">Flags</TableHead>
@@ -297,7 +298,7 @@ export default function EntregasPage() {
                   <TableHead className="whitespace-nowrap w-[100px] bg-blue-100 dark:bg-blue-900/40">Atualização</TableHead>
                   <TableHead className="whitespace-nowrap w-[160px]">Data de Entrega</TableHead>
                   <TableHead className="whitespace-nowrap w-[90px]">Vendedor</TableHead>
-                  <TableHead className="whitespace-nowrap w-[160px]">Endereço de Entrega</TableHead>
+                  <TableHead className="whitespace-nowrap w-[200px]">Endereço de Entrega</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -357,8 +358,11 @@ export default function EntregasPage() {
                           />
                         </TableCell>
                         <TableCell className="whitespace-nowrap text-xs truncate">{order.vendedor || "—"}</TableCell>
-                        <TableCell className="truncate text-xs" title={order.entrega_endereco || ""}>
-                          {order.entrega_endereco || "—"}
+                        <TableCell className="py-1 px-2 text-xs">
+                          <DeliveryAddressCell
+                            address={order.entrega_endereco}
+                            fallbackAddress={order.endereco_entrega}
+                          />
                         </TableCell>
                       </TableRow>
                     );
