@@ -9,6 +9,7 @@ import { getEntregadoresList, assignDriverToOrder } from "@/lib/deliveryService"
 import type { Entregador, DeliveryStatus } from "@/types/delivery";
 import type { Order } from "@/types/order";
 import { Bike, UserX, AlertCircle } from "lucide-react";
+import { DeliveryCompletedDetailsModal } from "./DeliveryCompletedDetailsModal";
 
 interface AssignDriverModalProps {
   order: Order | null;
@@ -54,6 +55,20 @@ export function AssignDriverModal({ order, open, onOpenChange, onSuccess }: Assi
   const currentStatus = (order.status_entrega || "pendente") as DeliveryStatus;
   const isInTransit = currentStatus === "em_rota" || currentStatus === "no_local";
   const isDelivered = currentStatus === "entregue";
+
+  // Se já estiver entregue, exibe o card completo de detalhes da entrega com botão do SharePoint
+  if (isDelivered) {
+    return (
+      <DeliveryCompletedDetailsModal
+        order={order}
+        open={open}
+        onOpenChange={onOpenChange}
+        onReopenDelivery={() => {
+          onSuccess?.();
+        }}
+      />
+    );
+  }
 
   const handleSave = async () => {
     if (isDelivered) {

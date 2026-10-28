@@ -68,9 +68,15 @@ function ProtectedRoute({
   module?: string;
   requireAdmin?: boolean;
 }) {
-  const { session, loading, hasModule, isAdmin } = useAuth();
+  const { session, loading, hasModule, isAdmin, role } = useAuth();
   if (loading) return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Carregando...</div>;
   if (!session) return <Navigate to="/login" replace />;
+
+  // Entregador: acesso exclusivo ao painel do entregador - NÃO ENXERGA O KABAN NEM OUTROS MÓDULOS
+  if (role === "entregador" && module !== "entregador") {
+    return <Navigate to="/entregador" replace />;
+  }
+
   if (requireAdmin && !isAdmin) {
     void securityLogger.log({
       event_type: "UNAUTHORIZED_ROUTE_ACCESS",
@@ -85,9 +91,12 @@ function ProtectedRoute({
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
-  const { session, loading } = useAuth();
+  const { session, loading, role } = useAuth();
   if (loading) return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Carregando...</div>;
-  if (session) return <Navigate to="/" replace />;
+  if (session) {
+    if (role === "entregador") return <Navigate to="/entregador" replace />;
+    return <Navigate to="/" replace />;
+  }
   return <>{children}</>;
 }
 

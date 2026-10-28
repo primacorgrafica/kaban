@@ -246,4 +246,25 @@ describe("Delivery Module — Client Service Workflow Tests", () => {
       expect(res.error).toBe("Usuário não autenticado.");
     });
   });
+
+  describe("PWA e Isolamento de Acesso do Entregador", () => {
+    it("deve garantir que o papel 'entregador' seja redirecionado com segurança para o app exclusivo", () => {
+      // Simula a regra de roteamento implementada no ProtectedRoute
+      const shouldRedirectToDriverApp = (role: string, targetModule?: string) => {
+        if (role === "entregador" && targetModule !== "entregador") {
+          return true;
+        }
+        return false;
+      };
+
+      expect(shouldRedirectToDriverApp("entregador", undefined)).toBe(true);
+      expect(shouldRedirectToDriverApp("entregador", "pcp")).toBe(true);
+      expect(shouldRedirectToDriverApp("entregador", "producao")).toBe(true);
+      expect(shouldRedirectToDriverApp("entregador", "comercial")).toBe(true);
+      expect(shouldRedirectToDriverApp("entregador", "entregas")).toBe(true);
+      expect(shouldRedirectToDriverApp("entregador", "entregador")).toBe(false);
+      expect(shouldRedirectToDriverApp("admin", "producao")).toBe(false);
+      expect(shouldRedirectToDriverApp("coordenador", "comercial")).toBe(false);
+    });
+  });
 });

@@ -24,6 +24,7 @@ import type { Order } from "@/types/order";
 import { DeliveryAddressCell } from "@/components/DeliveryAddressCell";
 import { AssignDriverModal } from "@/components/delivery/AssignDriverModal";
 import { DeliveryMonitoringModal } from "@/components/delivery/DeliveryMonitoringModal";
+import { DeliveryCompletedDetailsModal } from "@/components/delivery/DeliveryCompletedDetailsModal";
 import { getEntregadoresList } from "@/lib/deliveryService";
 import type { Entregador, DeliveryStatus } from "@/types/delivery";
 import { DELIVERY_STATUS_CONFIG } from "@/types/delivery";
@@ -39,6 +40,7 @@ export default function EntregasPage() {
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
   const [kanbanFilters, setKanbanFilters] = useState<KanbanFilters>({ statuses: [], vendedores: [], setores: [], dateFrom: undefined, dateTo: undefined });
   const [selectedOrderForDriver, setSelectedOrderForDriver] = useState<Order | null>(null);
+  const [selectedDeliveredOrder, setSelectedDeliveredOrder] = useState<Order | null>(null);
   const [showMonitoring, setShowMonitoring] = useState(false);
   const [entregadores, setEntregadores] = useState<Entregador[]>([]);
 
@@ -317,23 +319,6 @@ export default function EntregasPage() {
             asChild
             variant="outline"
             size="sm"
-            className="gap-1.5 h-8 border-[#4A5C6A] text-[#CCD0CF] hover:bg-[#253745] hover:text-white cursor-pointer"
-            title="Abrir pasta PROTOCOLOS ENTREGAS no SharePoint em nova aba"
-          >
-            <a
-              href={SHAREPOINT_PROTOCOLOS_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <Cloud className="h-3.5 w-3.5 text-sky-400" />
-              <span>Protocolos (SharePoint)</span>
-            </a>
-          </Button>
-
-          <Button
-            asChild
-            variant="outline"
-            size="sm"
             className="gap-1.5 h-8 text-xs text-muted-foreground hover:text-foreground cursor-pointer"
             title="Abrir visão mobile do entregador em nova aba"
           >
@@ -430,9 +415,19 @@ export default function EntregasPage() {
                           {order.entregador_id ? (
                             <button
                               type="button"
-                              onClick={() => setSelectedOrderForDriver(order)}
+                              onClick={() => {
+                                if (order.status_entrega === "entregue") {
+                                  setSelectedDeliveredOrder(order);
+                                } else {
+                                  setSelectedOrderForDriver(order);
+                                }
+                              }}
                               className="flex items-center gap-1.5 hover:opacity-80 transition-opacity text-left max-w-[145px]"
-                              title="Clique para gerenciar atribuição do motoboy"
+                              title={
+                                order.status_entrega === "entregue"
+                                  ? "Clique para ver comprovante, recebedor e botão do SharePoint"
+                                  : "Clique para gerenciar atribuição do motoboy"
+                              }
                             >
                               <Badge
                                 variant="outline"
@@ -486,6 +481,16 @@ export default function EntregasPage() {
         open={showMonitoring}
         onOpenChange={setShowMonitoring}
         orders={allOrders}
+      />
+
+      <DeliveryCompletedDetailsModal
+        order={selectedDeliveredOrder}
+        open={!!selectedDeliveredOrder}
+        onOpenChange={(open) => !open && setSelectedDeliveredOrder(null)}
+        driverName={selectedDeliveredOrder ? driverMap.get(selectedDeliveredOrder.entregador_id || "") : undefined}
+        onReopenDelivery={() => {
+          setSelectedDeliveredOrder(null);
+        }}
       />
     </Layout>
   );

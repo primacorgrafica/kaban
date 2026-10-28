@@ -38,10 +38,15 @@ const Index = () => {
     getProfileName,
   } = useOrders();
 
-  const { canAccessSector, setorVinculado, hasModule } = useAuth();
+  const { canAccessSector, setorVinculado, hasModule, role } = useAuth();
   const location = useLocation();
   const isDashboard = location.pathname === "/dashboard";
   const isArchived = location.pathname === "/arquivados";
+
+  // Se for entregador, redireciona imediatamente para o painel exclusivo dele (não enxerga o kanban)
+  if (role === "entregador") {
+    return <Navigate to="/entregador" replace />;
+  }
 
   // Se o usuário não tem acesso à Pré-Impressão e tenta acessar "/", redireciona para seu setor ou primeiro módulo acessível
   if (location.pathname === "/" && !canAccessSector("pre_impressao")) {

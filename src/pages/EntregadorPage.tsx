@@ -36,6 +36,7 @@ import {
   ChevronRight,
   ShieldAlert,
   ArrowLeft,
+  Smartphone,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -77,6 +78,59 @@ export default function EntregadorPage() {
 
   const [activeTabFilter, setActiveTabFilter] = useState<"pendentes" | "concluidas">("pendentes");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // PWA Install Prompt
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+
+  useEffect(() => {
+    if (window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone) {
+      setIsInstalled(true);
+    }
+
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+
+    const handleAppInstalled = () => {
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+      toast.success("App do Entregador instalado com sucesso no seu celular!");
+    };
+
+    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+    window.addEventListener("appinstalled", handleAppInstalled);
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
+      window.removeEventListener("appinstalled", handleAppInstalled);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) {
+      const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if (isIos) {
+        toast.info(
+          "Para instalar no iPhone: toque no ícone de Compartilhar (no rodapé do Safari) e selecione 'Adicionar à Tela de Início'.",
+          { duration: 8000 }
+        );
+      } else {
+        toast.info(
+          "Para instalar: abra o menu do navegador (três pontinhos) e selecione 'Instalar aplicativo' ou 'Adicionar à tela inicial'."
+        );
+      }
+      return;
+    }
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === "accepted") {
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+    }
+  };
 
   // Captura e envio seguro de coordenadas GPS
   const sendGpsTelemetry = async (orderId?: string) => {
@@ -370,18 +424,20 @@ export default function EntregadorPage() {
         </div>
 
         <div className="flex items-center gap-1.5">
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className="h-8 text-xs text-zinc-400 hover:text-zinc-200 gap-1 px-2"
-            title="Voltar ao Painel de Entregas"
-          >
-            <Link to="/entregas">
-              <ArrowLeft className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Painel</span>
-            </Link>
-          </Button>
+          {canManage && (
+            <Button
+              asChild
+              variant="ghost"
+              size="sm"
+              className="h-8 text-xs text-zinc-400 hover:text-zinc-200 gap-1 px-2"
+              title="Voltar ao Painel de Entregas"
+            >
+              <Link to="/entregas">
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Painel</span>
+              </Link>
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -405,6 +461,32 @@ export default function EntregadorPage() {
 
       {/* Resumo & Abas Mobile */}
       <div className="p-4 flex flex-col gap-3 max-w-lg mx-auto w-full">
+        {/* Banner de Instalação do App PWA no Celular */}
+        {!isInstalled && (
+          <div className="bg-gradient-to-r from-emerald-950/70 via-zinc-900 to-[#11212D] border border-emerald-500/40 rounded-xl p-3 flex items-center justify-between gap-3 shadow-md">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 shrink-0">
+                <Smartphone className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <span className="font-bold text-white text-xs block truncate">
+                  Baixar App no Celular
+                </span>
+                <span className="text-[11px] text-zinc-400 block truncate">
+                  Acesso rápido direto da tela inicial
+                </span>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              onClick={handleInstallClick}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs h-8 px-3 shrink-0 shadow-sm"
+            >
+              Instalar App
+            </Button>
+          </div>
+        )}
+
         {/* Seletor de Simulação para Gestores */}
         {canManage && (
           <div className="bg-zinc-900/90 border border-zinc-800 rounded-lg p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs">
