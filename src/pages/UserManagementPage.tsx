@@ -45,7 +45,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
-type AppRole = "admin" | "coordenador" | "operador" | "vendedor" | "user" | "orcamentista" | "impressor";
+type AppRole = "admin" | "coordenador" | "operador" | "vendedor" | "user" | "orcamentista" | "impressor" | "entregador";
 
 export const ACCESS_MODULES: { id: string; label: string }[] = [
   { id: "comercial", label: "Comercial" },
@@ -56,6 +56,7 @@ export const ACCESS_MODULES: { id: string; label: string }[] = [
   { id: "qualidade", label: "Qualidade" },
   { id: "expedicao", label: "Expedição" },
   { id: "entregas", label: "Gestão Entregas" },
+  { id: "entregador", label: "Entregador (App Mobile)" },
   { id: "trabalhos_concluidos", label: "Trabalhos Concluídos" },
   { id: "compras", label: "Compras" },
   { id: "manutencao", label: "Manutenção" },
@@ -112,11 +113,12 @@ const ROLE_NAMES: Record<AppRole, string> = {
   user: "Usuário",
   orcamentista: "Orçamentista",
   impressor: "Impressor",
+  entregador: "Entregador",
 };
 
 
-// Perfis visíveis na interface (sem "impressor")
-const VISIBLE_ROLES: AppRole[] = ["admin", "coordenador", "operador", "vendedor", "user", "orcamentista"];
+// Perfis visíveis na interface
+const VISIBLE_ROLES: AppRole[] = ["admin", "coordenador", "operador", "vendedor", "user", "orcamentista", "entregador"];
 
 const ROLE_DOT_COLORS: Record<AppRole | "null", string> = {
   admin: "bg-red-400",
@@ -126,6 +128,7 @@ const ROLE_DOT_COLORS: Record<AppRole | "null", string> = {
   user: "bg-gray-400",
   orcamentista: "bg-purple-400",
   impressor: "bg-[#4A5C6A]",
+  entregador: "bg-teal-400",
   null: "bg-gray-400",
 };
 
@@ -137,6 +140,7 @@ const ROLE_COLORS: Record<AppRole, string> = {
   user: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300",
   orcamentista: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
   impressor: "bg-slate-100 text-slate-800 dark:bg-[#253745] dark:text-[#CCD0CF]",
+  entregador: "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300",
 };
 
 export default function UserManagementPage() {
@@ -319,6 +323,19 @@ export default function UserManagementPage() {
           .eq("user_id", u.user_id);
       }
 
+      if (u.role === "entregador") {
+        try {
+          await supabase.from("entregadores" as any).upsert(
+            {
+              user_id: u.user_id,
+              nome_completo: u.nome,
+              ativo: true,
+            },
+            { onConflict: "user_id" }
+          );
+        } catch { /* tabela entregadores ainda não implantada */ }
+      }
+
     }
 
     setSaving(false);
@@ -369,6 +386,11 @@ export default function UserManagementPage() {
       let errorMsg = "";
       let errorCode = "";
 
+      const modulosToCreate =
+        newUser.role === "entregador" && newUser.modulos_acesso.length === 0
+          ? ["entregador"]
+          : newUser.modulos_acesso;
+
       // 1. Tenta criar via RPC dedicada admin_create_user (PostgreSQL SECURITY DEFINER)
       try {
         const { data: rpcRes, error: rpcErr } = await supabase.rpc("admin_create_user" as any, {
@@ -376,7 +398,7 @@ export default function UserManagementPage() {
           p_password: newUser.password,
           p_nome: normalizedName,
           p_role: newUser.role,
-          p_modulos_acesso: newUser.modulos_acesso,
+          p_modulos_acesso: modulosToCreate,
         });
 
         if (!rpcErr && (rpcRes as any)?.success === true) {
@@ -400,7 +422,7 @@ export default function UserManagementPage() {
               password: newUser.password,
               nome: normalizedName,
               role: newUser.role || undefined,
-              modulos_acesso: newUser.modulos_acesso,
+              modulos_acesso: modulosToCreate,
             },
           });
 

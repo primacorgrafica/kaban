@@ -55,6 +55,7 @@ const Index = () => {
     if (hasModule("qualidade")) return <Navigate to="/qualidade" replace />;
     if (hasModule("expedicao")) return <Navigate to="/expedicao" replace />;
     if (hasModule("entregas") || hasModule("gestao_entregas")) return <Navigate to="/entregas" replace />;
+    if (hasModule("entregador")) return <Navigate to="/entregador" replace />;
     if (hasModule("compras")) return <Navigate to="/compras" replace />;
     if (hasModule("manutencao")) return <Navigate to="/manutencao" replace />;
     if (hasModule("dashboard")) return <Navigate to="/dashboard" replace />;

@@ -68,6 +68,14 @@ export interface Order {
   entrega_endereco: string | null;
   entrega_ac: string | null;
   entrega_data_limite: string | null;
+  // Delivery & Motoboy Tracking fields
+  entregador_id?: string | null;
+  status_entrega?: "pendente" | "atribuido" | "em_rota" | "no_local" | "entregue" | "insucesso";
+  ordem_parada?: number | null;
+  data_saida_entrega?: string | null;
+  data_chegada_entrega?: string | null;
+  motivo_insucesso?: string | null;
+  status_comprovante_sync?: "pendente" | "sincronizado" | "erro";
   // Faturamento fields
   fat_cnpj_ok: boolean;
   fat_cnpj_obs: string | null;

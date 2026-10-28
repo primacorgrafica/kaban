@@ -1,6 +1,6 @@
 import { useAuth } from "./useAuth";
 
-export type AppRole = "admin" | "coordenador" | "operador" | "vendedor" | "user" | "orcamentista" | "impressor";
+export type AppRole = "admin" | "coordenador" | "operador" | "vendedor" | "user" | "orcamentista" | "impressor" | "entregador";
 
 // Level mapping
 const ROLE_LEVEL: Record<AppRole, number> = {
@@ -11,6 +11,7 @@ const ROLE_LEVEL: Record<AppRole, number> = {
   vendedor: 1,
   orcamentista: 1,
   user: 0,
+  entregador: 0,
 };
 
 export function usePermissions() {

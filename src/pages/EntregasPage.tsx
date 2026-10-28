@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -9,7 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { X, CalendarIcon, FileDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { X, CalendarIcon, FileDown, Bike, Radio, UserPlus } from "lucide-react";
 import { format, parseISO, startOfDay, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -19,6 +21,11 @@ import { toast } from "sonner";
 import { exportEntregasPDF } from "@/lib/pdfExport";
 import type { Order } from "@/types/order";
 import { DeliveryAddressCell } from "@/components/DeliveryAddressCell";
+import { AssignDriverModal } from "@/components/delivery/AssignDriverModal";
+import { DeliveryMonitoringModal } from "@/components/delivery/DeliveryMonitoringModal";
+import { getEntregadoresList } from "@/lib/deliveryService";
+import type { Entregador, DeliveryStatus } from "@/types/delivery";
+import { DELIVERY_STATUS_CONFIG } from "@/types/delivery";
 
 export default function EntregasPage() {
   const { user, authReady } = useAuth();
@@ -30,6 +37,21 @@ export default function EntregasPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
   const [kanbanFilters, setKanbanFilters] = useState<KanbanFilters>({ statuses: [], vendedores: [], setores: [], dateFrom: undefined, dateTo: undefined });
+  const [selectedOrderForDriver, setSelectedOrderForDriver] = useState<Order | null>(null);
+  const [showMonitoring, setShowMonitoring] = useState(false);
+  const [entregadores, setEntregadores] = useState<Entregador[]>([]);
+
+  useEffect(() => {
+    void getEntregadoresList().then((res) => {
+      if (res.data) setEntregadores(res.data);
+    });
+  }, []);
+
+  const driverMap = useMemo(() => {
+    const map = new Map<string, string>();
+    entregadores.forEach((e) => map.set(e.user_id, e.nome_completo));
+    return map;
+  }, [entregadores]);
 
   // Fetch all non-archived orders with entrega data
   useEffect(() => {
@@ -273,12 +295,34 @@ export default function EntregasPage() {
           <Button
             variant="outline"
             size="sm"
+            className="gap-1.5 h-8 border-primary/30 text-primary hover:bg-primary/10"
+            onClick={() => setShowMonitoring(true)}
+          >
+            <Radio className="h-3.5 w-3.5" />
+            Monitoramento
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
             className="gap-1.5 h-8"
             onClick={() => exportEntregasPDF(filteredAndSorted, getSectorLabel, getStatusLabel)}
           >
             <FileDown className="h-3.5 w-3.5" />
             PDF
           </Button>
+
+          <Link to="/entregador" target="_blank">
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 h-8 text-xs text-muted-foreground hover:text-foreground"
+              title="Abrir visão mobile do entregador em nova aba"
+            >
+              <Bike className="h-3.5 w-3.5" />
+              App Entregador
+            </Button>
+          </Link>
         </div>
 
         {/* Table */}
@@ -286,7 +330,7 @@ export default function EntregasPage() {
           <div className="flex items-center justify-center h-full text-muted-foreground">Carregando dados...</div>
         ) : (
           <div className="border rounded-lg overflow-x-auto overflow-y-auto flex-1 scrollbar-light">
-            <Table className="table-fixed min-w-[1140px]">
+            <Table className="table-fixed min-w-[1240px]">
               <TableHeader>
                  <TableRow className="bg-muted/50 [&>th]:px-2 [&>th]:py-2 [&>th]:h-9">
                   <TableHead className="whitespace-nowrap w-[50px]">Flags</TableHead>
@@ -298,13 +342,14 @@ export default function EntregasPage() {
                   <TableHead className="whitespace-nowrap w-[100px] bg-blue-100 dark:bg-blue-900/40">Atualização</TableHead>
                   <TableHead className="whitespace-nowrap w-[160px]">Data de Entrega</TableHead>
                   <TableHead className="whitespace-nowrap w-[90px]">Vendedor</TableHead>
+                  <TableHead className="whitespace-nowrap w-[150px]">Entregador</TableHead>
                   <TableHead className="whitespace-nowrap w-[200px]">Endereço de Entrega</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rowsWithSeparators.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
                       Nenhuma OS encontrada
                     </TableCell>
                   </TableRow>
@@ -313,13 +358,17 @@ export default function EntregasPage() {
                     if (row.type === "separator") {
                       return (
                         <TableRow key={`sep-${idx}`} className="hover:bg-transparent">
-                          <TableCell colSpan={10} className="h-6 bg-muted/30 border-t border-b text-xs text-muted-foreground font-medium px-3">
+                          <TableCell colSpan={11} className="h-6 bg-muted/30 border-t border-b text-xs text-muted-foreground font-medium px-3">
                             {row.dateLabel}
                           </TableCell>
                         </TableRow>
                       );
                     }
                     const order = row.order;
+                    const statusConfig =
+                      DELIVERY_STATUS_CONFIG[(order.status_entrega || "pendente") as DeliveryStatus] ||
+                      DELIVERY_STATUS_CONFIG.pendente;
+
                     return (
                       <TableRow key={order.id} className="[&>td]:px-2 [&>td]:py-1.5">
                         <TableCell className="whitespace-nowrap">
@@ -358,6 +407,37 @@ export default function EntregasPage() {
                           />
                         </TableCell>
                         <TableCell className="whitespace-nowrap text-xs truncate">{order.vendedor || "—"}</TableCell>
+                        <TableCell className="whitespace-nowrap text-xs">
+                          {order.entregador_id ? (
+                            <button
+                              type="button"
+                              onClick={() => setSelectedOrderForDriver(order)}
+                              className="flex items-center gap-1.5 hover:opacity-80 transition-opacity text-left max-w-[145px]"
+                              title="Clique para gerenciar atribuição do motoboy"
+                            >
+                              <Badge
+                                variant="outline"
+                                className={cn("text-[10px] px-1.5 py-0 font-normal shrink-0", statusConfig.badgeClass)}
+                              >
+                                {statusConfig.label}
+                              </Badge>
+                              <span className="truncate font-medium text-foreground">
+                                {driverMap.get(order.entregador_id) || "Atribuído"}
+                              </span>
+                            </button>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedOrderForDriver(order)}
+                              className="h-6 px-1.5 text-[11px] text-muted-foreground hover:text-primary gap-1"
+                              title="Atribuir motoboy a esta O.S."
+                            >
+                              <UserPlus className="h-3 w-3" />
+                              Atribuir
+                            </Button>
+                          )}
+                        </TableCell>
                         <TableCell className="py-1 px-2 text-xs">
                           <DeliveryAddressCell
                             address={order.entrega_endereco}
@@ -373,6 +453,21 @@ export default function EntregasPage() {
           </div>
         )}
       </div>
+
+      <AssignDriverModal
+        order={selectedOrderForDriver}
+        open={!!selectedOrderForDriver}
+        onOpenChange={(open) => !open && setSelectedOrderForDriver(null)}
+        onSuccess={() => {
+          setSelectedOrderForDriver(null);
+        }}
+      />
+
+      <DeliveryMonitoringModal
+        open={showMonitoring}
+        onOpenChange={setShowMonitoring}
+        orders={allOrders}
+      />
     </Layout>
   );
 }

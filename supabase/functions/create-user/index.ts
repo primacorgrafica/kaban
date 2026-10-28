@@ -13,6 +13,7 @@ const VALID_ROLES = new Set([
   "vendedor",
   "orcamentista",
   "impressor",
+  "entregador",
 ]);
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -47,7 +48,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Sua sessão expirou. Entre novamente.", error_code: "UNAUTHORIZED" }, 401);
     }
 
-    // Check admin role
+    // Check admin role (only administrator can create any user account)
     const { data: isAdmin } = await anonClient.rpc("has_role", {
       _user_id: caller.id,
       _role: "admin",
@@ -61,9 +62,17 @@ Deno.serve(async (req) => {
     const password = typeof body.password === "string" ? body.password : "";
     const nome = typeof body.nome === "string" ? body.nome.trim() : "";
     const role = typeof body.role === "string" ? body.role : "";
-    const modulos_acesso = Array.isArray(body.modulos_acesso)
+    
+    // Delivery driver specific metadata
+    const telefone = typeof body.telefone === "string" ? body.telefone.trim() : null;
+    const placa_veiculo = typeof body.placa_veiculo === "string" ? body.placa_veiculo.trim() : null;
+    const modelo_veiculo = typeof body.modelo_veiculo === "string" ? body.modelo_veiculo.trim() : null;
+
+    // Defense-in-depth: Entregadores must ONLY receive the 'entregador' module to prevent privilege escalation
+    const raw_modulos = Array.isArray(body.modulos_acesso)
       ? body.modulos_acesso.filter((item: unknown): item is string => typeof item === "string")
       : [];
+    const modulos_acesso = role === "entregador" ? ["entregador"] : raw_modulos;
 
     if (!email || !password || !nome) {
       return jsonResponse({ error: "E-mail, senha e nome são obrigatórios", error_code: "INVALID_INPUT" }, 400);
@@ -127,10 +136,11 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "O serviço de acesso não retornou o novo usuário.", error_code: "AUTH_CREATE_FAILED" }, 500);
     }
 
+    // Step 2: Assign role in user_roles
     const { error: roleError } = await adminClient.from("user_roles").insert({
-        user_id: newUser.user.id,
-        role,
-      });
+      user_id: newUser.user.id,
+      role,
+    });
 
     if (roleError) {
       await adminClient.auth.admin.deleteUser(newUser.user.id);
@@ -138,6 +148,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: `Não foi possível atribuir o perfil: ${roleError.message}`, error_code: "ROLE_CREATE_FAILED" }, 400);
     }
 
+    // Step 3: Update profile modules
     let { data: profile, error: profileError } = await adminClient
       .from("profiles")
       .update({ modulos_acesso, email })
@@ -156,6 +167,7 @@ Deno.serve(async (req) => {
       profileError = fallback.error;
     }
 
+    // Step 4: Role-specific satellite tables with compensating rollback
     if (role === "vendedor") {
       try {
         await adminClient.from("vendedores").insert({
@@ -168,7 +180,34 @@ Deno.serve(async (req) => {
       }
     }
 
+    if (role === "entregador") {
+      const { error: driverErr } = await adminClient.from("entregadores").insert({
+        user_id: newUser.user.id,
+        nome_completo: nome,
+        telefone: telefone,
+        placa_veiculo: placa_veiculo,
+        modelo_veiculo: modelo_veiculo,
+        ativo: true,
+        criado_por: caller.id,
+      });
+
+      if (driverErr) {
+        console.error("create-user entregadores failure, executing compensating rollback", { email, message: driverErr.message });
+        // Compensating rollback: delete user_roles and auth.users to prevent orphaned state
+        await adminClient.from("user_roles").delete().eq("user_id", newUser.user.id);
+        await adminClient.auth.admin.deleteUser(newUser.user.id);
+        return jsonResponse({
+          error: `Não foi possível registrar a ficha do entregador: ${driverErr.message}`,
+          error_code: "DRIVER_CREATE_FAILED",
+        }, 400);
+      }
+    }
+
     if (profileError || !profile) {
+      await adminClient.from("user_roles").delete().eq("user_id", newUser.user.id);
+      if (role === "entregador") {
+        await adminClient.from("entregadores").delete().eq("user_id", newUser.user.id);
+      }
       await adminClient.auth.admin.deleteUser(newUser.user.id);
       console.error("create-user profile failure", { email, message: profileError?.message || "Perfil não encontrado" });
       return jsonResponse({ error: `Não foi possível configurar os setores: ${profileError?.message || "perfil não encontrado"}`, error_code: "PROFILE_UPDATE_FAILED" }, 400);
