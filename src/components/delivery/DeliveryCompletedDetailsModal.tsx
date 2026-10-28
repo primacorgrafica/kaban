@@ -13,7 +13,6 @@ import { SHAREPOINT_PROTOCOLOS_URL } from "@/lib/sharepointService";
 import type { Order } from "@/types/order";
 import {
   CheckCircle2,
-  Cloud,
   ExternalLink,
   UserCheck,
   Bike,
@@ -379,34 +378,19 @@ export function DeliveryCompletedDetailsModal({
               )}
             </div>
 
-            {/* ÁREA DE DESTAQUE: BOTÃO OFICIAL DO SHAREPOINT */}
-            <div className="p-4 rounded-xl bg-gradient-to-r from-[#004578]/40 via-[#0078D4]/20 to-transparent border border-[#0078D4]/40 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-lg">
-              <div className="flex items-center gap-3 text-left w-full sm:w-auto">
-                <div className="p-2.5 rounded-xl bg-[#0078D4] text-white shadow-md shrink-0">
-                  <Cloud className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-bold text-white">
-                    Protocolos no Microsoft SharePoint
-                  </h4>
-                  <p className="text-xs text-slate-300">
-                    Acesse a pasta corporativa <strong>PROTOCOLOS ENTREGAS</strong> com todos os arquivos
-                  </p>
-                </div>
-              </div>
-
+            {/* BOTÃO VISUALIZAR PROTOCOLO */}
+            <div className="pt-1">
               <Button
                 asChild
-                className="w-full sm:w-auto bg-[#0078D4] hover:bg-[#005A9E] text-white font-semibold shadow-md gap-2 shrink-0 cursor-pointer h-10 px-4"
+                className="w-full bg-[#0078D4] hover:bg-[#005A9E] text-white font-semibold shadow-md gap-2 h-10 text-sm cursor-pointer"
               >
                 <a
                   href={SHAREPOINT_PROTOCOLOS_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <Cloud className="h-4 w-4" />
-                  <span>Abrir no SharePoint</span>
-                  <ExternalLink className="h-3.5 w-3.5 ml-1" />
+                  <ExternalLink className="h-4 w-4" />
+                  <span>Visualizar Protocolo</span>
                 </a>
               </Button>
             </div>

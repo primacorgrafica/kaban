@@ -11,8 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { X, CalendarIcon, FileDown, Bike, Radio, UserPlus, Cloud } from "lucide-react";
-import { SHAREPOINT_PROTOCOLOS_URL } from "@/lib/sharepointService";
+import { X, CalendarIcon, FileDown, Bike, Radio, UserPlus } from "lucide-react";
 import { format, parseISO, startOfDay, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -425,7 +424,7 @@ export default function EntregasPage() {
                               className="flex items-center gap-1.5 hover:opacity-80 transition-opacity text-left max-w-[145px]"
                               title={
                                 order.status_entrega === "entregue"
-                                  ? "Clique para ver comprovante, recebedor e botão do SharePoint"
+                                  ? "Clique para ver comprovante, recebedor e visualizar protocolo"
                                   : "Clique para gerenciar atribuição do motoboy"
                               }
                             >
