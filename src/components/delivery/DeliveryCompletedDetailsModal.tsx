@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { SHAREPOINT_PROTOCOLOS_URL } from "@/lib/sharepointService";
+import { cn } from "@/lib/utils";
 import type { Order } from "@/types/order";
 import {
   CheckCircle2,
@@ -294,61 +295,57 @@ export function DeliveryCompletedDetailsModal({
                   <ImageIcon className="h-3.5 w-3.5 text-cyan-400" />
                   Comprovante / Protocolo ({proofFiles.length})
                 </span>
-
-                <Button
-                  asChild
-                  size="sm"
-                  className="h-7 px-2.5 bg-[#0078D4] hover:bg-[#005A9E] text-white text-[11px] font-medium gap-1 shadow-sm"
-                >
-                  <a
-                    href={SHAREPOINT_PROTOCOLOS_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                    <span>Visualizar Protocolo</span>
-                  </a>
-                </Button>
+                <span className="text-[10px] text-slate-400">
+                  Clique na foto para ampliar
+                </span>
               </div>
 
               {loadingProof ? (
-                <div className="flex items-center justify-center p-3 text-xs text-slate-400 gap-2">
+                <div className="flex items-center justify-center p-4 text-xs text-slate-400 gap-2">
                   <RefreshCw className="h-3.5 w-3.5 animate-spin text-cyan-400" />
                   Carregando comprovante...
                 </div>
               ) : proofFiles.length > 0 ? (
-                <div className="grid grid-cols-2 gap-2 pt-0.5">
+                <div
+                  className={cn(
+                    "gap-2 pt-0.5",
+                    proofFiles.length === 1 ? "grid grid-cols-1" : "grid grid-cols-1 sm:grid-cols-2"
+                  )}
+                >
                   {proofFiles.map((file, idx) => (
                     <div
                       key={idx}
-                      className="group relative rounded-lg border border-[#253745] overflow-hidden bg-black/40 hover:border-cyan-500/60 transition-all cursor-pointer"
+                      className="group relative rounded-lg border border-[#253745] overflow-hidden bg-black/60 hover:border-cyan-500/60 transition-all cursor-pointer flex items-center justify-center"
                       onClick={() => setSelectedProofPreview(file.url)}
                     >
                       <img
                         src={file.url}
                         alt={`Comprovante ${order.titulo}`}
-                        className="w-full h-24 sm:h-28 object-cover group-hover:scale-105 transition-transform duration-200"
+                        className={cn(
+                          "w-full object-contain group-hover:scale-[1.02] transition-transform duration-200 bg-black/40",
+                          proofFiles.length === 1 ? "h-64 sm:h-72" : "h-44 sm:h-52"
+                        )}
                         loading="lazy"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end justify-between p-1.5">
-                        <span className="text-[10px] font-medium text-white truncate max-w-[80%]">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent flex items-end justify-between p-2 pointer-events-none">
+                        <span className="text-[11px] font-medium text-white truncate max-w-[80%]">
                           {file.name}
                         </span>
                         <a
                           href={file.url}
                           download={file.name}
                           onClick={(e) => e.stopPropagation()}
-                          className="p-1 rounded bg-black/60 hover:bg-black text-cyan-300"
+                          className="pointer-events-auto p-1.5 rounded bg-black/70 hover:bg-black text-cyan-300 shadow transition-colors"
                           title="Baixar imagem"
                         >
-                          <Download className="h-3 w-3" />
+                          <Download className="h-3.5 w-3.5" />
                         </a>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="py-2 text-center text-[11px] text-slate-400 flex items-center justify-center gap-1.5">
+                <div className="py-2.5 text-center text-[11px] text-slate-400 flex items-center justify-center gap-1.5">
                   <FileCheck className="h-3.5 w-3.5 text-slate-500" />
                   <span>Foto arquivada na pasta corporativa de entregas.</span>
                 </div>
