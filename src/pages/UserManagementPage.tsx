@@ -118,7 +118,7 @@ const ROLE_NAMES: Record<AppRole, string> = {
 
 
 // Perfis visíveis na interface
-const VISIBLE_ROLES: AppRole[] = ["admin", "coordenador", "operador", "vendedor", "user", "orcamentista", "entregador"];
+const VISIBLE_ROLES: AppRole[] = ["admin", "coordenador", "operador", "vendedor", "orcamentista", "entregador"];
 
 const ROLE_DOT_COLORS: Record<AppRole | "null", string> = {
   admin: "bg-red-400",
@@ -267,9 +267,14 @@ export default function UserManagementPage() {
 
   const updateRole = (userId: string, newRole: AppRole) => {
     setUsers((prev) =>
-      prev.map((u) =>
-        u.user_id === userId ? { ...u, role: newRole, dirty: true } : u
-      )
+      prev.map((u) => {
+        if (u.user_id !== userId) return u;
+        const newMods =
+          newRole === "entregador" && !u.modulos_acesso.includes("entregador")
+            ? [...u.modulos_acesso, "entregador"]
+            : u.modulos_acesso;
+        return { ...u, role: newRole, modulos_acesso: newMods, dirty: true };
+      })
     );
   };
 
@@ -341,6 +346,7 @@ export default function UserManagementPage() {
     setSaving(false);
     toast.success(`${dirtyUsers.length} usuário(s) atualizado(s)`);
     setUsers((prev) => prev.map((u) => ({ ...u, dirty: false })));
+    await fetchUsers();
   };
 
   const extractFnResponse = async (res: any, fallback: string) => {
@@ -825,18 +831,28 @@ export default function UserManagementPage() {
                   <Label>Perfil *</Label>
                   <Select
                     value={newUser.role || "nenhum"}
-                    onValueChange={(v) => setNewUser((p) => ({ ...p, role: v === "nenhum" ? "" : v }))}
+                    onValueChange={(v) => {
+                      const roleVal = v === "nenhum" ? "" : v;
+                      setNewUser((p) => ({
+                        ...p,
+                        role: roleVal,
+                        modulos_acesso:
+                          roleVal === "entregador" && !p.modulos_acesso.includes("entregador")
+                            ? [...p.modulos_acesso, "entregador"]
+                            : p.modulos_acesso,
+                      }));
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="nenhum">Sem perfil</SelectItem>
-                      <SelectItem value="admin">Administrador</SelectItem>
-                      <SelectItem value="coordenador">Coordenador</SelectItem>
-                      <SelectItem value="operador">Operador</SelectItem>
-                      <SelectItem value="vendedor">Vendedor</SelectItem>
-                      <SelectItem value="orcamentista">Orçamentista</SelectItem>
+                      {VISIBLE_ROLES.map((roleKey) => (
+                        <SelectItem key={roleKey} value={roleKey}>
+                          {ROLE_NAMES[roleKey]}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -929,11 +945,11 @@ export default function UserManagementPage() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="sem_papel" disabled>Sem perfil</SelectItem>
-                            <SelectItem value="admin">Administrador</SelectItem>
-                            <SelectItem value="coordenador">Coordenador</SelectItem>
-                            <SelectItem value="operador">Operador</SelectItem>
-                            <SelectItem value="vendedor">Vendedor</SelectItem>
-                            <SelectItem value="orcamentista">Orçamentista</SelectItem>
+                            {VISIBLE_ROLES.map((roleKey) => (
+                              <SelectItem key={roleKey} value={roleKey}>
+                                {ROLE_NAMES[roleKey]}
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </TableCell>
