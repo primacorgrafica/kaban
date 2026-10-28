@@ -15,6 +15,7 @@ import {
   recordGpsCheckpoint,
   getEntregadoresList,
 } from "@/lib/deliveryService";
+import { uploadDeliveryProtocolToSharePoint } from "@/lib/sharepointService";
 import type { DeliveryStatus, Entregador } from "@/types/delivery";
 import { DELIVERY_STATUS_CONFIG } from "@/types/delivery";
 import type { Order } from "@/types/order";
@@ -259,12 +260,32 @@ export default function EntregadorPage() {
     setSubmittingCompletion(true);
     let uploadSuccess = true;
 
-    // Se houver arquivo de comprovante, realiza upload para o bucket
+    // Se houver arquivo de comprovante, realiza upload para o bucket e para o SharePoint
     if (proofFile) {
       const uploadRes = await uploadDeliveryProofFile(completionOrder.id, proofFile);
       if (!uploadRes.success) {
         toast.error(`Aviso no comprovante: ${uploadRes.error}. Prosseguindo com status...`);
         uploadSuccess = false;
+      }
+
+      // Envia DIRETO para a pasta PROTOCOLOS ENTREGAS no SharePoint corporativo
+      try {
+        const spRes = await uploadDeliveryProtocolToSharePoint(
+          proofFile,
+          completionOrder.titulo || completionOrder.id,
+          recipientName.trim()
+        );
+        if (spRes.success) {
+          toast.success("Foto do protocolo enviada para PROTOCOLOS ENTREGAS no SharePoint!");
+          await supabase
+            .from("orders")
+            .update({ status_comprovante_sync: "sincronizado" } as any)
+            .eq("id", completionOrder.id);
+        } else {
+          console.warn("[SharePoint] Falha no upload direto para PROTOCOLOS ENTREGAS:", spRes.error);
+        }
+      } catch (spErr) {
+        console.warn("[SharePoint] Erro ao sincronizar protocolo com SharePoint:", spErr);
       }
     }
 

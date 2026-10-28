@@ -13,6 +13,9 @@ export const SHAREPOINT_SITE_PATH =
 
 export const SHAREPOINT_LIBRARY_NAME = "Documentos Compartilhados";
 export const SHAREPOINT_ROOT_FOLDER = "KABAN";
+export const SHAREPOINT_PROTOCOLOS_FOLDER = "PROTOCOLOS ENTREGAS";
+export const SHAREPOINT_PROTOCOLOS_URL =
+  "https://primacorgraficaeditora.sharepoint.com/sites/Produo_grupo/Documentos%20Compartilhados/Forms/AllItems.aspx?id=%2Fsites%2FProduo%5Fgrupo%2FDocumentos%20Compartilhados%2FPROTOCOLOS%20ENTREGAS&viewid=32c00a5e%2Dcce5%2D42f2%2Dafed%2D061024ee0ca4";
 
 // Limite para upload direto simples (4 MB). Acima disso, usa Upload Session em chunks.
 const DIRECT_UPLOAD_LIMIT_BYTES = 4 * 1024 * 1024;
@@ -24,6 +27,7 @@ const CHUNK_SIZE_BYTES = 5 * 1024 * 1024;
 let cachedSiteId: string | null = null;
 let cachedDriveId: string | null = null;
 let cachedKabanFolderId: string | null = null;
+let cachedProtocolosFolderId: string | null = null;
 
 /**
  * Limpa o cache em memória de Site ID e Drive ID (útil após concessão de novas permissões)
@@ -32,6 +36,7 @@ export function resetSharePointCache(): void {
   cachedSiteId = null;
   cachedDriveId = null;
   cachedKabanFolderId = null;
+  cachedProtocolosFolderId = null;
 }
 
 /**
@@ -263,6 +268,125 @@ export async function ensureKabanRootFolder(): Promise<string> {
   }
 
   throw new Error(`Não foi possível acessar ou criar a pasta raiz ${SHAREPOINT_ROOT_FOLDER} no SharePoint.`);
+}
+
+/**
+ * Garante que a pasta 'PROTOCOLOS ENTREGAS' existe na raiz da biblioteca Documentos Compartilhados.
+ */
+export async function getOrCreateProtocolosFolder(): Promise<SharePointFolderInfo> {
+  if (cachedProtocolosFolderId) {
+    const { siteId, driveId } = await resolveSharePointSiteAndDrive();
+    return {
+      folderId: cachedProtocolosFolderId,
+      folderName: SHAREPOINT_PROTOCOLOS_FOLDER,
+      siteId,
+      driveId,
+    };
+  }
+
+  const { siteId, driveId } = await resolveSharePointSiteAndDrive();
+  const token = await getSharePointAccessToken();
+
+  // 1. Tenta obter pasta PROTOCOLOS ENTREGAS existente na raiz
+  const checkUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root:/${encodeURIComponent(
+    SHAREPOINT_PROTOCOLOS_FOLDER
+  )}`;
+  const checkRes = await fetch(checkUrl, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+  });
+
+  if (checkRes.ok) {
+    const folderData: DriveItemResponse = await checkRes.json();
+    cachedProtocolosFolderId = folderData.id;
+    return {
+      folderId: folderData.id,
+      folderName: folderData.name,
+      folderWebUrl: folderData.webUrl,
+      driveId,
+      siteId,
+    };
+  }
+
+  // 2. Se não existir (404), cria na raiz
+  if (checkRes.status === 404) {
+    const createUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root/children`;
+    const createRes = await fetch(createUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: SHAREPOINT_PROTOCOLOS_FOLDER,
+        folder: {},
+        "@microsoft.graph.conflictBehavior": "fail",
+      }),
+    });
+
+    if (createRes.ok) {
+      const createdFolder: DriveItemResponse = await createRes.json();
+      cachedProtocolosFolderId = createdFolder.id;
+      return {
+        folderId: createdFolder.id,
+        folderName: createdFolder.name,
+        folderWebUrl: createdFolder.webUrl,
+        driveId,
+        siteId,
+      };
+    }
+
+    if (createRes.status === 409) {
+      const retryRes = await fetch(checkUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (retryRes.ok) {
+        const folderData: DriveItemResponse = await retryRes.json();
+        cachedProtocolosFolderId = folderData.id;
+        return {
+          folderId: folderData.id,
+          folderName: folderData.name,
+          folderWebUrl: folderData.webUrl,
+          driveId,
+          siteId,
+        };
+      }
+    }
+  }
+
+  throw new Error(`Não foi possível acessar ou criar a pasta ${SHAREPOINT_PROTOCOLOS_FOLDER} no SharePoint.`);
+}
+
+/**
+ * Realiza o upload da foto/comprovante do protocolo de entrega diretamente para a pasta
+ * 'PROTOCOLOS ENTREGAS' no SharePoint corporativo.
+ */
+export async function uploadDeliveryProtocolToSharePoint(
+  file: File,
+  osTitulo: string,
+  recebedor?: string,
+  onProgress?: (percent: number) => void
+): Promise<{ success: boolean; driveItem?: DriveItemResponse; error?: string }> {
+  try {
+    const folderInfo = await getOrCreateProtocolosFolder();
+
+    const cleanOs = osTitulo.replace(/^OS[\s._-]*/i, "").trim() || "SEM_OS";
+    const timestamp = Date.now();
+    const cleanRecebedor = recebedor ? `_${recebedor.replace(/[^a-zA-Z0-9]/g, "_")}` : "";
+    const rawExt = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
+    const ext = rawExt && rawExt.length <= 5 ? rawExt : ".jpg";
+    const targetFileName = `OS_${cleanOs}_Protocolo_${timestamp}${cleanRecebedor}${ext}`;
+
+    const protocolFile = new File([file], targetFileName, { type: file.type || "image/jpeg" });
+    const driveItem = await uploadFileToSharePoint(protocolFile, folderInfo, onProgress);
+
+    return { success: true, driveItem };
+  } catch (err: any) {
+    console.error("[SharePoint] Erro no upload de protocolo:", err);
+    return { success: false, error: err.message || "Falha no envio para o SharePoint." };
+  }
 }
 
 /**

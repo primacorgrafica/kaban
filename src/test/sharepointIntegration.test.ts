@@ -5,6 +5,8 @@ import {
   SHAREPOINT_SITE_PATH,
   SHAREPOINT_LIBRARY_NAME,
   SHAREPOINT_ROOT_FOLDER,
+  SHAREPOINT_PROTOCOLOS_FOLDER,
+  SHAREPOINT_PROTOCOLOS_URL,
   resolveSharePointSiteAndDrive,
   getOrCreateOsFolder,
   resetSharePointCache,
@@ -30,6 +32,8 @@ describe("Integração SharePoint - Convenções e Mapeamentos", () => {
     expect(SHAREPOINT_SITE_PATH).toBe("/sites/Produo_grupo");
     expect(SHAREPOINT_LIBRARY_NAME).toBe("Documentos Compartilhados");
     expect(SHAREPOINT_ROOT_FOLDER).toBe("KABAN");
+    expect(SHAREPOINT_PROTOCOLOS_FOLDER).toBe("PROTOCOLOS ENTREGAS");
+    expect(SHAREPOINT_PROTOCOLOS_URL).toContain("PROTOCOLOS%20ENTREGAS");
   });
 
   describe("formatOsFolderName - Padronização de Pastas no SharePoint", () => {

@@ -11,7 +11,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { X, CalendarIcon, FileDown, Bike, Radio, UserPlus } from "lucide-react";
+import { X, CalendarIcon, FileDown, Bike, Radio, UserPlus, Cloud } from "lucide-react";
+import { SHAREPOINT_PROTOCOLOS_URL } from "@/lib/sharepointService";
 import { format, parseISO, startOfDay, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -310,6 +311,23 @@ export default function EntregasPage() {
           >
             <FileDown className="h-3.5 w-3.5" />
             PDF
+          </Button>
+
+          <Button
+            asChild
+            variant="outline"
+            size="sm"
+            className="gap-1.5 h-8 border-[#4A5C6A] text-[#CCD0CF] hover:bg-[#253745] hover:text-white cursor-pointer"
+            title="Abrir pasta PROTOCOLOS ENTREGAS no SharePoint em nova aba"
+          >
+            <a
+              href={SHAREPOINT_PROTOCOLOS_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <Cloud className="h-3.5 w-3.5 text-sky-400" />
+              <span>Protocolos (SharePoint)</span>
+            </a>
           </Button>
 
           <Button
