@@ -60,12 +60,12 @@ export function formatOsFolderName(osIdentifier: string, osNumberDisplay?: strin
 /**
  * Resolve o Site ID e Drive ID do SharePoint corporativo via Microsoft Graph API
  */
-export async function resolveSharePointSiteAndDrive(): Promise<{ siteId: string; driveId: string }> {
+export async function resolveSharePointSiteAndDrive(interactiveFallback = true): Promise<{ siteId: string; driveId: string }> {
   if (cachedSiteId && cachedDriveId) {
     return { siteId: cachedSiteId, driveId: cachedDriveId };
   }
 
-  const token = await getSharePointAccessToken();
+  const token = await getSharePointAccessToken(interactiveFallback);
 
   // 1. Obter Site ID
   const cleanSitePath = SHAREPOINT_SITE_PATH.startsWith("/")
@@ -273,9 +273,9 @@ export async function ensureKabanRootFolder(): Promise<string> {
 /**
  * Garante que a pasta 'PROTOCOLOS ENTREGAS' existe na raiz da biblioteca Documentos Compartilhados.
  */
-export async function getOrCreateProtocolosFolder(): Promise<SharePointFolderInfo> {
+export async function getOrCreateProtocolosFolder(interactiveFallback = false): Promise<SharePointFolderInfo> {
   if (cachedProtocolosFolderId) {
-    const { siteId, driveId } = await resolveSharePointSiteAndDrive();
+    const { siteId, driveId } = await resolveSharePointSiteAndDrive(interactiveFallback);
     return {
       folderId: cachedProtocolosFolderId,
       folderName: SHAREPOINT_PROTOCOLOS_FOLDER,
@@ -284,8 +284,8 @@ export async function getOrCreateProtocolosFolder(): Promise<SharePointFolderInf
     };
   }
 
-  const { siteId, driveId } = await resolveSharePointSiteAndDrive();
-  const token = await getSharePointAccessToken();
+  const { siteId, driveId } = await resolveSharePointSiteAndDrive(interactiveFallback);
+  const token = await getSharePointAccessToken(interactiveFallback);
 
   // 1. Tenta obter pasta PROTOCOLOS ENTREGAS existente na raiz
   const checkUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root:/${encodeURIComponent(
@@ -362,6 +362,7 @@ export async function getOrCreateProtocolosFolder(): Promise<SharePointFolderInf
 /**
  * Realiza o upload da foto/comprovante do protocolo de entrega diretamente para a pasta
  * 'PROTOCOLOS ENTREGAS' no SharePoint corporativo.
+ * Operação 100% silenciosa: NUNCA abre popup interativo nem pede login ao entregador.
  */
 export async function uploadDeliveryProtocolToSharePoint(
   file: File,
@@ -370,7 +371,7 @@ export async function uploadDeliveryProtocolToSharePoint(
   onProgress?: (percent: number) => void
 ): Promise<{ success: boolean; driveItem?: DriveItemResponse; error?: string }> {
   try {
-    const folderInfo = await getOrCreateProtocolosFolder();
+    const folderInfo = await getOrCreateProtocolosFolder(false);
 
     const cleanOs = osTitulo.replace(/^OS[\s._-]*/i, "").trim() || "SEM_OS";
     const timestamp = Date.now();
@@ -380,12 +381,12 @@ export async function uploadDeliveryProtocolToSharePoint(
     const targetFileName = `OS_${cleanOs}_Protocolo_${timestamp}${cleanRecebedor}${ext}`;
 
     const protocolFile = new File([file], targetFileName, { type: file.type || "image/jpeg" });
-    const driveItem = await uploadFileToSharePoint(protocolFile, folderInfo, onProgress);
+    const driveItem = await uploadFileToSharePoint(protocolFile, folderInfo, onProgress, undefined, false);
 
     return { success: true, driveItem };
   } catch (err: any) {
-    console.error("[SharePoint] Erro no upload de protocolo:", err);
-    return { success: false, error: err.message || "Falha no envio para o SharePoint." };
+    console.warn("[SharePoint] Upload silencioso de protocolo não realizado (sem autenticação MSAL):", err?.message);
+    return { success: false, error: err.message || "Falha no envio silencioso para o SharePoint." };
   }
 }
 
@@ -480,9 +481,10 @@ export async function uploadFileToSharePoint(
   file: File,
   folderInfo: SharePointFolderInfo,
   onProgress?: (percent: number) => void,
-  abortSignal?: AbortSignal
+  abortSignal?: AbortSignal,
+  interactiveFallback = true
 ): Promise<DriveItemResponse> {
-  const token = await getSharePointAccessToken();
+  const token = await getSharePointAccessToken(interactiveFallback);
   const { siteId, driveId, folderId } = folderInfo;
   const fileName = file.name;
 

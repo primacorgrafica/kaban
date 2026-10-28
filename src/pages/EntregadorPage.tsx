@@ -468,7 +468,7 @@ export default function EntregadorPage() {
     setSubmittingCompletion(true);
     let uploadSuccess = true;
 
-    // Se houver arquivo de comprovante, realiza upload para o bucket e para o SharePoint
+    // Se houver arquivo de comprovante, realiza upload para o armazenamento seguro da Primacor
     if (proofFile) {
       const uploadRes = await uploadDeliveryProofFile(completionOrder.id, proofFile);
       if (!uploadRes.success) {
@@ -476,25 +476,26 @@ export default function EntregadorPage() {
         uploadSuccess = false;
       }
 
-      // Envia DIRETO para a pasta PROTOCOLOS ENTREGAS no SharePoint corporativo
-      try {
-        const spRes = await uploadDeliveryProtocolToSharePoint(
-          proofFile,
-          completionOrder.titulo || completionOrder.id,
-          recipientName.trim()
-        );
-        if (spRes.success) {
-          toast.success("Foto do protocolo enviada para PROTOCOLOS ENTREGAS no SharePoint!");
-          await supabase
-            .from("orders")
-            .update({ status_comprovante_sync: "sincronizado" } as any)
-            .eq("id", completionOrder.id);
-        } else {
-          console.warn("[SharePoint] Falha no upload direto para PROTOCOLOS ENTREGAS:", spRes.error);
-        }
-      } catch (spErr) {
-        console.warn("[SharePoint] Erro ao sincronizar protocolo com SharePoint:", spErr);
-      }
+      // Sincronização em segundo plano com o SharePoint 100% silenciosa (NUNCA solicita login ou abre popup para o entregador)
+      void uploadDeliveryProtocolToSharePoint(
+        proofFile,
+        completionOrder.titulo || completionOrder.id,
+        recipientName.trim()
+      )
+        .then(async (spRes) => {
+          if (spRes.success) {
+            await supabase
+              .from("orders")
+              .update({ status_comprovante_sync: "sincronizado" } as any)
+              .eq("id", completionOrder.id);
+          } else {
+            await supabase
+              .from("orders")
+              .update({ status_comprovante_sync: "pendente_sharepoint" } as any)
+              .eq("id", completionOrder.id);
+          }
+        })
+        .catch(() => {});
     }
 
     const res = await updateDriverDeliveryStatus({
