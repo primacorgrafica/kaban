@@ -4,7 +4,7 @@ import { Order, OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
 import { DEPARTMENTS, Department } from "@/types/production";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { RotateCcw, ShoppingBag, Calendar, User, FileText, Archive, Trash2, GripVertical, UserCheck, Clock, AlertTriangle, Send, Truck, Briefcase, Copy, Edit2, MessageSquarePlus, Repeat, Sparkles, Check, Zap, Mail } from "lucide-react";
+import { RotateCcw, ShoppingBag, Calendar, User, FileText, Archive, Trash2, GripVertical, UserCheck, Clock, AlertTriangle, Send, Truck, Briefcase, Copy, Edit2, MessageSquarePlus, Repeat, Sparkles, Check, Zap, Mail, HardHat } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -562,10 +562,10 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
             <div className="flex justify-end min-w-0">
               {order.operador ? (
                 <span
-                  className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#CCD0CF] bg-[#253745] border border-[#4A5C6A]/60 px-1.5 py-0.5 rounded shadow-2xs w-[84px] truncate"
+                  className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-200 dark:text-amber-300 bg-amber-950/30 border border-amber-500/40 px-1.5 py-0.5 rounded shadow-2xs w-[84px] truncate"
                   title={`Operador responsável: ${order.operador}`}
                 >
-                  <UserCheck className="h-2.5 w-2.5 text-[#9BA8AB] shrink-0" />
+                  <HardHat className="h-2.5 w-2.5 text-amber-400 shrink-0" />
                   <span className="truncate">{order.operador}</span>
                 </span>
               ) : (
@@ -1055,8 +1055,8 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                   <div className="p-3.5 rounded-xl border border-border/80 bg-muted/40 dark:bg-[#253745]/25 space-y-2.5">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <div className="h-7 w-7 rounded-lg bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center text-[#CCD0CF]">
-                          <UserCheck className="h-4 w-4" />
+                        <div className="h-7 w-7 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+                          <HardHat className="h-4 w-4" />
                         </div>
                         <div>
                           <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">

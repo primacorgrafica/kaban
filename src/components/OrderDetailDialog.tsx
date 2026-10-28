@@ -19,7 +19,8 @@ import { RotateCcw, Calendar,
   Edit2,
   Repeat,
   Check,
-  Sparkles, } from "lucide-react";
+  Sparkles,
+  HardHat, } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -665,8 +666,8 @@ export function OrderDetailDialog({
                   <div className="p-3.5 rounded-xl border border-border/80 bg-muted/40 dark:bg-[#253745]/25 space-y-2.5">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <div className="h-7 w-7 rounded-lg bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center text-[#CCD0CF]">
-                          <UserCheck className="h-4 w-4" />
+                        <div className="h-7 w-7 rounded-lg bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400">
+                          <HardHat className="h-4 w-4" />
                         </div>
                         <div>
                           <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">

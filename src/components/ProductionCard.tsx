@@ -8,7 +8,7 @@ import { ptBR } from "date-fns/locale";
 import { businessHoursMs } from "@/lib/businessHours";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeApprovalEntry } from "@/lib/approvalEntryCache";
-import { RotateCcw, Calendar, User, FileText, Archive, Trash2, ChevronRight, ChevronLeft, GripVertical, UserCheck, Clock, AlertTriangle, Send, Undo2, Briefcase, Truck, Edit2, Check, Mail } from "lucide-react";
+import { RotateCcw, Calendar, User, FileText, Archive, Trash2, ChevronRight, ChevronLeft, GripVertical, UserCheck, Clock, AlertTriangle, Send, Undo2, Briefcase, Truck, Edit2, Check, Mail, HardHat } from "lucide-react";
 import { toast } from "sonner";
 import { OrderEmailEventsSection } from "@/components/email/OrderEmailEventsSection";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -620,10 +620,10 @@ function ProductionCardImpl({
           {order.operador && (
             <div className="flex items-center mt-1">
               <span
-                className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#CCD0CF] bg-[#253745] border border-[#4A5C6A]/60 px-1.5 py-0.5 rounded-md shadow-2xs"
+                className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-200 dark:text-amber-300 bg-amber-950/30 border border-amber-500/40 px-1.5 py-0.5 rounded-md shadow-2xs"
                 title={`Operador responsável: ${order.operador}`}
               >
-                <UserCheck className="h-3 w-3 text-[#9BA8AB] shrink-0" />
+                <HardHat className="h-3 w-3 text-amber-400 shrink-0" />
                 <span>{order.operador}</span>
               </span>
             </div>
