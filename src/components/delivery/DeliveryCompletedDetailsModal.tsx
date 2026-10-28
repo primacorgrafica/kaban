@@ -327,20 +327,15 @@ export function DeliveryCompletedDetailsModal({
                         )}
                         loading="lazy"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent flex items-end justify-between p-2 pointer-events-none">
-                        <span className="text-[11px] font-medium text-white truncate max-w-[80%]">
-                          {file.name}
-                        </span>
-                        <a
-                          href={file.url}
-                          download={file.name}
-                          onClick={(e) => e.stopPropagation()}
-                          className="pointer-events-auto p-1.5 rounded bg-black/70 hover:bg-black text-cyan-300 shadow transition-colors"
-                          title="Baixar imagem"
-                        >
-                          <Download className="h-3.5 w-3.5" />
-                        </a>
-                      </div>
+                      <a
+                        href={file.url}
+                        download={file.name}
+                        onClick={(e) => e.stopPropagation()}
+                        className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-black/75 hover:bg-black text-cyan-300 shadow transition-colors border border-white/10"
+                        title="Baixar imagem"
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                      </a>
                     </div>
                   ))}
                 </div>
