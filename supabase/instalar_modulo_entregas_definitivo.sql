@@ -137,22 +137,12 @@ BEGIN
       RAISE EXCEPTION 'Acesso negado: entregadores não podem reatribuir ordens de serviço.';
     END IF;
 
-    -- Não pode alterar dados comerciais e de produção
+    -- Não pode alterar dados comerciais e de produção fundamentais
     IF NEW.cliente IS DISTINCT FROM OLD.cliente
        OR NEW.titulo IS DISTINCT FROM OLD.titulo
        OR NEW.descricao IS DISTINCT FROM OLD.descricao
-       OR NEW.setor IS DISTINCT FROM OLD.setor
-       OR NEW.status IS DISTINCT FROM OLD.status
-       OR NEW.prazo IS DISTINCT FROM OLD.prazo
-       OR NEW.valor IS DISTINCT FROM OLD.valor
-       OR NEW.nf IS DISTINCT FROM OLD.nf
-       OR NEW.protocolo IS DISTINCT FROM OLD.protocolo
-       OR NEW.empresa_entrega IS DISTINCT FROM OLD.empresa_entrega
-       OR NEW.destinatario IS DISTINCT FROM OLD.destinatario
-       OR NEW.tipo_entrega IS DISTINCT FROM OLD.tipo_entrega
-       OR NEW.entrega_data_limite IS DISTINCT FROM OLD.entrega_data_limite
-       OR NEW.ordem_parada IS DISTINCT FROM OLD.ordem_parada THEN
-      RAISE EXCEPTION 'Acesso negado: entregadores não podem modificar dados industriais ou administrativos da O.S.';
+       OR NEW.status IS DISTINCT FROM OLD.status THEN
+      RAISE EXCEPTION 'Acesso negado: entregadores não podem modificar dados industriais ou comerciais da O.S.';
     END IF;
 
     -- Não pode reverter entrega já concluída
