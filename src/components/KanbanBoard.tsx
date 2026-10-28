@@ -526,6 +526,7 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
                             {activeSupplies.map((supply) => {
                               const isSent = isSpecialSupplySent(processos, supply.id);
                               const isMarked = markedSuppliesSent[supply.id] || false;
+                              const isSatisfied = isSent || isMarked;
                               const isPink = supply.id === "PANTONE" || supply.id === "OUTROS";
 
                               return (
