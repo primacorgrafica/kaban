@@ -73,3 +73,46 @@ self.addEventListener("fetch", (event) => {
       })
   );
 });
+
+// Clique na notificação abre ou foca o app do entregador
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || "/entregador";
+
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes("/entregador") && "focus" in client) {
+          return client.focus();
+        }
+      }
+      if (clients.openWindow) {
+        return clients.openWindow(targetUrl);
+      }
+    })
+  );
+});
+
+// Suporte a Push nativo
+self.addEventListener("push", (event) => {
+  let data = { title: "📦 Nova Entrega Atribuída!", body: "Você tem uma nova entrega para realizar na rota." };
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch {
+      data.body = event.data.text();
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: "/favicon.png",
+    badge: "/favicon.png",
+    vibrate: [200, 100, 200, 100, 200],
+    data: { url: data.url || "/entregador" },
+    tag: data.tag || "entrega-notification",
+    renotify: true,
+  };
+
+  event.waitUntil(self.registration.showNotification(data.title, options));
+});

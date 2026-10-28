@@ -37,6 +37,8 @@ import {
   ShieldAlert,
   ArrowLeft,
   Smartphone,
+  Bell,
+  BellRing,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -50,6 +52,70 @@ const INSUCESSO_MOTIVOS = [
   "Horário comercial expirado",
   "Outro motivo (especificar nas observações)",
 ];
+
+// Alerta sonoro agradável para entregador via Web Audio API (funciona offline e em segundo plano)
+function playNotificationChime() {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    // Duplo bip alegre e nítido (D5 -> A5)
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.12);
+    gain.gain.setValueAtTime(0.35, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.45);
+
+    osc.start();
+    osc.stop(ctx.currentTime + 0.5);
+  } catch (e) {
+    console.warn("[Sound] Falha ao emitir som de notificação:", e);
+  }
+}
+
+// Disparo de notificação nativa do navegador (Push via Notification API e Service Worker)
+async function triggerDeliveryPushNotification(title: string, body: string) {
+  playNotificationChime();
+
+  if ("vibrate" in navigator) {
+    try {
+      navigator.vibrate([250, 100, 250, 100, 250]);
+    } catch { /* silencioso */ }
+  }
+
+  if (typeof window !== "undefined" && "Notification" in window) {
+    if (Notification.permission === "granted") {
+      try {
+        if ("serviceWorker" in navigator) {
+          const registration = await navigator.serviceWorker.ready;
+          if (registration && "showNotification" in registration) {
+            await registration.showNotification(title, {
+              body,
+              icon: "/favicon.png",
+              badge: "/favicon.png",
+              vibrate: [250, 100, 250, 100, 250],
+              data: { url: "/entregador" },
+              tag: `entrega-${Date.now()}`,
+              renotify: true,
+            } as any);
+            return;
+          }
+        }
+        new Notification(title, {
+          body,
+          icon: "/favicon.png",
+        });
+      } catch (err) {
+        console.warn("[Push] Erro ao disparar notificação:", err);
+      }
+    }
+  }
+}
 
 export default function EntregadorPage() {
   const { user, signOut, isAdmin, hasModule } = useAuth();
@@ -129,6 +195,38 @@ export default function EntregadorPage() {
     if (outcome === "accepted") {
       setIsInstalled(true);
       setDeferredPrompt(null);
+    }
+  };
+
+  // Permissão de Notificações Push do Navegador
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      return Notification.permission;
+    }
+    return "default";
+  });
+
+  const handleRequestNotificationPermission = async () => {
+    if (typeof window === "undefined" || !("Notification" in window)) {
+      toast.error("Seu navegador não suporta notificações nativas.");
+      return;
+    }
+
+    try {
+      const res = await Notification.requestPermission();
+      setNotificationPermission(res);
+      if (res === "granted") {
+        playNotificationChime();
+        toast.success("Notificações push ativadas com sucesso!");
+        void triggerDeliveryPushNotification(
+          "🔔 Notificações Ativadas!",
+          "Você receberá alertas sonoros e visuais a cada nova entrega atribuída a você."
+        );
+      } else if (res === "denied") {
+        toast.error("Notificações bloqueadas nas configurações do navegador.");
+      }
+    } catch (err) {
+      console.warn("Erro ao pedir permissão de notificação:", err);
     }
   };
 
@@ -221,13 +319,41 @@ export default function EntregadorPage() {
   useEffect(() => {
     void fetchDriverData();
 
-    // Inscrição Realtime para atualizações na tabela de ordens
+    // Inscrição Realtime para atualizações na tabela de ordens com alerta push para o entregador
     const channel = supabase
       .channel("driver-orders-realtime")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "orders" },
-        () => {
+        (payload: any) => {
+          const targetUserId = (canManage && selectedDriverId) ? selectedDriverId : user.id;
+
+          if (payload.eventType === "INSERT") {
+            const newRow = payload.new as any;
+            if (newRow && newRow.entregador_id === targetUserId && newRow.status_entrega !== "entregue") {
+              void triggerDeliveryPushNotification(
+                `📦 Nova Entrega: O.S. #${newRow.titulo || ""}`,
+                `Cliente: ${newRow.cliente || "Novo destino"}\nEndereço: ${newRow.entrega_endereco || "Ver detalhes da rota"}`
+              );
+              toast.success(`Nova entrega recebida: O.S. #${newRow.titulo}`);
+            }
+          } else if (payload.eventType === "UPDATE") {
+            const newRow = payload.new as any;
+            const oldRow = payload.old as any;
+            if (
+              newRow &&
+              newRow.entregador_id === targetUserId &&
+              oldRow?.entregador_id !== targetUserId &&
+              newRow.status_entrega !== "entregue"
+            ) {
+              void triggerDeliveryPushNotification(
+                `📦 Nova Entrega Atribuída: O.S. #${newRow.titulo || ""}`,
+                `Cliente: ${newRow.cliente || "Novo destino"}\nEndereço: ${newRow.entrega_endereco || "Ver detalhes da rota"}`
+              );
+              toast.success(`Nova entrega atribuída para você: O.S. #${newRow.titulo}`);
+            }
+          }
+
           void fetchDriverData();
         }
       )
@@ -441,6 +567,38 @@ export default function EntregadorPage() {
           <Button
             variant="ghost"
             size="icon"
+            className={cn(
+              "h-8 w-8 transition-colors",
+              notificationPermission === "granted"
+                ? "text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10"
+                : "text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
+            )}
+            onClick={
+              notificationPermission === "granted"
+                ? () => {
+                    void triggerDeliveryPushNotification(
+                      "🔔 Teste de Notificação Primacor",
+                      "O som e alerta de nova entrega estão funcionando perfeitamente!"
+                    );
+                    toast.success("Teste de notificação enviado!");
+                  }
+                : handleRequestNotificationPermission
+            }
+            title={
+              notificationPermission === "granted"
+                ? "Notificações ativadas (Clique para testar)"
+                : "Ativar notificações de novas entregas"
+            }
+          >
+            {notificationPermission === "granted" ? (
+              <BellRing className="h-4 w-4" />
+            ) : (
+              <Bell className="h-4 w-4" />
+            )}
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             className="h-8 w-8 text-zinc-400 hover:text-zinc-200"
             onClick={() => void fetchDriverData()}
             title="Atualizar lista"
@@ -483,6 +641,32 @@ export default function EntregadorPage() {
               className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs h-8 px-3 shrink-0 shadow-sm"
             >
               Instalar App
+            </Button>
+          </div>
+        )}
+
+        {/* Banner para Ativar Notificações Push do Navegador */}
+        {notificationPermission !== "granted" && (
+          <div className="bg-gradient-to-r from-amber-950/70 via-zinc-900 to-[#11212D] border border-amber-500/40 rounded-xl p-3 flex items-center justify-between gap-3 shadow-md">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="p-2 rounded-lg bg-amber-500/20 text-amber-400 shrink-0">
+                <BellRing className="h-5 w-5 animate-pulse" />
+              </div>
+              <div className="min-w-0">
+                <span className="font-bold text-white text-xs block truncate">
+                  Ativar Alertas de Novas Entregas
+                </span>
+                <span className="text-[11px] text-zinc-400 block truncate">
+                  Receba aviso push no celular e som a cada nova rota
+                </span>
+              </div>
+            </div>
+            <Button
+              size="sm"
+              onClick={handleRequestNotificationPermission}
+              className="bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs h-8 px-3.5 shrink-0 shadow-sm"
+            >
+              Ativar
             </Button>
           </div>
         )}
