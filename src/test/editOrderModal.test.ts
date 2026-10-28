@@ -28,8 +28,8 @@ describe("Edição de Card em 3 Etapas (CreateOrderDialog)", () => {
     expect(dialogFile).toContain("if (isEdit) setStep(s.id as 1 | 2 | 3);");
     // Botão de submissão deve indicar atualização quando em modo de edição
     expect(dialogFile).toContain('isEdit ? "Atualizar O.S." : "Criar Ordem de Serviço"');
-    // Deve exibir o número da OS no título do diálogo
-    expect(dialogFile).toContain('isEdit ? `O.S. #${orderToEdit?.titulo}` : "PRIMACOR OS v2.0"');
+    // Deve exibir o número da OS no título do diálogo quando em edição
+    expect(dialogFile).toContain('`O.S. #${orderToEdit?.titulo}`');
   });
 
   it("OrderCard.tsx deve abrir CreateOrderDialog em vez do antigo formulário inline", () => {

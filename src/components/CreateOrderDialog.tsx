@@ -759,9 +759,9 @@ export function CreateOrderDialog({
 
 
   const stepsConfig = [
-    { id: 1, title: "Identificação", desc: "Nº O.S., Cliente & Serviço", icon: FileText },
-    { id: 2, title: "Especificações", desc: "Prova & Impressão", icon: Printer },
-    { id: 3, title: "Logística", desc: "Expedição & Entrega", icon: PackageCheck },
+    { id: 1, title: "Identificação", icon: FileText },
+    { id: 2, title: "Especificações", icon: Printer },
+    { id: 3, title: "Logística", icon: PackageCheck },
   ];
 
   return (
@@ -802,15 +802,17 @@ export function CreateOrderDialog({
               <div>
                 <DialogTitle className="text-base font-bold text-foreground tracking-tight flex items-center gap-2">
                   {isEdit ? "Editar Ordem de Serviço" : "Nova Ordem de Serviço"}
-                  <span className="text-[10px] font-mono-tech px-2 py-0.5 rounded-full bg-[#253745] border border-[#4A5C6A]/60 text-[#CCD0CF] font-normal">
-                    {isEdit ? `O.S. #${orderToEdit?.titulo}` : "PRIMACOR OS v2.0"}
-                  </span>
+                  {isEdit && (
+                    <span className="text-[10px] font-mono-tech px-2 py-0.5 rounded-full bg-[#253745] border border-[#4A5C6A]/60 text-[#CCD0CF] font-normal">
+                      {`O.S. #${orderToEdit?.titulo}`}
+                    </span>
+                  )}
                 </DialogTitle>
-                <p className="text-xs text-muted-foreground">
-                  {isEdit
-                    ? "Edite as especificações técnicas, processos ou dados de entrega da O.S."
-                    : "Preencha os dados técnicos da produção gráfica passo a passo"}
-                </p>
+                {isEdit && (
+                  <p className="text-xs text-muted-foreground">
+                    Edite as especificações técnicas, processos ou dados de entrega da O.S.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -864,9 +866,6 @@ export function CreateOrderDialog({
                       }`}
                     >
                       {s.title}
-                    </p>
-                    <p className="text-[10px] text-muted-foreground truncate hidden sm:block">
-                      {s.desc}
                     </p>
                   </div>
                 </button>
@@ -1293,42 +1292,39 @@ export function CreateOrderDialog({
                   <button
                     type="button"
                     onClick={() => setForm((f) => ({ ...f, prova_digital: !f.prova_digital }))}
-                    className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1 ${
+                    className={`p-3 rounded-xl border text-center transition-all flex items-center justify-center ${
                       form.prova_digital
                         ? "bg-sky-500/20 border-sky-400 text-sky-700 dark:text-sky-300 font-bold shadow-[0_0_15px_-3px_rgba(14,165,233,0.3)]"
                         : "bg-card border-border text-muted-foreground hover:text-foreground hover:border-border/80"
                     }`}
                   >
-                    <span className="text-xs">Prova Digital</span>
-                    <span className="text-[10px] text-muted-foreground">Impressão direta</span>
+                    <span className="text-xs font-semibold">Prova Digital</span>
                   </button>
 
                   {/* E-mail */}
                   <button
                     type="button"
                     onClick={() => setForm((f) => ({ ...f, prova_email: !f.prova_email }))}
-                    className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1 ${
+                    className={`p-3 rounded-xl border text-center transition-all flex items-center justify-center ${
                       form.prova_email
                         ? "bg-pink-500/20 border-pink-400 text-pink-700 dark:text-pink-300 font-bold shadow-[0_0_15px_-3px_rgba(236,72,153,0.3)]"
                         : "bg-card border-border text-muted-foreground hover:text-foreground hover:border-border/80"
                     }`}
                   >
-                    <span className="text-xs">Prova E-mail</span>
-                    <span className="text-[10px] text-muted-foreground">Envio em PDF</span>
+                    <span className="text-xs font-semibold">Prova E-mail</span>
                   </button>
 
                   {/* Saída Direta */}
                   <button
                     type="button"
                     onClick={() => setForm((f) => ({ ...f, saida_direta: !f.saida_direta }))}
-                    className={`p-3 rounded-xl border text-center transition-all flex flex-col items-center gap-1 ${
+                    className={`p-3 rounded-xl border text-center transition-all flex items-center justify-center ${
                       form.saida_direta
                         ? "bg-amber-500/20 border-amber-400 text-amber-700 dark:text-amber-300 font-bold shadow-[0_0_15px_-3px_rgba(245,158,11,0.3)]"
                         : "bg-card border-border text-muted-foreground hover:text-foreground hover:border-border/80"
                     }`}
                   >
-                    <span className="text-xs">Saída Direta</span>
-                    <span className="text-[10px] text-muted-foreground">Sem aprovação</span>
+                    <span className="text-xs font-semibold">Saída Direta</span>
                   </button>
                 </div>
 
@@ -1426,7 +1422,7 @@ export function CreateOrderDialog({
                             processos: toggleSpecialSupplyActive(f.processos, item.id),
                           }));
                         }}
-                        className={`p-3 rounded-xl border-2 transition-all flex flex-col items-center justify-center gap-1.5 text-center cursor-pointer ${
+                        className={`p-3 rounded-xl border-2 transition-all flex items-center justify-center text-center cursor-pointer ${
                           active
                             ? isPink
                               ? "bg-pink-100/90 dark:bg-pink-950/40 border-pink-400 dark:border-pink-500/70 text-pink-800 dark:text-pink-200 font-extrabold shadow-[0_0_15px_rgba(244,114,182,0.25)] scale-[1.02]"
@@ -1448,9 +1444,6 @@ export function CreateOrderDialog({
                             {item.label}
                           </span>
                         </div>
-                        <span className="text-[11px] font-medium opacity-80">
-                          {active ? "Marcado (Pendente no Card)" : "Clique para marcar"}
-                        </span>
                       </button>
                     );
                   })}
