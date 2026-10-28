@@ -97,8 +97,8 @@ async function triggerDeliveryPushNotification(title: string, body: string) {
           if (registration && "showNotification" in registration) {
             await registration.showNotification(title, {
               body,
-              icon: "/favicon.png",
-              badge: "/favicon.png",
+              icon: "/pwa-icon-192.png",
+              badge: "/pwa-icon-192.png",
               vibrate: [250, 100, 250, 100, 250],
               data: { url: "/entregador" },
               tag: `entrega-${Date.now()}`,
@@ -109,7 +109,7 @@ async function triggerDeliveryPushNotification(title: string, body: string) {
         }
         new Notification(title, {
           body,
-          icon: "/favicon.png",
+          icon: "/pwa-icon-192.png",
         });
       } catch (err) {
         console.warn("[Push] Erro ao disparar notificação:", err);
@@ -564,9 +564,11 @@ export default function EntregadorPage() {
       {/* Barra de Topo do Entregador */}
       <header className="sticky top-0 z-30 bg-zinc-900/90 backdrop-blur-md border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="h-9 w-9 rounded-full bg-primary/20 text-primary flex items-center justify-center border border-primary/30">
-            <Bike className="h-5 w-5" />
-          </div>
+          <img
+            src="/pwa-icon-192.png"
+            alt="Primacor Entregas"
+            className="h-9 w-9 rounded-xl object-contain shadow-sm border border-zinc-700/60"
+          />
           <div>
             <h1 className="text-sm font-bold text-zinc-100 leading-tight">
               {driverProfile?.nome_completo || user?.email?.split("@")[0] || "Entregador"}
@@ -664,9 +666,11 @@ export default function EntregadorPage() {
         {!isInstalled && showInstallBanner && (
           <div className="bg-gradient-to-r from-sky-950/80 via-zinc-900 to-emerald-950/70 border border-sky-500/40 rounded-xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
             <div className="flex items-center gap-3 min-w-0">
-              <div className="p-2.5 rounded-xl bg-sky-500/20 text-sky-400 border border-sky-400/30 shrink-0 shadow-[0_0_12px_rgba(56,189,248,0.2)]">
-                <Smartphone className="h-5 w-5" />
-              </div>
+              <img
+                src="/pwa-icon-192.png"
+                alt="App Entregador"
+                className="h-11 w-11 rounded-xl object-contain shadow-md shrink-0 border border-sky-400/40"
+              />
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-white text-xs sm:text-sm block truncate">
@@ -1185,8 +1189,12 @@ export default function EntregadorPage() {
       <Dialog open={showInstallHelpModal} onOpenChange={setShowInstallHelpModal}>
         <DialogContent className="max-w-md bg-[#0B131E] border-sky-900/60 text-white p-5 rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-sky-400 text-base">
-              <Smartphone className="h-5 w-5" />
+            <DialogTitle className="flex items-center gap-2.5 text-sky-400 text-base">
+              <img
+                src="/pwa-icon-192.png"
+                alt="App Entregador"
+                className="h-7 w-7 rounded-lg object-contain border border-sky-500/30 shadow-sm"
+              />
               Como Instalar o App do Entregador
             </DialogTitle>
           </DialogHeader>

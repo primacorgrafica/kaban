@@ -1,8 +1,11 @@
 // Service Worker para PWA do Entregador Primacor
-const CACHE_NAME = "primacor-entregador-v1";
+const CACHE_NAME = "primacor-entregador-v2";
 const APP_SHELL = [
   "/",
   "/entregador",
+  "/pwa-icon-192.png",
+  "/pwa-icon-512.png",
+  "/apple-touch-icon.png",
   "/favicon.png",
   "/manifest.json"
 ];
