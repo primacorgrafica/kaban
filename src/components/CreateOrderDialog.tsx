@@ -22,7 +22,6 @@ import type { Order } from "@/types/order";
 import {
   Plus,
   Edit2,
-  AlertTriangle,
   ArrowRight,
   ArrowLeft,
   Check,
@@ -1516,27 +1515,11 @@ export function CreateOrderDialog({
 
               {/* EXPEDIÇÃO & LOGÍSTICA */}
               <div className="p-4 rounded-xl border border-border bg-muted/20 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Truck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                    <Label className="text-xs font-bold text-foreground uppercase tracking-wider">
-                      Expedição & Entrega
-                    </Label>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setForm((f) => ({ ...f, urgente_expedicao: !f.urgente_expedicao }))
-                    }
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition-all border ${
-                      form.urgente_expedicao
-                        ? "bg-rose-500/20 border-rose-500/50 text-rose-600 dark:text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.3)] animate-pulse"
-                        : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent"
-                    }`}
-                  >
-                    <AlertTriangle className="h-3.5 w-3.5 text-rose-500" />
-                    <span>Entrega Urgente</span>
-                  </button>
+                <div className="flex items-center gap-2">
+                  <Truck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  <Label className="text-xs font-bold text-foreground uppercase tracking-wider">
+                    Expedição & Entrega
+                  </Label>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
