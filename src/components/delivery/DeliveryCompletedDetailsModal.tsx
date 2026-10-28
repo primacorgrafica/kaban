@@ -174,187 +174,164 @@ export function DeliveryCompletedDetailsModal({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-2xl bg-[#0B131E] border-[#253745] text-slate-100 p-0 overflow-hidden shadow-2xl rounded-2xl">
-          {/* HEADER COM STATUS CONCLUÍDO */}
-          <div className="bg-gradient-to-r from-emerald-950/60 via-[#11212D] to-[#0B131E] p-5 sm:p-6 border-b border-emerald-900/40">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="p-3 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.25)] shrink-0">
-                  <CheckCircle2 className="h-6 w-6" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/40 text-xs font-semibold px-2.5 py-0.5">
-                      Entrega Concluída & Protocolada
-                    </Badge>
-                    <span className="text-xs text-slate-400 font-mono-tech">
-                      O.S. #{order.titulo}
-                    </span>
-                  </div>
-                  <h2 className="text-lg sm:text-xl font-bold tracking-tight text-white mt-1">
-                    {order.cliente}
-                  </h2>
-                  <p className="text-xs text-slate-400 truncate max-w-md">
-                    {order.descricao || "Sem descrição"}
-                  </p>
-                </div>
+        <DialogContent className="max-w-lg w-[95vw] bg-[#0B131E] border-[#253745] text-slate-100 p-0 overflow-hidden shadow-2xl rounded-xl">
+          {/* HEADER COM STATUS CONCLUÍDO (COMPACTO) */}
+          <div className="bg-gradient-to-r from-emerald-950/60 via-[#11212D] to-[#0B131E] px-4 py-3 sm:px-5 sm:py-3.5 border-b border-emerald-900/40">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 shadow-[0_0_12px_rgba(16,185,129,0.2)] shrink-0">
+                <CheckCircle2 className="h-5 w-5" />
               </div>
-
-              {/* Botão de Fechar rápido no topo em mobile/desktop */}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge className="bg-emerald-500/20 text-emerald-300 border-emerald-500/40 text-[10px] font-semibold px-2 py-0">
+                    Entrega Concluída
+                  </Badge>
+                  <span className="text-xs text-slate-400 font-mono-tech">
+                    O.S. #{order.titulo}
+                  </span>
+                </div>
+                <h2 className="text-base font-bold tracking-tight text-white mt-0.5 truncate">
+                  {order.cliente}
+                </h2>
+                {order.descricao && (
+                  <p className="text-[11px] text-slate-400 truncate">
+                    {order.descricao}
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 
-          {/* CORPO DO CARD COM DETALHES COMPLETOS */}
-          <div className="p-5 sm:p-6 space-y-5 max-h-[72vh] overflow-y-auto scrollbar-thin scrollbar-thumb-[#253745]">
-            {/* GRID DE INFORMAÇÕES DE QUEM RECEBEU E QUEM ENTREGOU */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-              {/* Recebedor */}
-              <div className="p-4 rounded-xl bg-[#11212D]/80 border border-[#253745] flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400 shrink-0 mt-0.5">
-                  <UserCheck className="h-5 w-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <span className="text-[11px] uppercase tracking-wider font-semibold text-slate-400 block">
-                    Recebido Por
+          {/* CORPO COMPACTO E LIMPO */}
+          <div className="p-3.5 sm:p-4 space-y-2.5 max-h-[70vh] overflow-y-auto scrollbar-thin scrollbar-thumb-[#253745]">
+            {/* GRID: RECEBEDOR & ENTREGADOR */}
+            <div className="grid grid-cols-2 gap-2 p-2.5 rounded-lg bg-[#11212D]/80 border border-[#253745]">
+              <div className="min-w-0">
+                <span className="text-[10px] uppercase font-semibold text-slate-400 flex items-center gap-1">
+                  <UserCheck className="h-3 w-3 text-emerald-400" /> Recebido Por
+                </span>
+                <p className="font-semibold text-white truncate text-xs mt-0.5" title={recipientDisplay}>
+                  {recipientDisplay}
+                </p>
+                {order.entrega_ac && (
+                  <span className="text-[11px] text-slate-400 block truncate" title={`A/C: ${order.entrega_ac}`}>
+                    A/C: {order.entrega_ac}
                   </span>
-                  <div className="text-sm font-bold text-white mt-0.5 break-words">
-                    {recipientDisplay}
-                  </div>
-                  {order.entrega_ac && (
-                    <div className="text-xs text-slate-400 mt-1">
-                      <span className="font-medium text-slate-300">A/C:</span> {order.entrega_ac}
-                    </div>
-                  )}
-                </div>
+                )}
               </div>
 
-              {/* Motoboy / Entregador */}
-              <div className="p-4 rounded-xl bg-[#11212D]/80 border border-[#253745] flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-sky-500/10 text-sky-400 shrink-0 mt-0.5">
-                  <Bike className="h-5 w-5" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <span className="text-[11px] uppercase tracking-wider font-semibold text-slate-400 block">
-                    Entregador Responsável
-                  </span>
-                  <div className="text-sm font-bold text-white mt-0.5 break-words">
-                    {effectiveDriver}
-                  </div>
-                  <div className="text-xs text-slate-400 mt-1 flex items-center gap-1.5">
-                    <ShieldCheck className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                    <span>Entrega finalizada com sucesso</span>
-                  </div>
-                </div>
+              <div className="min-w-0 border-l border-[#253745]/60 pl-2.5">
+                <span className="text-[10px] uppercase font-semibold text-slate-400 flex items-center gap-1">
+                  <Bike className="h-3 w-3 text-sky-400" /> Entregador
+                </span>
+                <p className="font-semibold text-white truncate text-xs mt-0.5" title={effectiveDriver}>
+                  {effectiveDriver}
+                </p>
+                <span className="text-[11px] text-emerald-400 flex items-center gap-1">
+                  <ShieldCheck className="h-3 w-3 shrink-0" /> Finalizada
+                </span>
               </div>
             </div>
 
-            {/* HORÁRIOS & TEMPO DE TRÂNSITO */}
-            <div className="p-4 rounded-xl bg-[#11212D]/80 border border-[#253745] space-y-2.5">
-              <div className="flex items-center justify-between border-b border-[#253745] pb-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                  <Clock className="h-3.5 w-3.5 text-amber-400" />
-                  Registro de Horários da Entrega
-                </span>
+            {/* HORÁRIOS, TEMPO DE ROTA & ENDEREÇO */}
+            <div className="p-2.5 rounded-lg bg-[#11212D]/80 border border-[#253745] space-y-2 text-xs">
+              <div className="flex items-center justify-between text-[11px] pb-1.5 border-b border-[#253745]/60">
+                <div className="flex items-center gap-1.5 text-slate-300">
+                  <Clock className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                  <span>
+                    {deliveredAt
+                      ? format(deliveredAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                      : "Horário registrado"}
+                  </span>
+                </div>
                 {transitMinutes !== null && transitMinutes >= 0 && (
-                  <Badge variant="outline" className="text-[11px] bg-amber-500/10 text-amber-300 border-amber-500/30">
-                    Tempo em Rota: {transitMinutes} min
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-amber-500/10 text-amber-300 border-amber-500/30">
+                    Rota: {transitMinutes} min
                   </Badge>
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs pt-1">
-                <div>
-                  <span className="text-slate-400 block text-[11px]">Saída em Rota:</span>
-                  <span className="font-semibold text-slate-200">
-                    {departedAt
-                      ? format(departedAt, "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })
-                      : "Horário de saída não registrado"}
-                  </span>
+              {departedAt && (
+                <div className="text-[11px] text-slate-400">
+                  Saída em rota: <span className="text-slate-300 font-medium">{format(departedAt, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</span>
                 </div>
-                <div>
-                  <span className="text-slate-400 block text-[11px]">Chegada & Conclusão:</span>
-                  <span className="font-semibold text-emerald-400">
-                    {deliveredAt
-                      ? format(deliveredAt, "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })
-                      : "Registrado no sistema"}
-                  </span>
-                </div>
-              </div>
-            </div>
+              )}
 
-            {/* ENDEREÇO & DOCUMENTOS */}
-            <div className="p-4 rounded-xl bg-[#11212D]/80 border border-[#253745] space-y-2">
-              <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <MapPin className="h-3.5 w-3.5 text-rose-400" />
-                Local da Entrega
-              </span>
-              <p className="text-xs font-medium text-slate-200 break-words leading-relaxed">
-                {destinationAddress}
-              </p>
-
-              <div className="pt-2 flex flex-wrap items-center gap-4 text-xs text-slate-400 border-t border-[#253745]/60 mt-2">
-                <div>
-                  <span className="font-semibold text-slate-300">Nota Fiscal: </span>
-                  <span className="font-mono-tech">{order.nf || "Não informada"}</span>
-                </div>
-                <div>
-                  <span className="font-semibold text-slate-300">Protocolo: </span>
-                  <span className="font-mono-tech">{order.protocolo || "—"}</span>
-                </div>
-                <div>
-                  <span className="font-semibold text-slate-300">Vendedor: </span>
-                  <span>{order.vendedor || "—"}</span>
-                </div>
+              <div className="flex items-start gap-1.5 text-slate-200 text-xs">
+                <MapPin className="h-3.5 w-3.5 text-rose-400 shrink-0 mt-0.5" />
+                <span className="leading-snug break-words">{destinationAddress}</span>
               </div>
+
+              {(order.nf || order.protocolo || order.vendedor) && (
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-400 pt-1.5 border-t border-[#253745]/60">
+                  {order.nf && (
+                    <span>NF: <strong className="text-slate-200 font-mono-tech">{order.nf}</strong></span>
+                  )}
+                  {order.protocolo && (
+                    <span>Protocolo: <strong className="text-slate-200 font-mono-tech">{order.protocolo}</strong></span>
+                  )}
+                  {order.vendedor && (
+                    <span>Vendedor: <strong className="text-slate-200">{order.vendedor}</strong></span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* OBSERVAÇÕES DO ENTREGADOR */}
             {order.obs_entrega && (
-              <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-900/40 text-xs">
-                <span className="font-semibold text-amber-300 flex items-center gap-1.5 mb-1">
-                  <FileText className="h-3.5 w-3.5" />
-                  Observações Anotadas pelo Entregador:
+              <div className="p-2.5 rounded-lg bg-amber-950/20 border border-amber-900/40 text-xs">
+                <span className="font-semibold text-amber-300 flex items-center gap-1 text-[11px]">
+                  <FileText className="h-3 w-3" /> Observação do Entregador:
                 </span>
-                <p className="text-slate-300 italic whitespace-pre-wrap">{order.obs_entrega}</p>
+                <p className="text-slate-300 italic mt-0.5 text-xs whitespace-pre-wrap">{order.obs_entrega}</p>
               </div>
             )}
 
             {/* COMPROVANTE FOTOGRÁFICO / PROTOCOLO */}
-            <div className="p-4 rounded-xl bg-[#11212D]/80 border border-[#253745] space-y-3">
+            <div className="p-2.5 rounded-lg bg-[#11212D]/80 border border-[#253745] space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1">
                   <ImageIcon className="h-3.5 w-3.5 text-cyan-400" />
-                  Foto do Comprovante / Protocolo Assinado
+                  Comprovante / Protocolo ({proofFiles.length})
                 </span>
-                <Badge
-                  variant="outline"
-                  className="text-[10px] bg-blue-500/10 text-blue-300 border-blue-500/30"
+
+                <Button
+                  asChild
+                  size="sm"
+                  className="h-7 px-2.5 bg-[#0078D4] hover:bg-[#005A9E] text-white text-[11px] font-medium gap-1 shadow-sm"
                 >
-                  Pasta SharePoint: PROTOCOLOS ENTREGAS
-                </Badge>
+                  <a
+                    href={SHAREPOINT_PROTOCOLOS_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    <span>Visualizar Protocolo</span>
+                  </a>
+                </Button>
               </div>
 
               {loadingProof ? (
-                <div className="flex items-center justify-center p-6 text-xs text-slate-400 gap-2">
-                  <RefreshCw className="h-4 w-4 animate-spin text-cyan-400" />
-                  Carregando imagem do comprovante...
+                <div className="flex items-center justify-center p-3 text-xs text-slate-400 gap-2">
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin text-cyan-400" />
+                  Carregando comprovante...
                 </div>
               ) : proofFiles.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <div className="grid grid-cols-2 gap-2 pt-0.5">
                   {proofFiles.map((file, idx) => (
                     <div
                       key={idx}
-                      className="group relative rounded-xl border border-[#253745] overflow-hidden bg-black/40 hover:border-cyan-500/60 transition-all cursor-pointer"
+                      className="group relative rounded-lg border border-[#253745] overflow-hidden bg-black/40 hover:border-cyan-500/60 transition-all cursor-pointer"
                       onClick={() => setSelectedProofPreview(file.url)}
                     >
                       <img
                         src={file.url}
                         alt={`Comprovante ${order.titulo}`}
-                        className="w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="w-full h-24 sm:h-28 object-cover group-hover:scale-105 transition-transform duration-200"
                         loading="lazy"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-2.5">
-                        <span className="text-[11px] font-medium text-white truncate flex-1">
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end justify-between p-1.5">
+                        <span className="text-[10px] font-medium text-white truncate max-w-[80%]">
                           {file.name}
                         </span>
                         <a
@@ -364,61 +341,61 @@ export function DeliveryCompletedDetailsModal({
                           className="p-1 rounded bg-black/60 hover:bg-black text-cyan-300"
                           title="Baixar imagem"
                         >
-                          <Download className="h-3.5 w-3.5" />
+                          <Download className="h-3 w-3" />
                         </a>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="p-4 rounded-lg bg-zinc-900/60 border border-zinc-800 text-center text-xs text-slate-400 flex flex-col items-center gap-1.5">
-                  <FileCheck className="h-6 w-6 text-slate-500" />
-                  <span>Foto do protocolo físico arquivada na pasta corporativa de entregas.</span>
+                <div className="py-2 text-center text-[11px] text-slate-400 flex items-center justify-center gap-1.5">
+                  <FileCheck className="h-3.5 w-3.5 text-slate-500" />
+                  <span>Foto arquivada na pasta corporativa de entregas.</span>
                 </div>
               )}
             </div>
-
-            {/* BOTÃO VISUALIZAR PROTOCOLO */}
-            <div className="pt-1">
-              <Button
-                asChild
-                className="w-full bg-[#0078D4] hover:bg-[#005A9E] text-white font-semibold shadow-md gap-2 h-10 text-sm cursor-pointer"
-              >
-                <a
-                  href={SHAREPOINT_PROTOCOLOS_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  <span>Visualizar Protocolo</span>
-                </a>
-              </Button>
-            </div>
           </div>
 
-          {/* FOOTER */}
-          <DialogFooter className="p-4 bg-[#091019] border-t border-[#253745] flex items-center justify-between sm:justify-between gap-2">
+          {/* FOOTER COMPACTO */}
+          <DialogFooter className="px-4 py-2.5 bg-[#091019] border-t border-[#253745] flex items-center justify-between sm:justify-between gap-2">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => setConfirmReopenOpen(true)}
-              className="text-xs border-rose-900/60 text-rose-300 hover:bg-rose-950/40 hover:text-rose-200 gap-1.5"
+              className="text-xs h-8 border-rose-900/60 text-rose-300 hover:bg-rose-950/40 hover:text-rose-200 gap-1.5"
               title="Reabrir caso tenha havido engano na finalização"
             >
               <UserX className="h-3.5 w-3.5" />
               Reabrir / Reatribuir
             </Button>
 
-            <Button
-              type="button"
-              variant="default"
-              size="sm"
-              onClick={() => onOpenChange(false)}
-              className="bg-[#253745] hover:bg-[#34495e] text-white text-xs px-5"
-            >
-              Fechar
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                asChild
+                size="sm"
+                className="h-8 px-3 bg-[#0078D4] hover:bg-[#005A9E] text-white text-xs font-medium gap-1.5 shadow-sm"
+              >
+                <a
+                  href={SHAREPOINT_PROTOCOLOS_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  <span>Visualizar Protocolo</span>
+                </a>
+              </Button>
+
+              <Button
+                type="button"
+                variant="default"
+                size="sm"
+                onClick={() => onOpenChange(false)}
+                className="h-8 bg-[#253745] hover:bg-[#34495e] text-white text-xs px-4"
+              >
+                Fechar
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
