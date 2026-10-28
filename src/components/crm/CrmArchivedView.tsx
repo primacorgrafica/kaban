@@ -124,7 +124,7 @@ export function CrmArchivedView({
   };
 
   return (
-    <div className="flex flex-col h-full space-y-4">
+    <div className="flex flex-col h-full space-y-4 font-pcp">
       {/* 1. Header com Totais e Ações Rápidas */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl border border-border/70 bg-card shadow-2xs">
         <div className="flex items-center gap-3 sm:gap-6 flex-wrap">
@@ -137,7 +137,7 @@ export function CrmArchivedView({
                 <h3 className="text-sm sm:text-base font-bold text-foreground">
                   Vendas & Cards Arquivados
                 </h3>
-                <Badge variant="secondary" className="font-mono-tech text-xs px-2 py-0.5">
+                <Badge variant="secondary" className="font-pcp text-xs px-2 py-0.5">
                   {metrics.total}
                 </Badge>
               </div>
@@ -149,7 +149,7 @@ export function CrmArchivedView({
 
           <div className="h-8 w-px bg-border/60 hidden md:block" />
 
-          <div className="flex items-center gap-4 text-xs font-mono-tech">
+          <div className="flex items-center gap-4 text-xs font-pcp">
             <div>
               <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Volume Total</span>
               <span className="font-bold text-foreground text-sm">{formatCurrency(metrics.totalValor)}</span>
@@ -278,7 +278,7 @@ export function CrmArchivedView({
                 {/* Informações Principais */}
                 <div className="flex-1 min-w-0 space-y-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[11px] font-mono-tech font-bold text-muted-foreground bg-muted/80 px-2 py-0.5 rounded border border-border/60">
+                    <span className="text-[11px] font-pcp font-bold text-muted-foreground bg-muted/80 px-2 py-0.5 rounded border border-border/60">
                       {opp.codigo_identificador || `OPT-${opp.numero_sequencial}`}
                     </span>
                     <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${statusCfg.badgeClass}`}>
@@ -287,7 +287,7 @@ export function CrmArchivedView({
                     <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${priority.badgeClass}`}>
                       {priority.label}
                     </Badge>
-                    <span className="text-xs font-mono-tech text-muted-foreground">
+                    <span className="text-xs font-pcp text-muted-foreground">
                       Etapa: <strong className="text-foreground">{getStageName(opp.etapa_id)}</strong>
                     </span>
                   </div>
@@ -320,7 +320,7 @@ export function CrmArchivedView({
                     )}
 
                     {opp.created_at && (
-                      <div className="flex items-center gap-1 font-mono-tech text-[11px]">
+                      <div className="flex items-center gap-1 font-pcp text-[11px]">
                         <Calendar className="h-3 w-3 shrink-0" />
                         <span>{format(new Date(opp.created_at), "dd/MM/yyyy", { locale: ptBR })}</span>
                       </div>
@@ -342,10 +342,10 @@ export function CrmArchivedView({
                 {/* Valor e Botões de Ação */}
                 <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-3 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-border/50">
                   <div className="text-left sm:text-right">
-                    <span className="text-[10px] text-muted-foreground block font-mono-tech uppercase">
+                    <span className="text-[10px] text-muted-foreground block font-pcp uppercase">
                       Valor Estimado
                     </span>
-                    <span className="text-base font-bold font-mono-tech text-foreground">
+                    <span className="text-base font-bold font-pcp text-foreground">
                       {formatCurrency(opp.valor_estimado)}
                     </span>
                   </div>

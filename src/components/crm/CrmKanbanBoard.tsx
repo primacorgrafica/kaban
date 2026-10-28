@@ -392,7 +392,7 @@ export function CrmKanbanBoard({
   };
 
   return (
-    <div className="flex flex-col h-full space-y-3">
+    <div className="flex flex-col h-full space-y-3 font-pcp">
       {/* 1. Barra de Métricas Rápidas & Ações */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-2xl border border-border/70 bg-card shadow-2xs">
         <div className="flex items-center gap-3 sm:gap-6 flex-wrap">
@@ -404,7 +404,7 @@ export function CrmKanbanBoard({
               <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block">
                 Pipeline Aberto
               </span>
-              <span className="text-base sm:text-lg font-bold font-mono-tech text-foreground">
+              <span className="text-base sm:text-lg font-bold font-pcp text-foreground">
                 {formatCurrency(summary.totalPipeline)}
               </span>
             </div>
@@ -412,7 +412,7 @@ export function CrmKanbanBoard({
 
           <div className="h-8 w-px bg-border/60 hidden sm:block" />
 
-          <div className="flex items-center gap-4 text-xs font-mono-tech">
+          <div className="flex items-center gap-4 text-xs font-pcp">
             <div>
               <span className="text-muted-foreground block text-[10px]">Oportunidades</span>
               <span className="font-bold text-foreground text-sm">{summary.abertasCount} ativas</span>
@@ -524,7 +524,7 @@ export function CrmKanbanBoard({
             {archivedCount > 0 && (
               <Badge
                 variant="secondary"
-                className="ml-0.5 px-1.5 py-0 h-4 text-[10px] font-mono-tech bg-muted"
+                className="ml-0.5 px-1.5 py-0 h-4 text-[10px] font-pcp bg-muted"
               >
                 {archivedCount}
               </Badge>
@@ -549,7 +549,7 @@ export function CrmKanbanBoard({
           {archivedCount > 0 && (
             <Badge
               variant="secondary"
-              className="ml-0.5 px-1.5 py-0 h-4 text-[10px] font-mono-tech bg-muted"
+              className="ml-0.5 px-1.5 py-0 h-4 text-[10px] font-pcp bg-muted"
             >
               {archivedCount}
             </Badge>

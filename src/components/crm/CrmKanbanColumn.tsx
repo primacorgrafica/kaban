@@ -52,7 +52,7 @@ export function CrmKanbanColumn({
           <div className="flex items-center gap-1.5 shrink-0">
             <Badge
               variant="secondary"
-              className="text-xs font-mono-tech font-bold px-2 py-0.5 rounded-full"
+              className="text-xs font-pcp font-bold px-2 py-0.5 rounded-full"
             >
               {opportunities.length}
             </Badge>
@@ -71,7 +71,7 @@ export function CrmKanbanColumn({
         </div>
 
         {/* Total da etapa em R$ */}
-        <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground font-mono-tech">
+        <div className="mt-1.5 flex items-center justify-between text-xs text-muted-foreground font-pcp">
           <span>Total na etapa:</span>
           <span className="font-bold text-foreground">{formatCurrency(totalValue)}</span>
         </div>

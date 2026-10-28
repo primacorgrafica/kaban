@@ -99,17 +99,17 @@ export function ProposalPrintModal({
         {/* Proposta Layout Oficial (Imprimível) */}
         <div
           ref={printAreaRef}
-          className="p-8 flex-1 overflow-y-auto bg-white text-slate-900 font-sans print:p-0 print:m-0"
+          className="p-8 flex-1 overflow-y-auto bg-white text-slate-900 font-pcp print:p-0 print:m-0"
         >
           {/* Header da Proposta */}
           <div className="flex items-start justify-between border-b-2 border-slate-900 pb-4">
             <div>
               <h1 className="text-2xl font-black tracking-tight text-slate-900">PRIMACOR GRÁFICA</h1>
               <p className="text-xs text-slate-600 font-medium">Primacor Gráfica e Editora Ltda</p>
-              <p className="text-[11px] text-slate-500 font-mono">Belo Horizonte - MG • Tel: (31) 3491-1199</p>
+              <p className="text-[11px] text-slate-500 font-pcp">Belo Horizonte - MG • Tel: (31) 3491-1199</p>
             </div>
             <div className="text-right">
-              <span className="inline-block text-xs font-mono font-bold bg-slate-100 text-slate-800 px-3 py-1 rounded border border-slate-300">
+              <span className="inline-block text-xs font-pcp font-bold bg-slate-100 text-slate-800 px-3 py-1 rounded border border-slate-300">
                 {proposal.numero_proposta}
               </span>
               <p className="text-xs text-slate-600 mt-1">
@@ -160,7 +160,7 @@ export function ProposalPrintModal({
               <tbody className="divide-y divide-slate-200">
                 {(proposal.itens || []).map((it, idx) => (
                   <tr key={idx} className="hover:bg-slate-50/50">
-                    <td className="py-2.5 px-3 font-mono font-bold text-center text-slate-700">{idx + 1}</td>
+                    <td className="py-2.5 px-3 font-pcp font-bold text-center text-slate-700">{idx + 1}</td>
                     <td className="py-2.5 px-3">
                       <p className="font-bold text-slate-900">{it.descricao_item}</p>
                       <div className="text-[11px] text-slate-600 mt-0.5 space-y-0.5">
@@ -172,13 +172,13 @@ export function ProposalPrintModal({
                         {it.acabamentos_especiais && <p>• Acabamentos: {it.acabamentos_especiais}</p>}
                       </div>
                     </td>
-                    <td className="py-2.5 px-3 text-center font-mono font-bold text-slate-800">
+                    <td className="py-2.5 px-3 text-center font-pcp font-bold text-slate-800">
                       {it.quantidade.toLocaleString("pt-BR")}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono text-slate-700">
+                    <td className="py-2.5 px-3 text-right font-pcp text-slate-700">
                       {formatCurrency(it.preco_unitario)}
                     </td>
-                    <td className="py-2.5 px-3 text-right font-mono font-bold text-slate-900">
+                    <td className="py-2.5 px-3 text-right font-pcp font-bold text-slate-900">
                       {formatCurrency(it.subtotal)}
                     </td>
                   </tr>
@@ -192,17 +192,17 @@ export function ProposalPrintModal({
             <div className="w-64 space-y-1.5 text-xs p-3 rounded-lg bg-slate-50 border border-slate-200">
               <div className="flex justify-between text-slate-600">
                 <span>Subtotal Bruto:</span>
-                <span className="font-mono">{formatCurrency(proposal.valor_total)}</span>
+                <span className="font-pcp">{formatCurrency(proposal.valor_total)}</span>
               </div>
               {proposal.desconto_valor && proposal.desconto_valor > 0 && (
                 <div className="flex justify-between text-rose-600 font-semibold">
                   <span>Desconto Concedido:</span>
-                  <span className="font-mono">- {formatCurrency(proposal.desconto_valor)}</span>
+                  <span className="font-pcp">- {formatCurrency(proposal.desconto_valor)}</span>
                 </div>
               )}
               <div className="flex justify-between text-sm font-bold text-slate-900 pt-1.5 border-t border-slate-300">
                 <span>VALOR TOTAL:</span>
-                <span className="font-mono text-base">{formatCurrency(proposal.valor_liquido)}</span>
+                <span className="font-pcp text-base">{formatCurrency(proposal.valor_liquido)}</span>
               </div>
             </div>
           </div>

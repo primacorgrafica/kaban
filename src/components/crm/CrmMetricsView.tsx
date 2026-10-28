@@ -73,7 +73,7 @@ export function CrmMetricsView({ opportunities, stages }: CrmMetricsViewProps) {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 font-pcp">
       {/* Filtro de Período do Relatório */}
       <div className="flex items-center justify-between gap-4 p-4 rounded-2xl border border-border bg-card shadow-xs">
         <div>
@@ -119,10 +119,10 @@ export function CrmMetricsView({ opportunities, stages }: CrmMetricsViewProps) {
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider truncate">
                   {kpi.label}
                 </p>
-                <p className="text-xl sm:text-2xl font-extrabold text-foreground font-mono-tech mt-0.5 truncate">
+                <p className="text-xl sm:text-2xl font-extrabold text-foreground font-pcp mt-0.5 truncate">
                   {kpi.value}
                 </p>
-                <p className="text-[11px] text-muted-foreground/80 mt-0.5 truncate font-mono-tech">
+                <p className="text-[11px] text-muted-foreground/80 mt-0.5 truncate font-pcp">
                   {kpi.subtext}
                 </p>
               </div>
@@ -156,7 +156,7 @@ export function CrmMetricsView({ opportunities, stages }: CrmMetricsViewProps) {
                     {st.stageName}
                   </span>
                 </div>
-                <div className="pt-1 flex items-baseline justify-between font-mono-tech">
+                <div className="pt-1 flex items-baseline justify-between font-pcp">
                   <span className="text-lg font-bold text-foreground">{st.count}</span>
                   <span className="text-[11px] font-semibold text-muted-foreground">
                     {formatCurrency(st.totalValue)}
@@ -193,10 +193,10 @@ export function CrmMetricsView({ opportunities, stages }: CrmMetricsViewProps) {
                       <th className="py-2 px-2 text-right">Faturado</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-border/40 font-mono-tech">
+                  <tbody className="divide-y divide-border/40 font-pcp">
                     {metrics.sellerRanking.map((s) => (
                       <tr key={s.seller} className="hover:bg-muted/40">
-                        <td className="py-2.5 px-2 font-bold text-foreground font-sans">{s.seller}</td>
+                        <td className="py-2.5 px-2 font-bold text-foreground">{s.seller}</td>
                         <td className="py-2.5 px-2 text-center text-muted-foreground">{s.total}</td>
                         <td className="py-2.5 px-2 text-center text-emerald-500 font-bold">{s.ganhas}</td>
                         <td className="py-2.5 px-2 text-center font-bold text-foreground">
@@ -237,7 +237,7 @@ export function CrmMetricsView({ opportunities, stages }: CrmMetricsViewProps) {
                     <div key={m.reason} className="space-y-1">
                       <div className="flex items-center justify-between text-xs">
                         <span className="font-medium text-foreground truncate">{m.reason}</span>
-                        <span className="font-mono-tech text-muted-foreground text-[11px] shrink-0">
+                        <span className="font-pcp text-muted-foreground text-[11px] shrink-0">
                           {m.count} ({percent.toFixed(0)}%)
                         </span>
                       </div>
@@ -274,8 +274,8 @@ export function CrmMetricsView({ opportunities, stages }: CrmMetricsViewProps) {
                 <span className="text-[11px] text-muted-foreground font-medium block truncate">
                   {orig.origem}
                 </span>
-                <p className="text-lg font-bold font-mono-tech text-foreground">{orig.count}</p>
-                <div className="flex items-center justify-between text-[10px] text-muted-foreground font-mono-tech pt-1 border-t border-border/40">
+                <p className="text-lg font-bold font-pcp text-foreground">{orig.count}</p>
+                <div className="flex items-center justify-between text-[10px] text-muted-foreground font-pcp pt-1 border-t border-border/40">
                   <span>Ganhas: {orig.ganhas}</span>
                   <span>{formatCurrency(orig.valorTotal)}</span>
                 </div>

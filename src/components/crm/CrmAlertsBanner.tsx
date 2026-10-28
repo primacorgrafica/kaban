@@ -42,7 +42,7 @@ export function CrmAlertsBanner({
   if (!hasAnyAlert) return null;
 
   return (
-    <div className="flex items-center gap-2 p-2.5 rounded-2xl border border-border/80 bg-card shadow-xs overflow-x-auto select-none">
+    <div className="flex items-center gap-2 p-2.5 rounded-2xl border border-border/80 bg-card shadow-xs overflow-x-auto select-none font-pcp">
       <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider px-2 shrink-0 flex items-center gap-1.5">
         <span>Lembretes Rápidos:</span>
       </span>

@@ -208,7 +208,7 @@ export function CreateOpportunityDialog({
         if (!v) resetForm();
       }}
     >
-      <DialogContent className="max-w-3xl p-0 overflow-hidden border border-border bg-card text-card-foreground shadow-2xl rounded-2xl flex flex-col max-h-[90vh]">
+      <DialogContent className="max-w-3xl p-0 overflow-hidden border border-border bg-card text-card-foreground shadow-2xl rounded-2xl flex flex-col max-h-[90vh] font-pcp">
         {/* Header */}
         <div className="px-6 py-4 border-b border-border bg-muted/30 shrink-0">
           <div className="flex items-center justify-between gap-3">
@@ -227,7 +227,7 @@ export function CreateOpportunityDialog({
             </div>
 
             {selectedStage && (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border bg-muted/60 text-xs font-mono-tech">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-border bg-muted/60 text-xs font-pcp">
                 <span
                   className="w-2.5 h-2.5 rounded-full"
                   style={{ backgroundColor: selectedStage.cor || "#CCD0CF" }}
@@ -307,13 +307,13 @@ export function CreateOpportunityDialog({
                       <div>
                         <span className="font-semibold text-foreground block">{c.nome}</span>
                         {c.cnpj && (
-                          <span className="text-[10px] text-muted-foreground font-mono-tech">
+                          <span className="text-[10px] text-muted-foreground font-pcp">
                             CNPJ: {c.cnpj}
                           </span>
                         )}
                       </div>
                       {c.telefone && (
-                        <span className="text-[10px] text-muted-foreground font-mono-tech">
+                        <span className="text-[10px] text-muted-foreground font-pcp">
                           {c.telefone}
                         </span>
                       )}
@@ -415,7 +415,7 @@ export function CreateOpportunityDialog({
                   value={form.valor_estimado}
                   onChange={(e) => setForm((f) => ({ ...f, valor_estimado: e.target.value }))}
                   placeholder="0,00"
-                  className="h-9 rounded-xl font-mono-tech text-xs font-semibold bg-background border-border"
+                  className="h-9 rounded-xl font-pcp text-xs font-semibold bg-background border-border"
                 />
               </div>
 
@@ -535,7 +535,7 @@ export function CreateOpportunityDialog({
                   type="date"
                   value={form.prazo_fechamento_previsto}
                   onChange={(e) => setForm((f) => ({ ...f, prazo_fechamento_previsto: e.target.value }))}
-                  className="h-9 rounded-xl text-xs bg-background border-border font-mono-tech"
+                  className="h-9 rounded-xl text-xs bg-background border-border font-pcp"
                 />
               </div>
 
@@ -548,7 +548,7 @@ export function CreateOpportunityDialog({
                   type="datetime-local"
                   value={form.proxima_acao_data}
                   onChange={(e) => setForm((f) => ({ ...f, proxima_acao_data: e.target.value }))}
-                  className="h-9 rounded-xl text-xs bg-background border-border font-mono-tech"
+                  className="h-9 rounded-xl text-xs bg-background border-border font-pcp"
                 />
               </div>
             </div>

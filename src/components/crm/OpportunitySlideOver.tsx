@@ -265,13 +265,13 @@ export function OpportunitySlideOver({
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent
-          className="w-[96vw] max-w-5xl p-0 flex flex-col h-[88vh] max-h-[88vh] bg-card border border-border text-card-foreground shadow-2xl rounded-2xl gap-0 overflow-hidden"
+          className="w-[96vw] max-w-5xl p-0 flex flex-col h-[88vh] max-h-[88vh] bg-card border border-border text-card-foreground shadow-2xl rounded-2xl gap-0 overflow-hidden font-pcp"
         >
           {/* Header da Oportunidade */}
           <div className="p-5 border-b border-border bg-muted/30 shrink-0">
             <div className="flex items-center justify-between gap-3 mb-2 pr-8">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-mono-tech font-bold text-muted-foreground bg-muted/80 px-2 py-0.5 rounded border border-border/60">
+                <span className="text-xs font-pcp font-bold text-muted-foreground bg-muted/80 px-2 py-0.5 rounded border border-border/60">
                   {opportunity.codigo_identificador || `OPT-${opportunity.numero_sequencial}`}
                 </span>
                 <Badge variant="outline" className={`text-xs ${priorityCfg.badgeClass}`}>
@@ -283,8 +283,8 @@ export function OpportunitySlideOver({
               </div>
 
               <div className="text-right">
-                <span className="text-xs text-muted-foreground block uppercase font-mono-tech">Valor</span>
-                <span className="text-lg font-bold font-mono-tech text-foreground text-primary">
+                <span className="text-xs text-muted-foreground block uppercase font-pcp">Valor</span>
+                <span className="text-lg font-bold font-pcp text-foreground text-primary">
                   {formatCurrency(opportunity.valor_estimado)}
                 </span>
               </div>
@@ -350,7 +350,7 @@ export function OpportunitySlideOver({
               )}
 
               {opportunity.convertida_os_id && (
-                <Badge variant="secondary" className="gap-1.5 text-xs font-mono-tech py-1 px-2.5 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                <Badge variant="secondary" className="gap-1.5 text-xs font-pcp py-1 px-2.5 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   <span>Convertido em OS</span>
                 </Badge>
@@ -550,7 +550,7 @@ export function OpportunitySlideOver({
                       step="0.01"
                       value={formData.valor_estimado}
                       onChange={(e) => setFormData((f) => ({ ...f, valor_estimado: e.target.value }))}
-                      className="h-9 rounded-xl font-mono-tech text-xs bg-background border-border font-bold"
+                      className="h-9 rounded-xl font-pcp text-xs bg-background border-border font-bold"
                     />
                   </div>
 
@@ -637,7 +637,7 @@ export function OpportunitySlideOver({
                       type="date"
                       value={formData.prazo_fechamento_previsto}
                       onChange={(e) => setFormData((f) => ({ ...f, prazo_fechamento_previsto: e.target.value }))}
-                      className="h-9 rounded-xl text-xs font-mono-tech bg-background border-border"
+                      className="h-9 rounded-xl text-xs font-pcp bg-background border-border"
                     />
                   </div>
                 </div>
@@ -703,7 +703,7 @@ export function OpportunitySlideOver({
                       >
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-2">
-                            <span className="font-mono-tech font-bold text-xs text-foreground bg-muted/80 px-2 py-0.5 rounded border border-border/50">
+                            <span className="font-pcp font-bold text-xs text-foreground bg-muted/80 px-2 py-0.5 rounded border border-border/50">
                               {prop.numero_proposta}
                             </span>
                             {isLatest && (
@@ -717,7 +717,7 @@ export function OpportunitySlideOver({
                           </div>
 
                           <div className="text-right">
-                            <span className="text-base font-bold font-mono-tech text-foreground">
+                            <span className="text-base font-bold font-pcp text-foreground">
                               {formatCurrency(prop.valor_liquido)}
                             </span>
                           </div>
@@ -730,7 +730,7 @@ export function OpportunitySlideOver({
                               <span className="truncate text-foreground font-medium">
                                 {it.quantidade}x {it.descricao_item}
                               </span>
-                              <span className="font-mono-tech text-muted-foreground shrink-0">
+                              <span className="font-pcp text-muted-foreground shrink-0">
                                 {formatCurrency(it.subtotal)}
                               </span>
                             </div>
@@ -738,7 +738,7 @@ export function OpportunitySlideOver({
                         </div>
 
                         {/* Condições e Prazos */}
-                        <div className="mt-2.5 flex items-center gap-4 text-[11px] text-muted-foreground font-mono-tech flex-wrap">
+                        <div className="mt-2.5 flex items-center gap-4 text-[11px] text-muted-foreground font-pcp flex-wrap">
                           {prop.condicoes_pagamento && <span>💳 {prop.condicoes_pagamento}</span>}
                           {prop.prazo_producao_dias && <span>⏱ {prop.prazo_producao_dias} dias úteis</span>}
                           {prop.validade_dias && <span>⏳ Validade: {prop.validade_dias} dias</span>}
@@ -860,7 +860,7 @@ export function OpportunitySlideOver({
                       type="datetime-local"
                       value={newActivity.data_agendada}
                       onChange={(e) => setNewActivity((a) => ({ ...a, data_agendada: e.target.value }))}
-                      className="h-8 rounded-lg text-xs font-mono-tech bg-background border-border"
+                      className="h-8 rounded-lg text-xs font-pcp bg-background border-border"
                       required
                     />
                   </div>
@@ -917,7 +917,7 @@ export function OpportunitySlideOver({
                             <span className="font-semibold text-foreground text-sm">{act.titulo}</span>
                           </div>
 
-                          <div className="text-right font-mono-tech text-[11px]">
+                          <div className="text-right font-pcp text-[11px]">
                             <span className={isLate ? "text-rose-400 font-bold" : "text-muted-foreground"}>
                               {format(new Date(act.data_agendada), "dd/MM/yyyy HH:mm")}
                             </span>
@@ -1015,7 +1015,7 @@ export function OpportunitySlideOver({
                       key={item.id}
                       className="p-3 rounded-xl border border-border/60 bg-muted/20 text-xs space-y-1"
                     >
-                      <div className="flex items-center justify-between text-muted-foreground font-mono-tech text-[10px]">
+                      <div className="flex items-center justify-between text-muted-foreground font-pcp text-[10px]">
                         <span>{item.tipo_evento.toUpperCase()}</span>
                         <span>{format(new Date(item.created_at), "dd/MM/yyyy HH:mm:ss")}</span>
                       </div>

@@ -297,7 +297,7 @@ export default function ComercialPage() {
       sectorName="Comercial"
       permissions={permissions}
     >
-      <div className="flex flex-col min-h-full space-y-4">
+      <div className="flex flex-col min-h-full space-y-4 font-pcp">
         {/* Navegação por Abas do Módulo Comercial */}
         <div className="flex items-center justify-between border-b border-border/60 pb-2.5 shrink-0 flex-wrap gap-2">
           <Tabs
@@ -314,7 +314,7 @@ export default function ComercialPage() {
                 <span>Funil de Vendas (CRM)</span>
                 <Badge
                   variant="secondary"
-                  className="ml-1 text-[10px] font-mono-tech px-1.5 py-0"
+                  className="ml-1 text-[10px] font-pcp px-1.5 py-0"
                 >
                   {opportunities.length}
                 </Badge>
@@ -328,7 +328,7 @@ export default function ComercialPage() {
                 <span>Acompanhamento de OS</span>
                 <Badge
                   variant="secondary"
-                  className="ml-1 text-[10px] font-mono-tech px-1.5 py-0"
+                  className="ml-1 text-[10px] font-pcp px-1.5 py-0"
                 >
                   {osEmProducao}
                 </Badge>
@@ -351,7 +351,7 @@ export default function ComercialPage() {
                 {crmArchivedCount > 0 && (
                   <Badge
                     variant="secondary"
-                    className="ml-1 text-[10px] font-mono-tech px-1.5 py-0"
+                    className="ml-1 text-[10px] font-pcp px-1.5 py-0"
                   >
                     {crmArchivedCount}
                   </Badge>
@@ -360,7 +360,7 @@ export default function ComercialPage() {
             </TabsList>
           </Tabs>
 
-          <span className="text-xs text-muted-foreground font-mono-tech hidden sm:block">
+          <span className="text-xs text-muted-foreground font-pcp hidden sm:block">
             Módulo Comercial Integrado • Primacor Gráfica
           </span>
         </div>
@@ -410,7 +410,7 @@ export default function ComercialPage() {
                     </div>
                     <div className="min-w-0">
                       <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider truncate">{kpi.label}</p>
-                      <p className="text-2xl sm:text-3xl font-extrabold text-foreground font-mono-tech mt-0.5">{kpi.value}</p>
+                      <p className="text-2xl sm:text-3xl font-extrabold text-foreground font-pcp mt-0.5">{kpi.value}</p>
                     </div>
                   </CardContent>
                   <div className={cn("absolute bottom-0 left-0 right-0 h-1 opacity-70", kpi.accentBar)} />
@@ -424,7 +424,7 @@ export default function ComercialPage() {
                 <CardTitle className="text-sm sm:text-base font-semibold flex items-center gap-2 text-foreground">
                   <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
                   <span>Pendências — Faturamento</span>
-                  <Badge variant="destructive" className="ml-1 text-[11px] font-mono-tech font-bold">{pendencias.length}</Badge>
+                  <Badge variant="destructive" className="ml-1 text-[11px] font-pcp font-bold">{pendencias.length}</Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
@@ -455,10 +455,10 @@ export default function ComercialPage() {
 
                           return (
                             <tr key={o.id} className="hover:bg-muted/40 transition-colors">
-                              <td className="py-2 px-3 font-bold text-foreground whitespace-nowrap font-mono-tech text-xs">{o.titulo}</td>
+                              <td className="py-2 px-3 font-bold text-foreground whitespace-nowrap font-pcp text-xs">{o.titulo}</td>
                               <td className="py-2 px-3 text-foreground font-medium whitespace-nowrap">{o.cliente}</td>
                               <td className="py-2 px-3 text-muted-foreground truncate max-w-[200px]">{o.descricao}</td>
-                              <td className="py-2 px-3 text-muted-foreground whitespace-nowrap font-mono-tech text-xs">
+                              <td className="py-2 px-3 text-muted-foreground whitespace-nowrap font-pcp text-xs">
                                 {o.entrega_data_limite ? format(new Date(o.entrega_data_limite), "dd/MM/yyyy") : "—"}
                               </td>
                               <td className="py-2 px-3 text-right">
@@ -499,7 +499,7 @@ export default function ComercialPage() {
                       >
                         <div className="flex items-center justify-between pb-2 border-b border-border/60">
                           <span className="font-bold text-sm text-foreground">{dept.label}</span>
-                          <Badge variant="secondary" className="text-xs font-mono-tech font-bold">{deptOrders.length}</Badge>
+                          <Badge variant="secondary" className="text-xs font-pcp font-bold">{deptOrders.length}</Badge>
                         </div>
                         <div className="space-y-1.5">
                           {dept.statuses.map(st => {
@@ -508,7 +508,7 @@ export default function ComercialPage() {
                             return (
                               <div key={st.id} className="flex items-center justify-between text-xs py-0.5">
                                 <span className="text-muted-foreground font-medium">{st.label}</span>
-                                <span className="font-bold text-foreground font-mono-tech">{count}</span>
+                                <span className="font-bold text-foreground font-pcp">{count}</span>
                               </div>
                             );
                           })}
@@ -530,7 +530,7 @@ export default function ComercialPage() {
                   <div className="flex items-center gap-2">
                     <List className="h-4 w-4 text-primary" />
                     <span>Lista Geral de OS</span>
-                    <Badge variant="secondary" className="ml-1 font-mono-tech font-bold">{generalOsList.length}</Badge>
+                    <Badge variant="secondary" className="ml-1 font-pcp font-bold">{generalOsList.length}</Badge>
                   </div>
                   <span className="flex items-center gap-1.5 text-xs font-normal text-muted-foreground ml-auto bg-muted/60 px-2.5 py-1 rounded-lg border border-border/60">
                     <span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-400 shadow-2xs" />
@@ -554,7 +554,7 @@ export default function ComercialPage() {
                     <tbody className="divide-y divide-border/60 bg-card">
                       {generalOsList.map(o => (
                         <tr key={o.id} className="hover:bg-muted/40 transition-colors">
-                          <td className="py-2 px-3 font-bold text-foreground font-mono-tech text-xs">{o.titulo}</td>
+                          <td className="py-2 px-3 font-bold text-foreground font-pcp text-xs">{o.titulo}</td>
                           <td className="py-2 px-3 text-foreground font-medium">{o.cliente}</td>
                           <td className="py-2 px-3 text-muted-foreground truncate max-w-[240px]">{o.descricao || "—"}</td>
                           <td className="py-2 px-3">
@@ -574,7 +574,7 @@ export default function ComercialPage() {
                               );
                             })()}
                           </td>
-                          <td className="py-2 px-3 text-xs text-muted-foreground font-mono-tech whitespace-nowrap">
+                          <td className="py-2 px-3 text-xs text-muted-foreground font-pcp whitespace-nowrap">
                             {format(new Date(o.updated_at), "dd/MM/yyyy HH:mm")}
                           </td>
                         </tr>

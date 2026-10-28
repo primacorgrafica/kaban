@@ -71,7 +71,7 @@ export function MarkLostDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md p-6 rounded-2xl border-border bg-card shadow-2xl">
+      <DialogContent className="max-w-md p-6 rounded-2xl border-border bg-card shadow-2xl font-pcp">
         <DialogHeader className="space-y-2">
           <div className="flex items-center gap-2.5 text-rose-500">
             <XCircle className="h-5 w-5 shrink-0" />

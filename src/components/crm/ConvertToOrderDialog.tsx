@@ -136,7 +136,7 @@ export function ConvertToOrderDialog({
             Esta oportunidade já foi convertida com sucesso em uma Ordem de Produção no Kanban.
             Para evitar duplicação acidental de pedidos na fábrica, a criação repetida é bloqueada.
           </p>
-          <div className="mt-4 p-3 rounded-xl bg-muted/40 border border-border text-xs font-mono-tech space-y-1">
+          <div className="mt-4 p-3 rounded-xl bg-muted/40 border border-border text-xs font-pcp space-y-1">
             <p><strong>Cliente:</strong> {opportunity.cliente_nome}</p>
             <p><strong>Convertida em:</strong> {opportunity.convertida_em ? new Date(opportunity.convertida_em).toLocaleString("pt-BR") : "Sim"}</p>
           </div>
@@ -239,7 +239,7 @@ export function ConvertToOrderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl p-0 overflow-hidden border border-border bg-card text-card-foreground shadow-2xl rounded-2xl flex flex-col max-h-[92vh]">
+      <DialogContent className="max-w-2xl p-0 overflow-hidden border border-border bg-card text-card-foreground shadow-2xl rounded-2xl flex flex-col max-h-[92vh] font-pcp">
         {/* Header */}
         <div className="px-6 py-4 border-b border-border bg-muted/30 shrink-0">
           <div className="flex items-center gap-2.5">
@@ -269,7 +269,7 @@ export function ConvertToOrderDialog({
                 autoFocus
                 value={form.titulo}
                 onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
-                className="h-10 rounded-xl font-mono-tech text-sm font-bold bg-background border-border"
+                className="h-10 rounded-xl font-pcp text-sm font-bold bg-background border-border"
                 required
               />
             </div>
@@ -319,7 +319,7 @@ export function ConvertToOrderDialog({
                 type="date"
                 value={form.prazo}
                 onChange={(e) => setForm((f) => ({ ...f, prazo: e.target.value }))}
-                className="h-9 rounded-xl text-xs font-mono-tech bg-background border-border"
+                className="h-9 rounded-xl text-xs font-pcp bg-background border-border"
               />
             </div>
           </div>
@@ -333,7 +333,7 @@ export function ConvertToOrderDialog({
               value={form.descricao}
               onChange={(e) => setForm((f) => ({ ...f, descricao: e.target.value }))}
               rows={6}
-              className="text-xs rounded-xl bg-background border-border font-mono-tech leading-relaxed"
+              className="text-xs rounded-xl bg-background border-border font-pcp leading-relaxed"
               required
             />
           </div>

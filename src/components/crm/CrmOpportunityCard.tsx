@@ -94,7 +94,7 @@ export function CrmOpportunityCard({
             {...provided.dragHandleProps}
             style={provided.draggableProps.style}
             onClick={() => onSelect(opportunity)}
-            className={`group relative rounded-xl border p-3.5 shadow-xs transition-all duration-200 cursor-pointer select-none ${
+            className={`group relative rounded-xl border p-3.5 shadow-xs transition-all duration-200 cursor-pointer select-none font-pcp ${
               snapshot.isDragging
                 ? "!opacity-100 !bg-slate-900 dark:!bg-slate-900 bg-card ring-2 ring-primary shadow-2xl scale-[1.02] z-[9999]"
                 : "bg-card hover:border-primary/50 hover:shadow-md"
@@ -107,7 +107,7 @@ export function CrmOpportunityCard({
           {/* Top Header: Código + Prioridade + Menu */}
           <div className="flex items-center justify-between gap-1.5 mb-2">
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className="text-[11px] font-mono-tech font-bold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded border border-border/50">
+              <span className="text-[11px] font-pcp font-bold text-muted-foreground bg-muted/60 px-1.5 py-0.5 rounded border border-border/50">
                 {opportunity.codigo_identificador || `OPT-${opportunity.numero_sequencial}`}
               </span>
               <Badge
@@ -263,7 +263,7 @@ export function CrmOpportunityCard({
                     target="_blank"
                     rel="noreferrer"
                     onClick={(e) => e.stopPropagation()}
-                    className="ml-auto inline-flex items-center gap-1 text-[10px] text-emerald-500 hover:text-emerald-400 font-mono-tech"
+                    className="ml-auto inline-flex items-center gap-1 text-[10px] text-emerald-500 hover:text-emerald-400 font-pcp"
                     title="Abrir WhatsApp"
                   >
                     <MessageCircle className="h-3 w-3" />
@@ -275,7 +275,7 @@ export function CrmOpportunityCard({
           </div>
 
           {/* Serviço Gráfico Solicitado */}
-          <p className="mt-2 text-xs text-muted-foreground line-clamp-1 bg-muted/40 px-2 py-1 rounded border border-border/40 font-mono-tech">
+          <p className="mt-2 text-xs text-muted-foreground line-clamp-1 bg-muted/40 px-2 py-1 rounded border border-border/40 font-pcp">
             {opportunity.servico_solicitado}
           </p>
 
@@ -305,7 +305,7 @@ export function CrmOpportunityCard({
                       {opportunity.proxima_acao_descricao || "Follow-up"}
                     </span>
                   </div>
-                  <span className="font-mono-tech shrink-0 ml-1">
+                  <span className="font-pcp shrink-0 ml-1">
                     {format(new Date(opportunity.proxima_acao_data), "dd/MM HH:mm")}
                   </span>
                 </div>
@@ -335,7 +335,7 @@ export function CrmOpportunityCard({
               <span className="text-[10px] text-muted-foreground uppercase tracking-wider block">
                 Valor Estimado
               </span>
-              <span className="text-sm font-bold font-mono-tech text-foreground group-hover:text-primary transition-colors">
+              <span className="text-sm font-bold font-pcp text-foreground group-hover:text-primary transition-colors">
                 {formatCurrency(opportunity.valor_estimado)}
               </span>
             </div>
@@ -345,7 +345,7 @@ export function CrmOpportunityCard({
                 {opportunity.vendedor_nome || "Não atribuído"}
               </span>
               {opportunity.prazo_fechamento_previsto && (
-                <span className="text-[10px] font-mono-tech text-muted-foreground/80 block">
+                <span className="text-[10px] font-pcp text-muted-foreground/80 block">
                   Prev: {format(new Date(opportunity.prazo_fechamento_previsto), "dd/MM/yy")}
                 </span>
               )}
