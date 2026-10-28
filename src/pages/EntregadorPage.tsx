@@ -39,6 +39,7 @@ import {
   Smartphone,
   Bell,
   BellRing,
+  Download,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -146,55 +147,82 @@ export default function EntregadorPage() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   // PWA Install Prompt
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(() => {
+    if (typeof window !== "undefined") {
+      return (window as any).__pwaInstallPrompt || null;
+    }
+    return null;
+  });
   const [isInstalled, setIsInstalled] = useState(false);
+  const [showInstallBanner, setShowInstallBanner] = useState(true);
+  const [showInstallHelpModal, setShowInstallHelpModal] = useState(false);
 
   useEffect(() => {
-    if (window.matchMedia("(display-mode: standalone)").matches || (window.navigator as any).standalone) {
+    const isStandalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as any).standalone === true ||
+      document.referrer.includes("android-app://");
+
+    if (isStandalone) {
       setIsInstalled(true);
+      setShowInstallBanner(false);
     }
+
+    if ((window as any).__pwaInstallPrompt) {
+      setDeferredPrompt((window as any).__pwaInstallPrompt);
+    }
+
+    const handlePromptReady = (e: any) => {
+      setDeferredPrompt(e.detail || (window as any).__pwaInstallPrompt);
+      setShowInstallBanner(true);
+    };
 
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
+      (window as any).__pwaInstallPrompt = e;
       setDeferredPrompt(e);
+      setShowInstallBanner(true);
     };
 
     const handleAppInstalled = () => {
       setIsInstalled(true);
       setDeferredPrompt(null);
+      (window as any).__pwaInstallPrompt = null;
+      setShowInstallBanner(false);
+      setShowInstallHelpModal(false);
       toast.success("App do Entregador instalado com sucesso no seu celular!");
     };
 
+    window.addEventListener("pwa-prompt-ready", handlePromptReady);
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     window.addEventListener("appinstalled", handleAppInstalled);
 
     return () => {
+      window.removeEventListener("pwa-prompt-ready", handlePromptReady);
       window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) {
-      const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      if (isIos) {
-        toast.info(
-          "Para instalar no iPhone: toque no ícone de Compartilhar (no rodapé do Safari) e selecione 'Adicionar à Tela de Início'.",
-          { duration: 8000 }
-        );
-      } else {
-        toast.info(
-          "Para instalar: abra o menu do navegador (três pontinhos) e selecione 'Instalar aplicativo' ou 'Adicionar à tela inicial'."
-        );
-      }
-      return;
-    }
+    const promptEvent = deferredPrompt || (window as any).__pwaInstallPrompt;
 
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === "accepted") {
-      setIsInstalled(true);
-      setDeferredPrompt(null);
+    if (promptEvent) {
+      try {
+        promptEvent.prompt();
+        const { outcome } = await promptEvent.userChoice;
+        if (outcome === "accepted") {
+          setIsInstalled(true);
+          setDeferredPrompt(null);
+          (window as any).__pwaInstallPrompt = null;
+          setShowInstallBanner(false);
+          toast.success("Instalação iniciada! O app aparecerá na tela inicial do seu celular.");
+        }
+      } catch (err) {
+        console.error("Erro ao solicitar instalação PWA:", err);
+      }
+    } else {
+      setShowInstallHelpModal(true);
     }
   };
 
@@ -550,6 +578,18 @@ export default function EntregadorPage() {
         </div>
 
         <div className="flex items-center gap-1.5">
+          {!isInstalled && (
+            <Button
+              variant="default"
+              size="sm"
+              onClick={handleInstallClick}
+              className="h-8 px-2.5 bg-sky-500 hover:bg-sky-400 text-zinc-950 font-bold text-xs gap-1.5 shadow-sm shadow-sky-500/20 cursor-pointer"
+              title="Instalar aplicativo do entregador no celular"
+            >
+              <Download className="h-3.5 w-3.5" />
+              <span className="hidden xs:inline">Instalar App</span>
+            </Button>
+          )}
           {canManage && (
             <Button
               asChild
@@ -620,28 +660,46 @@ export default function EntregadorPage() {
       {/* Resumo & Abas Mobile */}
       <div className="p-4 flex flex-col gap-3 max-w-lg mx-auto w-full">
         {/* Banner de Instalação do App PWA no Celular */}
-        {!isInstalled && (
-          <div className="bg-gradient-to-r from-emerald-950/70 via-zinc-900 to-[#11212D] border border-emerald-500/40 rounded-xl p-3 flex items-center justify-between gap-3 shadow-md">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 shrink-0">
+        {!isInstalled && showInstallBanner && (
+          <div className="bg-gradient-to-r from-sky-950/80 via-zinc-900 to-emerald-950/70 border border-sky-500/40 rounded-xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="p-2.5 rounded-xl bg-sky-500/20 text-sky-400 border border-sky-400/30 shrink-0 shadow-[0_0_12px_rgba(56,189,248,0.2)]">
                 <Smartphone className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <span className="font-bold text-white text-xs block truncate">
-                  Baixar App no Celular
-                </span>
-                <span className="text-[11px] text-zinc-400 block truncate">
-                  Acesso rápido direto da tela inicial
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-white text-xs sm:text-sm block truncate">
+                    Instalar App do Entregador
+                  </span>
+                  <Badge className="bg-sky-500/20 text-sky-300 border-sky-500/30 text-[9px] px-1.5 py-0">
+                    Direto na Tela Inicial
+                  </Badge>
+                </div>
+                <span className="text-[11px] text-zinc-300 block leading-tight mt-0.5">
+                  Receba alertas sonoros e abra com 1 toque, sem precisar abrir pelo navegador.
                 </span>
               </div>
             </div>
-            <Button
-              size="sm"
-              onClick={handleInstallClick}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs h-8 px-3 shrink-0 shadow-sm"
-            >
-              Instalar App
-            </Button>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0 justify-end pt-1 sm:pt-0">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowInstallBanner(false)}
+                className="text-xs text-zinc-400 hover:text-white h-8 px-2.5"
+              >
+                Depois
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleInstallClick}
+                className="bg-sky-500 hover:bg-sky-400 text-zinc-950 font-bold text-xs h-8 px-3.5 shadow-md shadow-sky-500/25 flex-1 sm:flex-initial cursor-pointer gap-1.5"
+              >
+                <Download className="h-3.5 w-3.5" />
+                Instalar Agora
+              </Button>
+            </div>
           </div>
         )}
 
@@ -1117,6 +1175,94 @@ export default function EntregadorPage() {
               className="font-semibold"
             >
               {submittingFailure ? "Registrando..." : "Registrar Insucesso"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* MODAL DE INSTRUÇÕES DE INSTALAÇÃO DO PWA */}
+      <Dialog open={showInstallHelpModal} onOpenChange={setShowInstallHelpModal}>
+        <DialogContent className="max-w-md bg-[#0B131E] border-sky-900/60 text-white p-5 rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-sky-400 text-base">
+              <Smartphone className="h-5 w-5" />
+              Como Instalar o App do Entregador
+            </DialogTitle>
+          </DialogHeader>
+
+          {/iPad|iPhone|iPod/.test(navigator.userAgent) ? (
+            <div className="space-y-3.5 text-xs text-slate-300 py-2">
+              <p className="text-slate-200 font-medium">
+                No Safari do seu iPhone, siga os 3 passos rápidos:
+              </p>
+              <div className="space-y-2.5">
+                <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-zinc-900/80 border border-zinc-800">
+                  <div className="h-6 w-6 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                    1
+                  </div>
+                  <div>
+                    Toque no botão de <strong>Compartilhar</strong> (ícone com quadrado e seta ⎋ na barra inferior do Safari).
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-zinc-900/80 border border-zinc-800">
+                  <div className="h-6 w-6 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                    2
+                  </div>
+                  <div>
+                    Role a lista e toque em <strong>"Adicionar à Tela de Início"</strong> ➕.
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-zinc-900/80 border border-zinc-800">
+                  <div className="h-6 w-6 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                    3
+                  </div>
+                  <div>
+                    No canto superior direito, toque em <strong>"Adicionar"</strong>. O ícone do app aparecerá na tela do seu celular!
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3 text-xs text-slate-300 py-2">
+              <p className="text-slate-200">
+                Para adicionar à sua tela inicial:
+              </p>
+              <div className="space-y-2.5">
+                <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-zinc-900/80 border border-zinc-800">
+                  <div className="h-6 w-6 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                    1
+                  </div>
+                  <div>
+                    Toque no menu do navegador (os <strong>três pontinhos</strong> ⋮ no topo ou rodapé do Chrome).
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-zinc-900/80 border border-zinc-800">
+                  <div className="h-6 w-6 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                    2
+                  </div>
+                  <div>
+                    Selecione <strong>"Instalar aplicativo"</strong> ou <strong>"Adicionar à tela inicial"</strong>.
+                  </div>
+                </div>
+                <div className="flex items-start gap-2.5 p-2.5 rounded-lg bg-zinc-900/80 border border-zinc-800">
+                  <div className="h-6 w-6 rounded-full bg-sky-500/20 text-sky-400 flex items-center justify-center font-bold text-xs shrink-0 mt-0.5">
+                    3
+                  </div>
+                  <div>
+                    Confirme em <strong>"Instalar"</strong>. Pronto! O app terá ícone exclusivo e funcionará em tela cheia.
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="pt-2">
+            <Button
+              type="button"
+              onClick={() => setShowInstallHelpModal(false)}
+              className="w-full bg-sky-500 hover:bg-sky-400 text-zinc-950 font-bold text-xs h-9 cursor-pointer"
+            >
+              Entendi
             </Button>
           </DialogFooter>
         </DialogContent>
