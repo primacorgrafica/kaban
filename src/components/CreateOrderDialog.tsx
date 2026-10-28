@@ -43,6 +43,7 @@ import {
   Repeat,
   RotateCcw,
   Clock,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
