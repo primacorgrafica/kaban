@@ -433,4 +433,74 @@ describe("Chat Privado — Regras de Negócio e Lógica de Mensageria", () => {
 
     expect(hiddenConvs.has("conv-me-and-carlos")).toBe(true);
   });
+
+  it("não deve ressuscitar conversa excluída quando a última mensagem histórica era do outro usuário", () => {
+    const currentUserId = "user-me";
+    const otherUserId = "user-other";
+    const convId = "conv-123";
+
+    const localHidden = new Set<string>([convId]);
+    const settingsMap: Record<string, any> = {
+      [convId]: {
+        conversation_id: convId,
+        user_id: currentUserId,
+        is_hidden: true,
+        cleared_until: "2026-10-29T10:00:00.000Z",
+        updated_at: "2026-10-29T10:00:00.000Z",
+      },
+    };
+
+    // Conversa onde a última mensagem histórica foi enviada pelo outro colega ANTES da exclusão (às 09:55)
+    const rawConv = {
+      id: convId,
+      user1_id: currentUserId,
+      user2_id: otherUserId,
+      last_message_sender_id: otherUserId, // o outro usuário enviou a última mensagem histórica
+      last_message_at: "2026-10-29T09:55:00.000Z", // antes da exclusão!
+    };
+
+    // Lógica corrigida do chatService:
+    const convSetting = settingsMap[rawConv.id];
+    const isLocallyHidden = localHidden.has(rawConv.id);
+    const isDbHidden = Boolean(convSetting && convSetting.is_hidden);
+    const isHidden = isLocallyHidden || isDbHidden;
+
+    const referenceTime = convSetting?.cleared_until || convSetting?.updated_at;
+    const hasNewMessageFromOther = Boolean(
+      rawConv.last_message_sender_id &&
+      rawConv.last_message_sender_id !== currentUserId &&
+      referenceTime &&
+      rawConv.last_message_at &&
+      new Date(rawConv.last_message_at).getTime() > new Date(referenceTime).getTime() + 1000
+    );
+
+    let isVisible = false;
+    if (!isHidden) {
+      isVisible = true;
+    } else if (hasNewMessageFromOther) {
+      isVisible = true;
+    } else {
+      isVisible = false;
+    }
+
+    // A conversa DEVE permanecer estritamente oculta!
+    expect(hasNewMessageFromOther).toBe(false);
+    expect(isVisible).toBe(false);
+
+    // Agora simula chegada de NOVA mensagem enviada pelo outro colega às 10:05 (após as 10:00 da exclusão)
+    const rawConvWithNewMsg = {
+      ...rawConv,
+      last_message_at: "2026-10-29T10:05:00.000Z",
+    };
+
+    const hasNewMessageAfterDeletion = Boolean(
+      rawConvWithNewMsg.last_message_sender_id &&
+      rawConvWithNewMsg.last_message_sender_id !== currentUserId &&
+      referenceTime &&
+      rawConvWithNewMsg.last_message_at &&
+      new Date(rawConvWithNewMsg.last_message_at).getTime() > new Date(referenceTime).getTime() + 1000
+    );
+
+    expect(hasNewMessageAfterDeletion).toBe(true);
+  });
 });

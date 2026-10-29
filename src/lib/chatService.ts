@@ -180,15 +180,30 @@ export async function fetchUserConversations(
     const visibleConvs = (convs as any[]).filter((raw) => {
       const otherId = raw.user1_id === currentUserId ? raw.user2_id : raw.user1_id;
       const convSetting = settingsMap[raw.id];
+      const isLocallyHidden = localHidden.has(raw.id);
+      const isDbHidden = Boolean(convSetting && (convSetting.is_hidden === true || (convSetting.is_hidden as any) === "true"));
+      const isHidden = isLocallyHidden || isDbHidden;
 
-      // Se a última mensagem foi enviada pelo outro participante (ou há mensagem mais recente que cleared_until), a conversa NUNCA deve ficar oculta
-      const isFromOtherUser =
-        (raw.last_message_sender_id && raw.last_message_sender_id !== currentUserId) ||
-        (convSetting?.cleared_until && raw.last_message_at && new Date(raw.last_message_at).getTime() > new Date(convSetting.cleared_until).getTime());
-      if (isFromOtherUser) {
+      // Se a conversa NÃO está oculta (nem localmente nem no banco), ela é visível
+      if (!isHidden) {
+        return true;
+      }
+
+      // Se está oculta, SÓ deve reaparecer se houver NOVA mensagem enviada pelo outro participante
+      // estritamente APÓS a data/hora em que a conversa foi excluída/limpa.
+      const referenceTime = convSetting?.cleared_until || convSetting?.updated_at;
+      const hasNewMessageFromOther = Boolean(
+        raw.last_message_sender_id &&
+        raw.last_message_sender_id !== currentUserId &&
+        referenceTime &&
+        raw.last_message_at &&
+        new Date(raw.last_message_at).getTime() > new Date(referenceTime).getTime() + 1000
+      );
+
+      if (hasNewMessageFromOther) {
         localHidden.delete(raw.id);
         if (otherId) localHiddenUsers.delete(otherId);
-        if (convSetting && (convSetting.is_hidden === true || (convSetting.is_hidden as any) === "true")) {
+        if (isDbHidden) {
           void supabase
             .from("chat_conversation_settings" as any)
             .update({ is_hidden: false, updated_at: new Date().toISOString() })
@@ -198,16 +213,12 @@ export async function fetchUserConversations(
         return true;
       }
 
-      // 1. Verifica no localStorage imediato (garante que não volta mesmo antes do sync)
-      if (localHidden.has(raw.id)) {
-        return false;
+      // Permanece oculta: sincroniza caches locais
+      localHidden.add(raw.id);
+      if (otherId && isDbHidden) {
+        localHiddenUsers.add(otherId);
       }
-      // 2. Verifica nas configurações salvas no banco
-      if (convSetting && (convSetting.is_hidden === true || (convSetting.is_hidden as any) === "true")) {
-        localHidden.add(raw.id);
-        return false;
-      }
-      return true;
+      return false;
     });
 
     // Sincroniza cache local com banco se novas foram detectadas como ocultas

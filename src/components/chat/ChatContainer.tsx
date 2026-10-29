@@ -7,6 +7,7 @@ import { ChatMessageItem } from "./ChatMessageItem";
 import { EmojiPickerPopover } from "./EmojiPickerPopover";
 import { NewConversationDialog } from "./NewConversationDialog";
 import { notifyConversationViewed } from "./GlobalChatNotifier";
+import { getLocalHiddenOtherUsers } from "@/lib/chatService";
 import { supabase } from "@/integrations/supabase/client";
 import {
   ChatConversation,
@@ -237,10 +238,11 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
     const existingOtherUserIds = new Set(
       conversations.map((c) => c.otherUser.id)
     );
+    const hiddenUsers = currentUserId ? getLocalHiddenOtherUsers(currentUserId) : new Set<string>();
     return availableUsers.filter(
-      (u) => u.online && !existingOtherUserIds.has(u.id)
+      (u) => u.online && !existingOtherUserIds.has(u.id) && !hiddenUsers.has(u.id)
     );
-  }, [availableUsers, conversations]);
+  }, [availableUsers, conversations, currentUserId]);
 
   // Lista de todos os usuários online no momento
   const allOnlineUsersList = useMemo(() => {
