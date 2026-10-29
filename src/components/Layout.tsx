@@ -245,8 +245,8 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
     { to: "/chat", label: "Chat", icon: MessageSquare, count: unreadChatCount > 0 ? unreadChatCount : undefined },
     // 2. COMERCIAL
     ...(hasModule("comercial") ? [{ to: "/comercial", label: "Comercial", icon: Briefcase }] : []),
-    // 3. PAINEL O.S
-    ...(hasModule("pcp") ? [{ to: "/pcp", label: "PAINEL O.S", icon: ClipboardList }] : []),
+    // 3. Painel O.S
+    ...(hasModule("pcp") ? [{ to: "/pcp", label: "Painel O.S", icon: ClipboardList }] : []),
     // 4. PRÉ-IMPRESSÃO
     ...(canAccessSector("pre_impressao") ? [{ to: "/", label: "Pré-Impressão", icon: Monitor, count: deptCountsLoaded ? (deptCounts["pre_impressao"] ?? 0) : undefined }] : []),
     // 5. CTP

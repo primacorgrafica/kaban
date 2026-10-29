@@ -1039,7 +1039,7 @@ export default function PcpPage() {
       onAddOrder={() => {}}
       activeCount={0}
       archivedCount={0}
-      sectorName="PAINEL O.S"
+      sectorName="Painel O.S"
       countsLoading={loading}
       permissions={permissions}
     >
