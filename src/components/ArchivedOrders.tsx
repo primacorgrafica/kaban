@@ -303,7 +303,7 @@ export function ArchivedOrders({ orders, onUnarchive, onDelete }: ArchivedOrders
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Archive className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-xl font-semibold">O.S Concluídas</h2>
+          <h2 className="text-xl font-semibold">Trabalhos Concluídos</h2>
           <span className="text-sm text-muted-foreground">({searchFiltered.length})</span>
         </div>
         <div className="flex items-center gap-3">
@@ -316,9 +316,9 @@ export function ArchivedOrders({ orders, onUnarchive, onDelete }: ArchivedOrders
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Remover todas as O.S.?</AlertDialogTitle>
+                <AlertDialogTitle>Remover todos os trabalhos?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Tem certeza? Isso excluirá permanentemente {searchFiltered.length} O.S. listadas.
+                  Tem certeza? Isso excluirá permanentemente {searchFiltered.length} trabalho(s) listado(s).
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -343,7 +343,7 @@ export function ArchivedOrders({ orders, onUnarchive, onDelete }: ArchivedOrders
       {searchFiltered.length === 0 ? (
         <div className="text-center py-16 text-muted-foreground">
           <Archive className="h-12 w-12 mx-auto mb-3 opacity-30" />
-          <p>Nenhuma OS. arquivada</p>
+          <p>Nenhum trabalho arquivado ou concluído</p>
         </div>
       ) : (
         <div className="space-y-3">

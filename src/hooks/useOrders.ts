@@ -592,6 +592,7 @@ export function useOrders() {
       .update({ arquivado: true, atualizado_por: user?.id || null })
       .eq("parent_order_id", id);
     if (childError) console.error("Erro ao arquivar sub-ordens:", childError);
+    toast.success("O.S. movida para Trabalhos Concluídos!");
   }, [user]);
 
   const unarchiveOrder = useCallback(async (id: string) => {
@@ -744,23 +745,42 @@ export function useOrders() {
   const VALID_EXTERNAL_SECTORS = ["qualidade", "ctp", "digital", "producao", "expedicao", "compras", "manutencao"];
   const isPreImpressao = (o: Order) => !o.setor || !VALID_EXTERNAL_SECTORS.includes(o.setor);
 
-  const filteredOrders = orders.filter((o) => {
-    if (!searchQuery) return isPreImpressao(o);
-    // Exclude sub-orders (P, F, NC, etc.) from search results
-    if (o.parent_order_id) return false;
-    const q = searchQuery.toLowerCase();
+  const matchesSearch = (o: Order, q: string) => {
     return (
       o.titulo.toLowerCase().includes(q) ||
       o.cliente.toLowerCase().includes(q) ||
       (o.observacao && o.observacao.toLowerCase().includes(q)) ||
-      (o.vendedor && o.vendedor.toLowerCase().includes(q))
+      (o.vendedor && o.vendedor.toLowerCase().includes(q)) ||
+      (o.descricao && o.descricao.toLowerCase().includes(q))
     );
+  };
+
+  // 1. Ordens ativas da Pré-Impressão para o Kanban e Tabela de Pré-Impressão
+  const activeOrders = orders.filter((o) => {
+    if (o.arquivado) return false;
+    if (!isPreImpressao(o)) return false;
+    if (searchQuery) {
+      if (o.parent_order_id) return false;
+      return matchesSearch(o, searchQuery.toLowerCase());
+    }
+    return true;
   });
 
-  const activeOrders = filteredOrders.filter((o) => !o.arquivado);
-  const archivedOrders = searchQuery
-    ? filteredOrders.filter((o) => o.arquivado)
-    : filteredOrders.filter((o) => o.arquivado && isPreImpressao(o));
+  // 2. Trabalhos Concluídos: TODAS as O.S. arquivadas da empresa, de qualquer setor
+  const archivedOrders = orders.filter((o) => {
+    if (!o.arquivado) return false;
+    // Exclui sub-ordens filhas de processo (P, F) a não ser que sejam ordens especiais (OM, OC, NC)
+    if (o.parent_order_id) {
+      const isOM = !!(o as any).om_numero;
+      const isOC = !!(o as any).oc_numero;
+      const isNC = !!(o as any).nc_numero;
+      if (!isOM && !isOC && !isNC) return false;
+    }
+    if (searchQuery) {
+      return matchesSearch(o, searchQuery.toLowerCase());
+    }
+    return true;
+  });
 
   return {
     orders,

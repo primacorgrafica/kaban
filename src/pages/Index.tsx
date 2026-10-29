@@ -108,7 +108,7 @@ const Index = () => {
       onAddOrder={addOrder}
       activeCount={activeOrders.length}
       archivedCount={archivedOrders.length}
-      sectorName={isDashboard ? "Dashboard" : isArchived ? "O.S Concluídas" : "Pré-Impressão"}
+      sectorName={isDashboard ? "Dashboard" : isArchived ? "Trabalhos Concluídos" : "Pré-Impressão"}
       countsLoading={loading}
       permissions={perms}
     >
@@ -123,7 +123,7 @@ const Index = () => {
         <Dashboard orders={orders} archivedCount={archivedOrders.length} />
       ) : isDashboard ? (
         <div className="flex items-center justify-center h-full text-muted-foreground">Sem permissão para acessar o Dashboard.</div>
-      ) : isArchived && perms.canArchive ? (
+      ) : isArchived && (perms.canArchive || hasModule("trabalhos_concluidos")) ? (
         <ArchivedOrders
           orders={archivedOrders}
           onUnarchive={unarchiveOrder}
