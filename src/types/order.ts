@@ -75,7 +75,7 @@ export interface Order {
   data_saida_entrega?: string | null;
   data_chegada_entrega?: string | null;
   motivo_insucesso?: string | null;
-  status_comprovante_sync?: "pendente" | "sincronizado" | "erro";
+  status_comprovante_sync?: "pendente" | "pendente_sharepoint" | "sincronizado" | "erro";
   // Faturamento fields
   fat_cnpj_ok: boolean;
   fat_cnpj_obs: string | null;

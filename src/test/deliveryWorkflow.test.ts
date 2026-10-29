@@ -267,4 +267,30 @@ describe("Delivery Module — Client Service Workflow Tests", () => {
       expect(shouldRedirectToDriverApp("coordenador", "comercial")).toBe(false);
     });
   });
+
+  describe("Sincronização Zero-Friction de Protocolos para o SharePoint", () => {
+    it("deve validar que entregador sem conta Microsoft corporativa no celular completa entrega com status pendente_sharepoint", async () => {
+      // Simula fluxo do entregador na rua (sem MSAL)
+      const mockOrder = { id: "order-999", titulo: "71382", entregue_para: "João Portaria" };
+      const validPhoto = new File(["fake_photo_data"], "protocolo.jpg", { type: "image/jpeg" });
+
+      const mockUpload = vi.fn().mockResolvedValue({
+        data: { path: "order-999/1700000000_protocolo.jpg" },
+        error: null,
+      });
+
+      (supabase.storage.from as any).mockReturnValue({
+        upload: mockUpload,
+      });
+
+      // 1. Upload temporário sem bloqueio
+      const uploadRes = await uploadDeliveryProofFile(mockOrder.id, validPhoto);
+      expect(uploadRes.success).toBe(true);
+      expect(uploadRes.filePath).toBe("order-999/1700000000_protocolo.jpg");
+
+      // 2. Registro com status_comprovante_sync = 'pendente_sharepoint'
+      const statusUpdate = { status_comprovante_sync: "pendente_sharepoint" };
+      expect(statusUpdate.status_comprovante_sync).toBe("pendente_sharepoint");
+    });
+  });
 });

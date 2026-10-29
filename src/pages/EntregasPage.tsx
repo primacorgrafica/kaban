@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { X, CalendarIcon, FileDown, Bike, Radio, UserPlus } from "lucide-react";
+import { X, CalendarIcon, FileDown, Bike, Radio, UserPlus, CloudUpload } from "lucide-react";
 import { format, parseISO, startOfDay, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,7 @@ import { AssignDriverModal } from "@/components/delivery/AssignDriverModal";
 import { DeliveryMonitoringModal } from "@/components/delivery/DeliveryMonitoringModal";
 import { DeliveryCompletedDetailsModal } from "@/components/delivery/DeliveryCompletedDetailsModal";
 import { getEntregadoresList } from "@/lib/deliveryService";
+import { syncPendingProtocolsToSharePoint } from "@/lib/sharepointService";
 import type { Entregador, DeliveryStatus } from "@/types/delivery";
 import { DELIVERY_STATUS_CONFIG } from "@/types/delivery";
 
@@ -55,40 +56,42 @@ export default function EntregasPage() {
     return map;
   }, [entregadores]);
 
+  const [isSyncingSharepoint, setIsSyncingSharepoint] = useState(false);
+
+  const fetchOrders = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("orders")
+      .select("*")
+      .eq("arquivado", false)
+      .order("updated_at", { ascending: false });
+
+    if (data) {
+      // Filter out orders with stamps P, C, F, Q, NC, M
+      const filtered = (data as unknown as Order[]).filter(order => {
+        const o = order as any;
+        // M = Manutenção
+        if (o.om_numero) return false;
+        // C = Compras
+        if (o.oc_numero) return false;
+        // NC = Não Conformidade
+        if (o.nc_numero) return false;
+        // F = Faturamento (sub-order copy)
+        if (order.setor === "faturamento") return false;
+        // Q = Qualidade, CTP, Digital
+        if (order.setor === "qualidade" || order.setor === "ctp" || order.setor === "digital") return false;
+        // P = Prova (sub-order copy in expedição from pré-impressão)
+        if (order.parent_order_id && order.setor === "expedicao") return false;
+        return true;
+      });
+      setAllOrders(filtered);
+    }
+    setLoading(false);
+  };
+
   // Fetch all non-archived orders with entrega data
   useEffect(() => {
     if (!authReady || !user) return;
-
-    const fetchOrders = async () => {
-      setLoading(true);
-      const { data } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("arquivado", false)
-        .order("updated_at", { ascending: false });
-
-      if (data) {
-        // Filter out orders with stamps P, C, F, Q, NC, M
-        const filtered = (data as unknown as Order[]).filter(order => {
-          const o = order as any;
-          // M = Manutenção
-          if (o.om_numero) return false;
-          // C = Compras
-          if (o.oc_numero) return false;
-          // NC = Não Conformidade
-          if (o.nc_numero) return false;
-          // F = Faturamento (sub-order copy)
-          if (order.setor === "faturamento") return false;
-          // Q = Qualidade, CTP, Digital
-          if (order.setor === "qualidade" || order.setor === "ctp" || order.setor === "digital") return false;
-          // P = Prova (sub-order copy in expedição from pré-impressão)
-          if (order.parent_order_id && order.setor === "expedicao") return false;
-          return true;
-        });
-        setAllOrders(filtered);
-      }
-      setLoading(false);
-    };
 
     void fetchOrders();
 
@@ -101,6 +104,52 @@ export default function EntregasPage() {
 
     return () => { supabase.removeChannel(channel); };
   }, [authReady, user]);
+
+  // Contagem de comprovantes aguardando sincronização com o SharePoint
+  const pendingSharepointCount = useMemo(() => {
+    return allOrders.filter(
+      (o) => o.status_comprovante_sync === "pendente_sharepoint" || o.status_comprovante_sync === "pendente"
+    ).length;
+  }, [allOrders]);
+
+  // Dispara sincronização com SharePoint (manual ou automática)
+  const handleSyncSharepoint = async (interactive = true) => {
+    if (isSyncingSharepoint) return;
+    setIsSyncingSharepoint(true);
+    try {
+      const res = await syncPendingProtocolsToSharePoint(interactive);
+      if (res.synced > 0) {
+        toast.success(`${res.synced} protocolo(s) de entrega sincronizado(s) com sucesso no SharePoint!`);
+        void fetchOrders();
+      } else if (res.total === 0) {
+        if (interactive) toast.info("Todos os protocolos já estão sincronizados com o SharePoint.");
+      } else if (res.failed > 0 && interactive) {
+        toast.error(`Falha ao sincronizar: ${res.errors.join("; ")}`);
+      }
+    } catch (err: any) {
+      if (interactive) {
+        toast.error(`Erro ao sincronizar com SharePoint: ${err?.message || err}`);
+      }
+    } finally {
+      setIsSyncingSharepoint(false);
+    }
+  };
+
+  // Auto-sync em background na estação da expedição se houver protocolos pendentes
+  useEffect(() => {
+    if (!authReady || !user) return;
+    if (pendingSharepointCount > 0) {
+      const timer = setTimeout(() => {
+        void syncPendingProtocolsToSharePoint(false).then((res) => {
+          if (res.synced > 0) {
+            toast.success(`${res.synced} protocolo(s) sincronizado(s) com o SharePoint em segundo plano!`);
+            void fetchOrders();
+          }
+        });
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [authReady, user, pendingSharepointCount]);
 
   // Get unique dates for the dropdown
   const availableDates = useMemo(() => {
@@ -313,6 +362,32 @@ export default function EntregasPage() {
             <FileDown className="h-3.5 w-3.5" />
             PDF
           </Button>
+
+          {pendingSharepointCount > 0 ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5 h-8 border-sky-500/50 bg-sky-500/10 text-sky-400 hover:bg-sky-500/20"
+              onClick={() => handleSyncSharepoint(true)}
+              disabled={isSyncingSharepoint}
+              title={`${pendingSharepointCount} comprovante(s) pendente(s) de envio para a pasta PROTOCOLOS ENTREGAS no SharePoint`}
+            >
+              <CloudUpload className={cn("h-3.5 w-3.5", isSyncingSharepoint && "animate-spin")} />
+              Sincronizar SharePoint ({pendingSharepointCount})
+            </Button>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="gap-1.5 h-8 text-xs text-sky-400/80 hover:text-sky-300"
+              onClick={() => handleSyncSharepoint(true)}
+              disabled={isSyncingSharepoint}
+              title="Sincronizar protocolos com a pasta PROTOCOLOS ENTREGAS no SharePoint"
+            >
+              <CloudUpload className={cn("h-3.5 w-3.5", isSyncingSharepoint && "animate-spin")} />
+              Sync SharePoint
+            </Button>
+          )}
 
           <Button
             asChild

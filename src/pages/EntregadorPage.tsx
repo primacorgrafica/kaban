@@ -13,6 +13,7 @@ import {
   updateDriverDeliveryStatus,
   recordGpsCheckpoint,
   getEntregadoresList,
+  uploadDeliveryProofFile,
 } from "@/lib/deliveryService";
 import {
   uploadDeliveryProtocolToSharePoint,
@@ -498,7 +499,7 @@ export default function EntregadorPage() {
     setProofPreviewUrl(null);
   };
 
-  // Upload e Finalização da Entrega
+  // Upload e Finalização da Entrega (Zero-Friction: entregador não precisa logar no MS 365)
   const handleConfirmDelivery = async () => {
     if (!completionOrder) return;
 
@@ -509,70 +510,91 @@ export default function EntregadorPage() {
 
     setSubmittingCompletion(true);
 
-    // Se houver arquivo de comprovante, realiza upload DIRETAMENTE para a pasta do SharePoint (PROTOCOLOS ENTREGAS)
-    if (proofFile) {
-      toast.info("Enviando foto do protocolo para a pasta do SharePoint...");
-      const spRes = await uploadDeliveryProtocolToSharePoint(
-        proofFile,
-        completionOrder.titulo || completionOrder.id,
-        recipientName.trim(),
-        undefined,
-        true // Permite popup interativo do MSAL caso ainda não esteja autenticado
-      );
+    try {
+      let comprovanteSynced = false;
 
-      if (!spRes.success) {
-        toast.error(`Falha ao salvar no SharePoint: ${spRes.error || "Erro de conexão"}. Verifique o login Microsoft e tente novamente.`);
-        setSubmittingCompletion(false);
-        return;
-      }
+      // Se houver arquivo de comprovante fotografado
+      if (proofFile) {
+        // Tentativa rápida e silenciosa: se o dispositivo já possuir sessão MS 365 conectada, tenta direto
+        if (msUser) {
+          try {
+            const spRes = await uploadDeliveryProtocolToSharePoint(
+              proofFile,
+              completionOrder.titulo || completionOrder.id,
+              recipientName.trim(),
+              undefined,
+              false // NUNCA abre popup interativo no celular do motoboy
+            );
 
-      // Registra o anexo no Supabase (order_attachments) para visualização e rastreabilidade instantânea
-      if (spRes.driveItem && spRes.folderInfo) {
-        try {
-          await supabase.from("order_attachments" as any).insert({
-            order_id: completionOrder.id,
-            nome_arquivo: spRes.driveItem.name || proofFile.name,
-            tamanho_bytes: spRes.driveItem.size || proofFile.size,
-            content_type: proofFile.type || "image/jpeg",
-            sharepoint_item_id: spRes.driveItem.id,
-            sharepoint_folder_id: spRes.folderInfo.folderId,
-            sharepoint_folder_name: spRes.folderInfo.folderName,
-            sharepoint_drive_id: spRes.folderInfo.driveId,
-            sharepoint_site_id: spRes.folderInfo.siteId,
-            sharepoint_web_url: spRes.driveItem.webUrl,
-            sharepoint_path: `${SHAREPOINT_PROTOCOLOS_FOLDER}/${spRes.driveItem.name}`,
-            status: "sincronizado",
-          });
-        } catch (attErr) {
-          console.warn("[EntregadorPage] Erro ao gravar metadados em order_attachments:", attErr);
+            if (spRes.success && spRes.driveItem && spRes.folderInfo) {
+              comprovanteSynced = true;
+              try {
+                await supabase.from("order_attachments" as any).insert({
+                  order_id: completionOrder.id,
+                  nome_arquivo: spRes.driveItem.name || proofFile.name,
+                  tamanho_bytes: spRes.driveItem.size || proofFile.size,
+                  content_type: proofFile.type || "image/jpeg",
+                  sharepoint_item_id: spRes.driveItem.id,
+                  sharepoint_folder_id: spRes.folderInfo.folderId,
+                  sharepoint_folder_name: spRes.folderInfo.folderName,
+                  sharepoint_drive_id: spRes.folderInfo.driveId,
+                  sharepoint_site_id: spRes.folderInfo.siteId,
+                  sharepoint_web_url: spRes.driveItem.webUrl,
+                  sharepoint_path: `${SHAREPOINT_PROTOCOLOS_FOLDER}/${spRes.driveItem.name}`,
+                  status: "sincronizado",
+                });
+              } catch (attErr) {
+                console.warn("[EntregadorPage] Erro ao gravar metadados em order_attachments:", attErr);
+              }
+            }
+          } catch (spErr) {
+            console.warn("[EntregadorPage] Upload direto ao SharePoint falhou silenciosamente, usando fila:", spErr);
+          }
         }
+
+        // Se o motoboy está na rua sem conta corporativa MS 365 (caso padrão):
+        // Salva instantaneamente na fila segura e não bloqueia a entrega!
+        if (!comprovanteSynced) {
+          const uploadRes = await uploadDeliveryProofFile(completionOrder.id, proofFile);
+          if (!uploadRes.success) {
+            toast.error(uploadRes.error || "Erro ao salvar foto do comprovante.");
+            return;
+          }
+        }
+
+        // Atualiza status do comprovante na ordem (pendente_sharepoint ou sincronizado)
+        await supabase
+          .from("orders")
+          .update({
+            status_comprovante_sync: comprovanteSynced ? "sincronizado" : "pendente_sharepoint",
+          } as any)
+          .eq("id", completionOrder.id);
       }
 
-      // Atualiza status do comprovante na ordem
-      await supabase
-        .from("orders")
-        .update({ status_comprovante_sync: "sincronizado" } as any)
-        .eq("id", completionOrder.id);
+      const res = await updateDriverDeliveryStatus({
+        orderId: completionOrder.id,
+        newStatus: "entregue",
+        entreguePara: recipientName.trim(),
+        obsEntrega: deliveryNotes.trim() || undefined,
+      });
 
-      toast.success("Foto do protocolo salva com sucesso na pasta do SharePoint!");
-    }
-
-    const res = await updateDriverDeliveryStatus({
-      orderId: completionOrder.id,
-      newStatus: "entregue",
-      entreguePara: recipientName.trim(),
-      obsEntrega: deliveryNotes.trim() || undefined,
-    });
-
-    setSubmittingCompletion(false);
-
-    if (res.success) {
-      toast.success(`Entrega da O.S. #${completionOrder.titulo} concluída com sucesso!`);
-      void sendGpsTelemetry(completionOrder.id);
-      setCompletionOrder(null);
-      void fetchDriverData();
-    } else {
-      toast.error(res.error || "Erro ao concluir entrega.");
+      if (res.success) {
+        toast.success(
+          proofFile && !comprovanteSynced
+            ? `Entrega da O.S. #${completionOrder.titulo} concluída! Foto enfileirada para o SharePoint.`
+            : `Entrega da O.S. #${completionOrder.titulo} concluída com sucesso!`
+        );
+        void sendGpsTelemetry(completionOrder.id);
+        setCompletionOrder(null);
+        void fetchDriverData();
+      } else {
+        toast.error(res.error || "Erro ao concluir entrega.");
+      }
+    } catch (err: any) {
+      console.error("[EntregadorPage] Erro inesperado ao confirmar entrega:", err);
+      toast.error(err?.message || "Erro ao registrar entrega.");
+    } finally {
+      setSubmittingCompletion(false);
     }
   };
 
@@ -1076,21 +1098,9 @@ export default function EntregadorPage() {
                 <Cloud className="h-4 w-4 text-sky-400 shrink-0" />
                 <span>Destino: <strong>SharePoint · PROTOCOLOS ENTREGAS</strong></span>
               </div>
-              {!msUser ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={handleConnectMicrosoft}
-                  className="h-6 text-[11px] border-amber-500/50 text-amber-300 hover:bg-amber-500/20"
-                >
-                  Conectar MS 365
-                </Button>
-              ) : (
-                <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
-                  Conectado
-                </Badge>
-              )}
+              <Badge variant="outline" className="text-[10px] bg-sky-500/10 text-sky-300 border-sky-500/30">
+                Auto-Sync Ativo
+              </Badge>
             </div>
 
             {/* Nome de quem recebeu */}

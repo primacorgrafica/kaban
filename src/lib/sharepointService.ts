@@ -1,4 +1,5 @@
 import { getSharePointAccessToken, AZURE_CLIENT_ID } from "./msalClient";
+import { supabase } from "@/integrations/supabase/client";
 import type {
   DriveItemResponse,
   SharePointFolderInfo,
@@ -388,6 +389,142 @@ export async function uploadDeliveryProtocolToSharePoint(
     console.warn("[SharePoint] Falha no upload de protocolo para o SharePoint:", err?.message);
     return { success: false, error: err.message || "Falha no envio para o SharePoint." };
   }
+}
+
+/**
+ * Sincroniza fotos de comprovantes de entrega armazenadas temporariamente
+ * para a pasta corporativa 'PROTOCOLOS ENTREGAS' no SharePoint.
+ * Remove os arquivos temporários do Supabase Storage após o upload bem-sucedido.
+ */
+export async function syncPendingProtocolsToSharePoint(
+  interactiveFallback = false
+): Promise<{
+  total: number;
+  synced: number;
+  failed: number;
+  errors: string[];
+}> {
+  const result = { total: 0, synced: 0, failed: 0, errors: [] as string[] };
+
+  try {
+    // 1. Busca ordens com comprovante pendente de envio para o SharePoint
+    const { data: pendingOrders, error: ordersErr } = await supabase
+      .from("orders")
+      .select("id, titulo, entregue_para, status_comprovante_sync")
+      .in("status_comprovante_sync", ["pendente_sharepoint", "pendente"])
+      .limit(50);
+
+    if (ordersErr || !pendingOrders || pendingOrders.length === 0) {
+      return result;
+    }
+
+    result.total = pendingOrders.length;
+
+    // 2. Garante acesso à pasta PROTOCOLOS ENTREGAS no SharePoint
+    const folderInfo = await getOrCreateProtocolosFolder(interactiveFallback);
+
+    for (const order of pendingOrders) {
+      try {
+        // Lista arquivos temporários no bucket 'comprovantes-entrega' para esta ordem
+        const { data: files, error: listErr } = await supabase.storage
+          .from("comprovantes-entrega")
+          .list(order.id, { limit: 10, sortBy: { column: "created_at", order: "desc" } });
+
+        if (listErr || !files || files.length === 0) {
+          // Se não há arquivos temporários no bucket, verifica se já existe registro em order_attachments
+          const { count } = await supabase
+            .from("order_attachments" as any)
+            .select("id", { count: "exact", head: true })
+            .eq("order_id", order.id);
+
+          if (count && count > 0) {
+            await supabase
+              .from("orders")
+              .update({ status_comprovante_sync: "sincronizado" } as any)
+              .eq("id", order.id);
+            result.synced++;
+          }
+          continue;
+        }
+
+        // Filtra arquivos válidos (ignora placeholders)
+        const validFiles = files.filter((f) => f.name && !f.name.startsWith("."));
+
+        if (validFiles.length === 0) {
+          continue;
+        }
+
+        for (const item of validFiles) {
+          const filePath = `${order.id}/${item.name}`;
+          const { data: blob, error: downloadErr } = await supabase.storage
+            .from("comprovantes-entrega")
+            .download(filePath);
+
+          if (downloadErr || !blob) {
+            console.warn(`[SharePoint Sync] Falha ao baixar arquivo temporário ${filePath}:`, downloadErr);
+            continue;
+          }
+
+          const cleanOs = (order.titulo || order.id).replace(/^OS[\s._-]*/i, "").trim() || "SEM_OS";
+          const rawExt = item.name.substring(item.name.lastIndexOf(".")).toLowerCase();
+          const ext = rawExt && rawExt.length <= 5 ? rawExt : ".jpg";
+          const cleanRecebedor = order.entregue_para
+            ? `_${order.entregue_para.replace(/[^a-zA-Z0-9]/g, "_")}`
+            : "";
+          const targetFileName = `OS_${cleanOs}_Protocolo_${Date.now()}${cleanRecebedor}${ext}`;
+
+          const fileToUpload = new File([blob], targetFileName, { type: blob.type || "image/jpeg" });
+
+          // Upload do arquivo para a pasta PROTOCOLOS ENTREGAS no SharePoint
+          const driveItem = await uploadFileToSharePoint(
+            fileToUpload,
+            folderInfo,
+            undefined,
+            undefined,
+            interactiveFallback
+          );
+
+          if (driveItem) {
+            // Registra os metadados do arquivo em order_attachments
+            await supabase.from("order_attachments" as any).insert({
+              order_id: order.id,
+              nome_arquivo: driveItem.name || targetFileName,
+              tamanho_bytes: driveItem.size || blob.size,
+              content_type: blob.type || "image/jpeg",
+              sharepoint_item_id: driveItem.id,
+              sharepoint_folder_id: folderInfo.folderId,
+              sharepoint_folder_name: folderInfo.folderName,
+              sharepoint_drive_id: folderInfo.driveId,
+              sharepoint_site_id: folderInfo.siteId,
+              sharepoint_web_url: driveItem.webUrl,
+              sharepoint_path: `${SHAREPOINT_PROTOCOLOS_FOLDER}/${driveItem.name}`,
+              status: "sincronizado",
+            });
+
+            // Remove o arquivo temporário do bucket para manter o storage limpo
+            await supabase.storage.from("comprovantes-entrega").remove([filePath]);
+          }
+        }
+
+        // Atualiza a ordem como sincronizada
+        await supabase
+          .from("orders")
+          .update({ status_comprovante_sync: "sincronizado" } as any)
+          .eq("id", order.id);
+
+        result.synced++;
+      } catch (orderErr: any) {
+        console.warn(`[SharePoint Sync] Erro ao sincronizar O.S. ${order.id}:`, orderErr);
+        result.failed++;
+        result.errors.push(`O.S. ${order.titulo || order.id}: ${orderErr?.message || orderErr}`);
+      }
+    }
+  } catch (err: any) {
+    console.warn("[SharePoint Sync] Erro geral na rotina de sincronização:", err);
+    result.errors.push(err?.message || "Falha geral de sincronização.");
+  }
+
+  return result;
 }
 
 /**
