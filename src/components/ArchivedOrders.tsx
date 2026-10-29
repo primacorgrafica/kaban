@@ -136,12 +136,12 @@ export function ArchivedOrders({ orders, onUnarchive, onDelete }: ArchivedOrders
 
     for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
       const chunk = ids.slice(i, i + CHUNK_SIZE);
-      const { error } = await supabase.from("orders").delete().in("id", chunk);
+      const { data: deletedRows, error } = await supabase.from("orders").delete().in("id", chunk).select("id");
       if (error) {
         console.error("Erro ao excluir lote:", error);
         hasError = true;
       } else {
-        deletedCount += chunk.length;
+        deletedCount += (deletedRows?.length ?? 0);
       }
     }
 

@@ -75,10 +75,11 @@ export default function ExpedicaoPage() {
   const handleSendBackToPrePress = useCallback(async (id: string) => {
     const order = orders.find(o => o.id === id);
     if (order?.parent_order_id) {
-      const { error } = await supabase.from("orders").delete().eq("id", id);
-      if (error) {
-        toast.error("Erro ao remover cópia da Expedição");
+      const { data: deletedRows, error } = await supabase.from("orders").delete().eq("id", id).select("id");
+      if (error || !deletedRows || deletedRows.length === 0) {
+        toast.error("Erro ao remover cópia da Expedição (permissão RLS no Supabase)");
       } else {
+        setOrders(prev => prev.filter(o => o.id !== id));
         toast.success("Cópia removida — OS. original permanece em Produzindo Prova");
       }
     } else {

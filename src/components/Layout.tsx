@@ -736,9 +736,27 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
           setInspectOrder(null);
         }}
         onDelete={async (id) => {
-          await supabase.from("orders").delete().eq("id", id);
-          toast.success("O.S. excluída.");
-          setInspectOrder(null);
+          try {
+            const { data: rpcData, error: rpcError } = await supabase.rpc("delete_order_cascade" as any, {
+              p_order_id: id,
+            });
+            if (!rpcError && rpcData && (rpcData as any)?.success) {
+              toast.success("O.S. excluída com sucesso.");
+              setInspectOrder(null);
+              return;
+            }
+          } catch {
+            // fallback
+          }
+          const { data: deletedRows, error } = await supabase.from("orders").delete().eq("id", id).select("id");
+          if (error) {
+            toast.error("Erro ao excluir: " + (error.message || "Acesso negado"));
+          } else if (!deletedRows || deletedRows.length === 0) {
+            toast.error("Não foi possível excluir a OS (bloqueio de permissão RLS no Supabase).");
+          } else {
+            toast.success("O.S. excluída.");
+            setInspectOrder(null);
+          }
         }}
         onSendToProduction={async (id, dept, machine) => {
           await supabase.from("orders").update({
