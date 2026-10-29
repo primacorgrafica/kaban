@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { syncOrderToCompras } from "@/lib/comprasSync";
 import { getSpecialSupplyBadgeClasses } from "@/lib/processos";
+import { isOrderFromOS, cleanOsNumber } from "@/components/ProductionCard";
 import { supabase } from "@/integrations/supabase/client";
 
 vi.mock("@/integrations/supabase/client", () => {
@@ -141,5 +142,34 @@ describe("Sincronização Imediata com Compras (syncOrderToCompras)", () => {
 
     expect(pantoneStyle.badge).toContain("bg-amber-400");
     expect(outrosStyle.badge).toContain("bg-amber-400");
+  });
+
+  it("deve identificar corretamente se a ordem no card de Compras é uma O.S. e exibir o número da OS e não OC", () => {
+    // 1. Ordem vinda de O.S. com número de O.S. e oc_numero gerado pelo Postgres trigger
+    const osOrderCompras = {
+      titulo: "72000",
+      oc_numero: 14,
+      categoria_compra: "os",
+      parent_order_id: "parent-os-uuid",
+      setor: "compras",
+    };
+    expect(isOrderFromOS(osOrderCompras as any)).toBe(true);
+    expect(cleanOsNumber(osOrderCompras.titulo)).toBe("72000");
+
+    // 2. Ordem com formatação 'OS. 71391' ou '#99999'
+    expect(cleanOsNumber("OS. 71391")).toBe("71391");
+    expect(cleanOsNumber("O.S. 88888")).toBe("88888");
+    expect(cleanOsNumber("#12345")).toBe("12345");
+    expect(isOrderFromOS({ titulo: "71391", oc_numero: 5 } as any)).toBe(true);
+
+    // 3. Ordem que é uma OC avulsa de compras sem vínculo com OS
+    const ocAvulsa = {
+      titulo: "OC",
+      oc_numero: 42,
+      categoria_compra: "estoque",
+      parent_order_id: null,
+      setor: "compras",
+    };
+    expect(isOrderFromOS(ocAvulsa as any)).toBe(false);
   });
 });

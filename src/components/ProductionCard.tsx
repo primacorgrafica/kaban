@@ -65,6 +65,23 @@ function useDeadlineAlert(prazo: string | null) {
   return isNearDeadline;
 }
 
+export function isOrderFromOS(order: {
+  titulo?: string | null;
+  parent_order_id?: string | null;
+  categoria_compra?: string | null;
+} | null | undefined): boolean {
+  if (!order) return false;
+  if ((order as any).categoria_compra === "os") return true;
+  if (order.parent_order_id) return true;
+  const t = (order.titulo || "").trim().toUpperCase();
+  return !!t && t !== "OC" && !t.startsWith("OC.") && !t.startsWith("OC-") && !t.startsWith("OC ");
+}
+
+export function cleanOsNumber(titulo: string | null | undefined): string {
+  if (!titulo) return "";
+  return titulo.replace(/^O\.?S\.?[\s._-]*/i, "").replace(/^#/, "").trim();
+}
+
 function ProductionCardImpl({
   order,
   department,
@@ -165,9 +182,11 @@ function ProductionCardImpl({
   const isExitStatus = ["saida", "finalizado"].includes(currentStatus.id) || isLastStatus;
   const isNearDeadline = useDeadlineAlert(order.prazo);
   const isOM = !!(order as any).om_numero;
-  const isOC = !!(order as any).oc_numero;
+  const isFromOS = isOrderFromOS(order);
+  const isOC = !!(order as any).oc_numero && !isFromOS;
   const isNC = !!(order as any).nc_numero;
   const isSpecialOrder = isOM || isOC || isNC;
+  const cleanOsTitulo = cleanOsNumber(order.titulo);
   const isExpedicaoCopy = department.id === "expedicao" && !!order.parent_order_id;
   // Sector-specific urgency
   const isUrgentProva = order.urgente_prova;
@@ -573,8 +592,11 @@ function ProductionCardImpl({
 
           {/* Linha 2: OS + Badges */}
           <div className="flex items-center gap-2 mt-1.5 min-w-0">
-            <h4 className={`font-semibold text-[15px] shrink-0 ${isUrgent ? "text-red-700 dark:text-red-400" : "text-card-foreground"}`}>
-              OS. {order.titulo}
+            <h4
+              className={`font-semibold text-[15px] shrink-0 ${isUrgent ? "text-red-700 dark:text-red-400" : "text-card-foreground"}`}
+              title={(order as any).oc_numero ? `OC #${String((order as any).oc_numero).padStart(4, "0")}` : undefined}
+            >
+              OS. {cleanOsTitulo || order.titulo}
             </h4>
             {getOrderRevision(order) >= 2 && (
               <span
@@ -899,7 +921,7 @@ function ProductionCardImpl({
                 ? `OC. ${String((order as any).oc_numero).padStart(4, "0")}`
                 : isNC
                 ? `NC. ${String((order as any).nc_numero).padStart(4, "0")}`
-                : editing ? "Editar OS." : "Detalhes da OS."}
+                : editing ? `Editar OS. ${cleanOsTitulo || order.titulo}` : `Detalhes da OS. ${cleanOsTitulo || order.titulo}`}
             </DialogTitle>
           </DialogHeader>
 
@@ -1151,7 +1173,17 @@ function ProductionCardImpl({
                       </p>
                     </div>
                   )}
-                  <div><p className="text-sm text-muted-foreground">Número OS.</p><p className="font-medium">{order.titulo}</p></div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Número OS.</p>
+                    <p className="font-medium">
+                      {cleanOsTitulo || order.titulo}
+                      {(order as any).oc_numero && (
+                        <span className="text-xs text-muted-foreground font-normal ml-2 font-mono-tech">
+                          (OC #{String((order as any).oc_numero).padStart(4, "0")})
+                        </span>
+                      )}
+                    </p>
+                  </div>
                   <div><p className="text-sm text-muted-foreground">Nome Cliente</p><p>{order.cliente}</p></div>
                   {order.descricao && order.descricao !== "-" && (
                     <div><p className="text-sm text-muted-foreground">Descrição</p><p className="text-sm">{order.descricao}</p></div>
