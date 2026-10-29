@@ -9,7 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { SHAREPOINT_PROTOCOLOS_URL } from "@/lib/sharepointService";
+import { SHAREPOINT_PROTOCOLOS_URL, SHAREPOINT_PROTOCOLOS_FOLDER } from "@/lib/sharepointService";
 import { cn } from "@/lib/utils";
 import type { Order } from "@/types/order";
 import {
@@ -70,25 +70,51 @@ export function DeliveryCompletedDetailsModal({
     const loadProofFiles = async () => {
       setLoadingProof(true);
       try {
-        // 1. Busca primeiro no SharePoint corporativo via order_attachments
-        const { data: attachmentsData } = await supabase
+        const foundProofs: ProofFileItem[] = [];
+
+        // 1. Busca no SharePoint corporativo via order_attachments APENAS comprovantes da pasta PROTOCOLOS ENTREGAS.
+        // NUNCA incluir arquivos da pasta KABAN (como logotipos, briefings, artes ou PDFs da O.S.)
+        const { data: attachmentsData, error: attError } = await supabase
           .from("order_attachments" as any)
           .select("*")
           .eq("order_id", order.id)
           .order("created_at", { ascending: false });
 
-        if (attachmentsData && attachmentsData.length > 0) {
-          const files = attachmentsData.map((att: any) => ({
-            name: att.nome_arquivo,
-            url: att.sharepoint_web_url || SHAREPOINT_PROTOCOLOS_URL,
-            createdAt: att.created_at,
-            isSharePoint: true,
-          }));
-          setProofFiles(files);
-          return;
+        if (!attError && attachmentsData && attachmentsData.length > 0) {
+          const protocolAttachments = (attachmentsData as any[]).filter((att) => {
+            const folderName = (att.sharepoint_folder_name || "").trim().toUpperCase();
+            const path = (att.sharepoint_path || "").trim().toUpperCase();
+            const name = (att.nome_arquivo || "").trim().toUpperCase();
+
+            // Descarta categoricamente qualquer arquivo que pertença à pasta KABAN
+            if (path.startsWith("KABAN/") || folderName === "KABAN") {
+              return false;
+            }
+
+            // É comprovante de entrega se pertence a PROTOCOLOS ENTREGAS ou segue o padrão de nomenclatura de protocolo
+            const isProtocolFolder =
+              folderName === SHAREPOINT_PROTOCOLOS_FOLDER.toUpperCase() ||
+              path.includes(SHAREPOINT_PROTOCOLOS_FOLDER.toUpperCase()) ||
+              path.includes("PROTOCOLOS%20ENTREGAS");
+
+            const isProtocolName =
+              name.startsWith("OS_") &&
+              (name.includes("_PROTOCOLO") || name.includes("COMPROVANTE"));
+
+            return isProtocolFolder || isProtocolName;
+          });
+
+          protocolAttachments.forEach((att: any) => {
+            foundProofs.push({
+              name: att.nome_arquivo,
+              url: att.sharepoint_web_url || SHAREPOINT_PROTOCOLOS_URL,
+              createdAt: att.created_at,
+              isSharePoint: true,
+            });
+          });
         }
 
-        // 2. Fallback: legado em Supabase Storage para ordens antigas
+        // 2. Busca também no bucket privado 'comprovantes-entrega' (fotos enviadas pelo entregador)
         const { data, error } = await supabase.storage
           .from("comprovantes-entrega")
           .list(order.id, {
@@ -96,51 +122,55 @@ export function DeliveryCompletedDetailsModal({
             sortBy: { column: "created_at", order: "desc" },
           });
 
-        if (error) {
-          console.warn("[DeliveryModal] Erro ao listar comprovantes legados:", error);
-          setProofFiles([]);
-          return;
-        }
+        if (!error && data && data.length > 0) {
+          const validStorageFiles = data.filter(
+            (f) => f.name && !f.name.startsWith(".") && f.name !== ".emptyFolderPlaceholder"
+          );
 
-        if (data && data.length > 0) {
           const filesWithUrls = await Promise.all(
-            data
-              .filter((f) => f.name !== ".emptyFolderPlaceholder")
-              .map(async (file) => {
-                const filePath = `${order.id}/${file.name}`;
-                // Tenta URL assinada primeiro (para buckets privados)
-                const { data: signedData } = await supabase.storage
-                  .from("comprovantes-entrega")
-                  .createSignedUrl(filePath, 3600);
+            validStorageFiles.map(async (file) => {
+              const filePath = `${order.id}/${file.name}`;
+              // Tenta URL assinada primeiro (para buckets privados)
+              const { data: signedData } = await supabase.storage
+                .from("comprovantes-entrega")
+                .createSignedUrl(filePath, 3600);
 
-                if (signedData?.signedUrl) {
-                  return {
-                    name: file.name,
-                    url: signedData.signedUrl,
-                    createdAt: file.created_at,
-                    isSharePoint: false,
-                  };
-                }
-
-                // Fallback para URL pública
-                const { data: pubData } = supabase.storage
-                  .from("comprovantes-entrega")
-                  .getPublicUrl(filePath);
-
+              if (signedData?.signedUrl) {
                 return {
                   name: file.name,
-                  url: pubData.publicUrl,
+                  url: signedData.signedUrl,
                   createdAt: file.created_at,
                   isSharePoint: false,
                 };
-              })
+              }
+
+              // Fallback para URL pública
+              const { data: pubData } = supabase.storage
+                .from("comprovantes-entrega")
+                .getPublicUrl(filePath);
+
+              return {
+                name: file.name,
+                url: pubData.publicUrl,
+                createdAt: file.created_at,
+                isSharePoint: false,
+              };
+            })
           );
-          setProofFiles(filesWithUrls.filter((f) => f.url));
-        } else {
-          setProofFiles([]);
+
+          filesWithUrls.forEach((fileItem) => {
+            if (fileItem?.url) {
+              if (!foundProofs.some((p) => p.name === fileItem.name)) {
+                foundProofs.push(fileItem);
+              }
+            }
+          });
         }
+
+        setProofFiles(foundProofs);
       } catch (err) {
         console.warn("[DeliveryModal] Erro inesperado ao carregar comprovantes:", err);
+        setProofFiles([]);
       } finally {
         setLoadingProof(false);
       }
@@ -382,9 +412,20 @@ export function DeliveryCompletedDetailsModal({
                   ))}
                 </div>
               ) : (
-                <div className="py-2.5 text-center text-[11px] text-slate-400 flex items-center justify-center gap-1.5">
-                  <FileCheck className="h-3.5 w-3.5 text-slate-500" />
-                  <span>Foto arquivada no SharePoint corporativo (PROTOCOLOS ENTREGAS).</span>
+                <div className="py-4 text-center text-xs text-slate-400 flex flex-col items-center justify-center gap-1.5 bg-[#09111b] rounded-lg border border-[#1e2f3d]/60 p-3">
+                  <FileCheck className="h-6 w-6 text-slate-500 mb-0.5" />
+                  <span className="text-slate-300 font-medium">Nenhum comprovante fotográfico encontrado nesta O.S.</span>
+                  <span className="text-[11px] text-slate-400">
+                    Os protocolos sincronizados são salvos exclusivamente na pasta <strong>PROTOCOLOS ENTREGAS</strong> no SharePoint.
+                  </span>
+                  <a
+                    href={SHAREPOINT_PROTOCOLOS_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] text-cyan-400 hover:text-cyan-300 underline mt-1"
+                  >
+                    <ExternalLink className="h-3 w-3" /> Abrir pasta PROTOCOLOS ENTREGAS no SharePoint
+                  </a>
                 </div>
               )}
             </div>
@@ -411,7 +452,7 @@ export function DeliveryCompletedDetailsModal({
                 className="h-8 px-3 bg-[#0078D4] hover:bg-[#005A9E] text-white text-xs font-medium gap-1.5 shadow-sm"
               >
                 <a
-                  href={SHAREPOINT_PROTOCOLOS_URL}
+                  href={proofFiles.find((p) => p.isSharePoint && p.url)?.url || SHAREPOINT_PROTOCOLOS_URL}
                   target="_blank"
                   rel="noopener noreferrer"
                 >

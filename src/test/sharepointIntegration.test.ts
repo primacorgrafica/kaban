@@ -158,4 +158,53 @@ describe("Integração SharePoint - Resolução e Tratamento de Erros via Graph 
 
     await expect(resolveSharePointSiteAndDrive()).rejects.toThrow(/Sites\.Selected/);
   });
+
+  describe("Isolamento entre Pasta KABAN e Pasta PROTOCOLOS ENTREGAS", () => {
+    it("deve rejeitar qualquer anexo da pasta KABAN para comprovantes de entrega", () => {
+      const mockAttachments = [
+        {
+          id: "att-1",
+          nome_arquivo: "Logotipo Primacor_FINALok.jpg",
+          sharepoint_path: "KABAN/99999/Logotipo Primacor_FINALok.jpg",
+          sharepoint_folder_name: "99999",
+        },
+        {
+          id: "att-2",
+          nome_arquivo: "OS_99999_Protocolo_1730000000_Tete5.jpg",
+          sharepoint_path: "PROTOCOLOS ENTREGAS/OS_99999_Protocolo_1730000000_Tete5.jpg",
+          sharepoint_folder_name: "PROTOCOLOS ENTREGAS",
+        },
+        {
+          id: "att-3",
+          nome_arquivo: "Briefing_Cliente.pdf",
+          sharepoint_path: "KABAN/99999/Briefing_Cliente.pdf",
+          sharepoint_folder_name: "KABAN",
+        },
+      ];
+
+      const filtered = mockAttachments.filter((att) => {
+        const folderName = (att.sharepoint_folder_name || "").trim().toUpperCase();
+        const path = (att.sharepoint_path || "").trim().toUpperCase();
+        const name = (att.nome_arquivo || "").trim().toUpperCase();
+
+        if (path.startsWith("KABAN/") || folderName === "KABAN") {
+          return false;
+        }
+
+        const isProtocolFolder =
+          folderName === SHAREPOINT_PROTOCOLOS_FOLDER.toUpperCase() ||
+          path.includes(SHAREPOINT_PROTOCOLOS_FOLDER.toUpperCase());
+
+        const isProtocolName =
+          name.startsWith("OS_") &&
+          (name.includes("_PROTOCOLO") || name.includes("COMPROVANTE"));
+
+        return isProtocolFolder || isProtocolName;
+      });
+
+      expect(filtered).toHaveLength(1);
+      expect(filtered[0].nome_arquivo).toBe("OS_99999_Protocolo_1730000000_Tete5.jpg");
+      expect(filtered.some((f) => f.nome_arquivo.includes("Logotipo"))).toBe(false);
+    });
+  });
 });

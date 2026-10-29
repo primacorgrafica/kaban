@@ -78,7 +78,7 @@ export const SHAREPOINT_LIBRARY_NAME = "Documentos Compartilhados";
 export const SHAREPOINT_ROOT_FOLDER = "KABAN";
 export const SHAREPOINT_PROTOCOLOS_FOLDER = "PROTOCOLOS ENTREGAS";
 export const SHAREPOINT_PROTOCOLOS_URL =
-  "https://primacorgraficaeditora.sharepoint.com/:f:/r/sites/Produo_grupo/Documentos%20Compartilhados/PROTOCOLOS%20ENTREGAS?d=w6d1c764f98fa415bb9da6ae45c5cd6c1&csf=1&web=1&e=N7qmhi";
+  "https://primacorgraficaeditora.sharepoint.com/sites/Produo_grupo/Documentos%20Compartilhados/Forms/AllItems.aspx?id=%2Fsites%2FProduo%5Fgrupo%2FDocumentos%20Compartilhados%2FPROTOCOLOS%20ENTREGAS&sortField=LinkFilename&isAscending=false&viewid=32c00a5e%2Dcce5%2D42f2%2Dafed%2D061024ee0ca4";
 
 // Limite para upload direto simples (4 MB). Acima disso, usa Upload Session em chunks.
 const DIRECT_UPLOAD_LIMIT_BYTES = 4 * 1024 * 1024;
