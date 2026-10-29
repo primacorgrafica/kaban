@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { X, CalendarIcon, FileDown, Bike, Radio, UserPlus, CloudUpload } from "lucide-react";
+import { X, CalendarIcon, FileDown, Bike, Radio, UserPlus, CloudUpload, Activity } from "lucide-react";
 import { format, parseISO, startOfDay, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,7 @@ import { DeliveryAddressCell } from "@/components/DeliveryAddressCell";
 import { AssignDriverModal } from "@/components/delivery/AssignDriverModal";
 import { DeliveryMonitoringModal } from "@/components/delivery/DeliveryMonitoringModal";
 import { DeliveryCompletedDetailsModal } from "@/components/delivery/DeliveryCompletedDetailsModal";
+import { SharePointDiagnosticsModal } from "@/components/sharepoint/SharePointDiagnosticsModal";
 import { getEntregadoresList } from "@/lib/deliveryService";
 import { syncPendingProtocolsToSharePoint } from "@/lib/sharepointService";
 import type { Entregador, DeliveryStatus } from "@/types/delivery";
@@ -57,6 +58,7 @@ export default function EntregasPage() {
   }, [entregadores]);
 
   const [isSyncingSharepoint, setIsSyncingSharepoint] = useState(false);
+  const [diagnosticsOpen, setDiagnosticsOpen] = useState(false);
 
   const fetchOrders = async () => {
     setLoading(true);
@@ -105,10 +107,12 @@ export default function EntregasPage() {
     return () => { supabase.removeChannel(channel); };
   }, [authReady, user]);
 
-  // Contagem de comprovantes aguardando sincronização com o SharePoint
+  // Contagem de comprovantes de ordens entregues aguardando sincronização com o SharePoint
   const pendingSharepointCount = useMemo(() => {
     return allOrders.filter(
-      (o) => o.status_comprovante_sync === "pendente_sharepoint" || o.status_comprovante_sync === "pendente"
+      (o) =>
+        o.status_entrega === "entregue" &&
+        (o.status_comprovante_sync === "pendente_sharepoint" || o.status_comprovante_sync === "pendente")
     ).length;
   }, [allOrders]);
 
@@ -123,7 +127,9 @@ export default function EntregasPage() {
         void fetchOrders();
       } else if (res.total === 0) {
         if (interactive) toast.info("Todos os protocolos já estão sincronizados com o SharePoint.");
-      } else if (res.failed > 0 && interactive) {
+      }
+
+      if (res.errors.length > 0 && interactive) {
         toast.error(`Falha ao sincronizar: ${res.errors.join("; ")}`);
       }
     } catch (err: any) {
@@ -363,31 +369,43 @@ export default function EntregasPage() {
             PDF
           </Button>
 
-          {pendingSharepointCount > 0 ? (
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5 h-8 border-sky-500/50 bg-sky-500/10 text-sky-400 hover:bg-sky-500/20"
-              onClick={() => handleSyncSharepoint(true)}
-              disabled={isSyncingSharepoint}
-              title={`${pendingSharepointCount} comprovante(s) pendente(s) de envio para a pasta PROTOCOLOS ENTREGAS no SharePoint`}
-            >
-              <CloudUpload className={cn("h-3.5 w-3.5", isSyncingSharepoint && "animate-spin")} />
-              Sincronizar SharePoint ({pendingSharepointCount})
-            </Button>
-          ) : (
+          <div className="flex items-center gap-1">
+            {pendingSharepointCount > 0 ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5 h-8 border-sky-500/50 bg-sky-500/10 text-sky-400 hover:bg-sky-500/20"
+                onClick={() => handleSyncSharepoint(true)}
+                disabled={isSyncingSharepoint}
+                title={`${pendingSharepointCount} comprovante(s) pendente(s) de envio para a pasta PROTOCOLOS ENTREGAS no SharePoint`}
+              >
+                <CloudUpload className={cn("h-3.5 w-3.5", isSyncingSharepoint && "animate-spin")} />
+                Sincronizar SharePoint ({pendingSharepointCount})
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 h-8 text-xs text-sky-400/80 hover:text-sky-300"
+                onClick={() => handleSyncSharepoint(true)}
+                disabled={isSyncingSharepoint}
+                title="Sincronizar protocolos com a pasta PROTOCOLOS ENTREGAS no SharePoint"
+              >
+                <CloudUpload className={cn("h-3.5 w-3.5", isSyncingSharepoint && "animate-spin")} />
+                Sync SharePoint
+              </Button>
+            )}
+
             <Button
               variant="ghost"
-              size="sm"
-              className="gap-1.5 h-8 text-xs text-sky-400/80 hover:text-sky-300"
-              onClick={() => handleSyncSharepoint(true)}
-              disabled={isSyncingSharepoint}
-              title="Sincronizar protocolos com a pasta PROTOCOLOS ENTREGAS no SharePoint"
+              size="icon"
+              onClick={() => setDiagnosticsOpen(true)}
+              className="h-8 w-7 text-slate-400 hover:text-sky-300 hover:bg-sky-500/10"
+              title="Abrir Logs e Diagnóstico do SharePoint"
             >
-              <CloudUpload className={cn("h-3.5 w-3.5", isSyncingSharepoint && "animate-spin")} />
-              Sync SharePoint
+              <Activity className="h-3.5 w-3.5" />
             </Button>
-          )}
+          </div>
 
           <Button
             asChild
@@ -565,6 +583,11 @@ export default function EntregasPage() {
         onReopenDelivery={() => {
           setSelectedDeliveredOrder(null);
         }}
+      />
+
+      <SharePointDiagnosticsModal
+        open={diagnosticsOpen}
+        onOpenChange={setDiagnosticsOpen}
       />
     </Layout>
   );

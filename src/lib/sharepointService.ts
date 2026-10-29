@@ -1,9 +1,71 @@
-import { getSharePointAccessToken, AZURE_CLIENT_ID } from "./msalClient";
+import { getSharePointAccessToken, getActiveMicrosoftAccount, AZURE_CLIENT_ID } from "./msalClient";
 import { supabase } from "@/integrations/supabase/client";
 import type {
   DriveItemResponse,
   SharePointFolderInfo,
 } from "@/types/sharepoint";
+
+// Sistema de Diagnóstico e Logs em Tempo Real do SharePoint
+export interface SharePointLogEntry {
+  id: string;
+  timestamp: string;
+  level: "info" | "warn" | "error" | "success";
+  message: string;
+  details?: any;
+}
+
+const MAX_LOG_ENTRIES = 60;
+let sharepointLogs: SharePointLogEntry[] = [];
+const logListeners = new Set<(logs: SharePointLogEntry[]) => void>();
+
+export function addSharePointLog(
+  level: "info" | "warn" | "error" | "success",
+  message: string,
+  details?: any
+): void {
+  const entry: SharePointLogEntry = {
+    id: `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+    timestamp: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }),
+    level,
+    message,
+    details,
+  };
+  sharepointLogs = [entry, ...sharepointLogs.slice(0, MAX_LOG_ENTRIES - 1)];
+  logListeners.forEach((fn) => {
+    try {
+      fn(sharepointLogs);
+    } catch (_) {}
+  });
+
+  if (level === "error") {
+    console.error(`[SharePoint] ${message}`, details || "");
+  } else if (level === "warn") {
+    console.warn(`[SharePoint] ${message}`, details || "");
+  } else {
+    console.info(`[SharePoint] ${message}`, details || "");
+  }
+}
+
+export function getSharePointLogs(): SharePointLogEntry[] {
+  return [...sharepointLogs];
+}
+
+export function clearSharePointLogs(): void {
+  sharepointLogs = [];
+  logListeners.forEach((fn) => {
+    try {
+      fn([]);
+    } catch (_) {}
+  });
+}
+
+export function subscribeSharePointLogs(fn: (logs: SharePointLogEntry[]) => void): () => void {
+  logListeners.add(fn);
+  fn([...sharepointLogs]);
+  return () => {
+    logListeners.delete(fn);
+  };
+}
 
 // Configurações do SharePoint corporativo da Primacor
 export const SHAREPOINT_HOSTNAME =
@@ -82,24 +144,21 @@ export async function resolveSharePointSiteAndDrive(interactiveFallback = true):
 
   if (!siteRes.ok) {
     const errorBody = await siteRes.json().catch(() => ({}));
+    const errorMsg = errorBody?.error?.message || siteRes.statusText;
+    addSharePointLog("error", `Falha ao localizar site do SharePoint (${siteRes.status}): ${errorMsg}`);
     if (siteRes.status === 403 || siteRes.status === 401) {
       throw new Error(
         `Permissão negada no SharePoint (${siteRes.status}). O aplicativo "Kaban - Integração SharePoint" requer permissão no site "${SHAREPOINT_SITE_PATH}". Se usar Sites.Selected, o administrador precisa conceder acesso no site via PowerShell ou Graph API.`
       );
     }
     throw new Error(
-      `Falha ao localizar site do SharePoint (${siteRes.status}): ${errorBody?.error?.message || siteRes.statusText}`
+      `Falha ao localizar site do SharePoint (${siteRes.status}): ${errorMsg}`
     );
   }
 
   const siteData = await siteRes.json();
   const foundSiteId = siteData.id;
-  console.info("[SharePoint] Site localizado com sucesso:", {
-    id: siteData.id,
-    name: siteData.name,
-    displayName: siteData.displayName,
-    webUrl: siteData.webUrl,
-  });
+  addSharePointLog("info", `Site SharePoint localizado: ${siteData.displayName || siteData.name} (ID: ${foundSiteId})`);
 
   // 2. Obter Drive ID (Documentos Compartilhados)
   // Tentativa 1: Endpoint canônico da biblioteca padrão do site (/drive)
@@ -273,83 +332,101 @@ export async function ensureKabanRootFolder(): Promise<string> {
 
 /**
  * Garante que a pasta 'PROTOCOLOS ENTREGAS' existe na raiz da biblioteca Documentos Compartilhados.
+ * Busca com tolerância a espaços e codificação de URL via listagem da raiz do drive.
  */
 export async function getOrCreateProtocolosFolder(interactiveFallback = true): Promise<SharePointFolderInfo> {
+  const { siteId, driveId } = await resolveSharePointSiteAndDrive(interactiveFallback);
+
   if (cachedProtocolosFolderId) {
-    const { siteId, driveId } = await resolveSharePointSiteAndDrive(interactiveFallback);
     return {
       folderId: cachedProtocolosFolderId,
       folderName: SHAREPOINT_PROTOCOLOS_FOLDER,
+      folderWebUrl: SHAREPOINT_PROTOCOLOS_URL,
       siteId,
       driveId,
     };
   }
 
-  const { siteId, driveId } = await resolveSharePointSiteAndDrive(interactiveFallback);
   const token = await getSharePointAccessToken(interactiveFallback);
 
-  // 1. Tenta obter pasta PROTOCOLOS ENTREGAS existente na raiz
-  const checkUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root:/${encodeURIComponent(
-    SHAREPOINT_PROTOCOLOS_FOLDER
-  )}`;
-  const checkRes = await fetch(checkUrl, {
+  // 1. Lista os itens na raiz da biblioteca para localizar 'PROTOCOLOS ENTREGAS' com segurança (evitando problemas de codificação de URL com espaços)
+  const listChildrenUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root/children?$top=100`;
+  const listRes = await fetch(listChildrenUrl, {
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: "application/json",
     },
   });
 
-  if (checkRes.ok) {
-    const folderData: DriveItemResponse = await checkRes.json();
-    cachedProtocolosFolderId = folderData.id;
+  if (listRes.ok) {
+    const listData = await listRes.json();
+    const items: Array<{ id: string; name: string; webUrl?: string; folder?: any }> = listData.value || [];
+    const found = items.find(
+      (item) => item.folder && item.name.trim().toLowerCase() === SHAREPOINT_PROTOCOLOS_FOLDER.toLowerCase()
+    );
+
+    if (found) {
+      cachedProtocolosFolderId = found.id;
+      addSharePointLog("info", `Pasta '${SHAREPOINT_PROTOCOLOS_FOLDER}' localizada no SharePoint (ID: ${found.id})`);
+      return {
+        folderId: found.id,
+        folderName: found.name,
+        folderWebUrl: found.webUrl || SHAREPOINT_PROTOCOLOS_URL,
+        driveId,
+        siteId,
+      };
+    }
+  } else {
+    const errBody = await listRes.json().catch(() => ({}));
+    addSharePointLog("warn", `Não foi possível listar raiz da biblioteca (${listRes.status}): ${errBody?.error?.message || listRes.statusText}`);
+  }
+
+  // 2. Se não encontrou, tenta criar a pasta na raiz
+  addSharePointLog("info", `Criando pasta '${SHAREPOINT_PROTOCOLOS_FOLDER}' na biblioteca do SharePoint...`);
+  const createUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root/children`;
+  const createRes = await fetch(createUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name: SHAREPOINT_PROTOCOLOS_FOLDER,
+      folder: {},
+      "@microsoft.graph.conflictBehavior": "fail",
+    }),
+  });
+
+  if (createRes.ok) {
+    const createdFolder: DriveItemResponse = await createRes.json();
+    cachedProtocolosFolderId = createdFolder.id;
+    addSharePointLog("success", `Pasta '${SHAREPOINT_PROTOCOLOS_FOLDER}' criada com sucesso no SharePoint!`);
     return {
-      folderId: folderData.id,
-      folderName: folderData.name,
-      folderWebUrl: folderData.webUrl,
+      folderId: createdFolder.id,
+      folderName: createdFolder.name,
+      folderWebUrl: createdFolder.webUrl || SHAREPOINT_PROTOCOLOS_URL,
       driveId,
       siteId,
     };
   }
 
-  // 2. Se não existir (404), cria na raiz
-  if (checkRes.status === 404) {
-    const createUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root/children`;
-    const createRes = await fetch(createUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: SHAREPOINT_PROTOCOLOS_FOLDER,
-        folder: {},
-        "@microsoft.graph.conflictBehavior": "fail",
-      }),
+  // 3. Se deu conflito 409 (outra estação criou simultaneamente), refaz a busca
+  if (createRes.status === 409) {
+    const retryListRes = await fetch(listChildrenUrl, {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
     });
-
-    if (createRes.ok) {
-      const createdFolder: DriveItemResponse = await createRes.json();
-      cachedProtocolosFolderId = createdFolder.id;
-      return {
-        folderId: createdFolder.id,
-        folderName: createdFolder.name,
-        folderWebUrl: createdFolder.webUrl,
-        driveId,
-        siteId,
-      };
-    }
-
-    if (createRes.status === 409) {
-      const retryRes = await fetch(checkUrl, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (retryRes.ok) {
-        const folderData: DriveItemResponse = await retryRes.json();
-        cachedProtocolosFolderId = folderData.id;
+    if (retryListRes.ok) {
+      const listData = await retryListRes.json();
+      const items: Array<{ id: string; name: string; webUrl?: string; folder?: any }> = listData.value || [];
+      const found = items.find(
+        (item) => item.folder && item.name.trim().toLowerCase() === SHAREPOINT_PROTOCOLOS_FOLDER.toLowerCase()
+      );
+      if (found) {
+        cachedProtocolosFolderId = found.id;
         return {
-          folderId: folderData.id,
-          folderName: folderData.name,
-          folderWebUrl: folderData.webUrl,
+          folderId: found.id,
+          folderName: found.name,
+          folderWebUrl: found.webUrl || SHAREPOINT_PROTOCOLOS_URL,
           driveId,
           siteId,
         };
@@ -357,7 +434,10 @@ export async function getOrCreateProtocolosFolder(interactiveFallback = true): P
     }
   }
 
-  throw new Error(`Não foi possível acessar ou criar a pasta ${SHAREPOINT_PROTOCOLOS_FOLDER} no SharePoint.`);
+  const createErr = await createRes.json().catch(() => ({}));
+  const errMsg = createErr?.error?.message || createRes.statusText;
+  addSharePointLog("error", `Falha ao criar pasta '${SHAREPOINT_PROTOCOLOS_FOLDER}' no SharePoint: ${errMsg}`);
+  throw new Error(`Falha ao preparar pasta '${SHAREPOINT_PROTOCOLOS_FOLDER}' no SharePoint: ${errMsg}`);
 }
 
 /**
@@ -384,9 +464,13 @@ export async function uploadDeliveryProtocolToSharePoint(
     const protocolFile = new File([file], targetFileName, { type: file.type || "image/jpeg" });
     const driveItem = await uploadFileToSharePoint(protocolFile, folderInfo, onProgress, undefined, interactiveFallback);
 
+    addSharePointLog("success", `Protocolo da O.S. #${cleanOs} salvo com sucesso no SharePoint!`, {
+      fileName: targetFileName,
+      size: file.size,
+    });
     return { success: true, driveItem, folderInfo };
   } catch (err: any) {
-    console.warn("[SharePoint] Falha no upload de protocolo para o SharePoint:", err?.message);
+    addSharePointLog("error", `Falha no upload de protocolo para o SharePoint: ${err?.message || err}`);
     return { success: false, error: err.message || "Falha no envio para o SharePoint." };
   }
 }
@@ -407,21 +491,38 @@ export async function syncPendingProtocolsToSharePoint(
   const result = { total: 0, synced: 0, failed: 0, errors: [] as string[] };
 
   try {
-    // 1. Busca ordens com comprovante pendente de envio para o SharePoint
+    // 1. Busca ordens ENTREGUES com comprovante pendente de envio para o SharePoint
     const { data: pendingOrders, error: ordersErr } = await supabase
       .from("orders")
-      .select("id, titulo, entregue_para, status_comprovante_sync")
+      .select("id, titulo, entregue_para, status_comprovante_sync, status_entrega")
+      .eq("status_entrega", "entregue")
       .in("status_comprovante_sync", ["pendente_sharepoint", "pendente"])
       .limit(50);
 
-    if (ordersErr || !pendingOrders || pendingOrders.length === 0) {
+    if (ordersErr) {
+      addSharePointLog("error", `Erro ao consultar ordens pendentes no Supabase: ${ordersErr.message}`);
+      result.errors.push(`Erro no banco: ${ordersErr.message}`);
+      return result;
+    }
+
+    if (!pendingOrders || pendingOrders.length === 0) {
       return result;
     }
 
     result.total = pendingOrders.length;
+    addSharePointLog("info", `Iniciando sincronização de ${pendingOrders.length} protocolo(s) de entrega pendente(s)...`);
 
     // 2. Garante acesso à pasta PROTOCOLOS ENTREGAS no SharePoint
-    const folderInfo = await getOrCreateProtocolosFolder(interactiveFallback);
+    let folderInfo: SharePointFolderInfo;
+    try {
+      folderInfo = await getOrCreateProtocolosFolder(interactiveFallback);
+    } catch (folderErr: any) {
+      const errMsg = folderErr?.message || "Falha ao acessar pasta PROTOCOLOS ENTREGAS no SharePoint.";
+      addSharePointLog("error", `Não foi possível acessar a pasta PROTOCOLOS ENTREGAS: ${errMsg}`);
+      result.errors.push(errMsg);
+      result.failed = pendingOrders.length;
+      return result;
+    }
 
     for (const order of pendingOrders) {
       try {
@@ -430,27 +531,17 @@ export async function syncPendingProtocolsToSharePoint(
           .from("comprovantes-entrega")
           .list(order.id, { limit: 10, sortBy: { column: "created_at", order: "desc" } });
 
-        if (listErr || !files || files.length === 0) {
-          // Se não há arquivos temporários no bucket, verifica se já existe registro em order_attachments
-          const { count } = await supabase
-            .from("order_attachments" as any)
-            .select("id", { count: "exact", head: true })
-            .eq("order_id", order.id);
+        const validFiles = (files || []).filter((f) => f.name && !f.name.startsWith("."));
 
-          if (count && count > 0) {
-            await supabase
-              .from("orders")
-              .update({ status_comprovante_sync: "sincronizado" } as any)
-              .eq("id", order.id);
-            result.synced++;
-          }
-          continue;
-        }
+        if (listErr || validFiles.length === 0) {
+          // Se não há arquivos temporários no bucket, libera a ordem da fila para não gerar loop
+          await supabase
+            .from("orders")
+            .update({ status_comprovante_sync: "sincronizado" } as any)
+            .eq("id", order.id);
 
-        // Filtra arquivos válidos (ignora placeholders)
-        const validFiles = files.filter((f) => f.name && !f.name.startsWith("."));
-
-        if (validFiles.length === 0) {
+          result.synced++;
+          addSharePointLog("info", `O.S. #${order.titulo || order.id}: fila liberada (sem fotos pendentes no bucket).`);
           continue;
         }
 
@@ -461,7 +552,7 @@ export async function syncPendingProtocolsToSharePoint(
             .download(filePath);
 
           if (downloadErr || !blob) {
-            console.warn(`[SharePoint Sync] Falha ao baixar arquivo temporário ${filePath}:`, downloadErr);
+            addSharePointLog("warn", `Falha ao baixar foto temporária da O.S. #${order.titulo} (${filePath})`, downloadErr);
             continue;
           }
 
@@ -503,6 +594,7 @@ export async function syncPendingProtocolsToSharePoint(
 
             // Remove o arquivo temporário do bucket para manter o storage limpo
             await supabase.storage.from("comprovantes-entrega").remove([filePath]);
+            addSharePointLog("success", `Foto da O.S. #${order.titulo} sincronizada no SharePoint: ${driveItem.name}`);
           }
         }
 
@@ -514,17 +606,68 @@ export async function syncPendingProtocolsToSharePoint(
 
         result.synced++;
       } catch (orderErr: any) {
-        console.warn(`[SharePoint Sync] Erro ao sincronizar O.S. ${order.id}:`, orderErr);
+        addSharePointLog("error", `Erro ao sincronizar O.S. #${order.titulo || order.id}: ${orderErr?.message || orderErr}`);
         result.failed++;
         result.errors.push(`O.S. ${order.titulo || order.id}: ${orderErr?.message || orderErr}`);
       }
     }
   } catch (err: any) {
-    console.warn("[SharePoint Sync] Erro geral na rotina de sincronização:", err);
+    addSharePointLog("error", `Erro geral na rotina de sincronização: ${err?.message || err}`);
     result.errors.push(err?.message || "Falha geral de sincronização.");
   }
 
   return result;
+}
+
+/**
+ * Executa uma bateria completa de testes de diagnóstico no SharePoint e Microsoft Graph.
+ */
+export async function testSharePointConnection(interactiveFallback = true): Promise<{
+  success: boolean;
+  siteId?: string;
+  driveId?: string;
+  kabanFolderId?: string;
+  protocolosFolderId?: string;
+  userAccount?: string;
+  latencyMs: number;
+  error?: string;
+}> {
+  const start = performance.now();
+  resetSharePointCache();
+  try {
+    addSharePointLog("info", "Iniciando teste de conectividade com Microsoft Graph / SharePoint...");
+    const account = await getActiveMicrosoftAccount();
+    const { siteId, driveId } = await resolveSharePointSiteAndDrive(interactiveFallback);
+    const kabanFolderId = await ensureKabanRootFolder();
+    const folderInfo = await getOrCreateProtocolosFolder(interactiveFallback);
+    const latencyMs = Math.round(performance.now() - start);
+
+    addSharePointLog("success", `Conexão SharePoint 100% operacional (${latencyMs}ms)!`, {
+      siteId,
+      driveId,
+      kabanFolderId,
+      protocolosFolderId: folderInfo.folderId,
+      user: account?.username,
+    });
+
+    return {
+      success: true,
+      siteId,
+      driveId,
+      kabanFolderId,
+      protocolosFolderId: folderInfo.folderId,
+      userAccount: account?.username,
+      latencyMs,
+    };
+  } catch (err: any) {
+    const latencyMs = Math.round(performance.now() - start);
+    addSharePointLog("error", `Teste de conexão falhou (${latencyMs}ms): ${err?.message || err}`, err);
+    return {
+      success: false,
+      latencyMs,
+      error: err?.message || "Falha ao conectar no SharePoint.",
+    };
+  }
 }
 
 /**
