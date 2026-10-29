@@ -109,7 +109,7 @@ export function ProductionTable({
       const sId = order.setor_status;
       if (sId === "entrada") return { label: "Entrada", colorKey: "entrada" };
       if (sId === "saida") return { label: "Saída", colorKey: "concluido" };
-      if (sId === "em_andamento" || sId === "gravacao" || sId === "imposicao") return { label: "Em Produção", colorKey: "andamento" };
+      if (sId === "em_andamento" || sId === "producao" || sId === "gravacao" || sId === "imposicao") return { label: "Produção", colorKey: "andamento" };
       return { label: sId.toUpperCase(), colorKey: "andamento" };
     }
     let st = order.status;

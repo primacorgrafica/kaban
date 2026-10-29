@@ -3,34 +3,44 @@ import { CTP_DEPARTMENT, DIGITAL_DEPARTMENT, PRODUCAO_DEPARTMENT, DEPARTMENTS, D
 import { ACCESS_MODULES, normalizeModules } from "@/pages/UserManagementPage";
 
 describe("CTP & Digital - Novos Menus e Colunas Kanban", () => {
-  it("deve conter a configuração do departamento CTP com colunas ENTRADA e SAÍDA", () => {
+  it("deve conter a configuração do departamento CTP com 3 colunas (ENTRADA, PRODUÇÃO e SAÍDA)", () => {
     expect(CTP_DEPARTMENT).toBeDefined();
     expect(CTP_DEPARTMENT.id).toBe("ctp");
     expect(CTP_DEPARTMENT.label).toBe("CTP");
-    expect(CTP_DEPARTMENT.statuses).toHaveLength(2);
+    expect(CTP_DEPARTMENT.statuses).toHaveLength(3);
     expect(CTP_DEPARTMENT.statuses[0]).toEqual({
       id: "entrada",
       label: "Entrada",
       colorKey: "entrada",
     });
     expect(CTP_DEPARTMENT.statuses[1]).toEqual({
+      id: "producao",
+      label: "Produção",
+      colorKey: "andamento",
+    });
+    expect(CTP_DEPARTMENT.statuses[2]).toEqual({
       id: "saida",
       label: "Saída",
       colorKey: "concluido",
     });
   });
 
-  it("deve conter a configuração do departamento DIGITAL com colunas ENTRADA e SAÍDA", () => {
+  it("deve conter a configuração do departamento DIGITAL com 3 colunas (ENTRADA, PRODUÇÃO e SAÍDA)", () => {
     expect(DIGITAL_DEPARTMENT).toBeDefined();
     expect(DIGITAL_DEPARTMENT.id).toBe("digital");
     expect(DIGITAL_DEPARTMENT.label).toBe("Digital");
-    expect(DIGITAL_DEPARTMENT.statuses).toHaveLength(2);
+    expect(DIGITAL_DEPARTMENT.statuses).toHaveLength(3);
     expect(DIGITAL_DEPARTMENT.statuses[0]).toEqual({
       id: "entrada",
       label: "Entrada",
       colorKey: "entrada",
     });
     expect(DIGITAL_DEPARTMENT.statuses[1]).toEqual({
+      id: "producao",
+      label: "Produção",
+      colorKey: "andamento",
+    });
+    expect(DIGITAL_DEPARTMENT.statuses[2]).toEqual({
       id: "saida",
       label: "Saída",
       colorKey: "concluido",

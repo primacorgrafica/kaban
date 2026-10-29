@@ -24,7 +24,11 @@ export default function ProductionPage() {
   const location = useLocation();
   const { isAdmin, canAccessSector, setorVinculado } = useAuth();
   const permissions = usePermissions();
-  const canSendBack = permissions.role === "admin" || permissions.role === "coordenador";
+  const canSendBack =
+    permissions.role === "admin" ||
+    permissions.role === "coordenador" ||
+    activeDepartment === "ctp" ||
+    activeDepartment === "digital";
   const readOnly = permissions.isViewOnly;
 
   const {

@@ -39,6 +39,7 @@ export const CTP_DEPARTMENT: DepartmentConfig = {
   label: "CTP",
   statuses: [
     { id: "entrada", label: "Entrada", colorKey: "entrada" },
+    { id: "producao", label: "Produção", colorKey: "andamento" },
     { id: "saida", label: "Saída", colorKey: "concluido" },
   ],
 };
@@ -48,6 +49,7 @@ export const DIGITAL_DEPARTMENT: DepartmentConfig = {
   label: "Digital",
   statuses: [
     { id: "entrada", label: "Entrada", colorKey: "entrada" },
+    { id: "producao", label: "Produção", colorKey: "andamento" },
     { id: "saida", label: "Saída", colorKey: "concluido" },
   ],
 };

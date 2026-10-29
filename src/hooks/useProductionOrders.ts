@@ -299,6 +299,7 @@ export function useProductionOrders() {
       .update({ arquivado: true, atualizado_por: user?.id || null })
       .eq("parent_order_id", id);
     if (childError) console.error("Erro ao arquivar sub-ordens:", childError);
+    toast.success("O.S. movida para O.S Concluídas!");
   }, [user]);
 
   const deleteOrder = useCallback(async (id: string) => {

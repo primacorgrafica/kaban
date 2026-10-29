@@ -8,7 +8,7 @@ import { ptBR } from "date-fns/locale";
 import { businessHoursMs } from "@/lib/businessHours";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeApprovalEntry } from "@/lib/approvalEntryCache";
-import { RotateCcw, Calendar, User, FileText, Archive, Trash2, ChevronRight, ChevronLeft, GripVertical, UserCheck, Clock, AlertTriangle, Send, Undo2, Briefcase, Truck, Edit2, Check, Mail, HardHat } from "lucide-react";
+import { RotateCcw, Calendar, User, FileText, Archive, Trash2, ChevronRight, ChevronLeft, GripVertical, UserCheck, Clock, AlertTriangle, Send, Undo2, Briefcase, Truck, Edit2, Check, Mail, HardHat, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { OrderEmailEventsSection } from "@/components/email/OrderEmailEventsSection";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -806,8 +806,48 @@ function ProductionCardImpl({
           )}
         </div>
 
-        {/* Send to next department button when in exit/final status */}
-        {!readOnly && isExitStatus && department.id !== "faturamento" && !isExpedicaoCopy && (
+        {/* CTP & Digital: Voltar para Pré-Impressão OU O.S Concluídas */}
+        {!readOnly && isExitStatus && (department.id === "ctp" || department.id === "digital") && (
+          <div className="flex flex-col border-t border-border/70 divide-y divide-border/60">
+            <div className="grid grid-cols-2 divide-x divide-border/60">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onSendBackToPrePress) {
+                    onSendBackToPrePress(order.id);
+                  }
+                }}
+                className="py-2.5 px-2 text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 dark:text-sky-300"
+                title="Voltar para Pré-Impressão"
+              >
+                <Undo2 className="h-3.5 w-3.5 shrink-0" /> Pré-Impressão
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onArchive(order.id);
+                }}
+                className="py-2.5 px-2 text-[11px] font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs"
+                title="Mover para O.S Concluídas"
+              >
+                <CheckCircle className="h-3.5 w-3.5 shrink-0" /> O.S Concluídas
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setSendDialogOpen(true); }}
+              className="py-1.5 text-[10px] font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 flex items-center justify-center gap-1 transition-colors"
+              title="Ou enviar para outro setor"
+            >
+              <Send className="h-3 w-3" /> Outro Setor...
+            </button>
+          </div>
+        )}
+
+        {/* Send to next department button when in exit/final status (demais setores) */}
+        {!readOnly && isExitStatus && department.id !== "faturamento" && department.id !== "ctp" && department.id !== "digital" && !isExpedicaoCopy && (
           <button
             onClick={(e) => { e.stopPropagation(); setSendDialogOpen(true); }}
             className="w-full py-2 text-xs font-bold uppercase tracking-wide flex items-center justify-center gap-1.5 transition-colors"
@@ -1451,6 +1491,14 @@ function ProductionCardImpl({
                           onClick={() => { onSendBackToPrePress(order.id); setOpen(false); }}
                         >
                           <Undo2 className="h-4 w-4 mr-2" /> Voltar para Pré-Impressão
+                        </Button>
+                      )}
+                      {isExitStatus && (department.id === "ctp" || department.id === "digital") && (
+                        <Button
+                          className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold"
+                          onClick={() => { onArchive(order.id); setOpen(false); }}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-2" /> Mover para O.S Concluídas
                         </Button>
                       )}
                     </>
