@@ -227,14 +227,20 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
   // 4. PRÉ-IMPRESSÃO
   // 5. QUALIDADE
   // 6. EXPEDIÇÃO
-  // 7. GESTÃO ENTREGAS
-  // 8. TRABALHOS CONCLUIDOS
-  // 9. COMPRAS
-  // 10. MANUTENÇÃO
-  // 11. DASHBOARD
-  // 12. CADASTROS
-  // 13. UTILIDADES
-  const navItems = [
+  // Menus laterais configurados na ordem solicitada:
+  // 1. CHAT
+  // 2. COMERCIAL
+  // 3. PAINEL (PCP)
+  // 4. PRÉ-IMPRESSÃO
+  // 5. CTP
+  // 6. DIGITAL
+  // 7. PRODUÇÃO (Fila de Entrada em Tabela)
+  // 8. EXPEDIÇÃO
+  // 9. GESTÃO DE ENTREGAS
+  // 10. COMPRAS
+  // 11. QUALIDADE
+  // 12. MANUTENÇÃO
+  const navItemsPrimary = [
     // 1. CHAT
     { to: "/chat", label: "Chat", icon: MessageSquare, count: unreadChatCount > 0 ? unreadChatCount : undefined },
     // 2. COMERCIAL
@@ -243,25 +249,29 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
     ...(hasModule("pcp") ? [{ to: "/pcp", label: "PAINEL O.S", icon: ClipboardList }] : []),
     // 4. PRÉ-IMPRESSÃO
     ...(canAccessSector("pre_impressao") ? [{ to: "/", label: "Pré-Impressão", icon: Monitor, count: deptCountsLoaded ? (deptCounts["pre_impressao"] ?? 0) : undefined }] : []),
-    // 5. PRODUÇÃO (Fila de Entrada em Tabela)
-    ...(hasModule("producao") || canAccessSector("producao") || canAccessSector("ctp") || canAccessSector("digital") || canAccessSector("qualidade") || isAdmin ? [{ to: "/producao", label: "Produção", icon: Factory, count: deptCountsLoaded ? (deptCounts["producao_entrada"] ?? 0) : undefined }] : []),
-    // CTP
+    // 5. CTP
     ...(canAccessSector("ctp") ? [{ to: "/ctp", label: "CTP", icon: Layers, count: deptCountsLoaded ? (deptCounts["ctp"] ?? 0) : undefined }] : []),
-    // DIGITAL
+    // 6. DIGITAL
     ...(canAccessSector("digital") ? [{ to: "/digital", label: "Digital", icon: PrinterCheck, count: deptCountsLoaded ? (deptCounts["digital"] ?? 0) : undefined }] : []),
-    // 5. QUALIDADE
-    ...(canAccessSector("qualidade") ? [{ to: "/qualidade", label: "Qualidade", icon: Search, count: deptCountsLoaded ? (deptCounts["qualidade"] ?? 0) : undefined }] : []),
-    // 6. EXPEDIÇÃO
+    // 7. PRODUÇÃO (Fila de Entrada em Tabela)
+    ...(hasModule("producao") || canAccessSector("producao") || canAccessSector("ctp") || canAccessSector("digital") || canAccessSector("qualidade") || isAdmin ? [{ to: "/producao", label: "Produção", icon: Factory, count: deptCountsLoaded ? (deptCounts["producao_entrada"] ?? 0) : undefined }] : []),
+    // 8. EXPEDIÇÃO
     ...(hasModule("expedicao") ? [{ to: "/expedicao", label: "Expedição", icon: Truck, count: deptCountsLoaded ? (deptCounts["expedicao"] ?? 0) : undefined }] : []),
-    // 7. GESTÃO ENTREGAS
-    ...(hasModule("entregas") ? [{ to: "/entregas", label: "Gestão Entregas", icon: Package }] : []),
-    // 8. TRABALHOS CONCLUIDOS
-    ...(hasModule("trabalhos_concluidos") ? [{ to: "/arquivados", label: "Trabalhos Concluídos", icon: Archive, count: countsLoading ? undefined : archivedCount }] : []),
-    // 9. COMPRAS
+    // 9. GESTÃO DE ENTREGAS
+    ...(hasModule("entregas") ? [{ to: "/entregas", label: "Gestão de Entregas", icon: Package }] : []),
+    // 10. COMPRAS
     ...(hasModule("compras") ? [{ to: "/compras", label: "Compras", icon: ShoppingCart, count: deptCountsLoaded ? (deptCounts["compras"] ?? 0) : undefined }] : []),
-    // 10. MANUTENÇÃO
+    // 11. QUALIDADE
+    ...(canAccessSector("qualidade") ? [{ to: "/qualidade", label: "Qualidade", icon: Search, count: deptCountsLoaded ? (deptCounts["qualidade"] ?? 0) : undefined }] : []),
+    // 12. MANUTENÇÃO
     ...(hasModule("manutencao") ? [{ to: "/manutencao", label: "Manutenção", icon: Wrench, count: deptCountsLoaded ? (deptCounts["manutencao"] ?? 0) : undefined }] : []),
-    // 11. DASHBOARD
+  ];
+
+  // Menus após Utilidades:
+  // 14. O.S CONCLUÍDAS
+  // 15. DASHBOARD
+  const navItemsSecondary = [
+    ...(hasModule("trabalhos_concluidos") ? [{ to: "/arquivados", label: "O.S Concluídas", icon: Archive, count: countsLoading ? undefined : archivedCount }] : []),
     ...(hasModule("dashboard") ? [{ to: "/dashboard", label: "Dashboard", icon: BarChart3 }] : []),
   ];
 
@@ -416,44 +426,9 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
 
 
         <nav className={`flex-1 ${sidebarCollapsed ? "px-2" : "px-3"} py-2 space-y-1 overflow-y-auto scrollbar-none`}>
-          {navItems.map(renderNavLink)}
+          {navItemsPrimary.map(renderNavLink)}
 
-          {/* Cadastros - collapsible group */}
-          {(isAdmin || hasModule("cadastros")) && (
-            <div>
-              <button
-                onClick={handleCadastrosClick}
-                title={sidebarCollapsed ? "Cadastros" : undefined}
-                className={`relative flex items-center ${
-                  sidebarCollapsed ? "justify-center px-2" : "gap-2.5 px-3"
-                } py-2 rounded-xl text-sm transition-all duration-150 w-full ${
-                  isCadastrosActive && !cadastrosOpen
-                    ? "bg-sidebar-primary/15 text-sidebar-primary font-medium"
-                    : "text-sidebar-foreground/75 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                }`}
-              >
-                <ClipboardList className="h-4 w-4 shrink-0" />
-                {!sidebarCollapsed && (
-                  <>
-                    <span className="truncate flex-1 text-left font-medium">Cadastros</span>
-                    <ChevronDown className={`ml-auto h-3.5 w-3.5 transition-transform duration-200 ${cadastrosOpen ? "rotate-180" : ""}`} />
-                  </>
-                )}
-              </button>
-              {cadastrosOpen && !sidebarCollapsed && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="pl-3 space-y-1 mt-1"
-                >
-                  {cadastrosItems.map(renderNavLink)}
-                </motion.div>
-              )}
-            </div>
-          )}
-
-          {/* Utilidades - Menu com sub-menus e botões para links externos */}
+          {/* 13. Utilidades - Menu com sub-menus e botões para links externos */}
           {(isAdmin || hasModule("utilidades")) && (
             <div>
             <button
@@ -512,6 +487,44 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
               </motion.div>
             )}
           </div>
+          )}
+
+          {/* 14. O.S Concluídas & Dashboard */}
+          {navItemsSecondary.map(renderNavLink)}
+
+          {/* Cadastros - collapsible group */}
+          {(isAdmin || hasModule("cadastros")) && (
+            <div>
+              <button
+                onClick={handleCadastrosClick}
+                title={sidebarCollapsed ? "Cadastros" : undefined}
+                className={`relative flex items-center ${
+                  sidebarCollapsed ? "justify-center px-2" : "gap-2.5 px-3"
+                } py-2 rounded-xl text-sm transition-all duration-150 w-full ${
+                  isCadastrosActive && !cadastrosOpen
+                    ? "bg-sidebar-primary/15 text-sidebar-primary font-medium"
+                    : "text-sidebar-foreground/75 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                }`}
+              >
+                <ClipboardList className="h-4 w-4 shrink-0" />
+                {!sidebarCollapsed && (
+                  <>
+                    <span className="truncate flex-1 text-left font-medium">Cadastros</span>
+                    <ChevronDown className={`ml-auto h-3.5 w-3.5 transition-transform duration-200 ${cadastrosOpen ? "rotate-180" : ""}`} />
+                  </>
+                )}
+              </button>
+              {cadastrosOpen && !sidebarCollapsed && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="pl-3 space-y-1 mt-1"
+                >
+                  {cadastrosItems.map(renderNavLink)}
+                </motion.div>
+              )}
+            </div>
           )}
         </nav>
 

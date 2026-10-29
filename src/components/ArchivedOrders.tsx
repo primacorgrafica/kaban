@@ -303,7 +303,7 @@ export function ArchivedOrders({ orders, onUnarchive, onDelete }: ArchivedOrders
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
           <Archive className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-xl font-semibold">Trabalhos Concluídos</h2>
+          <h2 className="text-xl font-semibold">O.S Concluídas</h2>
           <span className="text-sm text-muted-foreground">({searchFiltered.length})</span>
         </div>
         <div className="flex items-center gap-3">

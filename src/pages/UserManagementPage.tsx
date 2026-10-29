@@ -57,7 +57,7 @@ export const ACCESS_MODULES: { id: string; label: string }[] = [
   { id: "expedicao", label: "Expedição" },
   { id: "entregas", label: "Gestão Entregas" },
   { id: "entregador", label: "Entregador (App Mobile)" },
-  { id: "trabalhos_concluidos", label: "Trabalhos Concluídos" },
+  { id: "trabalhos_concluidos", label: "O.S Concluídas" },
   { id: "compras", label: "Compras" },
   { id: "manutencao", label: "Manutenção" },
   { id: "dashboard", label: "Dashboard" },
