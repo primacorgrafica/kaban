@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -9,7 +10,7 @@ import { subscribeOrders, subscribeOrdersIncremental } from "@/lib/realtimeManag
 import {
   Tv, Maximize2, Minimize2, Volume2, VolumeX, Clock,
   CheckCircle2, Layers, RefreshCw,
-  AlertTriangle, Zap
+  AlertTriangle, Zap, Monitor, Factory, Truck
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,63 @@ function formatPcpDate(dateStr: string | null | undefined): string {
   } catch {
     return "—";
   }
+}
+
+export interface SectorFlowCounts {
+  preImpressao: number;
+  producao: number;
+  expedicao: number;
+}
+
+export function computePcpSectorCounts(orders: Array<{
+  id?: string;
+  titulo?: string | null;
+  setor?: string | null;
+  setor_status?: string | null;
+  status?: string | null;
+  arquivado?: boolean | null;
+}>): SectorFlowCounts {
+  const NON_PRODUCTION_SECTORS = ["faturamento", "compras", "manutencao"];
+
+  const preTitulos = new Set<string>();
+  const prodTitulos = new Set<string>();
+  const expTitulos = new Set<string>();
+
+  orders.forEach((row) => {
+    if (row.arquivado) return;
+    const titulo = (row.titulo || "").trim().toUpperCase();
+    if (!titulo) return;
+
+    const setor = row.setor;
+    const setorStatus = row.setor_status;
+    const status = row.status;
+
+    // 1. Pré-Impressão: ordem ativa no fluxo inicial de arte/prova/aprovação
+    const isPre =
+      (!setor || setor === "desenvolvimento" || setor === "pre_impressao") &&
+      status !== "arquivo_liberado";
+
+    // 2. Expedição: ordem ativa na expedição (não finalizada na saída)
+    const isExp = setor === "expedicao" && setorStatus !== "saida";
+
+    // 3. Produção: ordem liberada ou em setores produtivos (CTP, Digital, Produção, Qualidade)
+    const isProd =
+      !isExp &&
+      !isPre &&
+      (!setor || !NON_PRODUCTION_SECTORS.includes(setor)) &&
+      (status === "arquivo_liberado" || (setor && setor !== "desenvolvimento" && setor !== "pre_impressao")) &&
+      setorStatus !== "saida";
+
+    if (isPre) preTitulos.add(titulo);
+    if (isProd) prodTitulos.add(titulo);
+    if (isExp) expTitulos.add(titulo);
+  });
+
+  return {
+    preImpressao: preTitulos.size,
+    producao: prodTitulos.size,
+    expedicao: expTitulos.size,
+  };
 }
 
 // Chime sintetizado via Web Audio API (som de alta fidelidade sem arquivos externos)
@@ -163,12 +221,19 @@ function speakOsLiberada(titulo: string) {
 }
 
 export default function PcpPage() {
+  const navigate = useNavigate();
   const { user, authReady } = useAuth();
   const permissions = usePermissions();
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [liberadas, setLiberadas] = useState<LiberadaEntry[]>([]);
   const [emitidas, setEmitidas] = useState<EmitidaEntry[]>([]);
+  const [sectorCounts, setSectorCounts] = useState<SectorFlowCounts & { loading: boolean }>({
+    preImpressao: 0,
+    producao: 0,
+    expedicao: 0,
+    loading: true,
+  });
 
   // TV Mode States
   const [isTvMode, setIsTvMode] = useState(() => {
@@ -392,10 +457,33 @@ export default function PcpPage() {
     setLoading(false);
   };
 
+  const fetchSectorCounts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("orders")
+        .select("id, titulo, setor, setor_status, status, arquivado")
+        .eq("arquivado", false);
+
+      if (error || !data) return;
+
+      const counts = computePcpSectorCounts(data);
+      setSectorCounts({
+        ...counts,
+        loading: false,
+      });
+    } catch (err) {
+      console.error("[PCP] Erro ao carregar contadores de setor:", err);
+    }
+  };
+
+  const fetchSectorCountsRef = useRef<() => Promise<void>>();
+  fetchSectorCountsRef.current = fetchSectorCounts;
+
   useEffect(() => {
     if (!authReady || !user) return;
     fetchLiberadas();
     fetchEmitidas();
+    fetchSectorCounts();
 
     const unsubInc = subscribeOrdersIncremental((payload) => {
       if (!payload) return;
@@ -422,26 +510,40 @@ export default function PcpPage() {
           }
 
           fetchLiberadasRef.current?.();
+          fetchSectorCountsRef.current?.();
           return;
         }
 
-        if (newRow.status !== oldRow?.status || newRow.setor_status !== oldRow?.setor_status) {
+        if (
+          newRow.status !== oldRow?.status ||
+          newRow.setor_status !== oldRow?.setor_status ||
+          newRow.setor !== oldRow?.setor ||
+          newRow.arquivado !== oldRow?.arquivado
+        ) {
           fetchLiberadasRef.current?.();
           fetchEmitidas();
+          fetchSectorCountsRef.current?.();
         }
       } else if (payload.eventType === "INSERT") {
         fetchEmitidas();
+        fetchSectorCountsRef.current?.();
+      } else if (payload.eventType === "DELETE") {
+        fetchLiberadasRef.current?.();
+        fetchEmitidas();
+        fetchSectorCountsRef.current?.();
       }
     });
 
     const unsubOrders = subscribeOrders(() => {
       fetchLiberadasRef.current?.();
       fetchEmitidas();
+      fetchSectorCountsRef.current?.();
     });
 
     const interval = setInterval(() => {
       fetchLiberadasRef.current?.();
       fetchEmitidas();
+      fetchSectorCountsRef.current?.();
     }, 15000);
 
     return () => {
@@ -528,9 +630,9 @@ export default function PcpPage() {
   const mainContent = (
     <div className={`flex flex-col h-full font-pcp ${isTvMode ? "bg-[#050811] text-slate-100 p-3 sm:p-4 select-none" : "space-y-3 text-foreground"}`}>
       {/* BARRA SUPERIOR: CABEÇALHO COM LOGO & RELÓGIO */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl glass-bento shrink-0">
+      <div className="flex flex-col xl:flex-row items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl glass-bento shrink-0">
         {/* Identificação: Logo Primacor à esquerda antes do título PAINEL */}
-        <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto justify-between sm:justify-start">
+        <div className="flex items-center gap-3 sm:gap-4 w-full xl:w-auto justify-between xl:justify-start">
           <div className="flex items-center gap-3 sm:gap-4">
             <img
               src={logoSidebar}
@@ -558,8 +660,89 @@ export default function PcpPage() {
           </div>
         </div>
 
+        {/* Indicadores de Fluxo em Tempo Real: Quant. O.S em Pré-impressão, Produção e Expedição */}
+        <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-center my-1 xl:my-0">
+          {/* Card: Quant. O.S em Pré-impressão */}
+          <div
+            onClick={() => !isTvMode && navigate("/")}
+            className={`flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl transition-all border shadow-xs ${
+              !isTvMode ? "cursor-pointer hover:border-sky-500/60 hover:bg-sky-500/10 active:scale-95" : ""
+            } bg-card/60 dark:bg-[#11212D]/80 border-border dark:border-[#4A5C6A]/60 text-foreground dark:text-white`}
+            title="Quant. O.S em Pré-impressão (Clique para abrir Pré-Impressão)"
+          >
+            <div className="p-1.5 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-400 shrink-0">
+              <Monitor className="h-4 w-4" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wider leading-none whitespace-nowrap">
+                Quant. O.S em Pré-impressão
+              </span>
+              <div className="flex items-baseline gap-1 mt-1">
+                <span className="text-lg sm:text-xl font-black font-mono-tech text-sky-400 leading-none">
+                  {sectorCounts.loading ? "—" : sectorCounts.preImpressao}
+                </span>
+                <span className="text-[10px] font-medium text-muted-foreground dark:text-slate-400 uppercase">
+                  O.S.
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card: Quant. O.S em Produção */}
+          <div
+            onClick={() => !isTvMode && navigate("/producao")}
+            className={`flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl transition-all border shadow-xs ${
+              !isTvMode ? "cursor-pointer hover:border-amber-500/60 hover:bg-amber-500/10 active:scale-95" : ""
+            } bg-card/60 dark:bg-[#11212D]/80 border-border dark:border-[#4A5C6A]/60 text-foreground dark:text-white`}
+            title="Quant. O.S em Produção (Clique para abrir Produção)"
+          >
+            <div className="p-1.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-400 shrink-0">
+              <Factory className="h-4 w-4" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wider leading-none whitespace-nowrap">
+                Quant. O.S em Produção
+              </span>
+              <div className="flex items-baseline gap-1 mt-1">
+                <span className="text-lg sm:text-xl font-black font-mono-tech text-amber-400 leading-none">
+                  {sectorCounts.loading ? "—" : sectorCounts.producao}
+                </span>
+                <span className="text-[10px] font-medium text-muted-foreground dark:text-slate-400 uppercase">
+                  O.S.
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card: Quant. O.S em Expedição */}
+          <div
+            onClick={() => !isTvMode && navigate("/expedicao")}
+            className={`flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl transition-all border shadow-xs ${
+              !isTvMode ? "cursor-pointer hover:border-emerald-500/60 hover:bg-emerald-500/10 active:scale-95" : ""
+            } bg-card/60 dark:bg-[#11212D]/80 border-border dark:border-[#4A5C6A]/60 text-foreground dark:text-white`}
+            title="Quant. O.S em Expedição (Clique para abrir Expedição)"
+          >
+            <div className="p-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 shrink-0">
+              <Truck className="h-4 w-4" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wider leading-none whitespace-nowrap">
+                Quant. O.S em Expedição
+              </span>
+              <div className="flex items-baseline gap-1 mt-1">
+                <span className="text-lg sm:text-xl font-black font-mono-tech text-emerald-400 leading-none">
+                  {sectorCounts.loading ? "—" : sectorCounts.expedicao}
+                </span>
+                <span className="text-[10px] font-medium text-muted-foreground dark:text-slate-400 uppercase">
+                  O.S.
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Relógio Digital & Botões de Ação */}
-        <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-end">
+        <div className="flex items-center gap-4 w-full xl:w-auto justify-between xl:justify-end">
           <div className="text-left md:text-right">
             <div className="text-xl sm:text-2xl font-black text-foreground dark:text-white tracking-wider flex items-center md:justify-end gap-1.5 drop-shadow-[0_0_12px_rgba(255,255,255,0.15)]">
               <Clock className="h-4 w-4 text-[#CCD0CF] hidden sm:inline" />
