@@ -678,7 +678,7 @@ export default function PcpPage() {
                 Quant. O.S em Pré-impressão
               </span>
               <div className="flex items-baseline gap-1 mt-1">
-                <span className="text-lg sm:text-xl font-black font-mono-tech text-sky-400 leading-none">
+                <span className="text-lg sm:text-xl font-black font-pcp text-sky-400 leading-none">
                   {sectorCounts.loading ? "—" : sectorCounts.preImpressao}
                 </span>
                 <span className="text-[10px] font-medium text-muted-foreground dark:text-slate-400 uppercase">
@@ -704,7 +704,7 @@ export default function PcpPage() {
                 Quant. O.S em Produção
               </span>
               <div className="flex items-baseline gap-1 mt-1">
-                <span className="text-lg sm:text-xl font-black font-mono-tech text-amber-400 leading-none">
+                <span className="text-lg sm:text-xl font-black font-pcp text-amber-400 leading-none">
                   {sectorCounts.loading ? "—" : sectorCounts.producao}
                 </span>
                 <span className="text-[10px] font-medium text-muted-foreground dark:text-slate-400 uppercase">
@@ -730,7 +730,7 @@ export default function PcpPage() {
                 Quant. O.S em Expedição
               </span>
               <div className="flex items-baseline gap-1 mt-1">
-                <span className="text-lg sm:text-xl font-black font-mono-tech text-emerald-400 leading-none">
+                <span className="text-lg sm:text-xl font-black font-pcp text-emerald-400 leading-none">
                   {sectorCounts.loading ? "—" : sectorCounts.expedicao}
                 </span>
                 <span className="text-[10px] font-medium text-muted-foreground dark:text-slate-400 uppercase">

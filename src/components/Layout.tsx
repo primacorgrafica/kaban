@@ -344,10 +344,10 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
         </AnimatePresence>
         {item.count !== undefined && (
           <span
-            className={`relative z-10 font-mono-tech ${
+            className={`relative z-10 font-pcp font-bold ${
               sidebarCollapsed
-                ? "absolute top-1 right-1 text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold"
-                : "ml-auto text-xs px-2 py-0.5 rounded-full"
+                ? "absolute top-1 right-1 text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold tracking-tight"
+                : "ml-auto text-xs px-2 py-0.5 rounded-full font-bold tracking-tight"
             } ${isActive ? "bg-[#CCD0CF] text-[#06141B] font-bold shadow-xs" : "bg-[#253745]/70 text-[#9BA8AB]"}`}
           >
             {item.count}
