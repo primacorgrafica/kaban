@@ -516,7 +516,8 @@ export default function EntregadorPage() {
       // Se houver arquivo de comprovante fotografado
       if (proofFile) {
         // Tentativa rápida e silenciosa: se o dispositivo já possuir sessão MS 365 conectada, tenta direto
-        if (msUser) {
+        const activeMs = msUser || (await getActiveMicrosoftAccount());
+        if (activeMs) {
           try {
             const spRes = await uploadDeliveryProtocolToSharePoint(
               proofFile,

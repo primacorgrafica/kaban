@@ -476,6 +476,107 @@ export async function uploadDeliveryProtocolToSharePoint(
 }
 
 /**
+ * Sincroniza os comprovantes de entrega de uma ordem específica diretamente para a pasta
+ * 'PROTOCOLOS ENTREGAS' no SharePoint corporativo.
+ */
+export async function syncOrderProtocolsToSharePoint(
+  order: { id: string; titulo?: string; entregue_para?: string },
+  interactiveFallback = true
+): Promise<{ success: boolean; syncedCount: number; error?: string }> {
+  try {
+    addSharePointLog("info", `Iniciando envio dos comprovantes da O.S. #${order.titulo || order.id} para o SharePoint...`);
+
+    const folderInfo = await getOrCreateProtocolosFolder(interactiveFallback);
+
+    const { data: files, error: listErr } = await supabase.storage
+      .from("comprovantes-entrega")
+      .list(order.id, { limit: 10, sortBy: { column: "created_at", order: "desc" } });
+
+    if (listErr) {
+      addSharePointLog("error", `Erro ao acessar bucket comprovantes-entrega: ${listErr.message}`);
+      return { success: false, syncedCount: 0, error: listErr.message };
+    }
+
+    const validFiles = (files || []).filter(
+      (f) => f.name && !f.name.startsWith(".") && f.name !== ".emptyFolderPlaceholder"
+    );
+
+    if (validFiles.length === 0) {
+      await supabase
+        .from("orders")
+        .update({ status_comprovante_sync: "sincronizado" } as any)
+        .eq("id", order.id);
+      return { success: true, syncedCount: 0 };
+    }
+
+    let syncedCount = 0;
+    const cleanOs = (order.titulo || order.id).replace(/^OS[\s._-]*/i, "").trim() || "SEM_OS";
+
+    for (const item of validFiles) {
+      const filePath = `${order.id}/${item.name}`;
+      const { data: blob, error: downloadErr } = await supabase.storage
+        .from("comprovantes-entrega")
+        .download(filePath);
+
+      if (downloadErr || !blob) {
+        addSharePointLog("warn", `Erro ao baixar foto temporária ${filePath}:`, downloadErr);
+        continue;
+      }
+
+      const rawExt = item.name.substring(item.name.lastIndexOf(".")).toLowerCase();
+      const ext = rawExt && rawExt.length <= 5 ? rawExt : ".jpg";
+      const cleanRecebedor = order.entregue_para
+        ? `_${order.entregue_para.replace(/[^a-zA-Z0-9]/g, "_")}`
+        : "";
+      const targetFileName = `OS_${cleanOs}_Protocolo_${Date.now()}${cleanRecebedor}${ext}`;
+
+      const fileToUpload = new File([blob], targetFileName, { type: blob.type || "image/jpeg" });
+
+      const driveItem = await uploadFileToSharePoint(
+        fileToUpload,
+        folderInfo,
+        undefined,
+        undefined,
+        interactiveFallback
+      );
+
+      if (driveItem) {
+        await supabase.from("order_attachments" as any).insert({
+          order_id: order.id,
+          nome_arquivo: driveItem.name || targetFileName,
+          tamanho_bytes: driveItem.size || blob.size,
+          content_type: blob.type || "image/jpeg",
+          sharepoint_item_id: driveItem.id,
+          sharepoint_folder_id: folderInfo.folderId,
+          sharepoint_folder_name: folderInfo.folderName,
+          sharepoint_drive_id: folderInfo.driveId,
+          sharepoint_site_id: folderInfo.siteId,
+          sharepoint_web_url: driveItem.webUrl,
+          sharepoint_path: `${SHAREPOINT_PROTOCOLOS_FOLDER}/${driveItem.name}`,
+          status: "sincronizado",
+        });
+
+        await supabase.storage.from("comprovantes-entrega").remove([filePath]);
+        syncedCount++;
+        addSharePointLog("success", `Foto salva na pasta PROTOCOLOS ENTREGAS com sucesso: ${driveItem.name}`);
+      }
+    }
+
+    if (syncedCount > 0) {
+      await supabase
+        .from("orders")
+        .update({ status_comprovante_sync: "sincronizado" } as any)
+        .eq("id", order.id);
+    }
+
+    return { success: true, syncedCount };
+  } catch (err: any) {
+    addSharePointLog("error", `Falha ao sincronizar O.S. #${order.titulo || order.id}: ${err?.message || err}`);
+    return { success: false, syncedCount: 0, error: err?.message || "Falha ao enviar ao SharePoint." };
+  }
+}
+
+/**
  * Sincroniza fotos de comprovantes de entrega armazenadas temporariamente
  * para a pasta corporativa 'PROTOCOLOS ENTREGAS' no SharePoint.
  * Remove os arquivos temporários do Supabase Storage após o upload bem-sucedido.
@@ -533,8 +634,15 @@ export async function syncPendingProtocolsToSharePoint(
 
         const validFiles = (files || []).filter((f) => f.name && !f.name.startsWith("."));
 
-        if (listErr || validFiles.length === 0) {
-          // Se não há arquivos temporários no bucket, libera a ordem da fila para não gerar loop
+        if (listErr) {
+          addSharePointLog("error", `Erro ao listar fotos temporárias da O.S. #${order.titulo}: ${listErr.message}`);
+          result.failed++;
+          result.errors.push(`O.S. ${order.titulo}: ${listErr.message}`);
+          continue;
+        }
+
+        if (validFiles.length === 0) {
+          // Se a listagem teve sucesso e de fato não há arquivos no bucket, libera a ordem da fila
           await supabase
             .from("orders")
             .update({ status_comprovante_sync: "sincronizado" } as any)
