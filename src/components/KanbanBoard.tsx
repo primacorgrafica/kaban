@@ -527,16 +527,12 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
                               const isSent = isSpecialSupplySent(processos, supply.id);
                               const isMarked = markedSuppliesSent[supply.id] || false;
                               const isSatisfied = isSent || isMarked;
-                              const isPink = supply.id === "PANTONE" || supply.id === "OUTROS";
-
                               return (
                                 <div
                                   key={supply.id}
                                   className={`p-2.5 rounded-lg border text-xs flex flex-col justify-between gap-1.5 transition-colors ${
                                     isSatisfied
                                       ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-800 dark:text-emerald-300"
-                                      : isPink
-                                      ? "bg-pink-100/90 dark:bg-pink-950/40 border-pink-300 dark:border-pink-700/60 text-pink-950 dark:text-pink-200"
                                       : "bg-amber-500/20 border-amber-500/50 text-amber-900 dark:text-amber-200"
                                   }`}
                                 >

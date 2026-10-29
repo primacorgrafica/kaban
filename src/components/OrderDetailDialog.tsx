@@ -552,13 +552,12 @@ export function OrderDetailDialog({
                               {SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(order.processos, s.id)).map((item) => {
                                 const details = getSpecialSupplyDetails(order.processos, item.id);
                                 if (!details.sent && !details.customText) return null;
-                                const isPink = item.id === "PANTONE" || item.id === "OUTROS";
                                 const formattedTime = formatSafeDate(details.sentAt, "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })
                                   || formatSafeDate(order.updated_at, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
                                   || "Registrado";
                                 return (
                                   <p key={`info-${item.id}`} className="text-[11px] text-emerald-600 dark:text-emerald-400 font-mono-tech flex items-center gap-1.5 flex-wrap">
-                                    <span className={`w-1.5 h-1.5 rounded-full ${details.sent ? "bg-emerald-500" : isPink ? "bg-pink-500" : "bg-amber-500"}`} />
+                                    <span className={`w-1.5 h-1.5 rounded-full ${details.sent ? "bg-emerald-500" : "bg-amber-500"}`} />
                                     <strong className="font-bold">{item.label}:</strong>
                                     {details.sent ? (
                                       <>
@@ -566,7 +565,7 @@ export function OrderDetailDialog({
                                         {details.operator && <span>por <u>{details.operator}</u></span>}
                                       </>
                                     ) : (
-                                      <span className={isPink ? "text-pink-600 dark:text-pink-400 font-bold" : "text-amber-600 dark:text-amber-400"}>
+                                      <span className="text-amber-600 dark:text-amber-400">
                                         Pendente de envio
                                       </span>
                                     )}

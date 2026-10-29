@@ -53,7 +53,7 @@ export const IMPRESSAO_TIPOS: ProcessoItem[] = [
   { sigla: "CMYK", cor: "bg-blue-100 text-blue-800 border-blue-300" },
   { sigla: "CMYK+IR", cor: "bg-blue-100 text-blue-800 border-blue-300" },
   { sigla: "CMYK+VM", cor: "bg-blue-100 text-blue-800 border-blue-300" },
-  { sigla: "PANTONE", cor: "bg-pink-100 text-pink-800 border-pink-300 dark:bg-pink-950/60 dark:text-pink-300 dark:border-pink-800" },
+  { sigla: "PANTONE", cor: "bg-amber-100 text-amber-900 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800" },
 ];
 
 // Processos de impressão (badges)
@@ -197,17 +197,7 @@ export function getSpecialSupplyBadgeClasses(
     };
   }
 
-  if (id === "PANTONE" || id === "OUTROS") {
-    // ROSA CLARINHO
-    return {
-      badge: "bg-pink-100 hover:bg-pink-200 text-pink-950 border-pink-300 dark:bg-pink-950/80 dark:text-pink-100 dark:border-pink-600/60 shadow-[0_0_8px_rgba(244,114,182,0.25)] active:scale-95",
-      dot: "bg-pink-700 dark:bg-pink-300",
-      border: "border-pink-300 dark:border-pink-600/60",
-      label: "Pendente",
-    };
-  }
-
-  // FACA, CLICHÊ e FILME: AMARELO
+  // Todos os suprimentos especiais pendentes padronizados no padrão Amarelo
   return {
     badge: "bg-amber-400 hover:bg-amber-500 text-amber-950 border-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.25)] active:scale-95",
     dot: "bg-amber-950",

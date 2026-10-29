@@ -7,7 +7,6 @@ import {
 } from "@/types/production";
 import { ProductionCard } from "./ProductionCard";
 import { ManutencaoCard } from "./ManutencaoCard";
-import { ComprasCard } from "./ComprasCard";
 import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
 
 import { Droppable, Draggable } from "@hello-pangea/dnd";
@@ -221,30 +220,7 @@ export function ProductionColumn({
                       {...provided.draggableProps}
                       style={provided.draggableProps.style}
                     >
-                      {department.id === "compras" ? (
-                        <ComprasCard
-                          order={order}
-                          department={department}
-                          currentStatus={statusConfig}
-                          onUpdate={onUpdate}
-                          onMove={onMove}
-                          onSendToDepartment={onSendToDepartment}
-                          onSendBackToPrePress={onSendBackToPrePress}
-                          onArchive={onArchive}
-                          onDelete={onDelete}
-                          dragHandleProps={
-                            readOnly
-                              ? undefined
-                              : (provided.dragHandleProps as unknown as Record<
-                                  string,
-                                  unknown
-                                >)
-                          }
-                          updatedByName={getProfileName(order.atualizado_por)}
-                          createdByName={getProfileName(order.criado_por)}
-                          readOnly={readOnly}
-                        />
-                      ) : department.id === "manutencao" ? (
+                      {department.id === "manutencao" ? (
                         <ManutencaoCard
                           order={order}
                           department={department}

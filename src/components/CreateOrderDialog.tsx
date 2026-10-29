@@ -1412,7 +1412,6 @@ export function CreateOrderDialog({
                 <div className="grid grid-cols-5 gap-1.5 sm:gap-2 pt-1">
                   {SPECIAL_SUPPLIES.map((item) => {
                     const active = isSpecialSupplyActive(form.processos, item.id);
-                    const isPink = item.id === "PANTONE" || item.id === "OUTROS";
                     return (
                       <button
                         type="button"
@@ -1425,9 +1424,7 @@ export function CreateOrderDialog({
                         }}
                         className={`py-2 px-1 sm:px-2 rounded-lg sm:rounded-xl border-2 transition-all flex items-center justify-center text-center cursor-pointer min-w-0 ${
                           active
-                            ? isPink
-                              ? "bg-pink-100/90 dark:bg-pink-950/40 border-pink-400 dark:border-pink-500/70 text-pink-800 dark:text-pink-200 font-extrabold shadow-[0_0_12px_rgba(244,114,182,0.25)] scale-[1.02]"
-                              : "bg-amber-500/20 border-amber-500 text-amber-700 dark:text-amber-300 font-extrabold shadow-[0_0_12px_rgba(245,158,11,0.25)] scale-[1.02]"
+                            ? "bg-amber-500/20 border-amber-500 text-amber-700 dark:text-amber-300 font-extrabold shadow-[0_0_12px_rgba(245,158,11,0.25)] scale-[1.02]"
                             : "bg-card border-border text-muted-foreground hover:text-foreground hover:bg-accent hover:border-border/80"
                         }`}
                       >
@@ -1435,9 +1432,7 @@ export function CreateOrderDialog({
                           <span
                             className={`w-2 h-2 rounded-full shrink-0 transition-all ${
                               active
-                                ? isPink
-                                  ? "bg-pink-500 shadow-[0_0_6px_#ec4899]"
-                                  : "bg-amber-500 shadow-[0_0_6px_#f59e0b]"
+                                ? "bg-amber-500 shadow-[0_0_6px_#f59e0b]"
                                 : "bg-muted-foreground/30"
                             }`}
                           />
@@ -1452,10 +1447,10 @@ export function CreateOrderDialog({
 
                 {/* CAMPO DE NÚMEROS DO PANTONE */}
                 {isSpecialSupplyActive(form.processos, "PANTONE") && (
-                  <div className="p-3 rounded-xl border border-pink-300 dark:border-pink-800/80 bg-pink-50/70 dark:bg-pink-950/20 space-y-1.5 animate-in fade-in-50 duration-200">
+                  <div className="p-3 rounded-xl border border-amber-300 dark:border-amber-800/80 bg-amber-50/70 dark:bg-amber-950/20 space-y-1.5 animate-in fade-in-50 duration-200">
                     <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-pink-700 dark:text-pink-300 uppercase flex items-center gap-1.5">
-                        <Sparkles className="h-3.5 w-3.5 text-pink-500" />
+                      <Label className="text-xs font-bold text-amber-700 dark:text-amber-300 uppercase flex items-center gap-1.5">
+                        <Sparkles className="h-3.5 w-3.5 text-amber-500" />
                         Números dos Pantones
                       </Label>
                       <span className="text-[10px] text-muted-foreground font-mono-tech">Ex: 485 C, Reflex Blue, 871 C</span>
@@ -1470,17 +1465,17 @@ export function CreateOrderDialog({
                         }));
                       }}
                       placeholder="Informe os números dos pantones desta O.S..."
-                      className="h-8.5 bg-background border-pink-300 dark:border-pink-800/80 text-xs text-foreground placeholder:text-muted-foreground rounded-lg font-mono-tech"
+                      className="h-8.5 bg-background border-amber-300 dark:border-amber-800/80 text-xs text-foreground placeholder:text-muted-foreground rounded-lg font-mono-tech"
                     />
                   </div>
                 )}
 
                 {/* CAMPO DE PREENCHIMENTO MANUAL: OUTROS */}
                 {isSpecialSupplyActive(form.processos, "OUTROS") && (
-                  <div className="p-3 rounded-xl border border-pink-300 dark:border-pink-800/80 bg-pink-50/70 dark:bg-pink-950/20 space-y-1.5 animate-in fade-in-50 duration-200">
+                  <div className="p-3 rounded-xl border border-amber-300 dark:border-amber-800/80 bg-amber-50/70 dark:bg-amber-950/20 space-y-1.5 animate-in fade-in-50 duration-200">
                     <div className="flex items-center justify-between">
-                      <Label className="text-xs font-bold text-pink-700 dark:text-pink-300 uppercase flex items-center gap-1.5">
-                        <Sparkles className="h-3.5 w-3.5 text-pink-500" />
+                      <Label className="text-xs font-bold text-amber-700 dark:text-amber-300 uppercase flex items-center gap-1.5">
+                        <Sparkles className="h-3.5 w-3.5 text-amber-500" />
                         Especificação de Outros Suprimentos / Processos
                       </Label>
                       <span className="text-[10px] text-muted-foreground font-mono-tech">Preenchimento manual</span>
@@ -1495,7 +1490,7 @@ export function CreateOrderDialog({
                         }));
                       }}
                       placeholder="Descreva o suprimento ou processo especial necessário..."
-                      className="h-8.5 bg-background border-pink-300 dark:border-pink-800/80 text-xs text-foreground placeholder:text-muted-foreground rounded-lg"
+                      className="h-8.5 bg-background border-amber-300 dark:border-amber-800/80 text-xs text-foreground placeholder:text-muted-foreground rounded-lg"
                     />
                   </div>
                 )}

@@ -25,7 +25,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 const CATEGORIAS_COMPRA = [
   { id: "estoque", label: "Estoque", color: "bg-blue-600 text-white" },
-  { id: "os", label: "OS", color: "bg-pink-600 text-white" },
+  { id: "os", label: "OS", color: "bg-sky-600 text-white" },
   { id: "manutencao", label: "Manutenção", color: "bg-yellow-500 text-black" },
   { id: "administrativa", label: "Administrativa", color: "bg-green-600 text-white" },
 ];

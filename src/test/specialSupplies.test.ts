@@ -184,8 +184,8 @@ describe("Suprimentos e Processos Especiais (PANTONE, FACA, CLICHÊ, OUTROS)", (
     expect(hasSpecialSuppliesForCompras(["CLICHE", "OUTROS"])).toBe(true);
   });
 
-  it("atribui cores corretas às tarjas: FACA/CLICHÊ amarelos e PANTONE/OUTROS rosa clarinho", () => {
-    // Pendentes
+  it("atribui cores padronizadas às tarjas: todos os suprimentos pendentes em amarelo e enviados em verde esmeralda (sem cor rosa)", () => {
+    // Pendentes (todos usam a paleta âmbar/amarela sem rosa)
     const facaPending = getSpecialSupplyBadgeClasses("FACA", false);
     expect(facaPending.badge).toContain("bg-amber-400");
     expect(facaPending.badge).toContain("text-amber-950");
@@ -199,12 +199,14 @@ describe("Suprimentos e Processos Especiais (PANTONE, FACA, CLICHÊ, OUTROS)", (
     expect(filmePending.badge).toContain("text-amber-950");
 
     const pantonePending = getSpecialSupplyBadgeClasses("PANTONE", false);
-    expect(pantonePending.badge).toContain("bg-pink-100");
-    expect(pantonePending.badge).toContain("text-pink-950");
+    expect(pantonePending.badge).toContain("bg-amber-400");
+    expect(pantonePending.badge).toContain("text-amber-950");
+    expect(pantonePending.badge).not.toContain("bg-pink");
 
     const outrosPending = getSpecialSupplyBadgeClasses("OUTROS", false);
-    expect(outrosPending.badge).toContain("bg-pink-100");
-    expect(outrosPending.badge).toContain("text-pink-950");
+    expect(outrosPending.badge).toContain("bg-amber-400");
+    expect(outrosPending.badge).toContain("text-amber-950");
+    expect(outrosPending.badge).not.toContain("bg-pink");
 
     // Enviados (todos ficam verde esmeralda)
     const facaSent = getSpecialSupplyBadgeClasses("FACA", true);

@@ -34,7 +34,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const CATEGORIAS_COMPRA = [
   { id: "estoque", label: "Estoque", color: "bg-blue-600 text-white" },
-  { id: "os", label: "OS", color: "bg-pink-600 text-white" },
+  { id: "os", label: "OS", color: "bg-sky-600 text-white" },
   { id: "manutencao", label: "Manutenção", color: "bg-yellow-500 text-black" },
   { id: "administrativa", label: "Administrativa", color: "bg-green-600 text-white" },
 ];
@@ -353,12 +353,12 @@ export function ComprasCard({
                     className={`flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px] border cursor-pointer transition-all ${
                       pantoneSent
                         ? "bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-500/50 shadow-xs font-bold"
-                        : "bg-pink-100 hover:bg-pink-200 text-pink-950 dark:text-pink-950 border-pink-300 dark:border-pink-400 shadow-2xs font-black"
+                        : "bg-amber-100 hover:bg-amber-200 text-amber-950 dark:text-amber-950 border-amber-300 dark:border-amber-400 shadow-2xs font-black"
                     }`}
                     title={pantoneSent ? "Pantone Comprado (Clique para alterar)" : "Pantone Pendente (Clique para marcar como comprado)"}
                   >
                     <span className="truncate flex items-center gap-1.5">
-                      <span className={`w-2 h-2 rounded-full shrink-0 ${pantoneSent ? "bg-emerald-500" : "bg-pink-700"}`} />
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${pantoneSent ? "bg-emerald-500" : "bg-amber-700"}`} />
                       <span>PANTONE {pantoneText ? `(${pantoneText})` : ""}</span>
                     </span>
                     <span className="shrink-0 font-mono-tech text-[10px] font-black">
@@ -373,12 +373,12 @@ export function ComprasCard({
                     className={`flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px] border cursor-pointer transition-all ${
                       outrosSent
                         ? "bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-500/50 shadow-xs font-bold"
-                        : "bg-pink-100 hover:bg-pink-200 text-pink-950 dark:text-pink-950 border-pink-300 dark:border-pink-400 shadow-2xs font-black"
+                        : "bg-amber-100 hover:bg-amber-200 text-amber-950 dark:text-amber-950 border-amber-300 dark:border-amber-400 shadow-2xs font-black"
                     }`}
                     title={outrosSent ? "Outros Comprado (Clique para alterar)" : "Outros Pendente (Clique para marcar como comprado)"}
                   >
                     <span className="truncate flex items-center gap-1.5">
-                      <span className={`w-2 h-2 rounded-full shrink-0 ${outrosSent ? "bg-emerald-500" : "bg-pink-700"}`} />
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${outrosSent ? "bg-emerald-500" : "bg-amber-700"}`} />
                       <span>OUTROS {outrosText ? `(${outrosText})` : ""}</span>
                     </span>
                     <span className="shrink-0 font-mono-tech text-[10px] font-black">
@@ -393,29 +393,6 @@ export function ComprasCard({
               </p>
             )}
           </div>
-
-          {/* Botão de Ação: MARCAR DE VERDE SE FOI COMPRADO */}
-          <button
-            type="button"
-            onClick={toggleComprado}
-            className={`w-full mt-2 px-2.5 py-1.5 rounded-lg text-xs font-black tracking-wide uppercase transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer border ${
-              isComprado
-                ? "bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.35)] active:scale-95"
-                : "bg-amber-500/15 hover:bg-amber-500/25 text-amber-800 dark:text-amber-300 border-amber-500/40 active:scale-95"
-            }`}
-          >
-            {isComprado ? (
-              <>
-                <Check className="h-3.5 w-3.5 stroke-[3]" />
-                <span>COMPRA CONCLUÍDA (VERDE)</span>
-              </>
-            ) : (
-              <>
-                <ShoppingCart className="h-3.5 w-3.5" />
-                <span>MARCAR COMO COMPRADO</span>
-              </>
-            )}
-          </button>
 
           {/* Linha 3: Fornecedor + Vendedor + Endereço */}
           {((order as any).fornecedor_compra || (order as any).vendedor_compra || (order as any).endereco_compra) && (

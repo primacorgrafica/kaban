@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { syncOrderToCompras } from "@/lib/comprasSync";
+import { getSpecialSupplyBadgeClasses } from "@/lib/processos";
 import { supabase } from "@/integrations/supabase/client";
 
 vi.mock("@/integrations/supabase/client", () => {
@@ -127,5 +128,18 @@ describe("Sincronização Imediata com Compras (syncOrderToCompras)", () => {
     expect(updateMock).toHaveBeenCalledWith({
       processos: ["OUTROS:info:Cola%20Quente"],
     });
+  });
+
+  it("garante que os insumos especiais de compras não usam mais a cor rosa e seguem a paleta padrão âmbar", () => {
+    const pantoneStyle = getSpecialSupplyBadgeClasses("PANTONE", false);
+    const outrosStyle = getSpecialSupplyBadgeClasses("OUTROS", false);
+
+    expect(pantoneStyle.badge).not.toContain("bg-pink");
+    expect(pantoneStyle.badge).not.toContain("text-pink");
+    expect(outrosStyle.badge).not.toContain("bg-pink");
+    expect(outrosStyle.badge).not.toContain("text-pink");
+
+    expect(pantoneStyle.badge).toContain("bg-amber-400");
+    expect(outrosStyle.badge).toContain("bg-amber-400");
   });
 });
