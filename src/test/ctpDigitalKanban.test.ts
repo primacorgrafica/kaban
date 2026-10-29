@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { CTP_DEPARTMENT, DIGITAL_DEPARTMENT, DEPARTMENTS, DEPARTMENT_MAP } from "@/types/production";
+import { CTP_DEPARTMENT, DIGITAL_DEPARTMENT, PRODUCAO_DEPARTMENT, DEPARTMENTS, DEPARTMENT_MAP } from "@/types/production";
 import { ACCESS_MODULES, normalizeModules } from "@/pages/UserManagementPage";
 
 describe("CTP & Digital - Novos Menus e Colunas Kanban", () => {
@@ -37,11 +37,13 @@ describe("CTP & Digital - Novos Menus e Colunas Kanban", () => {
     });
   });
 
-  it("deve registrar CTP e DIGITAL na lista global DEPARTMENTS e DEPARTMENT_MAP", () => {
+  it("deve registrar CTP, DIGITAL e PRODUCAO na lista global DEPARTMENTS e DEPARTMENT_MAP", () => {
     expect(DEPARTMENTS.some((d) => d.id === "ctp")).toBe(true);
     expect(DEPARTMENTS.some((d) => d.id === "digital")).toBe(true);
+    expect(DEPARTMENTS.some((d) => d.id === "producao")).toBe(true);
     expect(DEPARTMENT_MAP.ctp).toEqual(CTP_DEPARTMENT);
     expect(DEPARTMENT_MAP.digital).toEqual(DIGITAL_DEPARTMENT);
+    expect(DEPARTMENT_MAP.producao).toEqual(PRODUCAO_DEPARTMENT);
   });
 
   it("deve disponibilizar os módulos 'ctp' e 'digital' no gerenciamento de usuários", () => {

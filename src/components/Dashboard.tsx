@@ -265,7 +265,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
   const allDepts = useMemo(() => [...DEPARTMENTS, EXPEDICAO_DEPARTMENT], []);
 
   const preImpressaoOrders = useMemo(() => {
-    return activeNonArchived.filter((o) => !o.setor || !["qualidade", "ctp", "digital", "expedicao", "compras", "manutencao"].includes(o.setor));
+    return activeNonArchived.filter((o) => !o.setor || !["qualidade", "ctp", "digital", "producao", "expedicao", "compras", "manutencao"].includes(o.setor));
   }, [activeNonArchived]);
 
   const sectorCounts = useMemo(() => {
@@ -374,7 +374,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
     // Sector filter
     if (selectedSector === "pre_impressao") {
-      list = list.filter((o) => !o.setor || !["qualidade", "ctp", "digital", "expedicao", "compras", "manutencao"].includes(o.setor));
+      list = list.filter((o) => !o.setor || !["qualidade", "ctp", "digital", "producao", "expedicao", "compras", "manutencao"].includes(o.setor));
     } else if (selectedSector !== "all") {
       list = list.filter((o) => o.setor === selectedSector);
     }

@@ -2,6 +2,7 @@ export type Department =
   | "qualidade"
   | "ctp"
   | "digital"
+  | "producao"
   | "expedicao" 
   | "compras"
   | "manutencao";
@@ -51,6 +52,15 @@ export const DIGITAL_DEPARTMENT: DepartmentConfig = {
   ],
 };
 
+export const PRODUCAO_DEPARTMENT: DepartmentConfig = {
+  id: "producao",
+  label: "Produção",
+  statuses: [
+    { id: "entrada", label: "Entrada", colorKey: "entrada" },
+    { id: "saida", label: "Saída", colorKey: "concluido" },
+  ],
+};
+
 export const COMPRAS_DEPARTMENT: DepartmentConfig = {
   id: "compras",
   label: "Compras",
@@ -92,6 +102,7 @@ export const DEPARTMENTS: DepartmentConfig[] = [
   QUALIDADE_DEPARTMENT,
   CTP_DEPARTMENT,
   DIGITAL_DEPARTMENT,
+  PRODUCAO_DEPARTMENT,
 ];
 
 export const DEPARTMENT_MAP: Record<Department, DepartmentConfig> = 

@@ -26,7 +26,7 @@ export default function ProducaoPage() {
   const perms = usePermissions();
   const { user, isAdmin } = useAuth();
   const {
-    activeOrders,
+    orders,
     archivedOrders,
     loading,
     searchQuery,
@@ -48,7 +48,9 @@ export default function ProducaoPage() {
 
   // Filtra estritamente ordens de PRODUÇÃO que estão em status ENTRADA
   const producaoEntradaOrders = useMemo(() => {
-    return activeOrders.filter((o) => {
+    return orders.filter((o) => {
+      if (o.arquivado) return false;
+
       // Exclui setores não produtivos
       if (o.setor && NON_PRODUCTION_SECTORS.includes(o.setor)) return false;
 
@@ -61,7 +63,7 @@ export default function ProducaoPage() {
       // Se não tem setor definido ainda, mas foi marcado como entrada no fluxo de produção
       return o.setor_status === "entrada";
     });
-  }, [activeOrders]);
+  }, [orders]);
 
   // Lista dinâmica de setores presentes nas ordens de entrada
   const availableSectors = useMemo(() => {

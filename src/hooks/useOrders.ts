@@ -741,7 +741,7 @@ export function useOrders() {
     toast.success(`OS. enviada para ${created} setor(es)!`);
   }, [user, orders, sendToProduction]);
 
-  const VALID_EXTERNAL_SECTORS = ["qualidade", "ctp", "digital", "expedicao", "compras", "manutencao"];
+  const VALID_EXTERNAL_SECTORS = ["qualidade", "ctp", "digital", "producao", "expedicao", "compras", "manutencao"];
   const isPreImpressao = (o: Order) => !o.setor || !VALID_EXTERNAL_SECTORS.includes(o.setor);
 
   const filteredOrders = orders.filter((o) => {
