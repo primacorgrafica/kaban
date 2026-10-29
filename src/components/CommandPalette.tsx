@@ -163,7 +163,7 @@ export function CommandPalette({
           </CommandItem>
           <CommandItem onSelect={() => handleSelectNav("/pcp")} className="cursor-pointer py-2">
             <Layers className="mr-2 h-4 w-4 text-[#CCD0CF]" />
-            <span className="text-xs">Painel O.S — Emissões e Liberações em Tempo Real</span>
+            <span className="text-xs">Painel — Emissões e Liberações em Tempo Real</span>
           </CommandItem>
           <CommandItem onSelect={() => handleSelectNav("/ctp")} className="cursor-pointer py-2">
             <Layers className="mr-2 h-4 w-4 text-cyan-400" />

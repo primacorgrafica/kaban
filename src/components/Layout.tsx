@@ -223,7 +223,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
   // Novo Fluxo Unificado Primacor:
   // 1. CHAT
   // 2. COMERCIAL
-  // 3. PAINEL O.S
+  // 3. PAINEL
   // 4. PRÉ-IMPRESSÃO
   // 5. QUALIDADE
   // 6. EXPEDIÇÃO
@@ -245,8 +245,8 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
     { to: "/chat", label: "Chat", icon: MessageSquare, count: unreadChatCount > 0 ? unreadChatCount : undefined },
     // 2. COMERCIAL
     ...(hasModule("comercial") ? [{ to: "/comercial", label: "Comercial", icon: Briefcase }] : []),
-    // 3. Painel O.S
-    ...(hasModule("pcp") ? [{ to: "/pcp", label: "Painel O.S", icon: ClipboardList }] : []),
+    // 3. Painel
+    ...(hasModule("pcp") ? [{ to: "/pcp", label: "Painel", icon: ClipboardList }] : []),
     // 4. PRÉ-IMPRESSÃO
     ...(canAccessSector("pre_impressao") ? [{ to: "/", label: "Pré-Impressão", icon: Monitor, count: deptCountsLoaded ? (deptCounts["pre_impressao"] ?? 0) : undefined }] : []),
     // 5. CTP

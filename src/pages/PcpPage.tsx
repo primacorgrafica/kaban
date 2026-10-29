@@ -529,7 +529,7 @@ export default function PcpPage() {
     <div className={`flex flex-col h-full font-pcp ${isTvMode ? "bg-[#050811] text-slate-100 p-3 sm:p-4 select-none" : "space-y-3 text-foreground"}`}>
       {/* BARRA SUPERIOR: CABEÇALHO COM LOGO & RELÓGIO */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 sm:p-4 rounded-2xl glass-bento shrink-0">
-        {/* Identificação: Logo Primacor à esquerda antes do título PAINEL O.S */}
+        {/* Identificação: Logo Primacor à esquerda antes do título PAINEL */}
         <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto justify-between sm:justify-start">
           <div className="flex items-center gap-3 sm:gap-4">
             <img
@@ -552,7 +552,7 @@ export default function PcpPage() {
                 </span>
               </div>
               <h1 className="text-xl sm:text-2xl font-black tracking-tight text-foreground dark:text-white uppercase whitespace-nowrap">
-                PAINEL O.S
+                PAINEL
               </h1>
             </div>
           </div>
@@ -1039,7 +1039,7 @@ export default function PcpPage() {
       onAddOrder={() => {}}
       activeCount={0}
       archivedCount={0}
-      sectorName="Painel O.S"
+      sectorName="Painel"
       countsLoading={loading}
       permissions={permissions}
     >

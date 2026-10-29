@@ -49,7 +49,7 @@ type AppRole = "admin" | "coordenador" | "operador" | "vendedor" | "user" | "orc
 
 export const ACCESS_MODULES: { id: string; label: string }[] = [
   { id: "comercial", label: "Comercial" },
-  { id: "pcp", label: "Painel O.S" },
+  { id: "pcp", label: "Painel" },
   { id: "pre_impressao", label: "Pré-Impressão" },
   { id: "ctp", label: "CTP" },
   { id: "digital", label: "Digital" },
