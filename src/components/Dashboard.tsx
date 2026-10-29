@@ -36,6 +36,7 @@ import {
   formatSafeDate,
   parseSafeDate,
 } from "@/lib/processos";
+import { isOrderFromOS, cleanOsNumber } from "@/components/ProductionCard";
 
 interface DashboardProps {
   orders: Order[];
@@ -573,7 +574,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
         const isExplicitComprado = o.processos?.some(
           (p) => p === "COMPRADO" || p.startsWith("COMPRADO:") || p === "COMPRA:ok" || p.startsWith("COMPRA:ok:")
         );
-        const isComprado = isExplicitComprado || (hasItemsToBuy && (!pantoneActive || pantoneSent) && (!outrosActive || outrosSent));
+        const isComprado = isExplicitComprado || o.setor_status === "saida" || (hasItemsToBuy && (!pantoneActive || pantoneSent) && (!outrosActive || outrosSent));
 
         return {
           order: o,
@@ -1004,7 +1005,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
           </div>
 
           <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t border-border/60">
-            <span>Compras: <strong className="font-mono-tech text-foreground">{comprasStats.pendentes} pend.</strong></span>
+            <span>Compras: <strong className="font-pcp text-foreground">{comprasStats.pendentes} pend.</strong></span>
             <button onClick={() => setActiveTab("governanca")} className="text-primary hover:underline text-[11px] font-medium cursor-pointer">Auditar →</button>
           </div>
         </motion.div>
@@ -1383,7 +1384,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                 <div>
                   <div className="flex items-center justify-between pb-3 border-b border-border/60">
                     <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-pink-500/10 text-pink-500">
+                      <div className="p-1.5 rounded-lg bg-sky-500/10 text-sky-400">
                         <ShoppingBag className="h-4 w-4" />
                       </div>
                       <div>
@@ -1395,7 +1396,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                       size="sm"
                       variant="ghost"
                       onClick={() => { setActiveTab("governanca"); setGovernancaSubFilter("compras"); }}
-                      className="text-xs h-7 text-pink-600 dark:text-pink-400 hover:text-pink-700 hover:bg-pink-500/10 px-2.5 rounded-lg saas-interactive"
+                      className="text-xs h-7 text-sky-600 dark:text-sky-400 hover:text-sky-700 hover:bg-sky-500/10 px-2.5 rounded-lg saas-interactive"
                     >
                       Ver Todas
                     </Button>
@@ -1416,16 +1417,22 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                           >
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center gap-2">
-                                <span className="font-mono-tech font-bold text-xs text-foreground">#{c.order.titulo}</span>
+                                <span className="font-pcp font-bold text-xs text-foreground">
+                                  {isOrderFromOS(c.order)
+                                    ? `OS. #${cleanOsNumber(c.order.titulo)}`
+                                    : (c.order as any).oc_numero
+                                    ? `OC. ${String((c.order as any).oc_numero).padStart(4, "0")}`
+                                    : `OS. #${cleanOsNumber(c.order.titulo)}`}
+                                </span>
                                 <span className="text-[11px] font-medium text-foreground truncate">• {(c.order.cliente || "").toUpperCase()}</span>
                                 {c.pantoneActive && (
-                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/15 text-blue-600 dark:text-blue-400 font-bold border border-blue-500/25">
+                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold border border-amber-500/25">
                                     PANTONE
                                   </span>
                                 )}
                                 {c.outrosActive && (
-                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-purple-500/15 text-purple-600 dark:text-purple-400 font-medium border border-purple-500/25">
-                                    INSUMO
+                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 font-medium border border-amber-500/25">
+                                    OUTROS
                                   </span>
                                 )}
                               </div>
@@ -1930,7 +1937,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
               onClick={() => setGovernancaSubFilter("compras")}
               className={`text-xs px-3.5 py-1.5 rounded-xl font-medium transition-all flex items-center gap-1.5 ${
                 governancaSubFilter === "compras"
-                  ? "bg-pink-600 text-white font-bold shadow-xs"
+                  ? "bg-sky-600 text-white font-bold shadow-xs"
                   : "bg-muted/50 text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
             >
@@ -2082,7 +2089,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
               <CardHeader className="pb-3 border-b border-border bg-muted/20">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-pink-600/20 text-pink-500">
+                    <div className="p-1.5 rounded-lg bg-sky-600/20 text-sky-400">
                       <ShoppingBag className="h-4 w-4" />
                     </div>
                     <div>
@@ -2095,10 +2102,10 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="font-mono-tech text-xs bg-emerald-500/15 text-emerald-500 border-emerald-500/30 font-semibold">
+                    <Badge variant="outline" className="font-pcp text-xs bg-emerald-500/15 text-emerald-500 border-emerald-500/30 font-semibold">
                       Comprados: {comprasStats.comprados}
                     </Badge>
-                    <Badge variant="outline" className="font-mono-tech text-xs bg-amber-500/15 text-amber-500 border-amber-500/30 font-semibold">
+                    <Badge variant="outline" className="font-pcp text-xs bg-amber-500/15 text-amber-500 border-amber-500/30 font-semibold">
                       Pendentes: {comprasStats.pendentes}
                     </Badge>
                   </div>
@@ -2131,9 +2138,20 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                         return (
                           <TableRow key={`compras-${c.order.id}`} className="border-border/60 hover:bg-accent/40 transition-colors">
                             <TableCell className="font-medium">
-                              <span className="font-mono-tech font-bold text-sm text-foreground">
-                                #{c.order.titulo}
-                              </span>
+                              <div className="flex items-center gap-1.5 flex-wrap">
+                                <span className="font-pcp font-bold text-sm text-foreground">
+                                  {isOrderFromOS(c.order)
+                                    ? `OS. #${cleanOsNumber(c.order.titulo)}`
+                                    : (c.order as any).oc_numero
+                                    ? `OC. ${String((c.order as any).oc_numero).padStart(4, "0")}`
+                                    : `OS. #${cleanOsNumber(c.order.titulo)}`}
+                                </span>
+                                {isOrderFromOS(c.order) && (c.order as any).oc_numero && (
+                                  <span className="text-[11px] text-muted-foreground font-normal">
+                                    (OC #{(c.order as any).oc_numero})
+                                  </span>
+                                )}
+                              </div>
                             </TableCell>
                             <TableCell>
                               <div className="flex flex-col max-w-[220px]">
@@ -2149,7 +2167,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                             </TableCell>
                             <TableCell>
                               {c.pantoneActive ? (
-                                <Badge variant="outline" className="bg-blue-500/15 text-blue-500 dark:text-blue-400 border-blue-500/30 text-xs font-bold">
+                                <Badge variant="outline" className="bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 text-xs font-bold">
                                   <Palette className="h-3 w-3 mr-1" />
                                   {c.pantoneText ? `Pantone: ${c.pantoneText}` : "Pantone Ativo"}
                                 </Badge>
@@ -2159,7 +2177,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                             </TableCell>
                             <TableCell>
                               {c.outrosActive ? (
-                                <Badge variant="outline" className="bg-purple-500/15 text-purple-500 dark:text-purple-400 border-purple-500/30 text-xs font-medium">
+                                <Badge variant="outline" className="bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 text-xs font-medium">
                                   {c.outrosText || "Insumo Especial"}
                                 </Badge>
                               ) : (
@@ -2187,7 +2205,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                               {c.isComprado ? (
                                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40">
                                   <Check className="h-3.5 w-3.5 stroke-[3]" />
-                                  <span>COMPRADO (VERDE)</span>
+                                  <span>COMPRA CONCLUÍDA</span>
                                 </div>
                               ) : (
                                 <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40">
