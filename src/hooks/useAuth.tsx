@@ -272,6 +272,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (modulosAcesso && modulosAcesso.length > 0) {
       if (modulosAcesso.includes(mod)) return true;
       // Compatibilidade retroativa com módulos legados
+      if (mod === "producao" && (modulosAcesso.includes("ctp") || modulosAcesso.includes("digital") || modulosAcesso.includes("qualidade") || modulosAcesso.includes("producao"))) return true;
       if (mod === "pre_impressao" && modulosAcesso.includes("producao")) return true;
       if (mod === "qualidade" && modulosAcesso.includes("producao")) return true;
       if (mod === "ctp" && modulosAcesso.includes("producao")) return true;

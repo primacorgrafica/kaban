@@ -68,9 +68,10 @@ interface ProductionTableProps {
   departmentContext?: string;
   department?: DepartmentConfig;
   slowAlertIds?: Set<string>;
+  showSectorColumn?: boolean;
 }
 
-type SortField = "titulo" | "cliente" | "status" | "prazo" | "created_at";
+type SortField = "titulo" | "cliente" | "status" | "prazo" | "created_at" | "setor";
 type SortDirection = "asc" | "desc";
 
 export function ProductionTable({
@@ -87,6 +88,7 @@ export function ProductionTable({
   departmentContext,
   department,
   slowAlertIds,
+  showSectorColumn = false,
 }: ProductionTableProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [inspectOrder, setInspectOrder] = useState<Order | null>(null);
@@ -101,6 +103,14 @@ export function ProductionTable({
       if (found) {
         return { label: found.label, colorKey: found.colorKey || "andamento" };
       }
+    }
+    // Se a O.S. tiver setor_status explícito (ex: Produção consolidada)
+    if (order.setor_status) {
+      const sId = order.setor_status;
+      if (sId === "entrada") return { label: "Entrada", colorKey: "entrada" };
+      if (sId === "saida") return { label: "Saída", colorKey: "concluido" };
+      if (sId === "em_andamento" || sId === "gravacao" || sId === "imposicao") return { label: "Em Produção", colorKey: "andamento" };
+      return { label: sId.toUpperCase(), colorKey: "andamento" };
     }
     let st = order.status;
     if (st === "aguardando_novo_arquivo") st = "paralisado";
@@ -143,6 +153,8 @@ export function ProductionTable({
         comparison = da - db;
       } else if (sortField === "created_at") {
         comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      } else if (sortField === "setor") {
+        comparison = (a.setor || "").localeCompare(b.setor || "");
       }
       return sortDirection === "asc" ? comparison : -comparison;
     });
@@ -287,6 +299,14 @@ export function ProductionTable({
                 </div>
               </TableHead>
               <TableHead className="min-w-[240px] text-foreground font-bold">Descrição</TableHead>
+              {showSectorColumn && (
+                <TableHead className="w-28 cursor-pointer select-none" onClick={() => handleSort("setor")}>
+                  <div className="flex items-center gap-1 text-foreground font-bold">
+                    <span>Setor</span>
+                    <ArrowUpDown className="h-3 w-3" />
+                  </div>
+                </TableHead>
+              )}
               <TableHead className="w-36 cursor-pointer select-none" onClick={() => handleSort("status")}>
                 <div className="flex items-center gap-1 text-foreground font-bold">
                   <span>Etapa / Status</span>
@@ -307,7 +327,7 @@ export function ProductionTable({
           <TableBody>
             {sortedOrders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="h-48 text-center text-muted-foreground">
+                <TableCell colSpan={showSectorColumn ? 10 : 9} className="h-48 text-center text-muted-foreground">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Filter className="h-8 w-8 opacity-40 text-muted-foreground" />
                     <span>Nenhuma ordem de serviço encontrada com os filtros atuais.</span>
@@ -390,6 +410,19 @@ export function ProductionTable({
                         {order.descricao || "—"}
                       </span>
                     </TableCell>
+
+                    {/* Setor */}
+                    {showSectorColumn && (
+                      <TableCell>
+                        {order.setor ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold font-mono-tech uppercase bg-[#253745] text-sky-300 border border-[#4A5C6A]/60">
+                            {order.setor}
+                          </span>
+                        ) : (
+                          <span className="text-[10px] text-muted-foreground/60 font-mono-tech">—</span>
+                        )}
+                      </TableCell>
+                    )}
 
                     {/* Status */}
                     <TableCell>

@@ -143,6 +143,13 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
       Object.entries(sectorTitulos).forEach(([setor, titulos]) => {
         counts[setor] = titulos.size;
       });
+      // Contagem de O.S. na fila de entrada da produção
+      const producaoEntradaTitulos = new Set(
+        prodResult.data
+          .filter((row: any) => row.setor_status === "entrada" && !NON_PRODUCTION_SECTORS.includes(row.setor))
+          .map((row: any) => row.titulo)
+      );
+      counts["producao_entrada"] = producaoEntradaTitulos.size;
     }
     // Pre-impressão: count distinct titulo (exclude sub-orders)
     if (preResult.data) {
@@ -236,6 +243,8 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
     ...(hasModule("pcp") ? [{ to: "/pcp", label: "PAINEL O.S", icon: ClipboardList }] : []),
     // 4. PRÉ-IMPRESSÃO
     ...(canAccessSector("pre_impressao") ? [{ to: "/", label: "Pré-Impressão", icon: Monitor, count: deptCountsLoaded ? (deptCounts["pre_impressao"] ?? 0) : undefined }] : []),
+    // 5. PRODUÇÃO (Fila de Entrada em Tabela)
+    ...(hasModule("producao") || canAccessSector("producao") || canAccessSector("ctp") || canAccessSector("digital") || canAccessSector("qualidade") || isAdmin ? [{ to: "/producao", label: "Produção", icon: Factory, count: deptCountsLoaded ? (deptCounts["producao_entrada"] ?? 0) : undefined }] : []),
     // CTP
     ...(canAccessSector("ctp") ? [{ to: "/ctp", label: "CTP", icon: Layers, count: deptCountsLoaded ? (deptCounts["ctp"] ?? 0) : undefined }] : []),
     // DIGITAL
