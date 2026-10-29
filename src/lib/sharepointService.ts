@@ -15,7 +15,7 @@ export const SHAREPOINT_LIBRARY_NAME = "Documentos Compartilhados";
 export const SHAREPOINT_ROOT_FOLDER = "KABAN";
 export const SHAREPOINT_PROTOCOLOS_FOLDER = "PROTOCOLOS ENTREGAS";
 export const SHAREPOINT_PROTOCOLOS_URL =
-  "https://primacorgraficaeditora.sharepoint.com/sites/Produo_grupo/Documentos%20Compartilhados/Forms/AllItems.aspx?id=%2Fsites%2FProduo%5Fgrupo%2FDocumentos%20Compartilhados%2FPROTOCOLOS%20ENTREGAS&viewid=32c00a5e%2Dcce5%2D42f2%2Dafed%2D061024ee0ca4";
+  "https://primacorgraficaeditora.sharepoint.com/:f:/r/sites/Produo_grupo/Documentos%20Compartilhados/PROTOCOLOS%20ENTREGAS?d=w6d1c764f98fa415bb9da6ae45c5cd6c1&csf=1&web=1&e=N7qmhi";
 
 // Limite para upload direto simples (4 MB). Acima disso, usa Upload Session em chunks.
 const DIRECT_UPLOAD_LIMIT_BYTES = 4 * 1024 * 1024;
@@ -273,7 +273,7 @@ export async function ensureKabanRootFolder(): Promise<string> {
 /**
  * Garante que a pasta 'PROTOCOLOS ENTREGAS' existe na raiz da biblioteca Documentos Compartilhados.
  */
-export async function getOrCreateProtocolosFolder(interactiveFallback = false): Promise<SharePointFolderInfo> {
+export async function getOrCreateProtocolosFolder(interactiveFallback = true): Promise<SharePointFolderInfo> {
   if (cachedProtocolosFolderId) {
     const { siteId, driveId } = await resolveSharePointSiteAndDrive(interactiveFallback);
     return {
@@ -362,16 +362,16 @@ export async function getOrCreateProtocolosFolder(interactiveFallback = false): 
 /**
  * Realiza o upload da foto/comprovante do protocolo de entrega diretamente para a pasta
  * 'PROTOCOLOS ENTREGAS' no SharePoint corporativo.
- * Operação 100% silenciosa: NUNCA abre popup interativo nem pede login ao entregador.
  */
 export async function uploadDeliveryProtocolToSharePoint(
   file: File,
   osTitulo: string,
   recebedor?: string,
-  onProgress?: (percent: number) => void
-): Promise<{ success: boolean; driveItem?: DriveItemResponse; error?: string }> {
+  onProgress?: (percent: number) => void,
+  interactiveFallback = true
+): Promise<{ success: boolean; driveItem?: DriveItemResponse; folderInfo?: SharePointFolderInfo; error?: string }> {
   try {
-    const folderInfo = await getOrCreateProtocolosFolder(false);
+    const folderInfo = await getOrCreateProtocolosFolder(interactiveFallback);
 
     const cleanOs = osTitulo.replace(/^OS[\s._-]*/i, "").trim() || "SEM_OS";
     const timestamp = Date.now();
@@ -381,12 +381,12 @@ export async function uploadDeliveryProtocolToSharePoint(
     const targetFileName = `OS_${cleanOs}_Protocolo_${timestamp}${cleanRecebedor}${ext}`;
 
     const protocolFile = new File([file], targetFileName, { type: file.type || "image/jpeg" });
-    const driveItem = await uploadFileToSharePoint(protocolFile, folderInfo, onProgress, undefined, false);
+    const driveItem = await uploadFileToSharePoint(protocolFile, folderInfo, onProgress, undefined, interactiveFallback);
 
-    return { success: true, driveItem };
+    return { success: true, driveItem, folderInfo };
   } catch (err: any) {
-    console.warn("[SharePoint] Upload silencioso de protocolo não realizado (sem autenticação MSAL):", err?.message);
-    return { success: false, error: err.message || "Falha no envio silencioso para o SharePoint." };
+    console.warn("[SharePoint] Falha no upload de protocolo para o SharePoint:", err?.message);
+    return { success: false, error: err.message || "Falha no envio para o SharePoint." };
   }
 }
 

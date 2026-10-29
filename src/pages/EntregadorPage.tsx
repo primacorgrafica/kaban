@@ -11,11 +11,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import {
   updateDriverDeliveryStatus,
-  uploadDeliveryProofFile,
   recordGpsCheckpoint,
   getEntregadoresList,
 } from "@/lib/deliveryService";
-import { uploadDeliveryProtocolToSharePoint } from "@/lib/sharepointService";
+import {
+  uploadDeliveryProtocolToSharePoint,
+  SHAREPOINT_PROTOCOLOS_FOLDER,
+  SHAREPOINT_PROTOCOLOS_URL,
+} from "@/lib/sharepointService";
+import {
+  getActiveMicrosoftAccount,
+  loginMicrosoft,
+  getStoredMicrosoftUser,
+  type StoredMicrosoftUser,
+} from "@/lib/msalClient";
 import type { DeliveryStatus, Entregador } from "@/types/delivery";
 import { DELIVERY_STATUS_CONFIG } from "@/types/delivery";
 import type { Order } from "@/types/order";
@@ -40,6 +49,8 @@ import {
   Bell,
   BellRing,
   Download,
+  Cloud,
+  ExternalLink,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -145,6 +156,37 @@ export default function EntregadorPage() {
 
   const [activeTabFilter, setActiveTabFilter] = useState<"pendentes" | "concluidas">("pendentes");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Microsoft / SharePoint corporativo
+  const [msUser, setMsUser] = useState<StoredMicrosoftUser | null>(() => getStoredMicrosoftUser());
+
+  useEffect(() => {
+    void getActiveMicrosoftAccount().then((acc) => {
+      if (acc) {
+        setMsUser({ name: acc.name || acc.username, username: acc.username });
+      }
+    });
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "kaban_msal_user_info") {
+        setMsUser(getStoredMicrosoftUser());
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
+  const handleConnectMicrosoft = async () => {
+    try {
+      const acc = await loginMicrosoft();
+      if (acc) {
+        setMsUser({ name: acc.name || acc.username, username: acc.username });
+        toast.success(`Conectado ao SharePoint corporativo como ${acc.name || acc.username}`);
+      }
+    } catch (err: any) {
+      toast.error(`Falha ao conectar Microsoft: ${err?.message || err}`);
+    }
+  };
 
   // PWA Install Prompt
   const [deferredPrompt, setDeferredPrompt] = useState<any>(() => {
@@ -466,36 +508,53 @@ export default function EntregadorPage() {
     }
 
     setSubmittingCompletion(true);
-    let uploadSuccess = true;
 
-    // Se houver arquivo de comprovante, realiza upload para o armazenamento seguro da Primacor
+    // Se houver arquivo de comprovante, realiza upload DIRETAMENTE para a pasta do SharePoint (PROTOCOLOS ENTREGAS)
     if (proofFile) {
-      const uploadRes = await uploadDeliveryProofFile(completionOrder.id, proofFile);
-      if (!uploadRes.success) {
-        toast.error(`Aviso no comprovante: ${uploadRes.error}. Prosseguindo com status...`);
-        uploadSuccess = false;
-      }
-
-      // Sincronização em segundo plano com o SharePoint 100% silenciosa (NUNCA solicita login ou abre popup para o entregador)
-      void uploadDeliveryProtocolToSharePoint(
+      toast.info("Enviando foto do protocolo para a pasta do SharePoint...");
+      const spRes = await uploadDeliveryProtocolToSharePoint(
         proofFile,
         completionOrder.titulo || completionOrder.id,
-        recipientName.trim()
-      )
-        .then(async (spRes) => {
-          if (spRes.success) {
-            await supabase
-              .from("orders")
-              .update({ status_comprovante_sync: "sincronizado" } as any)
-              .eq("id", completionOrder.id);
-          } else {
-            await supabase
-              .from("orders")
-              .update({ status_comprovante_sync: "pendente_sharepoint" } as any)
-              .eq("id", completionOrder.id);
-          }
-        })
-        .catch(() => {});
+        recipientName.trim(),
+        undefined,
+        true // Permite popup interativo do MSAL caso ainda não esteja autenticado
+      );
+
+      if (!spRes.success) {
+        toast.error(`Falha ao salvar no SharePoint: ${spRes.error || "Erro de conexão"}. Verifique o login Microsoft e tente novamente.`);
+        setSubmittingCompletion(false);
+        return;
+      }
+
+      // Registra o anexo no Supabase (order_attachments) para visualização e rastreabilidade instantânea
+      if (spRes.driveItem && spRes.folderInfo) {
+        try {
+          await supabase.from("order_attachments" as any).insert({
+            order_id: completionOrder.id,
+            nome_arquivo: spRes.driveItem.name || proofFile.name,
+            tamanho_bytes: spRes.driveItem.size || proofFile.size,
+            content_type: proofFile.type || "image/jpeg",
+            sharepoint_item_id: spRes.driveItem.id,
+            sharepoint_folder_id: spRes.folderInfo.folderId,
+            sharepoint_folder_name: spRes.folderInfo.folderName,
+            sharepoint_drive_id: spRes.folderInfo.driveId,
+            sharepoint_site_id: spRes.folderInfo.siteId,
+            sharepoint_web_url: spRes.driveItem.webUrl,
+            sharepoint_path: `${SHAREPOINT_PROTOCOLOS_FOLDER}/${spRes.driveItem.name}`,
+            status: "sincronizado",
+          });
+        } catch (attErr) {
+          console.warn("[EntregadorPage] Erro ao gravar metadados em order_attachments:", attErr);
+        }
+      }
+
+      // Atualiza status do comprovante na ordem
+      await supabase
+        .from("orders")
+        .update({ status_comprovante_sync: "sincronizado" } as any)
+        .eq("id", completionOrder.id);
+
+      toast.success("Foto do protocolo salva com sucesso na pasta do SharePoint!");
     }
 
     const res = await updateDriverDeliveryStatus({
@@ -1011,6 +1070,29 @@ export default function EntregadorPage() {
           </DialogHeader>
 
           <div className="flex flex-col gap-4 py-2 text-xs">
+            {/* Destino corporativo no SharePoint */}
+            <div className="rounded-lg bg-sky-950/40 border border-sky-800/40 p-2.5 flex items-center justify-between text-xs">
+              <div className="flex items-center gap-2 text-sky-200">
+                <Cloud className="h-4 w-4 text-sky-400 shrink-0" />
+                <span>Destino: <strong>SharePoint · PROTOCOLOS ENTREGAS</strong></span>
+              </div>
+              {!msUser ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={handleConnectMicrosoft}
+                  className="h-6 text-[11px] border-amber-500/50 text-amber-300 hover:bg-amber-500/20"
+                >
+                  Conectar MS 365
+                </Button>
+              ) : (
+                <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/30">
+                  Conectado
+                </Badge>
+              )}
+            </div>
+
             {/* Nome de quem recebeu */}
             <div className="space-y-1.5">
               <Label htmlFor="recipient-name" className="text-zinc-200 font-semibold">

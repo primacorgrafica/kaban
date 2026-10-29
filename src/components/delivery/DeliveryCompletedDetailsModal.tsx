@@ -44,6 +44,7 @@ interface ProofFileItem {
   name: string;
   url: string;
   createdAt?: string;
+  isSharePoint?: boolean;
 }
 
 export function DeliveryCompletedDetailsModal({
@@ -69,6 +70,25 @@ export function DeliveryCompletedDetailsModal({
     const loadProofFiles = async () => {
       setLoadingProof(true);
       try {
+        // 1. Busca primeiro no SharePoint corporativo via order_attachments
+        const { data: attachmentsData } = await supabase
+          .from("order_attachments" as any)
+          .select("*")
+          .eq("order_id", order.id)
+          .order("created_at", { ascending: false });
+
+        if (attachmentsData && attachmentsData.length > 0) {
+          const files = attachmentsData.map((att: any) => ({
+            name: att.nome_arquivo,
+            url: att.sharepoint_web_url || SHAREPOINT_PROTOCOLOS_URL,
+            createdAt: att.created_at,
+            isSharePoint: true,
+          }));
+          setProofFiles(files);
+          return;
+        }
+
+        // 2. Fallback: legado em Supabase Storage para ordens antigas
         const { data, error } = await supabase.storage
           .from("comprovantes-entrega")
           .list(order.id, {
@@ -77,7 +97,7 @@ export function DeliveryCompletedDetailsModal({
           });
 
         if (error) {
-          console.warn("[DeliveryModal] Erro ao listar comprovantes:", error);
+          console.warn("[DeliveryModal] Erro ao listar comprovantes legados:", error);
           setProofFiles([]);
           return;
         }
@@ -98,6 +118,7 @@ export function DeliveryCompletedDetailsModal({
                     name: file.name,
                     url: signedData.signedUrl,
                     createdAt: file.created_at,
+                    isSharePoint: false,
                   };
                 }
 
@@ -110,10 +131,11 @@ export function DeliveryCompletedDetailsModal({
                   name: file.name,
                   url: pubData.publicUrl,
                   createdAt: file.created_at,
+                  isSharePoint: false,
                 };
               })
           );
-          setProofFiles(filesWithUrls);
+          setProofFiles(filesWithUrls.filter((f) => f.url));
         } else {
           setProofFiles([]);
         }
@@ -316,25 +338,45 @@ export function DeliveryCompletedDetailsModal({
                     <div
                       key={idx}
                       className="group relative rounded-lg border border-[#253745] overflow-hidden bg-black/60 hover:border-cyan-500/60 transition-all cursor-pointer flex items-center justify-center"
-                      onClick={() => setSelectedProofPreview(file.url)}
+                      onClick={() => {
+                        if (file.isSharePoint && file.url) {
+                          window.open(file.url, "_blank");
+                        } else {
+                          setSelectedProofPreview(file.url);
+                        }
+                      }}
                     >
-                      <img
-                        src={file.url}
-                        alt={`Comprovante ${order.titulo}`}
-                        className={cn(
-                          "w-full object-contain group-hover:scale-[1.02] transition-transform duration-200 bg-black/40",
-                          proofFiles.length === 1 ? "h-64 sm:h-72" : "h-44 sm:h-52"
-                        )}
-                        loading="lazy"
-                      />
+                      {file.isSharePoint ? (
+                        <div className="flex flex-col items-center justify-center p-6 text-center gap-2 w-full h-44 bg-[#0d1824] hover:bg-[#11212d] transition-colors">
+                          <ImageIcon className="h-10 w-10 text-cyan-400 group-hover:scale-110 transition-transform" />
+                          <span className="text-xs font-semibold text-slate-200 truncate max-w-full px-2" title={file.name}>
+                            {file.name}
+                          </span>
+                          <span className="text-[10px] text-cyan-300 flex items-center gap-1 font-mono-tech">
+                            <ExternalLink className="h-3 w-3" /> Abrir no SharePoint
+                          </span>
+                        </div>
+                      ) : (
+                        <img
+                          src={file.url}
+                          alt={`Comprovante ${order.titulo}`}
+                          className={cn(
+                            "w-full object-contain group-hover:scale-[1.02] transition-transform duration-200 bg-black/40",
+                            proofFiles.length === 1 ? "h-64 sm:h-72" : "h-44 sm:h-52"
+                          )}
+                          loading="lazy"
+                        />
+                      )}
                       <a
                         href={file.url}
-                        download={file.name}
+                        target={file.isSharePoint ? "_blank" : undefined}
+                        download={!file.isSharePoint ? file.name : undefined}
+                        rel={file.isSharePoint ? "noopener noreferrer" : undefined}
                         onClick={(e) => e.stopPropagation()}
                         className="absolute bottom-2 right-2 p-1.5 rounded-lg bg-black/75 hover:bg-black text-cyan-300 shadow transition-colors border border-white/10"
-                        title="Baixar imagem"
+                        title={file.isSharePoint ? "Abrir no SharePoint" : "Baixar imagem"}
                       >
-                        <Download className="h-3.5 w-3.5" />
+                        {file.isSharePoint ? <ExternalLink className="h-3.5 w-3.5" /> : <Download className="h-3.5 w-3.5" />}
                       </a>
                     </div>
                   ))}
@@ -342,7 +384,7 @@ export function DeliveryCompletedDetailsModal({
               ) : (
                 <div className="py-2.5 text-center text-[11px] text-slate-400 flex items-center justify-center gap-1.5">
                   <FileCheck className="h-3.5 w-3.5 text-slate-500" />
-                  <span>Foto arquivada na pasta corporativa de entregas.</span>
+                  <span>Foto arquivada no SharePoint corporativo (PROTOCOLOS ENTREGAS).</span>
                 </div>
               )}
             </div>
