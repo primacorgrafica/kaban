@@ -268,10 +268,10 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
   ];
 
   // Menus após Utilidades:
-  // 14. TRABALHOS CONCLUÍDOS
+  // 14. O.S. CONCLUÍDAS
   // 15. DASHBOARD
   const navItemsSecondary = [
-    ...(hasModule("trabalhos_concluidos") ? [{ to: "/arquivados", label: "Trabalhos Concluídos", icon: Archive, count: countsLoading ? undefined : archivedCount }] : []),
+    ...(hasModule("trabalhos_concluidos") ? [{ to: "/arquivados", label: "O.S. Concluídas", icon: Archive, count: countsLoading ? undefined : archivedCount }] : []),
     ...(hasModule("dashboard") ? [{ to: "/dashboard", label: "Dashboard", icon: BarChart3 }] : []),
   ];
 
@@ -732,7 +732,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
         }}
         onArchive={async (id) => {
           await supabase.from("orders").update({ arquivado: true, atualizado_por: user?.id || null }).eq("id", id);
-          toast.success("O.S. movida para Trabalhos Concluídos.");
+          toast.success("O.S. movida para O.S. Concluídas.");
           setInspectOrder(null);
         }}
         onDelete={async (id) => {

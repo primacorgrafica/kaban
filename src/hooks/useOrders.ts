@@ -592,7 +592,7 @@ export function useOrders() {
       .update({ arquivado: true, atualizado_por: user?.id || null })
       .eq("parent_order_id", id);
     if (childError) console.error("Erro ao arquivar sub-ordens:", childError);
-    toast.success("O.S. movida para Trabalhos Concluídos!");
+    toast.success("O.S. movida para O.S. Concluídas!");
   }, [user]);
 
   const unarchiveOrder = useCallback(async (id: string) => {
@@ -814,7 +814,7 @@ export function useOrders() {
     return true;
   });
 
-  // 2. Trabalhos Concluídos: TODAS as O.S. arquivadas da empresa, de qualquer setor
+  // 2. O.S. Concluídas: TODAS as O.S. arquivadas da empresa, de qualquer setor
   const archivedOrders = orders.filter((o) => {
     if (!o.arquivado) return false;
     // Exclui sub-ordens filhas de processo (P, F) a não ser que sejam ordens especiais (OM, OC, NC)

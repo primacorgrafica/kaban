@@ -108,7 +108,7 @@ const Index = () => {
       onAddOrder={addOrder}
       activeCount={activeOrders.length}
       archivedCount={archivedOrders.length}
-      sectorName={isDashboard ? "Dashboard" : isArchived ? "Trabalhos Concluídos" : "Pré-Impressão"}
+      sectorName={isDashboard ? "Dashboard" : isArchived ? "O.S. Concluídas" : "Pré-Impressão"}
       countsLoading={loading}
       permissions={perms}
     >
@@ -130,7 +130,7 @@ const Index = () => {
           onDelete={deleteOrder}
         />
       ) : isArchived ? (
-        <div className="flex items-center justify-center h-full text-muted-foreground">Sem permissão para acessar os Trabalhos Concluídos.</div>
+        <div className="flex items-center justify-center h-full text-muted-foreground">Sem permissão para acessar as O.S. Concluídas.</div>
       ) : (
         <div className="flex flex-col min-h-full gap-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
