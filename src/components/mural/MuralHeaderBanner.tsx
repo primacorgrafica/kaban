@@ -11,6 +11,46 @@ export function MuralHeaderBanner() {
   const [editOpen, setEditOpen] = useState(false);
   const [selectedAlerta, setSelectedAlerta] = useState<MuralAlerta | null>(null);
 
+  // Constrói o texto do letreiro exatamente no mesmo padrão e velocidade do Radar PCP
+  // Regra de Hooks do React: Declarado incondicionalmente no topo ANTES de qualquer retorno
+  const renderedMarquee = useMemo(() => {
+    if (!activeAlerts || activeAlerts.length === 0) return null;
+
+    const renderAlertGroup = (prefixKey: string) => {
+      return activeAlerts.map((alerta, idx) => {
+        const isUrg = alerta.tipo === "urgente";
+        const isImp = alerta.tipo === "importante";
+        const tagText = isUrg ? "URGENTE" : isImp ? "IMPORTANTE" : "INFORMATIVO";
+        const tagClass = isUrg
+          ? "text-red-600 dark:text-red-400 font-black tracking-wider"
+          : isImp
+          ? "text-amber-600 dark:text-amber-400 font-black tracking-wider"
+          : "text-sky-500 dark:text-sky-400 font-black tracking-wider";
+
+        return (
+          <span
+            key={`${prefixKey}-${alerta.id}-${idx}`}
+            className="inline-flex items-center gap-1.5 mx-4"
+          >
+            <span className={tagClass}>[{tagText}]</span>
+            <strong className="text-foreground tracking-wide font-bold">{alerta.titulo}:</strong>
+            <span className="text-foreground/90 font-medium">{alerta.mensagem}</span>
+            <span className="text-muted-foreground/60 mx-3 select-none">✦✦✦</span>
+          </span>
+        );
+      });
+    };
+
+    // Renderiza duas vezes consecutivas para manter o fluxo contínuo sem interrupção
+    return (
+      <>
+        {renderAlertGroup("stream-1")}
+        {renderAlertGroup("stream-2")}
+      </>
+    );
+  }, [activeAlerts]);
+
+  // Se não houver alertas ativos, não renderiza o banner (executado APÓS todas as declarações de Hooks)
   if (!activeAlerts || activeAlerts.length === 0) {
     return null;
   }
@@ -50,42 +90,6 @@ export function MuralHeaderBanner() {
     setSelectedAlerta(alerta);
     setEditOpen(true);
   };
-
-  // Constrói o texto do letreiro exatamente no mesmo padrão e velocidade do Radar PCP
-  const renderedMarquee = useMemo(() => {
-    const renderAlertGroup = (prefixKey: string) => {
-      return activeAlerts.map((alerta, idx) => {
-        const isUrg = alerta.tipo === "urgente";
-        const isImp = alerta.tipo === "importante";
-        const tagText = isUrg ? "URGENTE" : isImp ? "IMPORTANTE" : "INFORMATIVO";
-        const tagClass = isUrg
-          ? "text-red-600 dark:text-red-400 font-black tracking-wider"
-          : isImp
-          ? "text-amber-600 dark:text-amber-400 font-black tracking-wider"
-          : "text-sky-500 dark:text-sky-400 font-black tracking-wider";
-
-        return (
-          <span
-            key={`${prefixKey}-${alerta.id}-${idx}`}
-            className="inline-flex items-center gap-1.5 mx-4"
-          >
-            <span className={tagClass}>[{tagText}]</span>
-            <strong className="text-foreground tracking-wide font-bold">{alerta.titulo}:</strong>
-            <span className="text-foreground/90 font-medium">{alerta.mensagem}</span>
-            <span className="text-muted-foreground/60 mx-3 select-none">✦✦✦</span>
-          </span>
-        );
-      });
-    };
-
-    // Renderiza duas vezes consecutivas para manter o fluxo contínuo sem interrupção
-    return (
-      <>
-        {renderAlertGroup("stream-1")}
-        {renderAlertGroup("stream-2")}
-      </>
-    );
-  }, [activeAlerts]);
 
   return (
     <>

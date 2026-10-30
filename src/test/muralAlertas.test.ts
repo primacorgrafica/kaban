@@ -1,6 +1,9 @@
+import React from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { renderHook, act } from "@testing-library/react";
+import { renderHook, act, render } from "@testing-library/react";
 import { useMuralAlertas } from "../hooks/useMuralAlertas";
+import { MuralHeaderBanner } from "@/components/mural/MuralHeaderBanner";
+import { MemoryRouter } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import * as useAuthModule from "../hooks/useAuth";
 
@@ -353,5 +356,40 @@ describe("Mural de Alertas - Hook e Lógica de Negócio", () => {
     expect(deletedAvisoId).toBe("aviso-100");
     expect(insertedAvisoPayload.tipo).toBe("mural:info");
     expect(result.current.alertas[0].tipo).toBe("info");
+  });
+
+  it("deve renderizar o letreiro contínuo MuralHeaderBanner sem erros de hooks (Error #310)", async () => {
+    (supabase.from as any).mockImplementation((table: string) => {
+      if (table === "mural_alertas") {
+        return {
+          select: vi.fn().mockReturnThis(),
+          order: vi.fn().mockResolvedValue({
+            data: mockAlertasData,
+            error: null,
+          }),
+        };
+      }
+      return { select: vi.fn().mockReturnThis() };
+    });
+
+    const element = React.createElement(
+      MemoryRouter,
+      null,
+      React.createElement(MuralHeaderBanner)
+    );
+
+    let container: any;
+    let rerender: any;
+    await act(async () => {
+      const res = render(element);
+      container = res.container;
+      rerender = res.rerender;
+    });
+
+    await act(async () => {
+      rerender(element);
+    });
+
+    expect(container).toBeDefined();
   });
 });
