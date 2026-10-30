@@ -14,6 +14,7 @@ import { CreateOCDialog } from "./CreateOCDialog";
 
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import { ROLE_LABELS, AppRole } from "@/hooks/usePermissions";
 import { useAvisos, Aviso } from "@/hooks/useAvisos";
 import { NotificationBell } from "./NotificationBell";
 import { AvisoPopup } from "./AvisoPopup";
@@ -72,6 +73,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
     });
   };
   const { unreadChatCount } = useChatNotification();
+  const userRoleLabel = role ? (ROLE_LABELS[role as AppRole] || role) : (isAdmin ? "Administrador" : "Usuário");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [changePasswordOpen, setChangePasswordOpen] = useState(false);
@@ -545,7 +547,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
               <button
                 type="button"
                 className="w-10 h-10 rounded-xl bg-card border border-border flex items-center justify-center text-xs font-bold text-primary cursor-pointer hover:border-[#9BA8AB]/50 shadow-xs transition-colors"
-                title={`${user?.email} (${isAdmin ? "Admin" : "Operador"})`}
+                title={`${user?.email} (${userRoleLabel})`}
                 onClick={toggleSidebarCollapse}
               >
                 {user?.email?.charAt(0).toUpperCase() || "U"}
@@ -568,7 +570,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
                   {user?.email}
                 </div>
                 <div className="text-[10px] text-[#9BA8AB] font-mono-tech mt-0.5 uppercase tracking-wider font-semibold">
-                  {isAdmin ? "Administrador" : "Operador"}
+                  {userRoleLabel}
                 </div>
               </div>
               {isAdmin && (

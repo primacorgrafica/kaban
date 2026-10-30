@@ -68,6 +68,15 @@ describe("Security & Default-Deny Module Authorization", () => {
     expect(checkModuleAccess("vendedor", customUserModules, "pcp")).toBe(false);
     expect(checkModuleAccess("vendedor", customUserModules, "producao")).toBe(false);
   });
+
+  it("should have correct human-readable role labels for all roles including coordenador and rh", async () => {
+    const { ROLE_LABELS } = await import("@/hooks/usePermissions");
+    expect(ROLE_LABELS.coordenador).toBe("Coordenador");
+    expect(ROLE_LABELS.admin).toBe("Administrador");
+    expect(ROLE_LABELS.operador).toBe("Operador");
+    expect(ROLE_LABELS.rh).toBe("RH");
+    expect(ROLE_LABELS.entregador).toBe("Entregador");
+  });
 });
 
 describe("Order Family Referential Integrity", () => {

@@ -2,6 +2,18 @@ import { useAuth } from "./useAuth";
 
 export type AppRole = "admin" | "coordenador" | "operador" | "vendedor" | "user" | "orcamentista" | "impressor" | "entregador" | "rh";
 
+export const ROLE_LABELS: Record<AppRole, string> = {
+  admin: "Administrador",
+  coordenador: "Coordenador",
+  operador: "Operador",
+  vendedor: "Vendedor",
+  user: "Usuário",
+  orcamentista: "Orçamentista",
+  impressor: "Impressor",
+  entregador: "Entregador",
+  rh: "RH",
+};
+
 // Level mapping
 const ROLE_LEVEL: Record<AppRole, number> = {
   admin: 4,
@@ -22,6 +34,7 @@ export function usePermissions() {
 
   return {
     role: currentRole,
+    roleLabel: ROLE_LABELS[currentRole] || "Usuário",
     level,
 
     // Admin (4), Coordenador (3), RH (comunicação/gestão) ou quem tem módulo dashboard
