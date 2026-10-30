@@ -4,9 +4,42 @@ import { useAuth } from "./useAuth";
 import { MuralAlerta, MuralAlertaInput, MuralTipo } from "@/types/mural";
 import { toast } from "sonner";
 
+const CACHE_KEY = "kaban_mural_alertas_v1";
+
+const DEFAULT_ALERTA: MuralAlerta = {
+  id: "mural-init-1",
+  titulo: "TESTANDO KABAN",
+  mensagem: "TESTANDO KABAN",
+  tipo: "urgente",
+  ativo: true,
+  criado_por: null,
+  created_at: new Date().toISOString(),
+};
+
+function getCachedAlertas(): MuralAlerta[] {
+  try {
+    if (typeof window !== "undefined") {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    }
+  } catch (_) {}
+  return [DEFAULT_ALERTA];
+}
+
+function saveCachedAlertas(alertas: MuralAlerta[]) {
+  try {
+    if (typeof window !== "undefined") {
+      localStorage.setItem(CACHE_KEY, JSON.stringify(alertas));
+    }
+  } catch (_) {}
+}
+
 export function useMuralAlertas() {
   const { user, isAdmin, role } = useAuth();
-  const [alertas, setAlertas] = useState<MuralAlerta[]>([]);
+  const [alertas, setAlertas] = useState<MuralAlerta[]>(() => getCachedAlertas());
   const [loading, setLoading] = useState(true);
   const [usingFallback, setUsingFallback] = useState(false);
 
@@ -25,7 +58,13 @@ export function useMuralAlertas() {
 
       if (!muralError && muralData) {
         setUsingFallback(false);
-        setAlertas(muralData as unknown as MuralAlerta[]);
+        if (muralData.length > 0) {
+          setAlertas(muralData as unknown as MuralAlerta[]);
+          saveCachedAlertas(muralData as unknown as MuralAlerta[]);
+        } else {
+          const cached = getCachedAlertas();
+          if (cached.length > 0) setAlertas(cached);
+        }
         return;
       }
 
@@ -55,7 +94,14 @@ export function useMuralAlertas() {
               created_at: a.created_at,
             };
           });
-          setAlertas(mapped);
+
+          if (mapped.length > 0) {
+            setAlertas(mapped);
+            saveCachedAlertas(mapped);
+          } else {
+            const cached = getCachedAlertas();
+            if (cached.length > 0) setAlertas(cached);
+          }
           return;
         }
       }
@@ -127,6 +173,21 @@ export function useMuralAlertas() {
       created_at: input.created_at ? new Date(input.created_at).toISOString() : new Date().toISOString(),
     };
 
+    const newAlert: MuralAlerta = {
+      id: crypto.randomUUID(),
+      titulo: payload.titulo,
+      mensagem: payload.mensagem,
+      tipo: payload.tipo,
+      ativo: payload.ativo,
+      criado_por: payload.criado_por,
+      created_at: payload.created_at,
+    };
+    setAlertas((prev) => {
+      const next = [newAlert, ...prev.filter((a) => a.id !== newAlert.id)];
+      saveCachedAlertas(next);
+      return next;
+    });
+
     try {
       // 1. Tenta inserir na tabela dedicada
       if (!usingFallback) {
@@ -185,9 +246,9 @@ export function useMuralAlertas() {
       const isAtivo = input.ativo !== undefined ? input.ativo : existing?.ativo ?? true;
       const targetCreatedAt = input.created_at ? new Date(input.created_at).toISOString() : existing?.created_at || new Date().toISOString();
 
-      // Atualização otimista imediata no estado local
-      setAlertas((prev) =>
-        prev.map((a) =>
+      // Atualização otimista imediata no estado local e cache
+      setAlertas((prev) => {
+        const next = prev.map((a) =>
           a.id === id
             ? {
                 ...a,
@@ -198,8 +259,10 @@ export function useMuralAlertas() {
                 created_at: targetCreatedAt,
               }
             : a
-        )
-      );
+        );
+        saveCachedAlertas(next);
+        return next;
+      });
 
       // 1. Tenta atualizar na tabela dedicada mural_alertas
       if (!usingFallback) {
@@ -300,6 +363,11 @@ export function useMuralAlertas() {
       if (!usingFallback) {
         const { error } = await supabase.from("mural_alertas" as any).delete().eq("id", id);
         if (!error) {
+          setAlertas((prev) => {
+            const next = prev.filter((a) => a.id !== id);
+            saveCachedAlertas(next);
+            return next;
+          });
           toast.success("Alerta removido do mural!");
           await fetchAlertas();
           return { success: true };
@@ -318,6 +386,11 @@ export function useMuralAlertas() {
         return { success: false, error: fErr.message };
       }
 
+      setAlertas((prev) => {
+        const next = prev.filter((a) => a.id !== id);
+        saveCachedAlertas(next);
+        return next;
+      });
       toast.success("Alerta removido!");
       await fetchAlertas();
       return { success: true };

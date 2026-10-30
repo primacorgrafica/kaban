@@ -23,6 +23,7 @@ export function useAvisos() {
     const { data } = await supabase
       .from("avisos")
       .select("*")
+      .not("tipo", "ilike", "mural%")
       .or(`destinatario_id.is.null,destinatario_id.eq.${user.id}`)
       .order("created_at", { ascending: false });
 
@@ -87,10 +88,11 @@ export function useAvisos() {
     if (!user) return;
     // Remove all read-tracking records for this user
     await supabase.from("avisos_lidos").delete().eq("user_id", user.id);
-    // Remove avisos targeted to this user or global (null)
+    // Remove avisos targeted to this user or global (null), exceto alertas do mural
     await supabase
       .from("avisos")
       .delete()
+      .not("tipo", "ilike", "mural%")
       .or(`destinatario_id.is.null,destinatario_id.eq.${user.id}`);
     setAvisos([]);
     setLidos(new Set());
