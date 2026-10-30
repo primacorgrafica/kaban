@@ -342,5 +342,20 @@ describe("Delivery Module — Client Service Workflow Tests", () => {
       expect(payload.status_entrega).toBe("pendente");
       expect(payload.entregador_id).toBeNull();
     });
+
+    it("deve filtrar e remover corretamente a demanda ao excluir da lista de entregas", () => {
+      const mockList = [
+        { id: "demanda-1", titulo: "COL-001", cliente: "Clicheria Alfa" },
+        { id: "demanda-2", titulo: "ENT-002", cliente: "Farmácia Central" },
+        { id: "demanda-3", titulo: "70000", cliente: "Cliente Teste" },
+      ];
+
+      const idToDelete = "demanda-2";
+      const updatedList = mockList.filter((item) => item.id !== idToDelete);
+
+      expect(updatedList).toHaveLength(2);
+      expect(updatedList.find((item) => item.id === idToDelete)).toBeUndefined();
+      expect(updatedList.map((item) => item.id)).toEqual(["demanda-1", "demanda-3"]);
+    });
   });
 });

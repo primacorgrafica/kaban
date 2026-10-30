@@ -11,7 +11,17 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { X, CalendarIcon, FileDown, Bike, Radio, UserPlus, CloudUpload, Activity, Plus, PackagePlus, Truck, AlertTriangle } from "lucide-react";
+import { X, CalendarIcon, FileDown, Bike, Radio, UserPlus, CloudUpload, Activity, Plus, PackagePlus, Truck, AlertTriangle, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { format, parseISO, startOfDay, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -34,7 +44,7 @@ import { DELIVERY_STATUS_CONFIG } from "@/types/delivery";
 export default function EntregasPage() {
   const { user, authReady } = useAuth();
   const permissions = usePermissions();
-  const { activeOrders, archivedOrders, loading: ordersLoading } = useOrders();
+  const { activeOrders, archivedOrders, loading: ordersLoading, deleteOrder } = useOrders();
 
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +55,8 @@ export default function EntregasPage() {
   const [selectedDeliveredOrder, setSelectedDeliveredOrder] = useState<Order | null>(null);
   const [showMonitoring, setShowMonitoring] = useState(false);
   const [createDemandOpen, setCreateDemandOpen] = useState(false);
+  const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [entregadores, setEntregadores] = useState<Entregador[]>([]);
 
   useEffect(() => {
@@ -282,6 +294,21 @@ export default function EntregasPage() {
     }
   };
 
+  const handleConfirmDelete = async () => {
+    if (!orderToDelete) return;
+    setIsDeleting(true);
+    try {
+      await deleteOrder(orderToDelete.id);
+      setAllOrders((prev) => prev.filter((o) => o.id !== orderToDelete.id));
+      setOrderToDelete(null);
+    } catch (err: any) {
+      console.error("[EntregasPage] Erro ao excluir demanda:", err);
+      toast.error(`Erro ao excluir: ${err.message || "Falha na exclusão"}`);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const getSectorLabel = (setor: string | null) => {
     if (!setor) return "—";
     const dept = DEPARTMENT_MAP[setor as keyof typeof DEPARTMENT_MAP];
@@ -438,7 +465,7 @@ export default function EntregasPage() {
           <div className="flex items-center justify-center h-full text-muted-foreground">Carregando dados...</div>
         ) : (
           <div className="border rounded-lg overflow-x-auto overflow-y-auto flex-1 scrollbar-light">
-            <Table className="table-fixed min-w-[1240px]">
+            <Table className="table-fixed min-w-[1290px]">
               <TableHeader>
                  <TableRow className="bg-muted/50 [&>th]:px-2 [&>th]:py-2 [&>th]:h-9">
                   <TableHead className="whitespace-nowrap w-[85px]">Flags</TableHead>
@@ -452,12 +479,13 @@ export default function EntregasPage() {
                   <TableHead className="whitespace-nowrap w-[90px]">Vendedor</TableHead>
                   <TableHead className="whitespace-nowrap w-[150px]">Entregador</TableHead>
                   <TableHead className="whitespace-nowrap w-[200px]">Endereço de Entrega</TableHead>
+                  <TableHead className="whitespace-nowrap w-[50px] text-center">Excluir</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rowsWithSeparators.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={12} className="text-center text-muted-foreground py-8">
                       Nenhuma OS encontrada
                     </TableCell>
                   </TableRow>
@@ -466,7 +494,7 @@ export default function EntregasPage() {
                     if (row.type === "separator") {
                       return (
                         <TableRow key={`sep-${idx}`} className="hover:bg-transparent">
-                          <TableCell colSpan={11} className="h-6 bg-muted/30 border-t border-b text-xs text-muted-foreground font-medium px-3">
+                          <TableCell colSpan={12} className="h-6 bg-muted/30 border-t border-b text-xs text-muted-foreground font-medium px-3">
                             {row.dateLabel}
                           </TableCell>
                         </TableRow>
@@ -542,7 +570,7 @@ export default function EntregasPage() {
                               className="flex items-center gap-1.5 hover:opacity-80 transition-opacity text-left max-w-[145px]"
                               title={
                                 order.status_entrega === "entregue"
-                                  ? "Clique para ver comprovante, recebedor e visualizar protocolo"
+                                   ? "Clique para ver comprovante, recebedor e visualizar protocolo"
                                   : "Clique para gerenciar atribuição do motoboy"
                               }
                             >
@@ -574,6 +602,17 @@ export default function EntregasPage() {
                             address={order.entrega_endereco}
                             fallbackAddress={order.endereco_entrega}
                           />
+                        </TableCell>
+                        <TableCell className="text-center whitespace-nowrap py-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setOrderToDelete(order)}
+                            className="h-7 w-7 text-muted-foreground hover:text-red-500 hover:bg-red-500/15 transition-colors"
+                            title="Excluir da lista"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
                         </TableCell>
                       </TableRow>
                     );
@@ -621,6 +660,40 @@ export default function EntregasPage() {
         onSuccess={fetchOrders}
         entregadores={entregadores}
       />
+
+      {/* DIÁLOGO DE CONFIRMAÇÃO DE EXCLUSÃO */}
+      <AlertDialog open={!!orderToDelete} onOpenChange={(open) => !open && setOrderToDelete(null)}>
+        <AlertDialogContent className="bg-card border-border shadow-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
+              <Trash2 className="h-4 w-4 text-red-500" />
+              Excluir da Programação de Entregas?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-xs text-muted-foreground">
+              Tem certeza que deseja excluir{" "}
+              {orderToDelete?.tipo_entrega?.includes("coleta")
+                ? "a demanda de coleta"
+                : orderToDelete?.tipo_entrega?.includes("demanda_manual")
+                ? "a demanda de entrega"
+                : "a O.S."}{" "}
+              <strong className="text-foreground">#{orderToDelete?.titulo}</strong> ({orderToDelete?.cliente})?
+              Esta ação removerá o item da lista de entregas.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="text-xs" disabled={isDeleting}>
+              Cancelar
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold"
+            >
+              {isDeleting ? "Excluindo..." : "Sim, Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Layout>
   );
 }
