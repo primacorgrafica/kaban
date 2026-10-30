@@ -295,7 +295,7 @@ describe("Delivery Module — Client Service Workflow Tests", () => {
   });
 
   describe("Inclusão de Demanda Manual (Coleta e Entrega)", () => {
-    it("deve estruturar corretamente uma demanda manual de COLETA (Buscar Algo)", () => {
+    it("deve estruturar corretamente uma demanda manual de COLETA", () => {
       const isColeta = true;
       const finalTitulo = "COL-1030-999";
       const payload = {

@@ -224,7 +224,7 @@ export function CreateDeliveryDemandModal({
               >
                 <div className="flex items-center gap-2 font-bold text-sm text-amber-400">
                   <PackagePlus className="h-4 w-4" />
-                  <span>Coleta (Buscar Algo)</span>
+                  <span>Coleta</span>
                 </div>
                 <p className="text-[11px] leading-snug opacity-90">
                   Buscar faca, clichê, prova, papel, insumo ou documentos em fornecedor ou cliente.
@@ -243,7 +243,7 @@ export function CreateDeliveryDemandModal({
               >
                 <div className="flex items-center gap-2 font-bold text-sm text-blue-400">
                   <Truck className="h-4 w-4" />
-                  <span>Entrega (Levar Algo)</span>
+                  <span>Entrega</span>
                 </div>
                 <p className="text-[11px] leading-snug opacity-90">
                   Levar material impresso, amostras, contratos ou provas diretamente ao destino.
@@ -270,7 +270,7 @@ export function CreateDeliveryDemandModal({
 
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="demand-cliente" className="text-xs font-semibold">
-                {tipo === "coleta" ? "Buscar Onde? (Fornecedor / Local) *" : "Entregar Para Quem? (Cliente / Local) *"}
+                {tipo === "coleta" ? "Local de Coleta (Fornecedor / Local) *" : "Local de Entrega (Cliente / Destino) *"}
               </Label>
               <div className="relative">
                 <Building2 className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
@@ -289,7 +289,7 @@ export function CreateDeliveryDemandModal({
           {/* DESCRIÇÃO DA DEMANDA */}
           <div className="space-y-1.5">
             <Label htmlFor="demand-descricao" className="text-xs font-semibold">
-              {tipo === "coleta" ? "O que deve ser retirado / buscado? *" : "O que deve ser entregue? *"}
+              {tipo === "coleta" ? "O que deve ser coletado? *" : "O que deve ser entregue? *"}
             </Label>
             <div className="relative">
               <FileText className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />

@@ -936,7 +936,7 @@ export default function EntregadorPage() {
                           <span>{order.tipo_entrega?.includes("coleta") ? "COLETA" : "O.S."} {order.titulo}</span>
                           {order.tipo_entrega?.includes("coleta") && (
                             <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-bold bg-amber-500/20 text-amber-400 border-amber-500/40">
-                              BUSCAR
+                              COLETA
                             </Badge>
                           )}
                           {order.urgente && (
