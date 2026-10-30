@@ -72,6 +72,22 @@ describe("Suprimentos e Processos Especiais (PANTONE, FACA, CLICHÊ, OUTROS)", (
     expect(details.displayLabel).toBe("OUTROS: Verniz UV Localizado...");
   });
 
+  it("deve permitir espaços e texto com espaços no final durante a digitação de OUTROS e PANTONE", () => {
+    let processos: string[] = ["OUTROS"];
+    // Digitando "Verniz " com espaço no final
+    processos = setSpecialSupplyCustomText(processos, "OUTROS", "Verniz ");
+    expect(getSpecialSupplyCustomText(processos, "OUTROS")).toBe("Verniz ");
+
+    // Digitando mais texto "Verniz UV "
+    processos = setSpecialSupplyCustomText(processos, "OUTROS", "Verniz UV ");
+    expect(getSpecialSupplyCustomText(processos, "OUTROS")).toBe("Verniz UV ");
+
+    // Testando com PANTONE
+    processos = ["PANTONE"];
+    processos = setSpecialSupplyCustomText(processos, "PANTONE", "485 ");
+    expect(getSpecialSupplyCustomText(processos, "PANTONE")).toBe("485 ");
+  });
+
   it("deve preservar o texto personalizado ao alternar status de envio (toggleSpecialSupplySent)", () => {
     let processos: string[] = ["PANTONE"];
     processos = setSpecialSupplyCustomText(processos, "PANTONE", "Pantone 021 C");

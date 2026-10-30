@@ -416,12 +416,11 @@ export function setSpecialSupplyCustomText(
     config.alt.some((name) => p === name || p.startsWith(`${name}:`))
   );
 
-  const cleanText = text.trim();
   const filtered = current.filter(
     (p) => !config.alt.some((name) => p === name || p.startsWith(`${name}:`))
   );
 
-  if (!match && !cleanText) {
+  if (!match && !text) {
     return current;
   }
 
@@ -434,8 +433,8 @@ export function setSpecialSupplyCustomText(
     base = config.id;
   }
 
-  if (cleanText) {
-    return [...filtered, `${base}:info:${encodeURIComponent(cleanText)}`];
+  if (text !== undefined && text !== null && text.length > 0) {
+    return [...filtered, `${base}:info:${encodeURIComponent(text)}`];
   } else {
     return [...filtered, base];
   }
