@@ -25,6 +25,9 @@ describe("Security & Default-Deny Module Authorization", () => {
     if (role === "operador" || role === "impressor") {
       return ["producao"].includes(mod);
     }
+    if (role === "rh") {
+      return ["dashboard", "cadastros", "cadastro", "utilidades"].includes(mod);
+    }
     return false;
   };
 
@@ -49,6 +52,13 @@ describe("Security & Default-Deny Module Authorization", () => {
     // Operador recebe producao, mas não comercial
     expect(checkModuleAccess("operador", [], "producao")).toBe(true);
     expect(checkModuleAccess("operador", [], "comercial")).toBe(false);
+
+    // RH recebe dashboard, cadastros e utilidades, mas não produção ou comercial por padrão
+    expect(checkModuleAccess("rh", [], "dashboard")).toBe(true);
+    expect(checkModuleAccess("rh", [], "cadastros")).toBe(true);
+    expect(checkModuleAccess("rh", [], "utilidades")).toBe(true);
+    expect(checkModuleAccess("rh", [], "producao")).toBe(false);
+    expect(checkModuleAccess("rh", [], "comercial")).toBe(false);
   });
 
   it("should strictly respect custom modulosAcesso when explicitly assigned", () => {

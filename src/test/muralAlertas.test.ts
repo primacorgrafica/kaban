@@ -401,4 +401,34 @@ describe("Mural de Alertas - Hook e Lógica de Negócio", () => {
 
     expect(container).toBeDefined();
   });
+
+  it("deve conceder permissão canManageMural para o perfil RH", async () => {
+    vi.spyOn(useAuthModule, "useAuth").mockReturnValue({
+      user: { id: "user-rh", email: "rh@primacorgrafica.com.br", user_metadata: { nome: "RH" } } as any,
+      isAdmin: false,
+      role: "rh",
+      loading: false,
+      authReady: true,
+      session: null,
+      modulosAcesso: ["dashboard", "cadastros", "utilidades"],
+      setorVinculado: null,
+      onlineUserIds: new Set(),
+      hasModule: () => true,
+      canAccessSector: () => false,
+      signIn: vi.fn(),
+      signUp: vi.fn(),
+      signOut: vi.fn(),
+    });
+
+    (supabase.from as any).mockImplementation(() => ({
+      select: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: [], error: null }),
+    }));
+
+    let hookResult: any;
+    await act(async () => {
+      hookResult = renderHook(() => useMuralAlertas());
+    });
+    expect(hookResult.result.current.canManageMural).toBe(true);
+  });
 });

@@ -45,7 +45,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
-type AppRole = "admin" | "coordenador" | "operador" | "vendedor" | "user" | "orcamentista" | "impressor" | "entregador";
+type AppRole = "admin" | "coordenador" | "operador" | "vendedor" | "user" | "orcamentista" | "impressor" | "entregador" | "rh";
 
 export const ACCESS_MODULES: { id: string; label: string }[] = [
   { id: "comercial", label: "Comercial" },
@@ -114,11 +114,12 @@ const ROLE_NAMES: Record<AppRole, string> = {
   orcamentista: "Orçamentista",
   impressor: "Impressor",
   entregador: "Entregador",
+  rh: "RH",
 };
 
 
 // Perfis visíveis na interface
-const VISIBLE_ROLES: AppRole[] = ["admin", "coordenador", "operador", "vendedor", "orcamentista", "entregador"];
+const VISIBLE_ROLES: AppRole[] = ["admin", "coordenador", "operador", "vendedor", "orcamentista", "rh", "entregador"];
 
 const ROLE_DOT_COLORS: Record<AppRole | "null", string> = {
   admin: "bg-red-400",
@@ -129,6 +130,7 @@ const ROLE_DOT_COLORS: Record<AppRole | "null", string> = {
   orcamentista: "bg-purple-400",
   impressor: "bg-[#4A5C6A]",
   entregador: "bg-teal-400",
+  rh: "bg-pink-400",
   null: "bg-gray-400",
 };
 
@@ -141,6 +143,7 @@ const ROLE_COLORS: Record<AppRole, string> = {
   orcamentista: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
   impressor: "bg-slate-100 text-slate-800 dark:bg-[#253745] dark:text-[#CCD0CF]",
   entregador: "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300",
+  rh: "bg-pink-100 text-pink-800 dark:bg-pink-900/30 dark:text-pink-300",
 };
 
 export default function UserManagementPage() {
@@ -269,10 +272,12 @@ export default function UserManagementPage() {
     setUsers((prev) =>
       prev.map((u) => {
         if (u.user_id !== userId) return u;
-        const newMods =
-          newRole === "entregador" && !u.modulos_acesso.includes("entregador")
-            ? [...u.modulos_acesso, "entregador"]
-            : u.modulos_acesso;
+        let newMods = u.modulos_acesso;
+        if (newRole === "entregador" && !u.modulos_acesso.includes("entregador")) {
+          newMods = [...u.modulos_acesso, "entregador"];
+        } else if (newRole === "rh" && u.modulos_acesso.length === 0) {
+          newMods = ["dashboard", "cadastros", "utilidades"];
+        }
         return { ...u, role: newRole, modulos_acesso: newMods, dirty: true };
       })
     );
@@ -395,6 +400,8 @@ export default function UserManagementPage() {
       const modulosToCreate =
         newUser.role === "entregador" && newUser.modulos_acesso.length === 0
           ? ["entregador"]
+          : newUser.role === "rh" && newUser.modulos_acesso.length === 0
+          ? ["dashboard", "cadastros", "utilidades"]
           : newUser.modulos_acesso;
 
       // 1. Tenta criar via RPC dedicada admin_create_user (PostgreSQL SECURITY DEFINER)
@@ -839,6 +846,8 @@ export default function UserManagementPage() {
                         modulos_acesso:
                           roleVal === "entregador" && !p.modulos_acesso.includes("entregador")
                             ? [...p.modulos_acesso, "entregador"]
+                            : roleVal === "rh" && p.modulos_acesso.length === 0
+                            ? ["dashboard", "cadastros", "utilidades"]
                             : p.modulos_acesso,
                       }));
                     }}

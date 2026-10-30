@@ -10,9 +10,9 @@ export function useMuralAlertas() {
   const [loading, setLoading] = useState(true);
   const [usingFallback, setUsingFallback] = useState(false);
 
-  // Usuários com permissão para criar, editar e excluir alertas
+  // Usuários com permissão para criar, editar e excluir alertas (Admin, Coordenador e RH)
   const canManageMural = useMemo(() => {
-    return isAdmin || role === "coordenador";
+    return isAdmin || role === "coordenador" || role === "rh";
   }, [isAdmin, role]);
 
   const fetchAlertas = useCallback(async () => {

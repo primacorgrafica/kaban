@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, createContext, useContext, Re
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 
-type AppRole = "admin" | "coordenador" | "operador" | "vendedor" | "user" | "orcamentista" | "impressor" | "entregador";
+type AppRole = "admin" | "coordenador" | "operador" | "vendedor" | "user" | "orcamentista" | "impressor" | "entregador" | "rh";
 
 interface AuthContextType {
   session: Session | null;
@@ -297,6 +297,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     if (role === "entregador") {
       return mod === "entregador";
+    }
+    if (role === "rh") {
+      return ["dashboard", "cadastros", "cadastro", "utilidades"].includes(mod);
     }
     return false;
   };

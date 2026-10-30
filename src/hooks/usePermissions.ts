@@ -1,6 +1,6 @@
 import { useAuth } from "./useAuth";
 
-export type AppRole = "admin" | "coordenador" | "operador" | "vendedor" | "user" | "orcamentista" | "impressor" | "entregador";
+export type AppRole = "admin" | "coordenador" | "operador" | "vendedor" | "user" | "orcamentista" | "impressor" | "entregador" | "rh";
 
 // Level mapping
 const ROLE_LEVEL: Record<AppRole, number> = {
@@ -8,6 +8,7 @@ const ROLE_LEVEL: Record<AppRole, number> = {
   coordenador: 3,
   operador: 2,
   impressor: 2,
+  rh: 2,
   vendedor: 1,
   orcamentista: 1,
   user: 0,
@@ -23,8 +24,8 @@ export function usePermissions() {
     role: currentRole,
     level,
 
-    // Admin (4), Coordenador (3) ou quem tem módulo dashboard
-    canAccessDashboard: level >= 3 || hasModule("dashboard"),
+    // Admin (4), Coordenador (3), RH (comunicação/gestão) ou quem tem módulo dashboard
+    canAccessDashboard: level >= 3 || hasModule("dashboard") || currentRole === "rh",
     canAccessComercial: currentRole === "admin" || currentRole === "coordenador" || currentRole === "vendedor" || currentRole === "orcamentista",
     canManageUsers: level >= 4,
     canManageProcesses: level >= 4,

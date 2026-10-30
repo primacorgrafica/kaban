@@ -14,6 +14,7 @@ const VALID_ROLES = new Set([
   "orcamentista",
   "impressor",
   "entregador",
+  "rh",
 ]);
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
