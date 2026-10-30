@@ -22,7 +22,6 @@ export function MuralAlertaDialog({
   alertaToEdit,
   onSave,
 }: MuralAlertaDialogProps) {
-  const [titulo, setTitulo] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [tipo, setTipo] = useState<MuralTipo>("urgente");
   const [ativo, setAtivo] = useState(true);
@@ -31,7 +30,6 @@ export function MuralAlertaDialog({
 
   useEffect(() => {
     if (alertaToEdit) {
-      setTitulo(alertaToEdit.titulo);
       setMensagem(alertaToEdit.mensagem);
       setTipo(alertaToEdit.tipo || "urgente");
       setAtivo(alertaToEdit.ativo);
@@ -41,7 +39,6 @@ export function MuralAlertaDialog({
           : new Date().toISOString().slice(0, 16)
       );
     } else {
-      setTitulo("");
       setMensagem("");
       setTipo("urgente");
       setAtivo(true);
@@ -51,13 +48,14 @@ export function MuralAlertaDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!titulo.trim() || !mensagem.trim()) return;
+    if (!mensagem.trim()) return;
 
     setSubmitting(true);
     try {
+      const trimmedMsg = mensagem.trim();
       const res = await onSave({
-        titulo: titulo.trim(),
-        mensagem: mensagem.trim(),
+        titulo: alertaToEdit?.titulo || trimmedMsg.slice(0, 80),
+        mensagem: trimmedMsg,
         tipo,
         ativo,
         created_at: dataPublicacao ? new Date(dataPublicacao).toISOString() : new Date().toISOString(),
@@ -81,31 +79,16 @@ export function MuralAlertaDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
-          {/* Título */}
-          <div className="space-y-1.5">
-            <Label htmlFor="mural-titulo" className="text-xs font-semibold">
-              Título do Alerta <span className="text-red-500">*</span>
-            </Label>
-            <Input
-              id="mural-titulo"
-              value={titulo}
-              onChange={(e) => setTitulo(e.target.value)}
-              placeholder="Ex.: Manutenção da Offset 1 às 14h / Prazo Fechamento O.S."
-              required
-              className="bg-muted/40 border-input text-xs h-9 rounded-xl focus:border-primary"
-            />
-          </div>
-
-          {/* Mensagem */}
+          {/* Mensagem do Alerta */}
           <div className="space-y-1.5">
             <Label htmlFor="mural-mensagem" className="text-xs font-semibold">
-              Mensagem Detalhada <span className="text-red-500">*</span>
+              Mensagem do Alerta <span className="text-red-500">*</span>
             </Label>
             <Textarea
               id="mural-mensagem"
               value={mensagem}
               onChange={(e) => setMensagem(e.target.value)}
-              placeholder="Escreva as instruções ou orientações para a equipe..."
+              placeholder="Digite o aviso ou comunicado operacional para toda a equipe..."
               rows={4}
               required
               className="bg-muted/40 border-input text-xs rounded-xl focus:border-primary resize-y"
@@ -183,7 +166,7 @@ export function MuralAlertaDialog({
             <Button
               type="submit"
               size="sm"
-              disabled={submitting || !titulo.trim() || !mensagem.trim()}
+              disabled={submitting || !mensagem.trim()}
               className="text-xs bg-[#253745] hover:bg-[#324859] text-white"
             >
               {submitting ? "Salvando..." : alertaToEdit ? "Salvar Alterações" : "Publicar Alerta"}

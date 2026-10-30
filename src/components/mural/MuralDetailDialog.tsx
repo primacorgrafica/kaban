@@ -100,7 +100,7 @@ export function MuralDetailDialog({
             </div>
           </div>
           <DialogTitle className="text-base font-bold text-foreground leading-snug pt-1">
-            {currentAlert.titulo}
+            Alerta do Mural
           </DialogTitle>
         </DialogHeader>
 

@@ -171,6 +171,15 @@ describe("Mural de Alertas - Hook e Lógica de Negócio", () => {
     expect(insertedPayload.titulo).toBe("Novo Comunicado Geral");
     expect(insertedPayload.tipo).toBe("importante");
     expect(insertedPayload.ativo).toBe(true);
+
+    // Criação sem título explícito deve derivar o título automaticamente da mensagem
+    await act(async () => {
+      await result.current.criarAlerta({
+        titulo: "",
+        mensagem: "Apenas mensagem sem título explícito.",
+      });
+    });
+    expect(insertedPayload.titulo).toBe("Apenas mensagem sem título explícito.");
   });
 
   it("deve permitir que usuário autorizado edite um alerta existente", async () => {

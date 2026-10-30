@@ -33,8 +33,7 @@ export function MuralHeaderBanner() {
             className="inline-flex items-center gap-1.5 mx-4"
           >
             <span className={tagClass}>[{tagText}]</span>
-            <strong className="text-foreground tracking-wide font-bold">{alerta.titulo}:</strong>
-            <span className="text-foreground/90 font-medium">{alerta.mensagem}</span>
+            <span className="text-foreground/95 font-semibold">{alerta.mensagem}</span>
             <span className="text-muted-foreground/60 mx-3 select-none">✦✦✦</span>
           </span>
         );

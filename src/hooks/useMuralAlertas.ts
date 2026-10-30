@@ -114,9 +114,12 @@ export function useMuralAlertas() {
       return { success: false, error: "Sem permissão" };
     }
 
+    const trimmedMsg = (input.mensagem || "").trim();
+    const fallbackTitle = (input.titulo && input.titulo.trim()) || trimmedMsg.slice(0, 80) || "Alerta do Mural";
+
     const payload = {
-      titulo: input.titulo.trim(),
-      mensagem: input.mensagem.trim(),
+      titulo: fallbackTitle,
+      mensagem: trimmedMsg,
       tipo: input.tipo || "urgente",
       ativo: input.ativo ?? true,
       criado_por: user?.id || null,
@@ -175,8 +178,10 @@ export function useMuralAlertas() {
     try {
       const existing = alertas.find((a) => a.id === id);
       const targetTipo: MuralTipo = input.tipo !== undefined ? input.tipo : existing?.tipo || "urgente";
-      const targetTitulo = input.titulo !== undefined ? input.titulo.trim() : existing?.titulo || "";
       const targetMensagem = input.mensagem !== undefined ? input.mensagem.trim() : existing?.mensagem || "";
+      const targetTitulo = input.titulo !== undefined && input.titulo.trim()
+        ? input.titulo.trim()
+        : existing?.titulo || targetMensagem.slice(0, 80) || "Alerta do Mural";
       const isAtivo = input.ativo !== undefined ? input.ativo : existing?.ativo ?? true;
       const targetCreatedAt = input.created_at ? new Date(input.created_at).toISOString() : existing?.created_at || new Date().toISOString();
 

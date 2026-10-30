@@ -286,15 +286,12 @@ export default function MuralAlertasPage() {
                       </div>
                     </div>
 
-                    {/* Título */}
-                    <h3 className="text-sm font-bold text-foreground leading-snug">
-                      {alerta.titulo}
-                    </h3>
-
-                    {/* Mensagem */}
-                    <p className="text-xs text-muted-foreground whitespace-pre-wrap line-clamp-4 leading-relaxed bg-muted/20 p-2.5 rounded-xl border border-border/40">
-                      {alerta.mensagem}
-                    </p>
+                    {/* Mensagem do Alerta */}
+                    <div className="bg-muted/20 p-3.5 rounded-xl border border-border/40">
+                      <p className="text-xs sm:text-sm text-foreground whitespace-pre-wrap leading-relaxed font-medium">
+                        {alerta.mensagem}
+                      </p>
+                    </div>
                   </div>
 
                   {/* Rodapé com autor e ações */}
