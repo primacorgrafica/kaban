@@ -660,22 +660,22 @@ export default function PcpPage() {
           </div>
         </div>
 
-        {/* Indicadores de Fluxo em Tempo Real: Quant. O.S em Pré-impressão, Produção e Expedição */}
+        {/* Indicadores de Fluxo em Tempo Real: Pré-Impressão, Produção e Expedição */}
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-center my-1 xl:my-0">
-          {/* Card: Quant. O.S em Pré-impressão */}
+          {/* Card: Pré-impressão */}
           <div
             onClick={() => !isTvMode && navigate("/")}
             className={`flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl transition-all border shadow-xs ${
               !isTvMode ? "cursor-pointer hover:border-sky-500/60 hover:bg-sky-500/10 active:scale-95" : ""
             } bg-card/60 dark:bg-[#11212D]/80 border-border dark:border-[#4A5C6A]/60 text-foreground dark:text-white`}
-            title="Quant. O.S em Pré-impressão (Clique para abrir Pré-Impressão)"
+            title="Pré-Impressão (Clique para abrir Pré-Impressão)"
           >
             <div className="p-1.5 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-400 shrink-0">
               <Monitor className="h-4 w-4" />
             </div>
             <div className="flex flex-col">
               <span className="text-[10px] font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wider leading-none whitespace-nowrap">
-                Quant. O.S em Pré-impressão
+                Pré-Impressão
               </span>
               <div className="flex items-baseline gap-1 mt-1">
                 <span className="text-lg sm:text-xl font-black font-pcp text-sky-400 leading-none">
@@ -688,20 +688,20 @@ export default function PcpPage() {
             </div>
           </div>
 
-          {/* Card: Quant. O.S em Produção */}
+          {/* Card: Produção */}
           <div
             onClick={() => !isTvMode && navigate("/producao")}
             className={`flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl transition-all border shadow-xs ${
               !isTvMode ? "cursor-pointer hover:border-amber-500/60 hover:bg-amber-500/10 active:scale-95" : ""
             } bg-card/60 dark:bg-[#11212D]/80 border-border dark:border-[#4A5C6A]/60 text-foreground dark:text-white`}
-            title="Quant. O.S em Produção (Clique para abrir Produção)"
+            title="Produção (Clique para abrir Produção)"
           >
             <div className="p-1.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-400 shrink-0">
               <Factory className="h-4 w-4" />
             </div>
             <div className="flex flex-col">
               <span className="text-[10px] font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wider leading-none whitespace-nowrap">
-                Quant. O.S em Produção
+                Produção
               </span>
               <div className="flex items-baseline gap-1 mt-1">
                 <span className="text-lg sm:text-xl font-black font-pcp text-amber-400 leading-none">
@@ -714,20 +714,20 @@ export default function PcpPage() {
             </div>
           </div>
 
-          {/* Card: Quant. O.S em Expedição */}
+          {/* Card: Expedição */}
           <div
             onClick={() => !isTvMode && navigate("/expedicao")}
             className={`flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl transition-all border shadow-xs ${
               !isTvMode ? "cursor-pointer hover:border-emerald-500/60 hover:bg-emerald-500/10 active:scale-95" : ""
             } bg-card/60 dark:bg-[#11212D]/80 border-border dark:border-[#4A5C6A]/60 text-foreground dark:text-white`}
-            title="Quant. O.S em Expedição (Clique para abrir Expedição)"
+            title="Expedição (Clique para abrir Expedição)"
           >
             <div className="p-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 shrink-0">
               <Truck className="h-4 w-4" />
             </div>
             <div className="flex flex-col">
               <span className="text-[10px] font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wider leading-none whitespace-nowrap">
-                Quant. O.S em Expedição
+                Expedição
               </span>
               <div className="flex items-baseline gap-1 mt-1">
                 <span className="text-lg sm:text-xl font-black font-pcp text-emerald-400 leading-none">
