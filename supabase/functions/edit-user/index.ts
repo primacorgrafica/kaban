@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { user_id, nome, email, password, modulos_acesso } = await req.json();
+    const { user_id, nome, email, password, modulos_acesso, role } = await req.json();
 
     if (!user_id) {
       return new Response(JSON.stringify({ error: "user_id é obrigatório" }), {
@@ -96,7 +96,23 @@ Deno.serve(async (req) => {
         }
       }
 
-      // Sincroniza tabela vendedores se este usuário for vendedor
+      // Update role if provided
+    if (role) {
+      await adminClient.from("user_roles").delete().eq("user_id", user_id);
+      const { error: roleError } = await adminClient.from("user_roles").insert({
+        user_id,
+        role,
+      });
+      if (roleError) {
+        console.error("Erro ao atualizar papel em user_roles:", roleError);
+        return new Response(JSON.stringify({ error: roleError.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
+    // Sincroniza tabela vendedores se este usuário for vendedor
       try {
         const updateObj: Record<string, string> = {};
         if (nome) updateObj.nome = nome;

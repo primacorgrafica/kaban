@@ -168,7 +168,13 @@ export default function UserManagementPage() {
   const [editTarget, setEditTarget] = useState<UserRow | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [editForm, setEditForm] = useState({ nome: "", email: "", password: "", modulos_acesso: [] as string[] });
+  const [editForm, setEditForm] = useState({
+    nome: "",
+    email: "",
+    password: "",
+    role: "" as string,
+    modulos_acesso: [] as string[],
+  });
 
 
   // Delete
@@ -291,24 +297,53 @@ export default function UserManagementPage() {
     }
 
     setSaving(true);
+    let hasRoleErrors = false;
+    let lastRoleErrorMsg = "";
 
     for (const u of dirtyUsers) {
       if (u.role) {
-        const { data: existing } = await supabase
-          .from("user_roles")
-          .select("id")
-          .eq("user_id", u.user_id)
-          .maybeSingle();
+        let roleUpdated = false;
 
-        if (existing) {
-          await supabase
-            .from("user_roles")
-            .update({ role: u.role } as any)
-            .eq("user_id", u.user_id);
-        } else {
-          await supabase
-            .from("user_roles")
-            .insert({ user_id: u.user_id, role: u.role } as any);
+        // 1. Tenta atualizar via RPC dedicada admin_set_user_role (SECURITY DEFINER)
+        try {
+          const { data: rpcRes, error: rpcErr } = await supabase.rpc("admin_set_user_role" as any, {
+            p_user_id: u.user_id,
+            p_role: u.role,
+          });
+
+          if (!rpcErr && (rpcRes as any)?.success === true) {
+            roleUpdated = true;
+          } else if (rpcErr && !rpcErr.message?.includes("Could not find the function")) {
+            console.warn("[UserManagement] RPC admin_set_user_role falhou:", rpcErr);
+            lastRoleErrorMsg = rpcErr.message;
+          } else if ((rpcRes as any)?.error) {
+            lastRoleErrorMsg = (rpcRes as any).error;
+          }
+        } catch (err: any) {
+          console.warn("[UserManagement] Erro ao chamar RPC admin_set_user_role:", err);
+        }
+
+        // 2. Fallback para atualização direta via delete + insert na tabela user_roles
+        if (!roleUpdated) {
+          try {
+            await supabase.from("user_roles").delete().eq("user_id", u.user_id);
+            const { error: insErr } = await supabase
+              .from("user_roles")
+              .insert({ user_id: u.user_id, role: u.role } as any);
+
+            if (!insErr) {
+              roleUpdated = true;
+            } else {
+              console.error("[UserManagement] Erro ao salvar user_roles:", insErr);
+              lastRoleErrorMsg = insErr.message || "Erro de permissão RLS na tabela user_roles";
+            }
+          } catch (e: any) {
+            lastRoleErrorMsg = e?.message || "Exceção ao gravar papel na tabela user_roles";
+          }
+        }
+
+        if (!roleUpdated) {
+          hasRoleErrors = true;
         }
       }
 
@@ -349,8 +384,16 @@ export default function UserManagementPage() {
     }
 
     setSaving(false);
-    toast.success(`${dirtyUsers.length} usuário(s) atualizado(s)`);
-    setUsers((prev) => prev.map((u) => ({ ...u, dirty: false })));
+
+    if (hasRoleErrors) {
+      toast.error(
+        `Falha ao salvar papel do usuário: ${lastRoleErrorMsg || "Bloqueio de RLS no banco."} Execute o script 'instalar_perfil_rh.sql' no Supabase SQL Editor para liberar.`,
+        { duration: 10000 }
+      );
+    } else {
+      toast.success(`${dirtyUsers.length} usuário(s) atualizado(s) com sucesso`);
+      setUsers((prev) => prev.map((u) => ({ ...u, dirty: false })));
+    }
     await fetchUsers();
   };
 
@@ -547,7 +590,13 @@ export default function UserManagementPage() {
 
   const openEditDialog = (u: UserRow) => {
     setEditTarget(u);
-    setEditForm({ nome: u.nome, email: u.email || "", password: "", modulos_acesso: normalizeModules(u.modulos_acesso || []) });
+    setEditForm({
+      nome: u.nome,
+      email: u.email || "",
+      password: "",
+      role: u.role || "",
+      modulos_acesso: normalizeModules(u.modulos_acesso || []),
+    });
     setEditOpen(true);
   };
 
@@ -605,6 +654,7 @@ export default function UserManagementPage() {
           };
           if (trimmedEmail) body.email = trimmedEmail;
           if (editForm.password) body.password = editForm.password;
+          if (editForm.role) body.role = editForm.role;
 
           const res = await supabase.functions.invoke("edit-user", { body });
           if (!res.error && !res.data?.error) {
@@ -668,6 +718,34 @@ export default function UserManagementPage() {
         }
       }
 
+      // 4. Se alterou o papel, salva via RPC admin_set_user_role ou fallback direto
+      if (editForm.role && editForm.role !== editTarget.role) {
+        let roleSaved = false;
+        try {
+          const { data: rpcRole, error: rpcRoleErr } = await supabase.rpc("admin_set_user_role" as any, {
+            p_user_id: editTarget.user_id,
+            p_role: editForm.role,
+          });
+          if (!rpcRoleErr && (rpcRole as any)?.success === true) {
+            roleSaved = true;
+          }
+        } catch { /* rpc fallback */ }
+
+        if (!roleSaved) {
+          try {
+            await supabase.from("user_roles").delete().eq("user_id", editTarget.user_id);
+            const { error: rErr } = await supabase
+              .from("user_roles")
+              .insert({ user_id: editTarget.user_id, role: editForm.role } as any);
+            if (!rErr) roleSaved = true;
+          } catch { /* direct fallback */ }
+        }
+
+        if (!roleSaved) {
+          console.warn("[UserManagement] Não foi possível atualizar o papel no banco.");
+        }
+      }
+
       if (saved) {
         toast.success("Usuário atualizado com sucesso!");
         setUsers((prev) =>
@@ -677,6 +755,7 @@ export default function UserManagementPage() {
                   ...u,
                   nome: editForm.nome.trim(),
                   email: trimmedEmail || u.email,
+                  role: (editForm.role as AppRole) || u.role,
                   modulos_acesso: editForm.modulos_acesso,
                 }
               : u
@@ -1110,6 +1189,37 @@ export default function UserManagementPage() {
                 onChange={(e) => setEditForm((p) => ({ ...p, password: e.target.value }))}
                 placeholder="Deixe vazio para manter a atual"
               />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Perfil</Label>
+              <Select
+                value={editForm.role || "nenhum"}
+                onValueChange={(v) => {
+                  const roleVal = v === "nenhum" ? "" : v;
+                  setEditForm((p) => ({
+                    ...p,
+                    role: roleVal,
+                    modulos_acesso:
+                      roleVal === "entregador" && !p.modulos_acesso.includes("entregador")
+                        ? [...p.modulos_acesso, "entregador"]
+                        : roleVal === "rh" && p.modulos_acesso.length === 0
+                        ? ["dashboard", "cadastros", "utilidades"]
+                        : p.modulos_acesso,
+                  }));
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="nenhum">Sem perfil</SelectItem>
+                  {VISIBLE_ROLES.map((roleKey) => (
+                    <SelectItem key={roleKey} value={roleKey}>
+                      {ROLE_NAMES[roleKey]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label>Setores de acesso</Label>
