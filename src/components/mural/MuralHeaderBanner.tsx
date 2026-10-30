@@ -18,23 +18,13 @@ export function MuralHeaderBanner() {
 
     const renderAlertGroup = (prefixKey: string) => {
       return activeAlerts.map((alerta, idx) => {
-        const isUrg = alerta.tipo === "urgente";
-        const isImp = alerta.tipo === "importante";
-        const tagText = isUrg ? "URGENTE" : isImp ? "IMPORTANTE" : "INFORMATIVO";
-        const tagClass = isUrg
-          ? "text-red-600 dark:text-red-400 font-black tracking-wider"
-          : isImp
-          ? "text-amber-600 dark:text-amber-400 font-black tracking-wider"
-          : "text-sky-500 dark:text-sky-400 font-black tracking-wider";
-
         return (
           <span
             key={`${prefixKey}-${alerta.id}-${idx}`}
-            className="inline-flex items-center gap-1.5 mx-4"
+            className="inline-flex items-center mx-4"
           >
-            <span className={tagClass}>[{tagText}]</span>
-            <span className="text-foreground/95 font-semibold">{alerta.mensagem}</span>
-            <span className="text-muted-foreground/60 mx-3 select-none">✦✦✦</span>
+            <span className="text-foreground/95 font-semibold tracking-wide">{alerta.mensagem}</span>
+            <span className="text-muted-foreground/50 mx-4 select-none">✦✦✦</span>
           </span>
         );
       });
