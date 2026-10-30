@@ -31,6 +31,8 @@ import { Order, OrderStatus } from "@/types/order";
 import { UTILITIES_CONFIG } from "@/config/utilities";
 import { OrderDetailDialog } from "./OrderDetailDialog";
 import { toast } from "sonner";
+import { MuralHeaderBanner } from "./mural/MuralHeaderBanner";
+import { useMuralAlertas } from "@/hooks/useMuralAlertas";
 
 interface LayoutProps {
   children: ReactNode;
@@ -82,6 +84,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
   const [chatDialogOpen, setChatDialogOpen] = useState(false);
   const [inspectOrder, setInspectOrder] = useState<Order | null>(null);
   const avisoSessionStartedAt = useRef(Date.now());
+  const { activeAlerts } = useMuralAlertas();
 
   const handleUpdateInspectOrder = async (id: string, data: Partial<Order>) => {
     const { error } = await supabase.from("orders").update({ ...data, atualizado_por: user?.id || null }).eq("id", id);
@@ -526,6 +529,14 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
               )}
             </div>
           )}
+
+          {/* ÚLTIMO ITEM DO MENU LATERAL: MURAL DE ALERTAS */}
+          {renderNavLink({
+            to: "/mural",
+            label: "Mural de Alertas",
+            icon: Megaphone,
+            count: activeAlerts.length > 0 ? activeAlerts.length : undefined,
+          })}
         </nav>
 
         <div className={`p-3 border-t border-sidebar-border/60 bg-sidebar-background/60 ${sidebarCollapsed ? "flex flex-col items-center gap-2" : ""}`}>
@@ -647,6 +658,8 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
               </span>
             );
           })()}
+          {/* Alerta do Dia do Mural (Exibição Global no Topo - Conforme print de referência) */}
+          <MuralHeaderBanner />
           <div className="flex items-center gap-2 ml-auto order-2">
             {(isAdmin || role === "coordenador") && <SharePointStatusIndicator />}
             {(isAdmin || role === "coordenador" || Boolean(typeof window !== "undefined" && localStorage.getItem("kaban_msal_user_info"))) && <OutlookStatusIndicator />}

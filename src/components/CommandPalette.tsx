@@ -28,6 +28,7 @@ import {
   Layers,
   MessageSquare,
   PrinterCheck,
+  Megaphone,
 } from "lucide-react";
 import { Order } from "@/types/order";
 import { useTheme } from "next-themes";
@@ -196,6 +197,10 @@ export function CommandPalette({
           <CommandItem onSelect={() => handleSelectNav("/usuarios")} className="cursor-pointer py-2">
             <Users className="mr-2 h-4 w-4 text-violet-400" />
             <span className="text-xs">Gerenciamento de Usuários & Perfis</span>
+          </CommandItem>
+          <CommandItem onSelect={() => handleSelectNav("/mural")} className="cursor-pointer py-2">
+            <Megaphone className="mr-2 h-4 w-4 text-rose-400" />
+            <span className="text-xs">Mural de Alertas — Comunicados & Avisos do Dia</span>
           </CommandItem>
         </CommandGroup>
 
