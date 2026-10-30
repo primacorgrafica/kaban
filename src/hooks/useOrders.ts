@@ -438,6 +438,22 @@ export function useOrders() {
         if (data.processos && hasSpecialSuppliesForCompras(data.processos)) {
           void sendToCompras(id, data.processos);
         }
+
+        // Se o status foi atualizado para aguardando_aprovacao
+        if (data.status === "aguardando_aprovacao") {
+          const currentOrder = orders.find((o) => o.id === id);
+          if (currentOrder && currentOrder.status !== "aguardando_aprovacao") {
+            triggerSellerApprovalNotification(id).then((res) => {
+              if (res.success && res.sent) {
+                toast.success("Notificação enviada por e-mail ao vendedor! Cópia salva em 'Itens Enviados'.");
+              } else if (!res.success) {
+                toast.warning(`O.S. alterada para Aguardando Aprovação, mas falha no envio ao vendedor: ${res.error || "verifique login Microsoft 365"}`);
+              }
+            }).catch((err) => {
+              console.error("Erro ao disparar notificação ao vendedor:", err);
+            });
+          }
+        }
       }
     },
     [user, orders, sendToCompras]
@@ -572,7 +588,15 @@ export function useOrders() {
     }
 
     if (newStatus === "aguardando_aprovacao" && oldStatus !== "aguardando_aprovacao") {
-      void triggerSellerApprovalNotification(id);
+      triggerSellerApprovalNotification(id).then((res) => {
+        if (res.success && res.sent) {
+          toast.success("Notificação enviada por e-mail ao vendedor! Cópia salva em 'Itens Enviados'.");
+        } else if (!res.success) {
+          toast.warning(`O.S. movida para Aguardando Aprovação, mas falha no envio ao vendedor: ${res.error || "verifique login Microsoft 365"}`);
+        }
+      }).catch((err) => {
+        console.error("Erro ao disparar notificação ao vendedor:", err);
+      });
     }
 
     if (newStatus === "arquivo_liberado") {

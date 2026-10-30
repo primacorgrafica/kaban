@@ -215,6 +215,82 @@ describe("Anti-Duplicação e Disparo de Notificações", () => {
     expect(result.notificationId).toBe("notif-existente-uuid");
   });
 
+  it("deve reaproveitar e enviar imediatamente se a notificação encontrada estiver como 'pending'", async () => {
+    let updatePayload: any = null;
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 202,
+      json: async () => ({}),
+    });
+
+    (supabase.from as any).mockImplementation((table: string) => {
+      if (table === "order_seller_notifications") {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          gte: vi.fn().mockReturnThis(),
+          order: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          maybeSingle: vi.fn().mockResolvedValue({
+            data: { id: "notif-pending-uuid", sent_status: "pending" },
+            error: null,
+          }),
+          update: vi.fn().mockImplementation((payload) => {
+            updatePayload = payload;
+            return {
+              eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+            };
+          }),
+        };
+      }
+      if (table === "orders") {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          maybeSingle: vi.fn().mockResolvedValue({
+            data: {
+              id: "order-pending-123",
+              titulo: "80001",
+              cliente: "CLIENTE TESTE",
+              vendedor: "Carlos",
+              status: "aguardando_aprovacao",
+            },
+            error: null,
+          }),
+        };
+      }
+      if (table === "profiles") {
+        return {
+          select: vi.fn().mockReturnThis(),
+          ilike: vi.fn().mockReturnThis(),
+          not: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          maybeSingle: vi.fn().mockResolvedValue({
+            data: { nome: "Carlos", email: "carlos@primacorgrafica.com.br" },
+            error: null,
+          }),
+        };
+      }
+      if (table === "avisos") {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          gte: vi.fn().mockReturnThis(),
+          limit: vi.fn().mockReturnThis(),
+          maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+          insert: vi.fn().mockResolvedValue({ error: null }),
+        };
+      }
+      return { select: vi.fn().mockReturnThis() };
+    });
+
+    const result = await triggerSellerApprovalNotification("order-pending-123");
+    expect(result.success).toBe(true);
+    expect(result.sent).toBe(true);
+    expect(result.notificationId).toBe("notif-pending-uuid");
+    expect(updatePayload?.sent_status).toBe("sent");
+  });
+
   it("deve registrar falha diagnosticada quando o vendedor vinculado não possuir e-mail cadastrado", async () => {
     (supabase.from as any).mockImplementation((table: string) => {
       if (table === "order_seller_notifications") {
@@ -366,7 +442,7 @@ describe("Anti-Duplicação e Disparo de Notificações", () => {
 });
 
 describe("Integração Microsoft Graph API (sendEmailViaGraph)", () => {
-  it("deve enviar e-mail com sucesso via /me/sendMail", async () => {
+  it("deve enviar e-mail com sucesso via /me/sendMail e salvar em Itens Enviados como booleano true", async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       status: 202,
@@ -386,6 +462,11 @@ describe("Integração Microsoft Graph API (sendEmailViaGraph)", () => {
         method: "POST",
       })
     );
+
+    const callArgs = (global.fetch as any).mock.calls[0];
+    const sentPayload = JSON.parse(callArgs[1].body);
+    expect(sentPayload.saveToSentItems).toBe(true);
+    expect(typeof sentPayload.saveToSentItems).toBe("boolean");
   });
 
   it("deve tentar fallback para /users/{sender}/sendMail caso /me retorne erro", async () => {

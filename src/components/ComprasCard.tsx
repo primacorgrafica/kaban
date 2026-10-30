@@ -371,9 +371,8 @@ export function ComprasCard({
 
                   return (
                     <div
-                      onClick={(e) => toggleItemBought("PANTONE", e)}
-                      className={`flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px] border cursor-pointer transition-all ${itemClass}`}
-                      title={isDone ? "Pantone Comprado / GE (Clique para alterar)" : `Pantone em fase de ${statusTag} (Clique para marcar como comprado)`}
+                      className={`flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px] border cursor-default select-none transition-all ${itemClass}`}
+                      title={`${statusTag} (muda de cor exclusivamente ao mover no Kanban de Compras)`}
                     >
                       <span className="truncate flex items-center gap-1.5">
                         <span className={`w-2 h-2 rounded-full shrink-0 ${dotClass}`} />
@@ -410,9 +409,8 @@ export function ComprasCard({
 
                   return (
                     <div
-                      onClick={(e) => toggleItemBought("OUTROS", e)}
-                      className={`flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px] border cursor-pointer transition-all ${itemClass}`}
-                      title={isDone ? "Outros Comprado / GE (Clique para alterar)" : `Outros em fase de ${statusTag} (Clique para marcar como comprado)`}
+                      className={`flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px] border cursor-default select-none transition-all ${itemClass}`}
+                      title={`${statusTag} (muda de cor exclusivamente ao mover no Kanban de Compras)`}
                     >
                       <span className="truncate flex items-center gap-1.5">
                         <span className={`w-2 h-2 rounded-full shrink-0 ${dotClass}`} />

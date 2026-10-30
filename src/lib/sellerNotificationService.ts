@@ -314,12 +314,19 @@ export async function sendEmailViaGraph(params: {
   to: string;
   subject: string;
   htmlContent: string;
-}): Promise<{ ok: boolean; messageId?: string; error?: string }> {
+}): Promise<{ ok: boolean; sender?: string; messageId?: string; error?: string }> {
   try {
     const token = await getEmailAccessToken(false);
 
     const pca = await getMsalInstance();
-    const activeAccount = pca.getActiveAccount();
+    let activeAccount = pca.getActiveAccount();
+    if (!activeAccount) {
+      const accounts = pca.getAllAccounts();
+      if (accounts.length > 0) {
+        activeAccount = accounts[0];
+        pca.setActiveAccount(activeAccount);
+      }
+    }
     const senderMailbox = activeAccount?.username || MONITORED_MAILBOXES[0];
 
     const messagePayload = {
@@ -337,7 +344,7 @@ export async function sendEmailViaGraph(params: {
           },
         ],
       },
-      saveToSentItems: "true",
+      saveToSentItems: true,
     };
 
     // Tenta primeiro /me/sendMail se a conta ativa for um usuário direto
@@ -352,7 +359,7 @@ export async function sendEmailViaGraph(params: {
     });
 
     if (res.ok) {
-      return { ok: true };
+      return { ok: true, sender: senderMailbox };
     }
 
     // Se /me retornar 403 ou 404 (comum em caixas compartilhadas), tenta via /users/{senderMailbox}/sendMail
@@ -368,13 +375,14 @@ export async function sendEmailViaGraph(params: {
       });
 
       if (fallbackRes.ok) {
-        return { ok: true };
+        return { ok: true, sender: senderMailbox };
       }
 
       const errData = await fallbackRes.json().catch(() => ({}));
       const is403 = fallbackRes.status === 403;
       return {
         ok: false,
+        sender: senderMailbox,
         error: is403
           ? "Acesso negado no Microsoft 365 (403): Falta conceder a permissão 'Mail.Send' no Azure para enviar e-mails aos vendedores."
           : `Falha no envio via Graph API (${fallbackRes.status}): ${errData?.error?.message || fallbackRes.statusText}`,
@@ -385,6 +393,7 @@ export async function sendEmailViaGraph(params: {
     const isPrimary403 = res.status === 403;
     return {
       ok: false,
+      sender: senderMailbox,
       error: isPrimary403
         ? "Acesso negado no Microsoft 365 (403): Falta conceder a permissão 'Mail.Send' no Azure para enviar e-mails aos vendedores."
         : `Falha no envio via Graph API (${res.status}): ${primaryErr?.error?.message || res.statusText}`,
@@ -406,6 +415,7 @@ export async function createSellerNotificationAviso(params: {
   cliente: string;
   sellerName: string;
   sellerEmail?: string | null;
+  senderMailbox?: string | null;
   success: boolean;
   error?: string;
   authorId?: string | null;
@@ -416,8 +426,10 @@ export async function createSellerNotificationAviso(params: {
       ? `📧 Notificação enviada ao Vendedor — O.S. #${cleanOs}`
       : `⚠️ Falha no envio ao Vendedor — O.S. #${cleanOs}`;
 
+    const senderText = params.senderMailbox ? ` via ${params.senderMailbox}` : "";
+    const sentItemsFolderText = params.senderMailbox ? ` de ${params.senderMailbox}` : "";
     const avisoMensagem = params.success
-      ? `O e-mail informando que a O.S. #${cleanOs} (${params.cliente}) está em Aguardando Aprovação foi enviado com sucesso para o vendedor ${params.sellerName}${params.sellerEmail ? ` (${params.sellerEmail})` : ""}.`
+      ? `O e-mail informando que a O.S. #${cleanOs} (${params.cliente}) está em Aguardando Aprovação foi enviado com sucesso${senderText} para o vendedor ${params.sellerName}${params.sellerEmail ? ` (${params.sellerEmail})` : ""}. Uma cópia foi salva na pasta 'Itens Enviados'${sentItemsFolderText}.`
       : `Não foi possível enviar a notificação da O.S. #${cleanOs} ao vendedor ${params.sellerName}: ${params.error || "Erro desconhecido"}`;
 
     // Evita duplicar o mesmo aviso nas últimas 12 horas
@@ -461,25 +473,39 @@ export async function triggerSellerApprovalNotification(
   options?: { force?: boolean }
 ): Promise<TriggerNotificationResult> {
   try {
+    let existingNotificationId: string | null = null;
+
     // 1. Anti-duplicação: verifica se já existe notificação nas últimas 12 horas
     if (!options?.force) {
       const twelveHoursAgo = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
-      const { data: existing } = await supabase
+      let query: any = supabase
         .from("order_seller_notifications")
         .select("id, sent_status")
         .eq("order_id", orderId)
         .eq("status", "aguardando_aprovacao")
-        .gte("created_at", twelveHoursAgo)
+        .gte("created_at", twelveHoursAgo);
+
+      if (typeof query?.order === "function") {
+        query = query.order("created_at", { ascending: false });
+      }
+
+      const { data: existing } = await query
         .limit(1)
         .maybeSingle();
 
       if (existing) {
-        console.info(`[SellerNotification] O.S. ${orderId} já possui notificação recente (${existing.id}, status: ${existing.sent_status}). Pulando.`);
-        return {
-          success: true,
-          skippedDuplicate: true,
-          notificationId: existing.id,
-        };
+        // Se já foi enviada com sucesso nas últimas 12h, pula envio duplicado
+        if (existing.sent_status === "sent") {
+          console.info(`[SellerNotification] O.S. ${orderId} já possui notificação enviada recentemente (${existing.id}). Pulando.`);
+          return {
+            success: true,
+            skippedDuplicate: true,
+            notificationId: existing.id,
+            sent: true,
+          };
+        }
+        // Se estiver como "pending" (criada pelo trigger do banco) ou "failed", reutiliza o ID para envio imediato
+        existingNotificationId = existing.id;
       }
     }
 
@@ -513,25 +539,40 @@ export async function triggerSellerApprovalNotification(
     if (!sellerInfo.email || !isValidEmail(sellerInfo.email)) {
       const failReason = `Vendedor "${sellerInfo.name || order.vendedor || "Não informado"}" não possui e-mail cadastrado.`;
 
-      const { data: inserted, error: insErr } = await supabase
-        .from("order_seller_notifications")
-        .insert({
-          order_id: orderId,
-          os_number: osTitle,
-          cliente,
-          status: "aguardando_aprovacao",
-          vendedor_nome: sellerInfo.name || order.vendedor || null,
-          vendedor_email: "sem_email@primacorgrafica.com.br",
-          subject,
-          body_html: html,
-          link_card: link,
-          sent_status: "failed",
-          error_message: failReason,
-          attempts: 1,
-          last_attempt_at: new Date().toISOString(),
-        })
-        .select("id")
-        .single();
+      let notifId = existingNotificationId;
+      if (notifId) {
+        await supabase
+          .from("order_seller_notifications")
+          .update({
+            sent_status: "failed",
+            error_message: failReason,
+            attempts: 1,
+            last_attempt_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", notifId);
+      } else {
+        const { data: inserted } = await supabase
+          .from("order_seller_notifications")
+          .insert({
+            order_id: orderId,
+            os_number: osTitle,
+            cliente,
+            status: "aguardando_aprovacao",
+            vendedor_nome: sellerInfo.name || order.vendedor || null,
+            vendedor_email: "sem_email@primacorgrafica.com.br",
+            subject,
+            body_html: html,
+            link_card: link,
+            sent_status: "failed",
+            error_message: failReason,
+            attempts: 1,
+            last_attempt_at: new Date().toISOString(),
+          })
+          .select("id")
+          .single();
+        notifId = inserted?.id;
+      }
 
       // Registra aviso interno de falha no Kaban
       await createSellerNotificationAviso({
@@ -545,40 +586,59 @@ export async function triggerSellerApprovalNotification(
 
       return {
         success: false,
-        notificationId: inserted?.id,
+        notificationId: notifId || undefined,
         error: failReason,
       };
     }
 
-    // 5. Cria registro pendente
-    const { data: notifRow, error: insertErr } = await supabase
-      .from("order_seller_notifications")
-      .insert({
-        order_id: orderId,
-        os_number: osTitle,
-        cliente,
-        status: "aguardando_aprovacao",
-        vendedor_nome: sellerInfo.name || order.vendedor,
-        vendedor_email: sellerInfo.email,
-        subject,
-        body_html: html,
-        link_card: link,
-        sent_status: "pending",
-        attempts: 1,
-        last_attempt_at: new Date().toISOString(),
-      })
-      .select("id")
-      .single();
+    // 5. Garante registro existente ou insere novo registro pendente
+    let notificationId = existingNotificationId;
+    if (notificationId) {
+      await supabase
+        .from("order_seller_notifications")
+        .update({
+          os_number: osTitle,
+          cliente,
+          vendedor_nome: sellerInfo.name || order.vendedor,
+          vendedor_email: sellerInfo.email,
+          subject,
+          body_html: html,
+          link_card: link,
+          sent_status: "pending",
+          attempts: 1,
+          last_attempt_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", notificationId);
+    } else {
+      const { data: notifRow, error: insertErr } = await supabase
+        .from("order_seller_notifications")
+        .insert({
+          order_id: orderId,
+          os_number: osTitle,
+          cliente,
+          status: "aguardando_aprovacao",
+          vendedor_nome: sellerInfo.name || order.vendedor,
+          vendedor_email: sellerInfo.email,
+          subject,
+          body_html: html,
+          link_card: link,
+          sent_status: "pending",
+          attempts: 1,
+          last_attempt_at: new Date().toISOString(),
+        })
+        .select("id")
+        .single();
 
-    if (insertErr || !notifRow) {
-      console.error("[SellerNotification] Falha ao registrar notificação:", insertErr);
-      return {
-        success: false,
-        error: insertErr?.message || "Erro ao registrar notificação",
-      };
+      if (insertErr || !notifRow) {
+        console.error("[SellerNotification] Falha ao registrar notificação:", insertErr);
+        return {
+          success: false,
+          error: insertErr?.message || "Erro ao registrar notificação",
+        };
+      }
+      notificationId = notifRow.id;
     }
-
-    const notificationId = notifRow.id;
 
     // 6. Tenta enviar o e-mail via Microsoft Graph
     const sendResult = await sendEmailViaGraph({
@@ -598,14 +658,15 @@ export async function triggerSellerApprovalNotification(
         })
         .eq("id", notificationId);
 
-      console.info(`[SellerNotification] E-mail enviado com sucesso para ${sellerInfo.email} (O.S. #${osTitle})`);
+      console.info(`[SellerNotification] E-mail enviado com sucesso via ${sendResult.sender || "Microsoft 365"} para ${sellerInfo.email} (O.S. #${osTitle})`);
 
-      // Registra aviso interno de sucesso no Kaban
+      // Registra aviso interno de sucesso no Kaban com remetente identificado
       await createSellerNotificationAviso({
         osTitle,
         cliente,
         sellerName: sellerInfo.name || order.vendedor || "Vendedor",
         sellerEmail: sellerInfo.email,
+        senderMailbox: sendResult.sender,
         success: true,
         authorId: order.criado_por,
       });
@@ -633,6 +694,7 @@ export async function triggerSellerApprovalNotification(
         cliente,
         sellerName: sellerInfo.name || order.vendedor || "Vendedor",
         sellerEmail: sellerInfo.email,
+        senderMailbox: sendResult.sender,
         success: false,
         error: sendResult.error,
         authorId: order.criado_por,
@@ -649,7 +711,7 @@ export async function triggerSellerApprovalNotification(
     console.error("[SellerNotification] Exceção inesperada ao disparar notificação:", err);
     return {
       success: false,
-      error: err?.message || "Exceção inesperada",
+      error: err?.message || "Erro inesperado ao disparar notificação",
     };
   }
 }
@@ -709,6 +771,7 @@ export async function retrySellerNotification(notificationId: string): Promise<b
         cliente: notif.cliente,
         sellerName: notif.vendedor_nome || "Vendedor",
         sellerEmail: targetEmail,
+        senderMailbox: sendRes.sender,
         success: true,
       });
 
@@ -730,6 +793,7 @@ export async function retrySellerNotification(notificationId: string): Promise<b
         cliente: notif.cliente,
         sellerName: notif.vendedor_nome || "Vendedor",
         sellerEmail: targetEmail,
+        senderMailbox: sendRes.sender,
         success: false,
         error: sendRes.error,
       });
