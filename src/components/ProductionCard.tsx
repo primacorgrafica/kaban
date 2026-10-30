@@ -779,13 +779,26 @@ function ProductionCardImpl({
                       const style = getSpecialSupplyBadgeClasses(item.id, isSent, details.comprasStatus, details.operationalState);
                       const labelText = details.displayLabel || item.label;
 
-                      const tooltip = isComprasItem
-                        ? style.statusColor === "verde"
-                          ? `${labelText}: Concluído em Compras (${details.statusLabel})${formattedTime ? ` em ${formattedTime}` : ""}${op ? ` por ${op}` : ""}`
-                          : style.statusColor === "amarelo"
-                          ? `${labelText}: Material em fase de Pedido em Compras`
-                          : `${labelText}: Material em fase de ${details.statusLabel} em Compras`
-                        : details.operationalState === "recebido"
+                      // Em Compras, suprimentos NÃO são clicáveis - mudam de cor exclusivamente ao mover no Kanban
+                      if (isComprasItem) {
+                        const comprasTooltip = `${labelText}: Fase de ${details.statusLabel} (muda de cor exclusivamente ao mover nas colunas de Compras)`;
+                        return (
+                          <div
+                            key={item.id}
+                            title={comprasTooltip}
+                            className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider uppercase flex items-center gap-1 shadow-xs cursor-default select-none border ${style.badge}`}
+                          >
+                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${style.dot}`} />
+                            <span>{labelText}</span>
+                            <span className="text-[9px] font-mono-tech opacity-90 tracking-tight bg-black/20 px-1 rounded">
+                              {details.statusLabel}
+                            </span>
+                          </div>
+                        );
+                      }
+
+                      // Suprimentos operacionais (Clichê, Faca, Filme): ciclo manual na Pré-Impressão e Produção
+                      const tooltip = details.operationalState === "recebido"
                         ? `${labelText}: CHEGOU NA PRODUÇÃO ${formattedTime ? `em ${formattedTime}` : ""}${op ? ` por ${op}` : ""} (Clique para voltar a Pendente)`
                         : details.operationalState === "enviado"
                         ? `${labelText}: ENVIADO PELA PRÉ-IMPRESSÃO ${formattedTime ? `em ${formattedTime}` : ""}${op ? ` por ${op}` : ""} (Clique para avisar que Chegou na Produção)`
@@ -801,20 +814,12 @@ function ProductionCardImpl({
                             const updated = toggleSpecialSupplySent(order.processos, item.id, operatorToSave);
                             onUpdate(order.id, { processos: updated });
 
-                            if (!isComprasItem) {
-                              if (details.operationalState === "pendente") {
-                                toast.success(`${labelText} marcado como ENVIADO (Amarelo)!`);
-                              } else if (details.operationalState === "enviado") {
-                                toast.success(`${labelText} marcado como CHEGOU NA PRODUÇÃO (Verde)!`);
-                              } else {
-                                toast.info(`${labelText} retornado para PENDENTE (Magenta).`);
-                              }
+                            if (details.operationalState === "pendente") {
+                              toast.success(`${labelText} marcado como ENVIADO (Amarelo)!`);
+                            } else if (details.operationalState === "enviado") {
+                              toast.success(`${labelText} marcado como CHEGOU NA PRODUÇÃO (Verde)!`);
                             } else {
-                              if (!isSent) {
-                                toast.success(`${labelText} marcado como CONCLUÍDO!`);
-                              } else {
-                                toast.info(`${labelText} alterado para PENDENTE EM COMPRAS.`);
-                              }
+                              toast.info(`${labelText} retornado para PENDENTE (Magenta).`);
                             }
                           }}
                           title={tooltip}

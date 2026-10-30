@@ -311,7 +311,7 @@ export function getSpecialSupplyBadgeClasses(
       // VERDE: material com lançamento GE realizado ou saída registrada
       const statusLabel = rawStatus === "lancamento_ge" ? "Lançamento GE" : rawStatus === "saida" ? "Saída" : "Comprado";
       return {
-        badge: "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 shadow-[0_0_8px_rgba(16,185,129,0.35)] active:scale-95",
+        badge: "bg-emerald-500 text-white border-emerald-600 shadow-[0_0_8px_rgba(16,185,129,0.35)]",
         dot: "bg-white",
         border: "border-emerald-600",
         label: statusLabel,
@@ -322,7 +322,7 @@ export function getSpecialSupplyBadgeClasses(
     if (isOrderPhase) {
       // AMARELO: material em fase de pedido
       return {
-        badge: "bg-amber-400 hover:bg-amber-500 text-amber-950 border-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.25)] active:scale-95",
+        badge: "bg-amber-400 text-amber-950 border-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.25)]",
         dot: "bg-amber-950",
         border: "border-amber-500",
         label: "Pedido",
@@ -333,7 +333,7 @@ export function getSpecialSupplyBadgeClasses(
     // MAGENTA: material em fase de entrada ou cotação (padrão inicial para Pantone e Outros)
     const statusLabel = rawStatus === "cotacao" ? "Cotação" : "Entrada";
     return {
-      badge: "bg-[#d946ef] hover:bg-[#c026d3] text-white border-[#c026d3] shadow-[0_0_8px_rgba(217,70,239,0.35)] active:scale-95",
+      badge: "bg-[#d946ef] text-white border-[#c026d3] shadow-[0_0_8px_rgba(217,70,239,0.35)]",
       dot: "bg-white",
       border: "border-[#c026d3]",
       label: statusLabel,

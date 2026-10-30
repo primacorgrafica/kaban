@@ -529,13 +529,31 @@ export function OrderDetailDialog({
                               const style = getSpecialSupplyBadgeClasses(item.id, isSent, details.comprasStatus, details.operationalState);
                               const labelText = details.displayLabel || item.label;
 
-                              const titleText = isComprasItem
-                                ? style.statusColor === "verde"
-                                  ? `${labelText}: Concluído em Compras (${details.statusLabel})${formattedTime ? ` em ${formattedTime}` : ""}${op ? ` por ${op}` : ""}`
-                                  : style.statusColor === "amarelo"
-                                  ? `${labelText}: Material em fase de Pedido no setor de Compras`
-                                  : `${labelText}: Material em fase de ${details.statusLabel} no setor de Compras`
-                                : details.operationalState === "recebido"
+                              // Em Compras ou itens de Compras (Pantone e Outros), NÃO são clicáveis - mudam de cor exclusivamente ao mover no Kanban
+                              if (isComprasItem) {
+                                const comprasTooltip = `${labelText}: Fase de ${details.statusLabel} no setor de Compras (muda de cor exclusivamente ao mover nas colunas de Compras)`;
+                                return (
+                                  <div
+                                    key={item.id}
+                                    title={comprasTooltip}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-black tracking-wider uppercase flex items-center gap-1.5 shadow-xs border cursor-default select-none ${style.badge}`}
+                                  >
+                                    <span className={`w-2 h-2 rounded-full ${style.dot}`} />
+                                    <span>{labelText}</span>
+                                    {style.statusColor === "verde" ? (
+                                      <Check className="h-3.5 w-3.5 stroke-[3]" />
+                                    ) : (
+                                      <span className="text-[10px]">⏳</span>
+                                    )}
+                                    <span className="text-[10px] font-mono-tech ml-1 opacity-90">
+                                      ({details.statusLabel})
+                                    </span>
+                                  </div>
+                                );
+                              }
+
+                              // Suprimentos operacionais (Clichê, Faca, Filme): ciclo manual na Pré-Impressão e Produção
+                              const titleText = details.operationalState === "recebido"
                                 ? `${labelText}: CHEGOU NA PRODUÇÃO ${formattedTime ? `em ${formattedTime}` : ""}${op ? ` por ${op}` : ""} (Clique para voltar a Pendente)`
                                 : details.operationalState === "enviado"
                                 ? `${labelText}: ENVIADO PELA PRÉ-IMPRESSÃO ${formattedTime ? `em ${formattedTime}` : ""}${op ? ` por ${op}` : ""} (Clique para avisar que Chegou na Produção)`
@@ -549,20 +567,12 @@ export function OrderDetailDialog({
                                     const updated = toggleSpecialSupplySent(order.processos, item.id, order.operador);
                                     onUpdate(order.id, { processos: updated });
 
-                                    if (!isComprasItem) {
-                                      if (details.operationalState === "pendente") {
-                                        toast.success(`${labelText} marcado como ENVIADO (Amarelo)!`);
-                                      } else if (details.operationalState === "enviado") {
-                                        toast.success(`${labelText} marcado como CHEGOU NA PRODUÇÃO (Verde)!`);
-                                      } else {
-                                        toast.info(`${labelText} retornado para PENDENTE (Magenta).`);
-                                      }
+                                    if (details.operationalState === "pendente") {
+                                      toast.success(`${labelText} marcado como ENVIADO (Amarelo)!`);
+                                    } else if (details.operationalState === "enviado") {
+                                      toast.success(`${labelText} marcado como CHEGOU NA PRODUÇÃO (Verde)!`);
                                     } else {
-                                      if (!isSent) {
-                                        toast.success(`${labelText} marcado como CONCLUÍDO! Registrado com data e hora.`);
-                                      } else {
-                                        toast.info(`${labelText} alterado para PENDENTE EM COMPRAS.`);
-                                      }
+                                      toast.info(`${labelText} retornado para PENDENTE (Magenta).`);
                                     }
                                   }}
                                   title={titleText}
