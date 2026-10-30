@@ -216,38 +216,28 @@ export function CreateDeliveryDemandModal({
                 type="button"
                 onClick={() => setTipo("coleta")}
                 className={cn(
-                  "flex flex-col items-start gap-1 p-3 rounded-lg border text-left transition-all cursor-pointer",
+                  "flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border text-center transition-all cursor-pointer font-bold text-sm",
                   tipo === "coleta"
                     ? "border-amber-500 bg-amber-500/10 text-amber-300 ring-1 ring-amber-500/50"
                     : "border-border/60 bg-card/60 text-muted-foreground hover:bg-muted/40 hover:text-foreground"
                 )}
               >
-                <div className="flex items-center gap-2 font-bold text-sm text-amber-400">
-                  <PackagePlus className="h-4 w-4" />
-                  <span>Coleta</span>
-                </div>
-                <p className="text-[11px] leading-snug opacity-90">
-                  Buscar faca, clichê, prova, papel, insumo ou documentos em fornecedor ou cliente.
-                </p>
+                <PackagePlus className="h-4 w-4 text-amber-400" />
+                <span className="text-amber-400">Coleta</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setTipo("entrega")}
                 className={cn(
-                  "flex flex-col items-start gap-1 p-3 rounded-lg border text-left transition-all cursor-pointer",
+                  "flex items-center justify-center gap-2 py-2.5 px-3 rounded-lg border text-center transition-all cursor-pointer font-bold text-sm",
                   tipo === "entrega"
                     ? "border-blue-500 bg-blue-500/10 text-blue-300 ring-1 ring-blue-500/50"
                     : "border-border/60 bg-card/60 text-muted-foreground hover:bg-muted/40 hover:text-foreground"
                 )}
               >
-                <div className="flex items-center gap-2 font-bold text-sm text-blue-400">
-                  <Truck className="h-4 w-4" />
-                  <span>Entrega</span>
-                </div>
-                <p className="text-[11px] leading-snug opacity-90">
-                  Levar material impresso, amostras, contratos ou provas diretamente ao destino.
-                </p>
+                <Truck className="h-4 w-4 text-blue-400" />
+                <span className="text-blue-400">Entrega</span>
               </button>
             </div>
           </div>
@@ -260,7 +250,6 @@ export function CreateDeliveryDemandModal({
               </Label>
               <Input
                 id="demand-titulo"
-                placeholder={tipo === "coleta" ? "Ex: COL-101 ou 75120" : "Ex: ENT-202 ou 75120"}
                 value={titulo}
                 onChange={(e) => setTitulo(e.target.value)}
                 className="h-8 text-xs font-medium"
@@ -277,7 +266,6 @@ export function CreateDeliveryDemandModal({
                 <Input
                   id="demand-cliente"
                   required
-                  placeholder={tipo === "coleta" ? "Ex: Clicheria Alfa / Fornecedor Papel" : "Ex: Farmácia Central / Cliente Beta"}
                   value={cliente}
                   onChange={(e) => setCliente(e.target.value)}
                   className="h-8 pl-8 text-xs font-medium"
@@ -296,11 +284,6 @@ export function CreateDeliveryDemandModal({
               <Input
                 id="demand-descricao"
                 required
-                placeholder={
-                  tipo === "coleta"
-                    ? "Ex: Retirar 2 caixas de clichês para O.S. 74100 com nota fiscal"
-                    : "Ex: Entregar 1.000 folhetos laminados e colher assinatura no canhoto"
-                }
                 value={descricao}
                 onChange={(e) => setDescricao(e.target.value)}
                 className="h-8 pl-8 text-xs"
@@ -311,14 +294,13 @@ export function CreateDeliveryDemandModal({
           {/* ENDEREÇO COMPLETO */}
           <div className="space-y-1.5">
             <Label htmlFor="demand-endereco" className="text-xs font-semibold">
-              Endereço Completo (para Google Maps e Waze do entregador) *
+              Endereço Completo *
             </Label>
             <div className="relative">
               <MapPin className="absolute left-2.5 top-2 h-4 w-4 text-primary" />
               <Input
                 id="demand-endereco"
                 required
-                placeholder="Rua / Avenida, Número, Bairro, Cidade - CEP"
                 value={endereco}
                 onChange={(e) => setEndereco(e.target.value)}
                 className="h-8 pl-8 text-xs"
@@ -336,7 +318,6 @@ export function CreateDeliveryDemandModal({
                 <User className="absolute left-2.5 top-2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="demand-responsavel"
-                  placeholder="Ex: Falar com Marcos (Expedição) - Ramal 204"
                   value={responsavelLocal}
                   onChange={(e) => setResponsavelLocal(e.target.value)}
                   className="h-8 pl-8 text-xs"
@@ -395,7 +376,6 @@ export function CreateDeliveryDemandModal({
                 id="demand-parada"
                 type="number"
                 min="1"
-                placeholder="Ex: 1, 2..."
                 value={ordemParada}
                 onChange={(e) => setOrdemParada(e.target.value)}
                 disabled={entregadorId === "none"}
@@ -412,7 +392,6 @@ export function CreateDeliveryDemandModal({
               </Label>
               <Input
                 id="demand-solicitante"
-                placeholder="Ex: Carlos / Pré-Impressão / Comercial"
                 value={solicitante}
                 onChange={(e) => setSolicitante(e.target.value)}
                 className="h-8 text-xs"
@@ -441,7 +420,6 @@ export function CreateDeliveryDemandModal({
             <Textarea
               id="demand-observacoes"
               rows={2}
-              placeholder="Ex: Entrar pelo portão 2 de carga e descarga; apresentar documento com foto; colher carimbo e assinatura..."
               value={observacoes}
               onChange={(e) => setObservacoes(e.target.value)}
               className="text-xs resize-none"
