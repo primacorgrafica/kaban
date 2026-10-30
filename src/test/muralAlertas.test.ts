@@ -246,6 +246,28 @@ describe("Mural de Alertas - Hook e Lógica de Negócio", () => {
     expect(deletedId).toBe("alerta-1");
   });
 
+  it("deve esvaziar alertas e activeAlerts quando o banco não tiver alertas cadastrados", async () => {
+    (supabase.from as any).mockImplementation((table: string) => {
+      if (table === "mural_alertas") {
+        return {
+          select: vi.fn().mockReturnThis(),
+          order: vi.fn().mockResolvedValue({ data: [], error: null }),
+        };
+      }
+      return { select: vi.fn().mockReturnThis() };
+    });
+
+    const { result } = renderHook(() => useMuralAlertas());
+
+    await act(async () => {
+      await result.current.refetch();
+    });
+
+    expect(result.current.alertas).toEqual([]);
+    expect(result.current.activeAlerts).toEqual([]);
+    expect(result.current.primaryAlert).toBeNull();
+  });
+
   it("deve bloquear operações de gerenciamento para operadores comuns (apenas visualização)", async () => {
     vi.spyOn(useAuthModule, "useAuth").mockReturnValue({
       user: { id: "user-operador", email: "operador@primacorgrafica.com.br" } as any,

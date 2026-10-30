@@ -4,17 +4,14 @@ import { useAuth } from "./useAuth";
 import { MuralAlerta, MuralAlertaInput, MuralTipo } from "@/types/mural";
 import { toast } from "sonner";
 
-const CACHE_KEY = "kaban_mural_alertas_v1";
+const CACHE_KEY = "kaban_mural_alertas_v2";
 
-const DEFAULT_ALERTA: MuralAlerta = {
-  id: "mural-init-1",
-  titulo: "TESTANDO KABAN",
-  mensagem: "TESTANDO KABAN",
-  tipo: "urgente",
-  ativo: true,
-  criado_por: null,
-  created_at: new Date().toISOString(),
-};
+// Limpa qualquer cache legado da v1 que possa ter retido alertas excluídos ou padrão
+if (typeof window !== "undefined") {
+  try {
+    localStorage.removeItem("kaban_mural_alertas_v1");
+  } catch (_) {}
+}
 
 function getCachedAlertas(): MuralAlerta[] {
   try {
@@ -26,7 +23,7 @@ function getCachedAlertas(): MuralAlerta[] {
       }
     }
   } catch (_) {}
-  return [DEFAULT_ALERTA];
+  return [];
 }
 
 function saveCachedAlertas(alertas: MuralAlerta[]) {
@@ -58,13 +55,8 @@ export function useMuralAlertas() {
 
       if (!muralError && muralData) {
         setUsingFallback(false);
-        if (muralData.length > 0) {
-          setAlertas(muralData as unknown as MuralAlerta[]);
-          saveCachedAlertas(muralData as unknown as MuralAlerta[]);
-        } else {
-          const cached = getCachedAlertas();
-          if (cached.length > 0) setAlertas(cached);
-        }
+        setAlertas(muralData as unknown as MuralAlerta[]);
+        saveCachedAlertas(muralData as unknown as MuralAlerta[]);
         return;
       }
 
@@ -95,19 +87,23 @@ export function useMuralAlertas() {
             };
           });
 
-          if (mapped.length > 0) {
-            setAlertas(mapped);
-            saveCachedAlertas(mapped);
-          } else {
-            const cached = getCachedAlertas();
-            if (cached.length > 0) setAlertas(cached);
-          }
+          setAlertas(mapped);
+          saveCachedAlertas(mapped);
           return;
         }
       }
 
+      // Se houve falha de rede ou conexão, recorre ao cache local se disponível
+      const cached = getCachedAlertas();
+      if (cached.length > 0) {
+        setAlertas(cached);
+      }
       console.warn("[MuralAlertas] Aviso ao carregar alertas:", muralError);
     } catch (err) {
+      const cached = getCachedAlertas();
+      if (cached.length > 0) {
+        setAlertas(cached);
+      }
       console.error("[MuralAlertas] Exceção ao buscar alertas:", err);
     } finally {
       setLoading(false);
