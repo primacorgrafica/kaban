@@ -158,10 +158,64 @@ export function isSpecialSupplySent(processos: string[] | undefined | null, id: 
       (p) =>
         p === `${name}:enviado` ||
         p.startsWith(`${name}:enviado:`) ||
+        p === `${name}:recebido` ||
+        p.startsWith(`${name}:recebido:`) ||
+        p === `${name}:chegou` ||
+        p.startsWith(`${name}:chegou:`) ||
         p === `${name}:ok` ||
         p.startsWith(`${name}:ok:`)
     )
   );
+}
+
+export function isSpecialSupplyReceived(processos: string[] | undefined | null, id: SpecialSupplyId): boolean {
+  if (!processos || !Array.isArray(processos)) return false;
+  const config = SPECIAL_SUPPLIES.find((s) => s.id === id);
+  if (!config) return false;
+  return config.alt.some((name) =>
+    processos.some(
+      (p) =>
+        p === `${name}:recebido` ||
+        p.startsWith(`${name}:recebido:`) ||
+        p === `${name}:chegou` ||
+        p.startsWith(`${name}:chegou:`) ||
+        p === `${name}:ok` ||
+        p.startsWith(`${name}:ok:`)
+    )
+  );
+}
+
+export type OperationalSupplyState = "pendente" | "enviado" | "recebido";
+
+export function getSpecialSupplyOperationalState(
+  processos: string[] | undefined | null,
+  id: SpecialSupplyId
+): OperationalSupplyState {
+  if (!processos || !Array.isArray(processos)) return "pendente";
+  const config = SPECIAL_SUPPLIES.find((s) => s.id === id);
+  if (!config) return "pendente";
+
+  const match = processos.find((p) =>
+    config.alt.some((name) => p === name || p.startsWith(`${name}:`))
+  );
+  if (!match) return "pendente";
+
+  if (
+    match.includes(":recebido:") ||
+    match.endsWith(":recebido") ||
+    match.includes(":chegou:") ||
+    match.endsWith(":chegou") ||
+    match.includes(":ok:") ||
+    match.endsWith(":ok")
+  ) {
+    return "recebido";
+  }
+
+  if (match.includes(":enviado:") || match.endsWith(":enviado")) {
+    return "enviado";
+  }
+
+  return "pendente";
 }
 
 /**
@@ -230,14 +284,16 @@ export function setComprasStatusInProcessos(
  *    - MAGENTA: material em fase de entrada ou cotação.
  *    - AMARELO: material em fase de pedido.
  *    - VERDE: material com lançamento GE realizado ou saída registrada (ou marcado como comprado/enviado).
- * 2. CLICHÊ, FACA e FILME (Mecanismos operacionais da equipe):
- *    - AMARELO: pendente de envio.
- *    - VERDE: enviado/concluído.
+ * 2. CLICHÊ, FACA e FILME (Mecanismos operacionais da Pré-Impressão e Produção):
+ *    - MAGENTA: Chegam (pendente de envio na pré-impressão).
+ *    - AMARELO: Marcado que enviou (despachado pela pré-impressão).
+ *    - VERDE: Marcado em produção que chegou / recebido.
  */
 export function getSpecialSupplyBadgeClasses(
   id: SpecialSupplyId,
   isSent: boolean,
-  comprasStatus?: string | null
+  comprasStatus?: string | null,
+  operationalState?: OperationalSupplyState
 ): {
   badge: string;
   dot: string;
@@ -285,25 +341,40 @@ export function getSpecialSupplyBadgeClasses(
     };
   }
 
-  // 2. SUPRIMENTOS OPERACIONAIS: CLICHÊ, FACA, FILME
-  if (isSent) {
-    // VERDE: enviado/concluído
+  // 2. SUPRIMENTOS OPERACIONAIS (PRÉ-IMPRESSÃO E PRODUÇÃO): CLICHÊ, FACA, FILME
+  // "ELES CHEGAM MAGENTA, QUANDO AGENTE MARCAR QUE ENVIOU ELE FICA AMARELO, E EM PRODUÇÃO QUANDO CHEGAR AGENTE AVISA E DA ELE FICA VERDE."
+  const effectiveState: OperationalSupplyState =
+    operationalState || (isSent ? "recebido" : "pendente");
+
+  if (effectiveState === "recebido") {
+    // VERDE: chegou / recebido na produção
     return {
       badge: "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 shadow-[0_0_8px_rgba(16,185,129,0.35)] active:scale-95",
       dot: "bg-white",
       border: "border-emerald-600",
-      label: "Enviado",
+      label: "Chegou",
       statusColor: "verde",
     };
   }
 
-  // AMARELO: pendente
+  if (effectiveState === "enviado") {
+    // AMARELO: marcado que enviou pela pré-impressão
+    return {
+      badge: "bg-amber-400 hover:bg-amber-500 text-amber-950 border-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.25)] active:scale-95",
+      dot: "bg-amber-950",
+      border: "border-amber-500",
+      label: "Enviado",
+      statusColor: "amarelo",
+    };
+  }
+
+  // MAGENTA: chegam / pendente de envio
   return {
-    badge: "bg-amber-400 hover:bg-amber-500 text-amber-950 border-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.25)] active:scale-95",
-    dot: "bg-amber-950",
-    border: "border-amber-500",
+    badge: "bg-[#d946ef] hover:bg-[#c026d3] text-white border-[#c026d3] shadow-[0_0_8px_rgba(217,70,239,0.35)] active:scale-95",
+    dot: "bg-white",
+    border: "border-[#c026d3]",
     label: "Pendente",
-    statusColor: "amarelo",
+    statusColor: "magenta",
   };
 }
 
@@ -403,21 +474,37 @@ export function toggleSpecialSupplySent(
   const config = SPECIAL_SUPPLIES.find((s) => s.id === id);
   if (!config) return current;
 
-  const isSent = isSpecialSupplySent(current, id);
   const primaryName = config.id;
   const customText = getSpecialSupplyCustomText(current, id);
+  const infoPart = customText ? `:info:${encodeURIComponent(customText)}` : "";
+  const nowEpoch = Date.now().toString();
+  const op = operatorName && operatorName.trim() ? `:${encodeURIComponent(operatorName.trim())}` : "";
 
   const filtered = current.filter(
     (p) => !config.alt.some((name) => p === name || p.startsWith(`${name}:`))
   );
 
-  const infoPart = customText ? `:info:${encodeURIComponent(customText)}` : "";
+  // CLICHÊ, FACA, FILME: ciclo de 3 estados operacionais manuais
+  // 1. Pendente (Magenta) -> 2. Enviado (Amarelo) -> 3. Recebido (Verde) -> volta para Pendente (Magenta)
+  if (id === "CLICHE" || id === "FACA" || id === "FILME") {
+    const currentState = getSpecialSupplyOperationalState(current, id);
+    if (currentState === "pendente") {
+      // 1 -> 2: Pré-impressão marca que enviou (AMARELO)
+      return [...filtered, `${primaryName}:enviado:${nowEpoch}${op}${infoPart}`];
+    } else if (currentState === "enviado") {
+      // 2 -> 3: Produção avisa que chegou (VERDE)
+      return [...filtered, `${primaryName}:recebido:${nowEpoch}${op}${infoPart}`];
+    } else {
+      // 3 -> 1: Redefine de volta para Pendente (MAGENTA)
+      return [...filtered, `${primaryName}${infoPart}`];
+    }
+  }
 
+  // PANTONE e OUTROS: toggle binário
+  const isSent = isSpecialSupplySent(current, id);
   if (isSent) {
     return [...filtered, `${primaryName}${infoPart}`];
   } else {
-    const nowEpoch = Date.now().toString();
-    const op = operatorName && operatorName.trim() ? `:${encodeURIComponent(operatorName.trim())}` : "";
     return [...filtered, `${primaryName}:enviado:${nowEpoch}${op}${infoPart}`];
   }
 }
@@ -434,6 +521,7 @@ export interface SpecialSupplyDetails {
   comprasStatus: SupplyComprasStatus | null;
   statusColor: SpecialSupplyStatusColor;
   statusLabel: string;
+  operationalState?: OperationalSupplyState;
 }
 
 export function getSpecialSupplyDisplayLabel(
@@ -498,8 +586,9 @@ export function getSpecialSupplyDetails(
       customText: null,
       displayLabel: id,
       comprasStatus: null,
-      statusColor: (id === "PANTONE" || id === "OUTROS") ? "magenta" : "amarelo",
+      statusColor: (id === "PANTONE" || id === "OUTROS") ? "magenta" : "magenta",
       statusLabel: (id === "PANTONE" || id === "OUTROS") ? "Entrada" : "Pendente",
+      operationalState: "pendente",
     };
   }
   if (!processos || !Array.isArray(processos)) {
@@ -513,8 +602,9 @@ export function getSpecialSupplyDetails(
       customText: null,
       displayLabel: config.label,
       comprasStatus: null,
-      statusColor: (id === "PANTONE" || id === "OUTROS") ? "magenta" : "amarelo",
+      statusColor: (id === "PANTONE" || id === "OUTROS") ? "magenta" : "magenta",
       statusLabel: (id === "PANTONE" || id === "OUTROS") ? "Entrada" : "Pendente",
+      operationalState: "pendente",
     };
   }
 
@@ -533,33 +623,46 @@ export function getSpecialSupplyDetails(
       customText: null,
       displayLabel: config.label,
       comprasStatus: null,
-      statusColor: (id === "PANTONE" || id === "OUTROS") ? "magenta" : "amarelo",
+      statusColor: (id === "PANTONE" || id === "OUTROS") ? "magenta" : "magenta",
       statusLabel: (id === "PANTONE" || id === "OUTROS") ? "Entrada" : "Pendente",
+      operationalState: "pendente",
     };
   }
 
-  const isSent = config.alt.some((name) =>
-    match === `${name}:enviado` ||
-    match.startsWith(`${name}:enviado:`) ||
+  const isReceived = config.alt.some((name) =>
+    match === `${name}:recebido` ||
+    match.startsWith(`${name}:recebido:`) ||
+    match === `${name}:chegou` ||
+    match.startsWith(`${name}:chegou:`) ||
     match === `${name}:ok` ||
     match.startsWith(`${name}:ok:`)
   );
+
+  const isEnviado = !isReceived && config.alt.some((name) =>
+    match === `${name}:enviado` ||
+    match.startsWith(`${name}:enviado:`)
+  );
+
+  const operationalState: OperationalSupplyState = isReceived
+    ? "recebido"
+    : isEnviado
+    ? "enviado"
+    : "pendente";
+
+  const isSent = isReceived || isEnviado;
 
   let sentAt: string | null = null;
   let operator: string | null = null;
 
   if (isSent) {
-    const enviadoPrefix = ":enviado:";
-    const okPrefix = ":ok:";
+    const prefixes = [":recebido:", ":chegou:", ":ok:", ":enviado:"];
     let payload = "";
 
-    const envIdx = match.indexOf(enviadoPrefix);
-    if (envIdx !== -1) {
-      payload = match.slice(envIdx + enviadoPrefix.length);
-    } else {
-      const okIdx = match.indexOf(okPrefix);
-      if (okIdx !== -1) {
-        payload = match.slice(okIdx + okPrefix.length);
+    for (const pfx of prefixes) {
+      const idx = match.indexOf(pfx);
+      if (idx !== -1) {
+        payload = match.slice(idx + pfx.length);
+        break;
       }
     }
 
@@ -638,7 +741,12 @@ export function getSpecialSupplyDetails(
     ((id === "PANTONE" || id === "OUTROS") &&
       (rawComprasStatus === "lancamento_ge" || rawComprasStatus === "saida"));
 
-  const badgeClasses = getSpecialSupplyBadgeClasses(id, effectiveSent, rawComprasStatus);
+  const badgeClasses = getSpecialSupplyBadgeClasses(
+    id,
+    effectiveSent,
+    rawComprasStatus,
+    id === "CLICHE" || id === "FACA" || id === "FILME" ? operationalState : undefined
+  );
 
   return {
     id,
@@ -652,13 +760,15 @@ export function getSpecialSupplyDetails(
     comprasStatus: rawComprasStatus,
     statusColor: badgeClasses.statusColor,
     statusLabel: badgeClasses.label,
+    operationalState,
   };
 }
-
 
 export const SPECIAL_SUPPLY_NAMES = SPECIAL_SUPPLIES.flatMap((s) => [
   ...s.alt,
   ...s.alt.map((a) => `${a}:enviado`),
+  ...s.alt.map((a) => `${a}:recebido`),
+  ...s.alt.map((a) => `${a}:chegou`),
   ...s.alt.map((a) => `${a}:ok`),
 ]);
 

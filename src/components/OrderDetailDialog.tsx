@@ -508,112 +508,139 @@ export function OrderDetailDialog({
                     </div>
 
                     {/* Quadros PANTONE - FACA - CLICHÊ - OUTROS */}
-                    {SPECIAL_SUPPLIES.some((s) => isSpecialSupplyActive(order.processos, s.id)) && (
-                      <div className="flex flex-col gap-2 pb-1">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(order.processos, s.id)).map((item) => {
-                            const isComprasItem = item.id === "PANTONE" || item.id === "OUTROS";
-                            const effectiveComprasStatus =
-                              order.setor === "compras" ? (order.setor_status || "entrada") : undefined;
-                            const details = getSpecialSupplyDetails(order.processos, item.id, effectiveComprasStatus);
-                            const isSent = details.sent;
-                            const formattedTime = formatSafeDate(details.sentAt, "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR });
-                            const op = details.operator || order.operador || null;
-                            const style = getSpecialSupplyBadgeClasses(item.id, isSent, details.comprasStatus);
-                            const labelText = details.displayLabel || item.label;
+                    {(() => {
+                      const isComprasOrder = order.setor === "compras";
+                      const visibleSupplies = SPECIAL_SUPPLIES.filter(
+                        (s) => isSpecialSupplyActive(order.processos, s.id) && (!isComprasOrder || s.id === "PANTONE" || s.id === "OUTROS")
+                      );
+                      if (visibleSupplies.length === 0) return null;
 
-                            const titleText = isComprasItem
-                              ? style.statusColor === "verde"
-                                ? `${labelText}: Concluído em Compras (${details.statusLabel})${formattedTime ? ` em ${formattedTime}` : ""}${op ? ` por ${op}` : ""}`
-                                : style.statusColor === "amarelo"
-                                ? `${labelText}: Material em fase de Pedido no setor de Compras`
-                                : `${labelText}: Material em fase de ${details.statusLabel} no setor de Compras`
-                              : isSent
-                              ? `${labelText}: ENVIADO ${formattedTime ? `em ${formattedTime}` : ""}${op ? ` por ${op}` : ""} (Clique para alterar para pendente)`
-                              : `${labelText}: PENDENTE (Clique para marcar como enviado)`;
+                      return (
+                        <div className="flex flex-col gap-2 pb-1">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            {visibleSupplies.map((item) => {
+                              const isComprasItem = item.id === "PANTONE" || item.id === "OUTROS";
+                              const effectiveComprasStatus =
+                                order.setor === "compras" ? (order.setor_status || "entrada") : undefined;
+                              const details = getSpecialSupplyDetails(order.processos, item.id, effectiveComprasStatus);
+                              const isSent = details.sent;
+                              const formattedTime = formatSafeDate(details.sentAt, "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR });
+                              const op = details.operator || order.operador || null;
+                              const style = getSpecialSupplyBadgeClasses(item.id, isSent, details.comprasStatus, details.operationalState);
+                              const labelText = details.displayLabel || item.label;
 
-                            return (
-                              <button
-                                key={item.id}
-                                type="button"
-                                onClick={() => {
-                                  const updated = toggleSpecialSupplySent(order.processos, item.id, order.operador);
-                                  onUpdate(order.id, { processos: updated });
-                                  if (!isSent) {
-                                    toast.success(`${labelText} marcado como ${isComprasItem ? "CONCLUÍDO" : "ENVIADO"}! Registrado com data e hora.`);
-                                  } else {
-                                    toast.info(`${labelText} alterado para ${isComprasItem ? "PENDENTE EM COMPRAS" : "PENDENTE"}.`);
-                                  }
-                                }}
-                                title={titleText}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-black tracking-wider uppercase transition-all flex items-center gap-1.5 shadow-xs border cursor-pointer ${style.badge}`}
-                              >
-                                <span className={`w-2 h-2 rounded-full ${style.dot}`} />
-                                <span>{labelText}</span>
-                                {style.statusColor === "verde" ? (
-                                  <Check className="h-3.5 w-3.5 stroke-[3]" />
-                                ) : (
-                                  <span className="text-[10px]">⏳</span>
-                                )}
-                                <span className="text-[10px] font-mono-tech ml-1 opacity-90">
-                                  ({details.statusLabel})
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                        {/* Detalhes de rastreabilidade com data e hora */}
-                        <div className="space-y-1 pt-1">
-                          {SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(order.processos, s.id)).map((item) => {
-                            const details = getSpecialSupplyDetails(order.processos, item.id);
-                            const style = getSpecialSupplyBadgeClasses(item.id, details.sent, details.comprasStatus);
-                            const isComprasItem = item.id === "PANTONE" || item.id === "OUTROS";
-                            const formattedTime = formatSafeDate(details.sentAt, "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })
-                              || formatSafeDate(order.updated_at, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
-                              || "Registrado";
+                              const titleText = isComprasItem
+                                ? style.statusColor === "verde"
+                                  ? `${labelText}: Concluído em Compras (${details.statusLabel})${formattedTime ? ` em ${formattedTime}` : ""}${op ? ` por ${op}` : ""}`
+                                  : style.statusColor === "amarelo"
+                                  ? `${labelText}: Material em fase de Pedido no setor de Compras`
+                                  : `${labelText}: Material em fase de ${details.statusLabel} no setor de Compras`
+                                : details.operationalState === "recebido"
+                                ? `${labelText}: CHEGOU NA PRODUÇÃO ${formattedTime ? `em ${formattedTime}` : ""}${op ? ` por ${op}` : ""} (Clique para voltar a Pendente)`
+                                : details.operationalState === "enviado"
+                                ? `${labelText}: ENVIADO PELA PRÉ-IMPRESSÃO ${formattedTime ? `em ${formattedTime}` : ""}${op ? ` por ${op}` : ""} (Clique para avisar que Chegou na Produção)`
+                                : `${labelText}: PENDENTE (Clique para marcar como Enviado)`;
 
-                            const dotColor =
-                              style.statusColor === "verde"
-                                ? "bg-emerald-500 shadow-[0_0_6px_#10b981]"
-                                : style.statusColor === "amarelo"
-                                ? "bg-amber-500 shadow-[0_0_6px_#f59e0b]"
-                                : "bg-fuchsia-500 shadow-[0_0_6px_#d946ef]";
+                              return (
+                                <button
+                                  key={item.id}
+                                  type="button"
+                                  onClick={() => {
+                                    const updated = toggleSpecialSupplySent(order.processos, item.id, order.operador);
+                                    onUpdate(order.id, { processos: updated });
 
-                            const textColor =
-                              style.statusColor === "verde"
-                                ? "text-emerald-600 dark:text-emerald-400"
-                                : style.statusColor === "amarelo"
-                                ? "text-amber-600 dark:text-amber-400"
-                                : "text-fuchsia-700 dark:text-fuchsia-400";
-
-                            return (
-                              <p key={`info-${item.id}`} className={`text-[11px] font-mono-tech flex items-center gap-1.5 flex-wrap ${textColor}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
-                                <strong className="font-bold">{item.label}:</strong>
-                                {isComprasItem ? (
-                                  <span>
-                                    Setor de Compras: <u>{details.statusLabel}</u>
-                                    {details.sent && details.operator && <span> — por {details.operator}</span>}
+                                    if (!isComprasItem) {
+                                      if (details.operationalState === "pendente") {
+                                        toast.success(`${labelText} marcado como ENVIADO (Amarelo)!`);
+                                      } else if (details.operationalState === "enviado") {
+                                        toast.success(`${labelText} marcado como CHEGOU NA PRODUÇÃO (Verde)!`);
+                                      } else {
+                                        toast.info(`${labelText} retornado para PENDENTE (Magenta).`);
+                                      }
+                                    } else {
+                                      if (!isSent) {
+                                        toast.success(`${labelText} marcado como CONCLUÍDO! Registrado com data e hora.`);
+                                      } else {
+                                        toast.info(`${labelText} alterado para PENDENTE EM COMPRAS.`);
+                                      }
+                                    }
+                                  }}
+                                  title={titleText}
+                                  className={`px-3 py-1.5 rounded-lg text-xs font-black tracking-wider uppercase transition-all flex items-center gap-1.5 shadow-xs border cursor-pointer ${style.badge}`}
+                                >
+                                  <span className={`w-2 h-2 rounded-full ${style.dot}`} />
+                                  <span>{labelText}</span>
+                                  {style.statusColor === "verde" ? (
+                                    <Check className="h-3.5 w-3.5 stroke-[3]" />
+                                  ) : (
+                                    <span className="text-[10px]">⏳</span>
+                                  )}
+                                  <span className="text-[10px] font-mono-tech ml-1 opacity-90">
+                                    ({details.statusLabel})
                                   </span>
-                                ) : details.sent ? (
-                                  <>
-                                    Aprovado/Enviado em {formattedTime}
-                                    {details.operator && <span>por <u>{details.operator}</u></span>}
-                                  </>
-                                ) : (
-                                  <span>Pendente de envio</span>
-                                )}
-                                {details.customText && (
-                                  <span className="text-foreground/90 font-sans font-medium text-xs ml-1">
-                                    — {details.customText}
-                                  </span>
-                                )}
-                              </p>
-                            );
-                          })}
+                                </button>
+                              );
+                            })}
+                          </div>
+                          {/* Detalhes de rastreabilidade com data e hora */}
+                          <div className="space-y-1 pt-1">
+                            {visibleSupplies.map((item) => {
+                              const effectiveComprasStatus = order.setor === "compras" ? (order.setor_status || "entrada") : undefined;
+                              const details = getSpecialSupplyDetails(order.processos, item.id, effectiveComprasStatus);
+                              const style = getSpecialSupplyBadgeClasses(item.id, details.sent, details.comprasStatus, details.operationalState);
+                              const isComprasItem = item.id === "PANTONE" || item.id === "OUTROS";
+                              const formattedTime = formatSafeDate(details.sentAt, "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR })
+                                || formatSafeDate(order.updated_at, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
+                                || "Registrado";
+
+                              const dotColor =
+                                style.statusColor === "verde"
+                                  ? "bg-emerald-500 shadow-[0_0_6px_#10b981]"
+                                  : style.statusColor === "amarelo"
+                                  ? "bg-amber-500 shadow-[0_0_6px_#f59e0b]"
+                                  : "bg-fuchsia-500 shadow-[0_0_6px_#d946ef]";
+
+                              const textColor =
+                                style.statusColor === "verde"
+                                  ? "text-emerald-600 dark:text-emerald-400"
+                                  : style.statusColor === "amarelo"
+                                  ? "text-amber-600 dark:text-amber-400"
+                                  : "text-fuchsia-700 dark:text-fuchsia-400";
+
+                              return (
+                                <p key={`info-${item.id}`} className={`text-[11px] font-mono-tech flex items-center gap-1.5 flex-wrap ${textColor}`}>
+                                  <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
+                                  <strong className="font-bold">{item.label}:</strong>
+                                  {isComprasItem ? (
+                                    <span>
+                                      Setor de Compras: <u>{details.statusLabel}</u>
+                                      {details.sent && details.operator && <span> — por {details.operator}</span>}
+                                    </span>
+                                  ) : details.operationalState === "recebido" ? (
+                                    <>
+                                      Chegou / Recebido na Produção em {formattedTime}
+                                      {details.operator && <span> por <u>{details.operator}</u></span>}
+                                    </>
+                                  ) : details.operationalState === "enviado" ? (
+                                    <>
+                                      Enviado pela Pré-Impressão em {formattedTime}
+                                      {details.operator && <span> por <u>{details.operator}</u></span>}
+                                    </>
+                                  ) : (
+                                    <span>Pendente de envio na Pré-Impressão</span>
+                                  )}
+                                  {details.customText && (
+                                    <span className="text-foreground/90 font-sans font-medium text-xs ml-1">
+                                      — {details.customText}
+                                    </span>
+                                  )}
+                                </p>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {order.processos && order.processos.length > 0 && sortAndFilterProcessos(order.processos).length > 0 && (
                       <div className="flex flex-wrap gap-1.5 pt-1 border-t border-border/50">

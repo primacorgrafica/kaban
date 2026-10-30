@@ -186,37 +186,84 @@ describe("Suprimentos e Processos Especiais (PANTONE, FACA, CLICHÊ, OUTROS)", (
     expect(hasSpecialSuppliesForCompras(["CLICHE", "OUTROS"])).toBe(true);
   });
 
-  it("atribui cores e status de acordo com as regras de negócio: Clichê/Faca/Filme (Amarelo/Verde) e Pantone/Outros (Magenta/Amarelo/Verde via Compras)", () => {
-    // 1. CLICHÊ, FACA e FILME (Mecanismo Operacional da Equipe)
-    // Pendente = Amarelo
+  it("deve alternar o ciclo de 3 estados para CLICHÊ, FACA e FILME: Magenta (chegam) -> Amarelo (enviou) -> Verde (chegou na produção)", () => {
+    let procs = ["FACA", "CORTE"];
+    
+    // 1. Chegam: Pendente (Magenta)
+    let details = getSpecialSupplyDetails(procs, "FACA");
+    expect(details.operationalState).toBe("pendente");
+    expect(details.statusColor).toBe("magenta");
+    expect(details.statusLabel).toBe("Pendente");
+
+    // 2. Pré-impressão marca que enviou: Enviado (Amarelo)
+    procs = toggleSpecialSupplySent(procs, "FACA", "Operador Pré");
+    details = getSpecialSupplyDetails(procs, "FACA");
+    expect(details.operationalState).toBe("enviado");
+    expect(details.statusColor).toBe("amarelo");
+    expect(details.statusLabel).toBe("Enviado");
+    expect(details.operator).toBe("Operador Pré");
+
+    // 3. Produção avisa que chegou: Chegou/Recebido (Verde)
+    procs = toggleSpecialSupplySent(procs, "FACA", "Operador Produção");
+    details = getSpecialSupplyDetails(procs, "FACA");
+    expect(details.operationalState).toBe("recebido");
+    expect(details.statusColor).toBe("verde");
+    expect(details.statusLabel).toBe("Chegou");
+    expect(details.operator).toBe("Operador Produção");
+
+    // 4. Redefine para pendente (Magenta)
+    procs = toggleSpecialSupplySent(procs, "FACA");
+    details = getSpecialSupplyDetails(procs, "FACA");
+    expect(details.operationalState).toBe("pendente");
+    expect(details.statusColor).toBe("magenta");
+    expect(details.statusLabel).toBe("Pendente");
+  });
+
+  it("atribui cores e status de acordo com as regras de negócio: Clichê/Faca/Filme (Magenta/Amarelo/Verde) e Pantone/Outros (Magenta/Amarelo/Verde via Compras)", () => {
+    // 1. CLICHÊ, FACA e FILME (Mecanismo Operacional da Pré-Impressão e Produção)
+    // Chegam = Magenta (Pendente)
     const facaPending = getSpecialSupplyBadgeClasses("FACA", false);
-    expect(facaPending.statusColor).toBe("amarelo");
-    expect(facaPending.badge).toContain("bg-amber-400");
+    expect(facaPending.statusColor).toBe("magenta");
+    expect(facaPending.badge).toContain("bg-[#d946ef]");
     expect(facaPending.label).toBe("Pendente");
 
     const clichePending = getSpecialSupplyBadgeClasses("CLICHE", false);
-    expect(clichePending.statusColor).toBe("amarelo");
-    expect(clichePending.badge).toContain("bg-amber-400");
+    expect(clichePending.statusColor).toBe("magenta");
+    expect(clichePending.badge).toContain("bg-[#d946ef]");
     expect(clichePending.label).toBe("Pendente");
 
     const filmePending = getSpecialSupplyBadgeClasses("FILME", false);
-    expect(filmePending.statusColor).toBe("amarelo");
-    expect(filmePending.badge).toContain("bg-amber-400");
+    expect(filmePending.statusColor).toBe("magenta");
+    expect(filmePending.badge).toContain("bg-[#d946ef]");
     expect(filmePending.label).toBe("Pendente");
 
-    // Enviado = Verde
-    const facaSent = getSpecialSupplyBadgeClasses("FACA", true);
-    expect(facaSent.statusColor).toBe("verde");
-    expect(facaSent.badge).toContain("bg-emerald-500");
+    // Enviado = Amarelo
+    const facaSent = getSpecialSupplyBadgeClasses("FACA", false, null, "enviado");
+    expect(facaSent.statusColor).toBe("amarelo");
+    expect(facaSent.badge).toContain("bg-amber-400");
     expect(facaSent.label).toBe("Enviado");
 
-    const clicheSent = getSpecialSupplyBadgeClasses("CLICHE", true);
-    expect(clicheSent.statusColor).toBe("verde");
-    expect(clicheSent.badge).toContain("bg-emerald-500");
+    const clicheSent = getSpecialSupplyBadgeClasses("CLICHE", false, null, "enviado");
+    expect(clicheSent.statusColor).toBe("amarelo");
+    expect(clicheSent.badge).toContain("bg-amber-400");
 
-    const filmeSent = getSpecialSupplyBadgeClasses("FILME", true);
-    expect(filmeSent.statusColor).toBe("verde");
-    expect(filmeSent.badge).toContain("bg-emerald-500");
+    const filmeSent = getSpecialSupplyBadgeClasses("FILME", false, null, "enviado");
+    expect(filmeSent.statusColor).toBe("amarelo");
+    expect(filmeSent.badge).toContain("bg-amber-400");
+
+    // Chegou / Recebido na Produção = Verde
+    const facaReceived = getSpecialSupplyBadgeClasses("FACA", false, null, "recebido");
+    expect(facaReceived.statusColor).toBe("verde");
+    expect(facaReceived.badge).toContain("bg-emerald-500");
+    expect(facaReceived.label).toBe("Chegou");
+
+    const clicheReceived = getSpecialSupplyBadgeClasses("CLICHE", false, null, "recebido");
+    expect(clicheReceived.statusColor).toBe("verde");
+    expect(clicheReceived.badge).toContain("bg-emerald-500");
+
+    const filmeReceived = getSpecialSupplyBadgeClasses("FILME", false, null, "recebido");
+    expect(filmeReceived.statusColor).toBe("verde");
+    expect(filmeReceived.badge).toContain("bg-emerald-500");
 
     // 2. PANTONE e OUTROS (Acompanhamento Automático do Fluxo de Compras)
     // Fase Entrada ou Cotação = MAGENTA

@@ -753,75 +753,107 @@ function ProductionCardImpl({
                 </div>
               )}
 
-              {/* Quadros Especiais: PANTONE - FACA - CLICHÊ (Sempre visíveis no card pronto na coluna) */}
-              {SPECIAL_SUPPLIES.some((s) => isSpecialSupplyActive(order.processos, s.id)) && (
-                <div
-                  className="flex items-center gap-1.5 mt-2 flex-wrap"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  {SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(order.processos, s.id)).map((item) => {
-                    const isComprasItem = item.id === "PANTONE" || item.id === "OUTROS";
-                    const isComprasView = department?.id === "compras" || order.setor === "compras";
-                    const effectiveComprasStatus = isComprasView
-                      ? (currentStatus?.id || order.setor_status || "entrada")
-                      : undefined;
-                    const details = getSpecialSupplyDetails(order.processos, item.id, effectiveComprasStatus);
-                    const isSent = details.sent;
-                    const formattedTime = formatSafeDate(details.sentAt, "dd/MM 'às' HH:mm", { locale: ptBR });
-                    const timeOnly = formatSafeDate(details.sentAt, "HH:mm");
-                    const op = details.operator || order.operador || updatedByName || null;
-                    const style = getSpecialSupplyBadgeClasses(item.id, isSent, details.comprasStatus);
-                    const labelText = details.displayLabel || item.label;
+              {/* Quadros Especiais: PANTONE - FACA - CLICHÊ - FILME - OUTROS */}
+              {(() => {
+                const isComprasView = department?.id === "compras" || order.setor === "compras";
+                const visibleSupplies = SPECIAL_SUPPLIES.filter(
+                  (s) => isSpecialSupplyActive(order.processos, s.id) && (!isComprasView || s.id === "PANTONE" || s.id === "OUTROS")
+                );
+                if (visibleSupplies.length === 0) return null;
 
-                    const tooltip = isComprasItem
-                      ? style.statusColor === "verde"
-                        ? `${labelText}: Concluído em Compras (${details.statusLabel})${formattedTime ? ` em ${formattedTime}` : ""}${op ? ` por ${op}` : ""}`
-                        : style.statusColor === "amarelo"
-                        ? `${labelText}: Material em fase de Pedido em Compras`
-                        : `${labelText}: Material em fase de ${details.statusLabel} em Compras`
-                      : isSent
-                      ? `${labelText}: ENVIADO ${formattedTime ? `em ${formattedTime}` : ""}${op ? ` por ${op}` : ""} (Clique para alterar para pendente)`
-                      : `${labelText}: PENDENTE (Clique para marcar como enviado)`;
+                return (
+                  <div
+                    className="flex items-center gap-1.5 mt-2 flex-wrap"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {visibleSupplies.map((item) => {
+                      const isComprasItem = item.id === "PANTONE" || item.id === "OUTROS";
+                      const effectiveComprasStatus = isComprasView
+                        ? (currentStatus?.id || order.setor_status || "entrada")
+                        : undefined;
+                      const details = getSpecialSupplyDetails(order.processos, item.id, effectiveComprasStatus);
+                      const isSent = details.sent;
+                      const formattedTime = formatSafeDate(details.sentAt, "dd/MM 'às' HH:mm", { locale: ptBR });
+                      const timeOnly = formatSafeDate(details.sentAt, "HH:mm");
+                      const op = details.operator || order.operador || updatedByName || null;
+                      const style = getSpecialSupplyBadgeClasses(item.id, isSent, details.comprasStatus, details.operationalState);
+                      const labelText = details.displayLabel || item.label;
 
-                    return (
-                      <button
-                        key={item.id}
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const operatorToSave = order.operador || updatedByName || undefined;
-                          const updated = toggleSpecialSupplySent(order.processos, item.id, operatorToSave);
-                          onUpdate(order.id, { processos: updated });
-                          if (!isSent) {
-                            toast.success(`${labelText} marcado como ${isComprasItem ? "CONCLUÍDO" : "ENVIADO"}! Registrado no sistema.`);
-                          } else {
-                            toast.info(`${labelText} alterado para ${isComprasItem ? "PENDENTE EM COMPRAS" : "PENDENTE"}.`);
-                          }
-                        }}
-                        title={tooltip}
-                        className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider uppercase transition-all flex items-center gap-1 shadow-xs cursor-pointer border ${style.badge}`}
-                      >
-                        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${style.dot}`} />
-                        <span>{labelText}</span>
-                        {style.statusColor === "verde" ? (
-                          <>
-                            <Check className="h-3 w-3 stroke-[3]" />
-                            {timeOnly && (
-                              <span className="text-[9px] font-mono-tech opacity-90 tracking-tight bg-black/20 px-1 rounded">
-                                {timeOnly}
-                              </span>
-                            )}
-                          </>
-                        ) : (
-                          <span className="text-[9px] font-mono-tech opacity-90 tracking-tight bg-black/20 px-1 rounded">
-                            {details.statusLabel}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+                      const tooltip = isComprasItem
+                        ? style.statusColor === "verde"
+                          ? `${labelText}: Concluído em Compras (${details.statusLabel})${formattedTime ? ` em ${formattedTime}` : ""}${op ? ` por ${op}` : ""}`
+                          : style.statusColor === "amarelo"
+                          ? `${labelText}: Material em fase de Pedido em Compras`
+                          : `${labelText}: Material em fase de ${details.statusLabel} em Compras`
+                        : details.operationalState === "recebido"
+                        ? `${labelText}: CHEGOU NA PRODUÇÃO ${formattedTime ? `em ${formattedTime}` : ""}${op ? ` por ${op}` : ""} (Clique para voltar a Pendente)`
+                        : details.operationalState === "enviado"
+                        ? `${labelText}: ENVIADO PELA PRÉ-IMPRESSÃO ${formattedTime ? `em ${formattedTime}` : ""}${op ? ` por ${op}` : ""} (Clique para avisar que Chegou na Produção)`
+                        : `${labelText}: PENDENTE (Clique para marcar como Enviado)`;
+
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const operatorToSave = order.operador || updatedByName || undefined;
+                            const updated = toggleSpecialSupplySent(order.processos, item.id, operatorToSave);
+                            onUpdate(order.id, { processos: updated });
+
+                            if (!isComprasItem) {
+                              if (details.operationalState === "pendente") {
+                                toast.success(`${labelText} marcado como ENVIADO (Amarelo)!`);
+                              } else if (details.operationalState === "enviado") {
+                                toast.success(`${labelText} marcado como CHEGOU NA PRODUÇÃO (Verde)!`);
+                              } else {
+                                toast.info(`${labelText} retornado para PENDENTE (Magenta).`);
+                              }
+                            } else {
+                              if (!isSent) {
+                                toast.success(`${labelText} marcado como CONCLUÍDO!`);
+                              } else {
+                                toast.info(`${labelText} alterado para PENDENTE EM COMPRAS.`);
+                              }
+                            }
+                          }}
+                          title={tooltip}
+                          className={`px-2 py-0.5 rounded text-[10px] font-black tracking-wider uppercase transition-all flex items-center gap-1 shadow-xs cursor-pointer border ${style.badge}`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${style.dot}`} />
+                          <span>{labelText}</span>
+                          {style.statusColor === "verde" ? (
+                            <>
+                              <Check className="h-3 w-3 stroke-[3]" />
+                              {timeOnly && (
+                                <span className="text-[9px] font-mono-tech opacity-90 tracking-tight bg-black/20 px-1 rounded">
+                                  {timeOnly}
+                                </span>
+                              )}
+                            </>
+                          ) : style.statusColor === "amarelo" ? (
+                            <>
+                              {timeOnly ? (
+                                <span className="text-[9px] font-mono-tech opacity-90 tracking-tight bg-black/20 px-1 rounded">
+                                  {timeOnly}
+                                </span>
+                              ) : (
+                                <span className="text-[9px] font-mono-tech opacity-90 tracking-tight bg-black/20 px-1 rounded">
+                                  {details.statusLabel}
+                                </span>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-[9px] font-mono-tech opacity-90 tracking-tight bg-black/20 px-1 rounded">
+                              {details.statusLabel}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
 
               {/* Processos badges adicionais */}
               {order.processos && order.processos.length > 0 && (
