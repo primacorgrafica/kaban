@@ -760,13 +760,17 @@ function ProductionCardImpl({
                   onClick={(e) => e.stopPropagation()}
                 >
                   {SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(order.processos, s.id)).map((item) => {
-                    const details = getSpecialSupplyDetails(order.processos, item.id);
+                    const isComprasItem = item.id === "PANTONE" || item.id === "OUTROS";
+                    const isComprasView = department?.id === "compras" || order.setor === "compras";
+                    const effectiveComprasStatus = isComprasView
+                      ? (currentStatus?.id || order.setor_status || "entrada")
+                      : undefined;
+                    const details = getSpecialSupplyDetails(order.processos, item.id, effectiveComprasStatus);
                     const isSent = details.sent;
                     const formattedTime = formatSafeDate(details.sentAt, "dd/MM 'às' HH:mm", { locale: ptBR });
                     const timeOnly = formatSafeDate(details.sentAt, "HH:mm");
                     const op = details.operator || order.operador || updatedByName || null;
                     const style = getSpecialSupplyBadgeClasses(item.id, isSent, details.comprasStatus);
-                    const isComprasItem = item.id === "PANTONE" || item.id === "OUTROS";
                     const labelText = details.displayLabel || item.label;
 
                     const tooltip = isComprasItem

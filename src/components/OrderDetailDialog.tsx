@@ -512,12 +512,14 @@ export function OrderDetailDialog({
                       <div className="flex flex-col gap-2 pb-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           {SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(order.processos, s.id)).map((item) => {
-                            const details = getSpecialSupplyDetails(order.processos, item.id);
+                            const isComprasItem = item.id === "PANTONE" || item.id === "OUTROS";
+                            const effectiveComprasStatus =
+                              order.setor === "compras" ? (order.setor_status || "entrada") : undefined;
+                            const details = getSpecialSupplyDetails(order.processos, item.id, effectiveComprasStatus);
                             const isSent = details.sent;
                             const formattedTime = formatSafeDate(details.sentAt, "dd/MM/yyyy 'às' HH:mm:ss", { locale: ptBR });
                             const op = details.operator || order.operador || null;
                             const style = getSpecialSupplyBadgeClasses(item.id, isSent, details.comprasStatus);
-                            const isComprasItem = item.id === "PANTONE" || item.id === "OUTROS";
                             const labelText = details.displayLabel || item.label;
 
                             const titleText = isComprasItem

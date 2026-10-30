@@ -166,11 +166,28 @@ export function useProductionOrders() {
 
     const previousSnapshot = [...orders];
 
+    let updatedProcsOnMovedCard = order.processos ? [...order.processos] : [];
+    if (order.setor === "compras") {
+      updatedProcsOnMovedCard = setComprasStatusInProcessos(updatedProcsOnMovedCard, newStatus);
+      if (newStatus === "lancamento_ge" || newStatus === "saida") {
+        if (!updatedProcsOnMovedCard.some(p => p.startsWith("COMPRADO"))) {
+          updatedProcsOnMovedCard.push(`COMPRADO:${Date.now()}:Compras`);
+        }
+      } else if (["entrada", "cotacao", "pedido"].includes(newStatus)) {
+        updatedProcsOnMovedCard = updatedProcsOnMovedCard.filter(p => !p.startsWith("COMPRADO") && !p.startsWith("COMPRA:ok"));
+      }
+    }
+
     // 1. Atualização otimista
     setOrders(prev =>
       prev.map(o => {
         if (o.id === orderId) {
-          return { ...o, setor_status: newStatus, posicao: idx };
+          return {
+            ...o,
+            setor_status: newStatus,
+            posicao: idx,
+            processos: order.setor === "compras" ? updatedProcsOnMovedCard : o.processos,
+          };
         }
         if (order.setor === "compras" && order.parent_order_id && o.id === order.parent_order_id) {
           let procs = setComprasStatusInProcessos(o.processos, newStatus);
@@ -199,12 +216,16 @@ export function useProductionOrders() {
     const updates: PromiseLike<{ error: any }>[] = [];
     for (let i = 0; i < destOrders.length; i++) {
       if (destOrders[i].id === orderId) {
+        const payloadToUpdate: any = {
+          setor_status: newStatus,
+          posicao: i,
+          atualizado_por: user?.id || null,
+        };
+        if (order.setor === "compras") {
+          payloadToUpdate.processos = updatedProcsOnMovedCard;
+        }
         updates.push(
-          supabase.from("orders").update({
-            setor_status: newStatus,
-            posicao: i,
-            atualizado_por: user?.id || null,
-          }).eq("id", orderId)
+          supabase.from("orders").update(payloadToUpdate).eq("id", orderId)
         );
       } else if (destOrders[i].posicao !== i) {
         updates.push(
