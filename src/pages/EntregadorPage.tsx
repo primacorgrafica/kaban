@@ -932,8 +932,18 @@ export default function EntregadorPage() {
                         </div>
                       )}
                       <div>
-                        <div className="font-bold text-base text-zinc-100 flex items-center gap-1.5">
-                          <span>O.S. {order.titulo}</span>
+                        <div className="font-bold text-base text-zinc-100 flex items-center gap-1.5 flex-wrap">
+                          <span>{order.tipo_entrega?.includes("coleta") ? "COLETA" : "O.S."} {order.titulo}</span>
+                          {order.tipo_entrega?.includes("coleta") && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-bold bg-amber-500/20 text-amber-400 border-amber-500/40">
+                              BUSCAR
+                            </Badge>
+                          )}
+                          {order.urgente && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-bold bg-red-500/20 text-red-400 border-red-500/40">
+                              URGENTE
+                            </Badge>
+                          )}
                         </div>
                         <div className="text-xs font-semibold text-zinc-300 line-clamp-1">
                           {order.cliente}
@@ -1032,7 +1042,7 @@ export default function EntregadorPage() {
                         onClick={() => handleStartRoute(order)}
                       >
                         <Bike className="h-4 w-4" />
-                        Iniciar Rota para esta O.S.
+                        {order.tipo_entrega?.includes("coleta") ? "Iniciar Rota para Coleta" : "Iniciar Rota para esta O.S."}
                       </Button>
                     )}
 
@@ -1044,7 +1054,7 @@ export default function EntregadorPage() {
                         onClick={() => handleArrivedAtDestination(order)}
                       >
                         <MapPin className="h-4 w-4" />
-                        Cheguei no Local de Entrega
+                        {order.tipo_entrega?.includes("coleta") ? "Cheguei no Local de Coleta" : "Cheguei no Local de Entrega"}
                       </Button>
                     )}
 
@@ -1058,7 +1068,7 @@ export default function EntregadorPage() {
                           onClick={() => handleOpenFailure(order)}
                         >
                           <AlertTriangle className="h-3.5 w-3.5" />
-                          Não Entregue
+                          {order.tipo_entrega?.includes("coleta") ? "Não Coletado" : "Não Entregue"}
                         </Button>
 
                         <Button
@@ -1067,7 +1077,7 @@ export default function EntregadorPage() {
                           onClick={() => handleOpenCompletion(order)}
                         >
                           <FileCheck className="h-4 w-4" />
-                          Concluir Entrega
+                          {order.tipo_entrega?.includes("coleta") ? "Concluir Coleta" : "Concluir Entrega"}
                         </Button>
                       </div>
                     )}

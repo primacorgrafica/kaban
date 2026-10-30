@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { X, CalendarIcon, FileDown, Bike, Radio, UserPlus, CloudUpload, Activity } from "lucide-react";
+import { X, CalendarIcon, FileDown, Bike, Radio, UserPlus, CloudUpload, Activity, Plus, PackagePlus, Truck, AlertTriangle } from "lucide-react";
 import { format, parseISO, startOfDay, addDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,7 @@ import { AssignDriverModal } from "@/components/delivery/AssignDriverModal";
 import { DeliveryMonitoringModal } from "@/components/delivery/DeliveryMonitoringModal";
 import { DeliveryCompletedDetailsModal } from "@/components/delivery/DeliveryCompletedDetailsModal";
 import { SharePointDiagnosticsModal } from "@/components/sharepoint/SharePointDiagnosticsModal";
+import { CreateDeliveryDemandModal } from "@/components/delivery/CreateDeliveryDemandModal";
 import { getEntregadoresList } from "@/lib/deliveryService";
 import { syncPendingProtocolsToSharePoint } from "@/lib/sharepointService";
 import type { Entregador, DeliveryStatus } from "@/types/delivery";
@@ -43,6 +44,7 @@ export default function EntregasPage() {
   const [selectedOrderForDriver, setSelectedOrderForDriver] = useState<Order | null>(null);
   const [selectedDeliveredOrder, setSelectedDeliveredOrder] = useState<Order | null>(null);
   const [showMonitoring, setShowMonitoring] = useState(false);
+  const [createDemandOpen, setCreateDemandOpen] = useState(false);
   const [entregadores, setEntregadores] = useState<Entregador[]>([]);
 
   useEffect(() => {
@@ -419,6 +421,16 @@ export default function EntregasPage() {
               App Entregador
             </Link>
           </Button>
+
+          <Button
+            size="sm"
+            className="gap-1.5 h-8 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-xs"
+            onClick={() => setCreateDemandOpen(true)}
+            title="Cadastrar uma nova demanda manual para coleta (buscar algo) ou entrega"
+          >
+            <Plus className="h-4 w-4" />
+            Nova Demanda
+          </Button>
         </div>
 
         {/* Table */}
@@ -429,7 +441,7 @@ export default function EntregasPage() {
             <Table className="table-fixed min-w-[1240px]">
               <TableHeader>
                  <TableRow className="bg-muted/50 [&>th]:px-2 [&>th]:py-2 [&>th]:h-9">
-                  <TableHead className="whitespace-nowrap w-[50px]">Flags</TableHead>
+                  <TableHead className="whitespace-nowrap w-[85px]">Flags</TableHead>
                   <TableHead className="whitespace-nowrap w-[70px]">OS</TableHead>
                   <TableHead className="whitespace-nowrap w-[120px]">Cliente</TableHead>
                   <TableHead className="whitespace-nowrap w-[160px]">Descrição</TableHead>
@@ -469,7 +481,20 @@ export default function EntregasPage() {
                       <TableRow key={order.id} className="[&>td]:px-2 [&>td]:py-1.5">
                         <TableCell className="whitespace-nowrap">
                           <div className="flex items-center gap-1">
-                            {/* Flags: lógica futura */}
+                            {order.tipo_entrega?.includes("coleta") ? (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-500 dark:text-amber-400 border border-amber-500/30" title="Demanda de Coleta / Buscar">
+                                <PackagePlus className="h-3 w-3" /> Coleta
+                              </span>
+                            ) : order.tipo_entrega?.includes("demanda_manual") ? (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-500 dark:text-blue-400 border border-blue-500/30" title="Demanda de Entrega">
+                                <Truck className="h-3 w-3" /> Entrega
+                              </span>
+                            ) : null}
+                            {order.urgente && (
+                              <span className="inline-flex items-center px-1 py-0.5 rounded text-[10px] font-bold bg-red-500/15 text-red-500 border border-red-500/30" title="Demanda Urgente">
+                                <AlertTriangle className="h-3 w-3" />
+                              </span>
+                            )}
                           </div>
                         </TableCell>
                         <TableCell className={cn(
@@ -588,6 +613,13 @@ export default function EntregasPage() {
       <SharePointDiagnosticsModal
         open={diagnosticsOpen}
         onOpenChange={setDiagnosticsOpen}
+      />
+
+      <CreateDeliveryDemandModal
+        open={createDemandOpen}
+        onOpenChange={setCreateDemandOpen}
+        onSuccess={fetchOrders}
+        entregadores={entregadores}
       />
     </Layout>
   );

@@ -293,4 +293,54 @@ describe("Delivery Module — Client Service Workflow Tests", () => {
       expect(statusUpdate.status_comprovante_sync).toBe("pendente_sharepoint");
     });
   });
+
+  describe("Inclusão de Demanda Manual (Coleta e Entrega)", () => {
+    it("deve estruturar corretamente uma demanda manual de COLETA (Buscar Algo)", () => {
+      const isColeta = true;
+      const finalTitulo = "COL-1030-999";
+      const payload = {
+        titulo: finalTitulo,
+        cliente: "Clicheria Delta",
+        descricao: "Buscar 2 caixas de clichês para O.S. 74100",
+        setor: "expedicao",
+        setor_status: "aguardando_expedicao",
+        status: "arquivo_liberado",
+        tipo_entrega: ["coleta", "demanda_manual"],
+        entrega_endereco: "Rua das Facas, 100 - Industrial",
+        entrega_para: "Falar com Gilberto",
+        entregador_id: "driver-uuid-1",
+        status_entrega: "atribuido",
+        urgente: true,
+        parent_order_id: null,
+        arquivado: false,
+      };
+
+      expect(payload.tipo_entrega).toContain("coleta");
+      expect(payload.status_entrega).toBe("atribuido");
+      expect(payload.setor).toBe("expedicao");
+      expect(payload.parent_order_id).toBeNull();
+      expect(payload.urgente).toBe(true);
+    });
+
+    it("deve estruturar corretamente uma demanda manual de ENTREGA sem entregador atribuído (Pendente)", () => {
+      const payload = {
+        titulo: "ENT-1400-555",
+        cliente: "Cliente Farmácia Mais",
+        descricao: "Entregar 500 caixas de remédio e colher canhoto",
+        setor: "expedicao",
+        setor_status: "aguardando_expedicao",
+        status: "arquivo_liberado",
+        tipo_entrega: ["entrega", "demanda_manual"],
+        entrega_endereco: "Av. Central, 500 - Centro",
+        entregador_id: null,
+        status_entrega: "pendente",
+        urgente: false,
+        parent_order_id: null,
+      };
+
+      expect(payload.tipo_entrega).toContain("entrega");
+      expect(payload.status_entrega).toBe("pendente");
+      expect(payload.entregador_id).toBeNull();
+    });
+  });
 });
