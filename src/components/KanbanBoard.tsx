@@ -19,7 +19,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Truck, AlertTriangle, RotateCcw, ShieldAlert, Check } from "lucide-react";
-import { isSpecialSupplySent, isSpecialSupplyActive, toggleSpecialSupplySent, SPECIAL_SUPPLIES, hasSpecialSuppliesForCompras, type SpecialSupplyId } from "@/lib/processos";
+import {
+  isSpecialSupplySent,
+  isSpecialSupplyActive,
+  toggleSpecialSupplySent,
+  getSpecialSupplyDetails,
+  SPECIAL_SUPPLIES,
+  hasSpecialSuppliesForCompras,
+  type SpecialSupplyId,
+} from "@/lib/processos";
 import { toast } from "sonner";
 
 interface Permissions {
@@ -524,17 +532,28 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
 
                           <div className={`grid gap-2 pt-1 ${activeSupplies.length === 1 ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2"}`}>
                             {activeSupplies.map((supply) => {
-                              const isSent = isSpecialSupplySent(processos, supply.id);
+                              const details = getSpecialSupplyDetails(processos, supply.id);
+                              const isSent = details.sent;
                               const isMarked = markedSuppliesSent[supply.id] || false;
                               const isSatisfied = isSent || isMarked;
+                              const isComprasItem = supply.id === "PANTONE" || supply.id === "OUTROS";
+
+                              const cardBg = isSatisfied
+                                ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-800 dark:text-emerald-300"
+                                : details.statusColor === "magenta"
+                                ? "bg-fuchsia-500/15 border-fuchsia-500/40 text-fuchsia-800 dark:text-fuchsia-300"
+                                : "bg-amber-500/20 border-amber-500/50 text-amber-900 dark:text-amber-200";
+
+                              const statusBadge = isSatisfied
+                                ? "ENVIADO / GE ✓"
+                                : isComprasItem
+                                ? `COMPRAS: ${details.statusLabel.toUpperCase()} ⏳`
+                                : "⚠️ PENDENTE";
+
                               return (
                                 <div
                                   key={supply.id}
-                                  className={`p-2.5 rounded-lg border text-xs flex flex-col justify-between gap-1.5 transition-colors ${
-                                    isSatisfied
-                                      ? "bg-emerald-500/15 border-emerald-500/40 text-emerald-800 dark:text-emerald-300"
-                                      : "bg-amber-500/20 border-amber-500/50 text-amber-900 dark:text-amber-200"
-                                  }`}
+                                  className={`p-2.5 rounded-lg border text-xs flex flex-col justify-between gap-1.5 transition-colors ${cardBg}`}
                                 >
                                   <div className="flex items-center justify-between font-bold">
                                     <span className="flex items-center gap-1 font-mono-tech">
@@ -542,7 +561,7 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
                                       <span className="text-[10px] opacity-75 font-normal">(Cadastrado)</span>
                                     </span>
                                     <span className="text-[11px]">
-                                      {isSatisfied ? "ENVIADO ✓" : "⚠️ PENDENTE"}
+                                      {statusBadge}
                                     </span>
                                   </div>
                                   {!isSent && (
@@ -556,7 +575,7 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
                                         htmlFor={`saida-${supply.id.toLowerCase()}-sent`}
                                         className="text-[11px] font-semibold text-foreground cursor-pointer"
                                       >
-                                        Marcar {supply.label} como enviado
+                                        Marcar {supply.label} como enviado / liberado
                                       </Label>
                                     </div>
                                   )}
@@ -594,7 +613,10 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
 
               // Se todos os suprimentos ativos já foram enviados ou marcados no modal, ou se não há nenhum suprimento ativo
               const allSatisfied = activeSupplies.length === 0 || activeSupplies.every(
-                (s) => isSpecialSupplySent(processos, s.id) || markedSuppliesSent[s.id]
+                (s) => {
+                  const details = getSpecialSupplyDetails(processos, s.id);
+                  return details.sent || markedSuppliesSent[s.id];
+                }
               );
 
               // Só bloqueia se houver suprimento ativo pendente E o usuário ainda não concordou

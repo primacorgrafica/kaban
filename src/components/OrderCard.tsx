@@ -614,7 +614,19 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                 const timeOnly = formatSafeDate(details.sentAt, "HH:mm");
                 const op = details.operator || order.operador || updatedByName || null;
                 const labelText = details.displayLabel || item.label;
-                const style = getSpecialSupplyBadgeClasses(item.id, isSent);
+                const style = getSpecialSupplyBadgeClasses(item.id, isSent, details.comprasStatus);
+                const isComprasItem = item.id === "PANTONE" || item.id === "OUTROS";
+
+                const tooltip = isComprasItem
+                  ? style.statusColor === "verde"
+                    ? `${labelText}: Concluído em Compras (${details.statusLabel})${formattedTime ? ` em ${formattedTime}` : ""}${op ? ` por ${op}` : ""}`
+                    : style.statusColor === "amarelo"
+                    ? `${labelText}: Material em fase de Pedido em Compras`
+                    : `${labelText}: Material em fase de ${details.statusLabel} em Compras`
+                  : isSent
+                  ? `${labelText}: ENVIADO ${formattedTime ? `em ${formattedTime}` : ""}${op ? ` por ${op}` : ""} (Clique para alterar para pendente)`
+                  : `${labelText}: PENDENTE (Clique para marcar como enviado)`;
+
                 return (
                   <button
                     key={item.id}
@@ -625,21 +637,17 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                       const updated = toggleSpecialSupplySent(order.processos, item.id, operatorToSave);
                       onUpdate(order.id, { processos: updated });
                       if (!isSent) {
-                        toast.success(`${labelText} marcado como ENVIADO! Registrado no sistema.`);
+                        toast.success(`${labelText} marcado como ${isComprasItem ? "CONCLUÍDO" : "ENVIADO"}! Registrado no sistema.`);
                       } else {
-                        toast.info(`${labelText} alterado para PENDENTE.`);
+                        toast.info(`${labelText} alterado para ${isComprasItem ? "PENDENTE EM COMPRAS" : "PENDENTE"}.`);
                       }
                     }}
-                    title={
-                      isSent
-                        ? `${labelText}: ENVIADO ${formattedTime ? `em ${formattedTime}` : ""}${op ? ` por ${op}` : ""} (Clique para alterar para pendente)`
-                        : `${labelText}: PENDENTE (Clique para marcar como enviado)`
-                    }
+                    title={tooltip}
                     className={`px-1.5 py-0.5 rounded text-[9px] font-bold tracking-tight uppercase transition-all flex items-center gap-1 shadow-2xs cursor-pointer border ${style.badge}`}
                   >
-                    <span className={`w-1 h-1 rounded-full shrink-0 ${style.dot}`} />
+                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${style.dot}`} />
                     <span>{labelText}</span>
-                    {isSent ? (
+                    {style.statusColor === "verde" ? (
                       <>
                         <Check className="h-2.5 w-2.5 stroke-[3]" />
                         {timeOnly && (
@@ -649,7 +657,9 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
                         )}
                       </>
                     ) : (
-                      <span className="text-[8px] opacity-75">⏳</span>
+                      <span className="text-[8px] font-mono-tech opacity-90 tracking-tight bg-black/20 px-0.5 rounded">
+                        {details.statusLabel}
+                      </span>
                     )}
                   </button>
                 );

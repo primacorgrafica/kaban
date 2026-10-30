@@ -13,6 +13,8 @@ import {
   hasSpecialSuppliesForCompras,
   sortAndFilterProcessos,
   isInternalProcessTag,
+  extractComprasStatusFromProcessos,
+  setComprasStatusInProcessos,
 } from "@/lib/processos";
 
 describe("Suprimentos e Processos Especiais (PANTONE, FACA, CLICHÊ, OUTROS)", () => {
@@ -184,35 +186,102 @@ describe("Suprimentos e Processos Especiais (PANTONE, FACA, CLICHÊ, OUTROS)", (
     expect(hasSpecialSuppliesForCompras(["CLICHE", "OUTROS"])).toBe(true);
   });
 
-  it("atribui cores padronizadas às tarjas: todos os suprimentos pendentes em amarelo e enviados em verde esmeralda (sem cor rosa)", () => {
-    // Pendentes (todos usam a paleta âmbar/amarela sem rosa)
+  it("atribui cores e status de acordo com as regras de negócio: Clichê/Faca/Filme (Amarelo/Verde) e Pantone/Outros (Magenta/Amarelo/Verde via Compras)", () => {
+    // 1. CLICHÊ, FACA e FILME (Mecanismo Operacional da Equipe)
+    // Pendente = Amarelo
     const facaPending = getSpecialSupplyBadgeClasses("FACA", false);
+    expect(facaPending.statusColor).toBe("amarelo");
     expect(facaPending.badge).toContain("bg-amber-400");
-    expect(facaPending.badge).toContain("text-amber-950");
+    expect(facaPending.label).toBe("Pendente");
 
     const clichePending = getSpecialSupplyBadgeClasses("CLICHE", false);
+    expect(clichePending.statusColor).toBe("amarelo");
     expect(clichePending.badge).toContain("bg-amber-400");
-    expect(clichePending.badge).toContain("text-amber-950");
+    expect(clichePending.label).toBe("Pendente");
 
     const filmePending = getSpecialSupplyBadgeClasses("FILME", false);
+    expect(filmePending.statusColor).toBe("amarelo");
     expect(filmePending.badge).toContain("bg-amber-400");
-    expect(filmePending.badge).toContain("text-amber-950");
+    expect(filmePending.label).toBe("Pendente");
 
-    const pantonePending = getSpecialSupplyBadgeClasses("PANTONE", false);
-    expect(pantonePending.badge).toContain("bg-amber-400");
-    expect(pantonePending.badge).toContain("text-amber-950");
-    expect(pantonePending.badge).not.toContain("bg-pink");
-
-    const outrosPending = getSpecialSupplyBadgeClasses("OUTROS", false);
-    expect(outrosPending.badge).toContain("bg-amber-400");
-    expect(outrosPending.badge).toContain("text-amber-950");
-    expect(outrosPending.badge).not.toContain("bg-pink");
-
-    // Enviados (todos ficam verde esmeralda)
+    // Enviado = Verde
     const facaSent = getSpecialSupplyBadgeClasses("FACA", true);
+    expect(facaSent.statusColor).toBe("verde");
     expect(facaSent.badge).toContain("bg-emerald-500");
+    expect(facaSent.label).toBe("Enviado");
 
-    const pantoneSent = getSpecialSupplyBadgeClasses("PANTONE", true);
-    expect(pantoneSent.badge).toContain("bg-emerald-500");
+    const clicheSent = getSpecialSupplyBadgeClasses("CLICHE", true);
+    expect(clicheSent.statusColor).toBe("verde");
+    expect(clicheSent.badge).toContain("bg-emerald-500");
+
+    const filmeSent = getSpecialSupplyBadgeClasses("FILME", true);
+    expect(filmeSent.statusColor).toBe("verde");
+    expect(filmeSent.badge).toContain("bg-emerald-500");
+
+    // 2. PANTONE e OUTROS (Acompanhamento Automático do Fluxo de Compras)
+    // Fase Entrada ou Cotação = MAGENTA
+    const pantoneEntrada = getSpecialSupplyBadgeClasses("PANTONE", false, "entrada");
+    expect(pantoneEntrada.statusColor).toBe("magenta");
+    expect(pantoneEntrada.badge).toContain("bg-[#d946ef]");
+    expect(pantoneEntrada.label).toBe("Entrada");
+
+    const pantoneCotacao = getSpecialSupplyBadgeClasses("PANTONE", false, "cotacao");
+    expect(pantoneCotacao.statusColor).toBe("magenta");
+    expect(pantoneCotacao.badge).toContain("bg-[#d946ef]");
+    expect(pantoneCotacao.label).toBe("Cotação");
+
+    const outrosCotacao = getSpecialSupplyBadgeClasses("OUTROS", false, "cotacao");
+    expect(outrosCotacao.statusColor).toBe("magenta");
+    expect(outrosCotacao.badge).toContain("bg-[#d946ef]");
+
+    // Fase Pedido = AMARELO
+    const pantonePedido = getSpecialSupplyBadgeClasses("PANTONE", false, "pedido");
+    expect(pantonePedido.statusColor).toBe("amarelo");
+    expect(pantonePedido.badge).toContain("bg-amber-400");
+    expect(pantonePedido.label).toBe("Pedido");
+
+    const outrosPedido = getSpecialSupplyBadgeClasses("OUTROS", false, "pedido");
+    expect(outrosPedido.statusColor).toBe("amarelo");
+    expect(outrosPedido.badge).toContain("bg-amber-400");
+    expect(outrosPedido.label).toBe("Pedido");
+
+    // Lançamento GE ou Saída = VERDE
+    const pantoneGE = getSpecialSupplyBadgeClasses("PANTONE", false, "lancamento_ge");
+    expect(pantoneGE.statusColor).toBe("verde");
+    expect(pantoneGE.badge).toContain("bg-emerald-500");
+    expect(pantoneGE.label).toBe("Lançamento GE");
+
+    const pantoneSaida = getSpecialSupplyBadgeClasses("PANTONE", false, "saida");
+    expect(pantoneSaida.statusColor).toBe("verde");
+    expect(pantoneSaida.badge).toContain("bg-emerald-500");
+    expect(pantoneSaida.label).toBe("Saída");
+
+    const outrosSaida = getSpecialSupplyBadgeClasses("OUTROS", false, "saida");
+    expect(outrosSaida.statusColor).toBe("verde");
+    expect(outrosSaida.badge).toContain("bg-emerald-500");
+
+    // Se marcado como enviado/comprado individualmente = VERDE
+    const pantoneComprado = getSpecialSupplyBadgeClasses("PANTONE", true);
+    expect(pantoneComprado.statusColor).toBe("verde");
+    expect(pantoneComprado.badge).toContain("bg-emerald-500");
+  });
+
+  it("deve extrair e atualizar status de compras nos processos com precisão", () => {
+    let procs = ["PANTONE", "CORTE"];
+    expect(extractComprasStatusFromProcessos(procs)).toBeNull();
+
+    procs = setComprasStatusInProcessos(procs, "cotacao");
+    expect(extractComprasStatusFromProcessos(procs)).toBe("cotacao");
+
+    procs = setComprasStatusInProcessos(procs, "pedido");
+    expect(extractComprasStatusFromProcessos(procs)).toBe("pedido");
+
+    procs = setComprasStatusInProcessos(procs, "lancamento_ge");
+    expect(extractComprasStatusFromProcessos(procs)).toBe("lancamento_ge");
+
+    const details = getSpecialSupplyDetails(procs, "PANTONE");
+    expect(details.comprasStatus).toBe("lancamento_ge");
+    expect(details.statusColor).toBe("verde");
+    expect(details.sent).toBe(true);
   });
 });

@@ -11,8 +11,8 @@ import { invalidateApprovalEntry } from "@/lib/approvalEntryCache";
 import { toast } from "sonner";
 import { Order, Profile } from "@/types/order";
 import { Department } from "@/types/production";
-import { hasSpecialSuppliesForCompras } from "@/lib/processos";
-import { syncOrderToCompras } from "@/lib/comprasSync";
+import { hasSpecialSuppliesForCompras, setComprasStatusInProcessos } from "@/lib/processos";
+import { syncOrderToCompras, syncComprasStatusToParent } from "@/lib/comprasSync";
 
 export function useProductionOrders() {
   const { user, authReady } = useAuth();
@@ -172,6 +172,17 @@ export function useProductionOrders() {
         if (o.id === orderId) {
           return { ...o, setor_status: newStatus, posicao: idx };
         }
+        if (order.setor === "compras" && order.parent_order_id && o.id === order.parent_order_id) {
+          let procs = setComprasStatusInProcessos(o.processos, newStatus);
+          if (newStatus === "lancamento_ge" || newStatus === "saida") {
+            if (!procs.some(p => p.startsWith("COMPRADO"))) {
+              procs.push(`COMPRADO:${Date.now()}:Compras`);
+            }
+          } else if (["entrada", "cotacao", "pedido"].includes(newStatus)) {
+            procs = procs.filter(p => !p.startsWith("COMPRADO") && !p.startsWith("COMPRA:ok"));
+          }
+          return { ...o, processos: procs };
+        }
         const foundIdx = destOrders.findIndex(d => d.id === o.id);
         if (foundIdx !== -1) {
           return { ...o, posicao: foundIdx };
@@ -179,6 +190,11 @@ export function useProductionOrders() {
         return o;
       })
     );
+
+    // Se o card for do setor de compras e tiver OS pai vinculada, sincroniza o status de compras no pai
+    if (order.setor === "compras" && order.parent_order_id) {
+      void syncComprasStatusToParent(order.parent_order_id, newStatus, user?.id);
+    }
 
     const updates: PromiseLike<{ error: any }>[] = [];
     for (let i = 0; i < destOrders.length; i++) {

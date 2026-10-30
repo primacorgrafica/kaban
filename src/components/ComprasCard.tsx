@@ -347,45 +347,83 @@ export function ComprasCard({
 
             {hasItemsToBuy ? (
               <div className="flex flex-col gap-1 pt-0.5">
-                {pantoneActive && (
-                  <div
-                    onClick={(e) => toggleItemBought("PANTONE", e)}
-                    className={`flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px] border cursor-pointer transition-all ${
-                      pantoneSent
-                        ? "bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-500/50 shadow-xs font-bold"
-                        : "bg-amber-100 hover:bg-amber-200 text-amber-950 dark:text-amber-950 border-amber-300 dark:border-amber-400 shadow-2xs font-black"
-                    }`}
-                    title={pantoneSent ? "Pantone Comprado (Clique para alterar)" : "Pantone Pendente (Clique para marcar como comprado)"}
-                  >
-                    <span className="truncate flex items-center gap-1.5">
-                      <span className={`w-2 h-2 rounded-full shrink-0 ${pantoneSent ? "bg-emerald-500" : "bg-amber-700"}`} />
-                      <span>PANTONE {pantoneText ? `(${pantoneText})` : ""}</span>
-                    </span>
-                    <span className="shrink-0 font-mono-tech text-[10px] font-black">
-                      {pantoneSent ? "COMPRADO ✓" : "COMPRAR ⏳"}
-                    </span>
-                  </div>
-                )}
+                {pantoneActive && (() => {
+                  const isDone = pantoneSent || currentStatus.id === "lancamento_ge" || currentStatus.id === "saida";
+                  const isPedido = !isDone && currentStatus.id === "pedido";
+                  const isMagenta = !isDone && !isPedido;
+                  const itemClass = isDone
+                    ? "bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-500/50 shadow-xs font-bold"
+                    : isPedido
+                    ? "bg-amber-100 hover:bg-amber-200 text-amber-950 dark:text-amber-950 border-amber-400 shadow-2xs font-black"
+                    : "bg-fuchsia-100 hover:bg-fuchsia-200 text-fuchsia-950 dark:text-fuchsia-950 border-fuchsia-400 shadow-2xs font-black";
+                  const dotClass = isDone
+                    ? "bg-emerald-500 shadow-[0_0_6px_#10b981]"
+                    : isPedido
+                    ? "bg-amber-500 shadow-[0_0_6px_#f59e0b]"
+                    : "bg-fuchsia-500 shadow-[0_0_6px_#d946ef]";
+                  const statusTag = isDone
+                    ? "COMPRADO ✓"
+                    : isPedido
+                    ? "PEDIDO ⏳"
+                    : currentStatus.id === "cotacao"
+                    ? "COTAÇÃO ⏳"
+                    : "ENTRADA ⏳";
 
-                {outrosActive && (
-                  <div
-                    onClick={(e) => toggleItemBought("OUTROS", e)}
-                    className={`flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px] border cursor-pointer transition-all ${
-                      outrosSent
-                        ? "bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-500/50 shadow-xs font-bold"
-                        : "bg-amber-100 hover:bg-amber-200 text-amber-950 dark:text-amber-950 border-amber-300 dark:border-amber-400 shadow-2xs font-black"
-                    }`}
-                    title={outrosSent ? "Outros Comprado (Clique para alterar)" : "Outros Pendente (Clique para marcar como comprado)"}
-                  >
-                    <span className="truncate flex items-center gap-1.5">
-                      <span className={`w-2 h-2 rounded-full shrink-0 ${outrosSent ? "bg-emerald-500" : "bg-amber-700"}`} />
-                      <span>OUTROS {outrosText ? `(${outrosText})` : ""}</span>
-                    </span>
-                    <span className="shrink-0 font-mono-tech text-[10px] font-black">
-                      {outrosSent ? "COMPRADO ✓" : "COMPRAR ⏳"}
-                    </span>
-                  </div>
-                )}
+                  return (
+                    <div
+                      onClick={(e) => toggleItemBought("PANTONE", e)}
+                      className={`flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px] border cursor-pointer transition-all ${itemClass}`}
+                      title={isDone ? "Pantone Comprado / GE (Clique para alterar)" : `Pantone em fase de ${statusTag} (Clique para marcar como comprado)`}
+                    >
+                      <span className="truncate flex items-center gap-1.5">
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${dotClass}`} />
+                        <span>PANTONE {pantoneText ? `(${pantoneText})` : ""}</span>
+                      </span>
+                      <span className="shrink-0 font-mono-tech text-[10px] font-black">
+                        {statusTag}
+                      </span>
+                    </div>
+                  );
+                })()}
+
+                {outrosActive && (() => {
+                  const isDone = outrosSent || currentStatus.id === "lancamento_ge" || currentStatus.id === "saida";
+                  const isPedido = !isDone && currentStatus.id === "pedido";
+                  const isMagenta = !isDone && !isPedido;
+                  const itemClass = isDone
+                    ? "bg-emerald-500/20 text-emerald-800 dark:text-emerald-300 border-emerald-500/50 shadow-xs font-bold"
+                    : isPedido
+                    ? "bg-amber-100 hover:bg-amber-200 text-amber-950 dark:text-amber-950 border-amber-400 shadow-2xs font-black"
+                    : "bg-fuchsia-100 hover:bg-fuchsia-200 text-fuchsia-950 dark:text-fuchsia-950 border-fuchsia-400 shadow-2xs font-black";
+                  const dotClass = isDone
+                    ? "bg-emerald-500 shadow-[0_0_6px_#10b981]"
+                    : isPedido
+                    ? "bg-amber-500 shadow-[0_0_6px_#f59e0b]"
+                    : "bg-fuchsia-500 shadow-[0_0_6px_#d946ef]";
+                  const statusTag = isDone
+                    ? "COMPRADO ✓"
+                    : isPedido
+                    ? "PEDIDO ⏳"
+                    : currentStatus.id === "cotacao"
+                    ? "COTAÇÃO ⏳"
+                    : "ENTRADA ⏳";
+
+                  return (
+                    <div
+                      onClick={(e) => toggleItemBought("OUTROS", e)}
+                      className={`flex items-center justify-between px-2.5 py-1.5 rounded-md text-[11px] border cursor-pointer transition-all ${itemClass}`}
+                      title={isDone ? "Outros Comprado / GE (Clique para alterar)" : `Outros em fase de ${statusTag} (Clique para marcar como comprado)`}
+                    >
+                      <span className="truncate flex items-center gap-1.5">
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${dotClass}`} />
+                        <span>OUTROS {outrosText ? `(${outrosText})` : ""}</span>
+                      </span>
+                      <span className="shrink-0 font-mono-tech text-[10px] font-black">
+                        {statusTag}
+                      </span>
+                    </div>
+                  );
+                })()}
               </div>
             ) : (
               <p className="text-[10px] text-muted-foreground italic">

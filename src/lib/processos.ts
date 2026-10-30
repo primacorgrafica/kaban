@@ -173,36 +173,137 @@ export function hasSpecialSuppliesForCompras(processos: string[] | undefined | n
 }
 
 /**
+ * Tipos e utilitários para integração de status de Compras para suprimentos (Pantone e Outros).
+ */
+export type SupplyComprasStatus = "entrada" | "cotacao" | "pedido" | "lancamento_ge" | "saida";
+export type SpecialSupplyStatusColor = "magenta" | "amarelo" | "verde";
+
+/**
+ * Extrai o status atual do setor de Compras a partir dos processos da O.S.
+ */
+export function extractComprasStatusFromProcessos(
+  processos: string[] | undefined | null
+): SupplyComprasStatus | null {
+  if (!processos || !Array.isArray(processos)) return null;
+  for (const p of processos) {
+    if (typeof p !== "string") continue;
+    if (p.startsWith("COMPRAS:status:") || p.startsWith("COMPRA:status:")) {
+      const parts = p.split(":");
+      const st = parts[2]?.toLowerCase();
+      if (st && ["entrada", "cotacao", "pedido", "lancamento_ge", "saida"].includes(st)) {
+        return st as SupplyComprasStatus;
+      }
+    }
+    if (p.startsWith("COMPRAS:") || p.startsWith("COMPRA:")) {
+      const parts = p.split(":");
+      const st = parts[1]?.toLowerCase();
+      if (st && ["entrada", "cotacao", "pedido", "lancamento_ge", "saida"].includes(st)) {
+        return st as SupplyComprasStatus;
+      }
+    }
+  }
+  // Se contiver COMPRADO ou COMPRA:ok, considera saída/concluído
+  if (processos.some((p) => typeof p === "string" && (p.startsWith("COMPRADO") || p.startsWith("COMPRA:ok")))) {
+    return "saida";
+  }
+  return null;
+}
+
+/**
+ * Atualiza ou insere a tag de status de Compras nos processos.
+ */
+export function setComprasStatusInProcessos(
+  processos: string[] | undefined | null,
+  newStatus: SupplyComprasStatus | string
+): string[] {
+  const current = (processos || []).filter(
+    (p) => typeof p === "string" && !p.startsWith("COMPRAS:status:") && !p.startsWith("COMPRA:status:")
+  );
+  const cleanStatus = newStatus.toLowerCase();
+  return [...current, `COMPRAS:status:${cleanStatus}`];
+}
+
+/**
  * Retorna as classes Tailwind para a tarja do suprimento especial no card.
- * Regra do usuário:
- * - FACA e CLICHÊ: continuam AMARELOS quando pendentes;
- * - PANTONE e OUTROS: agora ficam ROSA CLARINHO quando pendentes;
- * - Quando enviados (isSent), ficam VERDE esmeralda.
+ * Regras do usuário:
+ * 1. PANTONE e OUTROS (Integração com Compras):
+ *    - MAGENTA: material em fase de entrada ou cotação.
+ *    - AMARELO: material em fase de pedido.
+ *    - VERDE: material com lançamento GE realizado ou saída registrada (ou marcado como comprado/enviado).
+ * 2. CLICHÊ, FACA e FILME (Mecanismos operacionais da equipe):
+ *    - AMARELO: pendente de envio.
+ *    - VERDE: enviado/concluído.
  */
 export function getSpecialSupplyBadgeClasses(
   id: SpecialSupplyId,
-  isSent: boolean
+  isSent: boolean,
+  comprasStatus?: string | null
 ): {
   badge: string;
   dot: string;
   border: string;
   label: string;
+  statusColor: SpecialSupplyStatusColor;
 } {
+  // 1. SUPRIMENTOS VINCULADOS A COMPRAS: PANTONE & OUTROS
+  if (id === "PANTONE" || id === "OUTROS") {
+    const rawStatus = (comprasStatus || "").toLowerCase();
+    const isCompleted = isSent || rawStatus === "lancamento_ge" || rawStatus === "saida";
+    const isOrderPhase = !isCompleted && rawStatus === "pedido";
+
+    if (isCompleted) {
+      // VERDE: material com lançamento GE realizado ou saída registrada
+      const statusLabel = rawStatus === "lancamento_ge" ? "Lançamento GE" : rawStatus === "saida" ? "Saída" : "Comprado";
+      return {
+        badge: "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 shadow-[0_0_8px_rgba(16,185,129,0.35)] active:scale-95",
+        dot: "bg-white",
+        border: "border-emerald-600",
+        label: statusLabel,
+        statusColor: "verde",
+      };
+    }
+
+    if (isOrderPhase) {
+      // AMARELO: material em fase de pedido
+      return {
+        badge: "bg-amber-400 hover:bg-amber-500 text-amber-950 border-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.25)] active:scale-95",
+        dot: "bg-amber-950",
+        border: "border-amber-500",
+        label: "Pedido",
+        statusColor: "amarelo",
+      };
+    }
+
+    // MAGENTA: material em fase de entrada ou cotação (padrão inicial para Pantone e Outros)
+    const statusLabel = rawStatus === "cotacao" ? "Cotação" : "Entrada";
+    return {
+      badge: "bg-[#d946ef] hover:bg-[#c026d3] text-white border-[#c026d3] shadow-[0_0_8px_rgba(217,70,239,0.35)] active:scale-95",
+      dot: "bg-white",
+      border: "border-[#c026d3]",
+      label: statusLabel,
+      statusColor: "magenta",
+    };
+  }
+
+  // 2. SUPRIMENTOS OPERACIONAIS: CLICHÊ, FACA, FILME
   if (isSent) {
+    // VERDE: enviado/concluído
     return {
       badge: "bg-emerald-500 hover:bg-emerald-600 text-white border-emerald-600 shadow-[0_0_8px_rgba(16,185,129,0.35)] active:scale-95",
       dot: "bg-white",
       border: "border-emerald-600",
       label: "Enviado",
+      statusColor: "verde",
     };
   }
 
-  // Todos os suprimentos especiais pendentes padronizados no padrão Amarelo
+  // AMARELO: pendente
   return {
     badge: "bg-amber-400 hover:bg-amber-500 text-amber-950 border-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.25)] active:scale-95",
     dot: "bg-amber-950",
     border: "border-amber-500",
     label: "Pendente",
+    statusColor: "amarelo",
   };
 }
 
@@ -330,6 +431,9 @@ export interface SpecialSupplyDetails {
   operator: string | null;
   customText: string | null;
   displayLabel: string;
+  comprasStatus: SupplyComprasStatus | null;
+  statusColor: SpecialSupplyStatusColor;
+  statusLabel: string;
 }
 
 export function getSpecialSupplyDisplayLabel(
@@ -379,7 +483,8 @@ export function getSpecialSupplyDisplayLabel(
 
 export function getSpecialSupplyDetails(
   processos: string[] | undefined | null,
-  id: SpecialSupplyId
+  id: SpecialSupplyId,
+  comprasStatusOverride?: string | null
 ): SpecialSupplyDetails {
   const config = SPECIAL_SUPPLIES.find((s) => s.id === id);
   if (!config) {
@@ -392,6 +497,9 @@ export function getSpecialSupplyDetails(
       operator: null,
       customText: null,
       displayLabel: id,
+      comprasStatus: null,
+      statusColor: (id === "PANTONE" || id === "OUTROS") ? "magenta" : "amarelo",
+      statusLabel: (id === "PANTONE" || id === "OUTROS") ? "Entrada" : "Pendente",
     };
   }
   if (!processos || !Array.isArray(processos)) {
@@ -404,6 +512,9 @@ export function getSpecialSupplyDetails(
       operator: null,
       customText: null,
       displayLabel: config.label,
+      comprasStatus: null,
+      statusColor: (id === "PANTONE" || id === "OUTROS") ? "magenta" : "amarelo",
+      statusLabel: (id === "PANTONE" || id === "OUTROS") ? "Entrada" : "Pendente",
     };
   }
 
@@ -421,6 +532,9 @@ export function getSpecialSupplyDetails(
       operator: null,
       customText: null,
       displayLabel: config.label,
+      comprasStatus: null,
+      statusColor: (id === "PANTONE" || id === "OUTROS") ? "magenta" : "amarelo",
+      statusLabel: (id === "PANTONE" || id === "OUTROS") ? "Entrada" : "Pendente",
     };
   }
 
@@ -512,15 +626,32 @@ export function getSpecialSupplyDetails(
     customText,
   });
 
+  const rawComprasStatus =
+    comprasStatusOverride !== undefined
+      ? (comprasStatusOverride as SupplyComprasStatus | null)
+      : (id === "PANTONE" || id === "OUTROS")
+      ? extractComprasStatusFromProcessos(processos) || "entrada"
+      : null;
+
+  const effectiveSent =
+    isSent ||
+    ((id === "PANTONE" || id === "OUTROS") &&
+      (rawComprasStatus === "lancamento_ge" || rawComprasStatus === "saida"));
+
+  const badgeClasses = getSpecialSupplyBadgeClasses(id, effectiveSent, rawComprasStatus);
+
   return {
     id,
     label: config.label,
     active: true,
-    sent: isSent,
+    sent: effectiveSent,
     sentAt,
     operator,
     customText,
     displayLabel,
+    comprasStatus: rawComprasStatus,
+    statusColor: badgeClasses.statusColor,
+    statusLabel: badgeClasses.label,
   };
 }
 

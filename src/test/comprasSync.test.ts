@@ -131,17 +131,30 @@ describe("Sincronização Imediata com Compras (syncOrderToCompras)", () => {
     });
   });
 
-  it("garante que os insumos especiais de compras não usam mais a cor rosa e seguem a paleta padrão âmbar", () => {
-    const pantoneStyle = getSpecialSupplyBadgeClasses("PANTONE", false);
-    const outrosStyle = getSpecialSupplyBadgeClasses("OUTROS", false);
+  it("garante que os insumos de compras (PANTONE e OUTROS) seguem o fluxo de status de Compras: Magenta (entrada/cotação), Amarelo (pedido) e Verde (GE/saída)", () => {
+    // Fase Entrada / Cotação -> MAGENTA
+    const pantoneMagenta = getSpecialSupplyBadgeClasses("PANTONE", false, "cotacao");
+    const outrosMagenta = getSpecialSupplyBadgeClasses("OUTROS", false, "entrada");
+    expect(pantoneMagenta.statusColor).toBe("magenta");
+    expect(pantoneMagenta.badge).toContain("bg-[#d946ef]");
+    expect(outrosMagenta.statusColor).toBe("magenta");
+    expect(outrosMagenta.badge).toContain("bg-[#d946ef]");
 
-    expect(pantoneStyle.badge).not.toContain("bg-pink");
-    expect(pantoneStyle.badge).not.toContain("text-pink");
-    expect(outrosStyle.badge).not.toContain("bg-pink");
-    expect(outrosStyle.badge).not.toContain("text-pink");
+    // Fase Pedido -> AMARELO
+    const pantonePedido = getSpecialSupplyBadgeClasses("PANTONE", false, "pedido");
+    const outrosPedido = getSpecialSupplyBadgeClasses("OUTROS", false, "pedido");
+    expect(pantonePedido.statusColor).toBe("amarelo");
+    expect(pantonePedido.badge).toContain("bg-amber-400");
+    expect(outrosPedido.statusColor).toBe("amarelo");
+    expect(outrosPedido.badge).toContain("bg-amber-400");
 
-    expect(pantoneStyle.badge).toContain("bg-amber-400");
-    expect(outrosStyle.badge).toContain("bg-amber-400");
+    // Lançamento GE / Saída -> VERDE
+    const pantoneGE = getSpecialSupplyBadgeClasses("PANTONE", false, "lancamento_ge");
+    const outrosSaida = getSpecialSupplyBadgeClasses("OUTROS", false, "saida");
+    expect(pantoneGE.statusColor).toBe("verde");
+    expect(pantoneGE.badge).toContain("bg-emerald-500");
+    expect(outrosSaida.statusColor).toBe("verde");
+    expect(outrosSaida.badge).toContain("bg-emerald-500");
   });
 
   it("deve identificar corretamente se a ordem no card de Compras é uma O.S. e exibir o número da OS e não OC", () => {

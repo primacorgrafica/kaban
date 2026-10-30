@@ -1,10 +1,54 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Order } from "@/types/order";
-import { hasSpecialSuppliesForCompras } from "@/lib/processos";
+import { hasSpecialSuppliesForCompras, setComprasStatusInProcessos } from "@/lib/processos";
 
 export interface SyncComprasOptions {
   customProcessos?: string[];
   userId?: string | null;
+}
+
+/**
+ * Propaga a alteração de etapa/status de uma ordem no setor de Compras
+ * diretamente para a O.S. pai correspondente.
+ */
+export async function syncComprasStatusToParent(
+  parentOrderId: string,
+  newStatus: string,
+  userId?: string | null
+): Promise<void> {
+  if (!parentOrderId) return;
+  try {
+    const { data } = await supabase
+      .from("orders")
+      .select("processos")
+      .eq("id", parentOrderId)
+      .limit(1);
+
+    const parent = Array.isArray(data) ? data[0] : (data as any);
+
+    if (parent) {
+      let procs = parent.processos || [];
+      procs = setComprasStatusInProcessos(procs, newStatus);
+
+      if (newStatus === "lancamento_ge" || newStatus === "saida") {
+        if (!procs.some((p: string) => p.startsWith("COMPRADO"))) {
+          procs.push(`COMPRADO:${Date.now()}:Compras`);
+        }
+      } else if (["entrada", "cotacao", "pedido"].includes(newStatus)) {
+        procs = procs.filter((p: string) => !p.startsWith("COMPRADO") && !p.startsWith("COMPRA:ok"));
+      }
+
+      await supabase
+        .from("orders")
+        .update({
+          processos: procs,
+          atualizado_por: userId || null,
+        })
+        .eq("id", parentOrderId);
+    }
+  } catch (err) {
+    console.error("[syncComprasStatusToParent] Falha ao sincronizar status de compras com OS pai:", err);
+  }
 }
 
 /**
@@ -30,7 +74,7 @@ export async function syncOrderToCompras(
   // 3. Verificar se já existe uma cópia ativa desta OS em compras para não duplicar
   const { data: existing, error: fetchErr } = await supabase
     .from("orders")
-    .select("id, processos")
+    .select("id, processos, setor_status")
     .eq("setor", "compras")
     .eq("parent_order_id", order.id)
     .eq("arquivado", false)
@@ -110,6 +154,9 @@ export async function syncOrderToCompras(
     console.error("[syncOrderToCompras] Erro ao criar card em compras:", error);
     return null;
   }
+
+  // 5. Garante que a OS pai tenha a tag de status inicial de compras ("entrada")
+  void syncComprasStatusToParent(order.id, "entrada", options?.userId);
 
   return created?.[0]?.id || null;
 }
