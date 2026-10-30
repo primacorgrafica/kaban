@@ -262,7 +262,7 @@ function ProductionCardImpl({
       descricao: editData.descricao,
       cliente: editData.cliente,
       observacao: editData.observacao || null,
-      urgente: editData.urgente_prova || editData.urgente_impressao || editData.urgente_acabamento || editData.urgente_expedicao,
+      urgente: editData.urgente || editData.urgente_prova || editData.urgente_impressao || editData.urgente_acabamento || editData.urgente_expedicao,
       urgente_prova: editData.urgente_prova,
       urgente_impressao: editData.urgente_impressao,
       urgente_acabamento: editData.urgente_acabamento,

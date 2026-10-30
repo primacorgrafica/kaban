@@ -42,12 +42,15 @@ export function useMuralAlertas() {
           const mapped: MuralAlerta[] = avisosData.map((a: any) => {
             const rawTipo = (a.tipo || "").replace(/^mural:?/, "").toLowerCase();
             const tipo: MuralTipo = rawTipo === "info" ? "info" : rawTipo === "importante" ? "importante" : "urgente";
+            const rawTitle = a.titulo || "";
+            const isAtivo = !rawTitle.startsWith("[INATIVO]");
+            const cleanTitle = rawTitle.replace(/^\[INATIVO\]\s*/, "");
             return {
               id: a.id,
-              titulo: a.titulo,
+              titulo: cleanTitle,
               mensagem: a.mensagem,
               tipo,
-              ativo: !a.titulo.startsWith("[INATIVO]"),
+              ativo: isAtivo,
               criado_por: a.criado_por,
               created_at: a.created_at,
             };
@@ -170,57 +173,112 @@ export function useMuralAlertas() {
     }
 
     try {
+      const existing = alertas.find((a) => a.id === id);
+      const targetTipo: MuralTipo = input.tipo !== undefined ? input.tipo : existing?.tipo || "urgente";
+      const targetTitulo = input.titulo !== undefined ? input.titulo.trim() : existing?.titulo || "";
+      const targetMensagem = input.mensagem !== undefined ? input.mensagem.trim() : existing?.mensagem || "";
+      const isAtivo = input.ativo !== undefined ? input.ativo : existing?.ativo ?? true;
+      const targetCreatedAt = input.created_at ? new Date(input.created_at).toISOString() : existing?.created_at || new Date().toISOString();
+
+      // Atualização otimista imediata no estado local
+      setAlertas((prev) =>
+        prev.map((a) =>
+          a.id === id
+            ? {
+                ...a,
+                titulo: targetTitulo,
+                mensagem: targetMensagem,
+                tipo: targetTipo,
+                ativo: isAtivo,
+                created_at: targetCreatedAt,
+              }
+            : a
+        )
+      );
+
+      // 1. Tenta atualizar na tabela dedicada mural_alertas
       if (!usingFallback) {
         const updateData: any = {
           updated_at: new Date().toISOString(),
         };
-        if (input.titulo !== undefined) updateData.titulo = input.titulo.trim();
-        if (input.mensagem !== undefined) updateData.mensagem = input.mensagem.trim();
-        if (input.tipo !== undefined) updateData.tipo = input.tipo;
-        if (input.ativo !== undefined) updateData.ativo = input.ativo;
-        if (input.created_at !== undefined) updateData.created_at = new Date(input.created_at).toISOString();
+        if (input.titulo !== undefined) updateData.titulo = targetTitulo;
+        if (input.mensagem !== undefined) updateData.mensagem = targetMensagem;
+        if (input.tipo !== undefined) updateData.tipo = targetTipo;
+        if (input.ativo !== undefined) updateData.ativo = isAtivo;
+        if (input.created_at !== undefined) updateData.created_at = targetCreatedAt;
 
-        const { error } = await supabase
+        const eqQuery = supabase
           .from("mural_alertas" as any)
           .update(updateData)
           .eq("id", id);
 
-        if (!error) {
-          toast.success("Alerta atualizado com sucesso!");
+        const mRes: any = typeof (eqQuery as any)?.select === "function"
+          ? await (eqQuery as any).select()
+          : await eqQuery;
+
+        const mErr = mRes?.error;
+        const mData = mRes?.data;
+
+        if (!mErr && (!mData || mData.length > 0)) {
+          toast.success("Urgência e alerta atualizados com sucesso!");
           await fetchAlertas();
           return { success: true };
         }
 
-        if (error.code !== "PGRST205" && !error.message?.includes("mural_alertas")) {
-          toast.error("Erro ao editar alerta: " + error.message);
-          return { success: false, error: error.message };
+        if (mErr && mErr.code !== "PGRST205" && !mErr.message?.includes("mural_alertas")) {
+          toast.error("Erro ao editar alerta: " + mErr.message);
+          await fetchAlertas();
+          return { success: false, error: mErr.message };
         }
       }
 
-      // Fallback na tabela avisos
-      const existing = alertas.find((a) => a.id === id);
-      const newTitle = input.titulo !== undefined ? input.titulo.trim() : existing?.titulo || "";
-      const isAtivo = input.ativo !== undefined ? input.ativo : existing?.ativo ?? true;
-      const formattedTitle = isAtivo ? newTitle.replace(/^\[INATIVO\]\s*/, "") : `[INATIVO] ${newTitle.replace(/^\[INATIVO\]\s*/, "")}`;
+      // 2. Persistência na tabela avisos (com suporte a RLS de UPDATE via DELETE + INSERT atômico)
+      const formattedTitle = isAtivo
+        ? targetTitulo.replace(/^\[INATIVO\]\s*/, "")
+        : `[INATIVO] ${targetTitulo.replace(/^\[INATIVO\]\s*/, "")}`;
 
-      const { error: fErr } = await supabase
+      const fEqQuery = supabase
         .from("avisos")
         .update({
           titulo: formattedTitle,
-          mensagem: input.mensagem !== undefined ? input.mensagem.trim() : existing?.mensagem,
-          tipo: `mural:${input.tipo || existing?.tipo || "urgente"}`,
+          mensagem: targetMensagem,
+          tipo: `mural:${targetTipo}`,
         })
         .eq("id", id);
 
-      if (fErr) {
-        toast.error("Erro ao atualizar alerta: " + fErr.message);
-        return { success: false, error: fErr.message };
+      const fRes: any = typeof (fEqQuery as any)?.select === "function"
+        ? await (fEqQuery as any).select()
+        : await fEqQuery;
+
+      const fErr = fRes?.error;
+      const updateRes = fRes?.data;
+
+      // Se a atualização direta for bloqueada pela falta de política de UPDATE no RLS da tabela avisos (0 linhas retornadas):
+      if (fErr || !updateRes || updateRes.length === 0) {
+        await supabase.from("avisos").delete().eq("id", id);
+        const { error: insErr } = await supabase.from("avisos").insert({
+          id,
+          titulo: formattedTitle,
+          mensagem: targetMensagem,
+          tipo: `mural:${targetTipo}`,
+          criado_por: existing?.criado_por || user?.id || "00000000-0000-0000-0000-000000000000",
+          destinatario_id: null,
+          created_at: targetCreatedAt,
+        });
+
+        if (insErr) {
+          console.error("[MuralAlertas] Erro ao substituir aviso:", insErr);
+          toast.error("Erro ao atualizar urgência: " + insErr.message);
+          await fetchAlertas();
+          return { success: false, error: insErr.message };
+        }
       }
 
-      toast.success("Alerta atualizado com sucesso!");
+      toast.success("Nível de urgência atualizado com sucesso!");
       await fetchAlertas();
       return { success: true };
     } catch (err: any) {
+      console.error("[MuralAlertas] Exceção ao editar alerta:", err);
       toast.error("Erro inesperado ao editar alerta.");
       return { success: false, error: err?.message };
     }

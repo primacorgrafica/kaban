@@ -18,6 +18,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   Megaphone,
   Plus,
   Pencil,
@@ -30,6 +36,8 @@ import {
   XCircle,
   Eye,
   Radio,
+  ChevronDown,
+  Check,
 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -91,6 +99,11 @@ export default function MuralAlertasPage() {
 
   const handleToggleAtivo = async (alerta: MuralAlerta) => {
     await editarAlerta(alerta.id, { ativo: !alerta.ativo });
+  };
+
+  const handleUpdateTipo = async (alerta: MuralAlerta, novoTipo: MuralTipo) => {
+    if (alerta.tipo === novoTipo) return;
+    await editarAlerta(alerta.id, { tipo: novoTipo });
   };
 
   return (
@@ -206,10 +219,52 @@ export default function MuralAlertasPage() {
                     {/* Linha superior: Tipo, Status Ativo, Data */}
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider flex items-center gap-1 ${badgeClass}`}>
-                          <Icon className="h-3 w-3" />
-                          <span>{isUrgente ? "Urgente" : isImportante ? "Importante" : "Informativo"}</span>
-                        </span>
+                        {canManageMural ? (
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                type="button"
+                                className={`px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider flex items-center gap-1 transition-all hover:scale-105 active:scale-95 cursor-pointer shadow-xs ${badgeClass}`}
+                                title="Clique para alterar o nível de urgência"
+                              >
+                                <Icon className="h-3 w-3" />
+                                <span>{isUrgente ? "Urgente" : isImportante ? "Importante" : "Informativo"}</span>
+                                <ChevronDown className="h-2.5 w-2.5 opacity-60 ml-0.5" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" className="w-48 bg-card border-border shadow-2xl">
+                              <DropdownMenuItem
+                                onClick={() => handleUpdateTipo(alerta, "urgente")}
+                                className="text-xs font-bold text-red-500 focus:text-red-500 focus:bg-red-500/10 cursor-pointer flex items-center gap-2"
+                              >
+                                <AlertTriangle className="h-3.5 w-3.5" />
+                                <span>Urgente / Destaque</span>
+                                {alerta.tipo === "urgente" && <Check className="h-3.5 w-3.5 ml-auto" />}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleUpdateTipo(alerta, "importante")}
+                                className="text-xs font-bold text-amber-500 focus:text-amber-500 focus:bg-amber-500/10 cursor-pointer flex items-center gap-2"
+                              >
+                                <Megaphone className="h-3.5 w-3.5" />
+                                <span>Importante</span>
+                                {alerta.tipo === "importante" && <Check className="h-3.5 w-3.5 ml-auto" />}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleUpdateTipo(alerta, "info")}
+                                className="text-xs font-bold text-sky-400 focus:text-sky-400 focus:bg-sky-400/10 cursor-pointer flex items-center gap-2"
+                              >
+                                <Info className="h-3.5 w-3.5" />
+                                <span>Informativo</span>
+                                {alerta.tipo === "info" && <Check className="h-3.5 w-3.5 ml-auto" />}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        ) : (
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border uppercase tracking-wider flex items-center gap-1 ${badgeClass}`}>
+                            <Icon className="h-3 w-3" />
+                            <span>{isUrgente ? "Urgente" : isImportante ? "Importante" : "Informativo"}</span>
+                          </span>
+                        )}
 
                         {alerta.ativo ? (
                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-500 border border-emerald-500/40 flex items-center gap-1">

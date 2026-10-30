@@ -277,4 +277,81 @@ describe("Mural de Alertas - Hook e Lógica de Negócio", () => {
     expect(resCreate.success).toBe(false);
     expect(resCreate.error).toBe("Sem permissão");
   });
+
+  it("deve atualizar nível de urgência com sucesso mesmo quando avisos tem restrição de UPDATE RLS", async () => {
+    let deletedAvisoId: string | null = null;
+    let insertedAvisoPayload: any = null;
+    let currentAvisos = [
+      {
+        id: "aviso-100",
+        titulo: "Aviso Urgente Original",
+        mensagem: "Mensagem importante de teste",
+        tipo: "mural:urgente",
+        criado_por: "user-admin",
+        created_at: "2026-10-30T10:00:00Z",
+      },
+    ];
+
+    (supabase.from as any).mockImplementation((table: string) => {
+      if (table === "mural_alertas") {
+        return {
+          select: vi.fn().mockReturnThis(),
+          order: vi.fn().mockResolvedValue({
+            data: null,
+            error: { code: "PGRST205", message: "table not found" },
+          }),
+        };
+      }
+      if (table === "avisos") {
+        return {
+          select: vi.fn().mockReturnThis(),
+          ilike: vi.fn().mockReturnThis(),
+          order: vi.fn().mockImplementation(() =>
+            Promise.resolve({
+              data: currentAvisos,
+              error: null,
+            })
+          ),
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              select: vi.fn().mockResolvedValue({ data: [], error: null }), // 0 linhas afetadas pelo RLS
+            }),
+          }),
+          delete: vi.fn().mockReturnValue({
+            eq: vi.fn().mockImplementation((col, val) => {
+              deletedAvisoId = val;
+              currentAvisos = currentAvisos.filter((a) => a.id !== val);
+              return Promise.resolve({ error: null });
+            }),
+          }),
+          insert: vi.fn().mockImplementation((payload) => {
+            insertedAvisoPayload = payload;
+            currentAvisos.push(payload);
+            return Promise.resolve({ error: null });
+          }),
+        };
+      }
+      return { select: vi.fn().mockReturnThis() };
+    });
+
+    const { result } = renderHook(() => useMuralAlertas());
+
+    await act(async () => {
+      await result.current.refetch();
+    });
+
+    expect(result.current.alertas[0].tipo).toBe("urgente");
+
+    let editRes: any;
+    await act(async () => {
+      editRes = await result.current.editarAlerta("aviso-100", {
+        tipo: "info",
+      });
+    });
+
+    expect(editRes.success).toBe(true);
+    expect(deletedAvisoId).toBe("aviso-100");
+    expect(insertedAvisoPayload.tipo).toBe("mural:info");
+    expect(result.current.alertas[0].tipo).toBe("info");
+  });
 });

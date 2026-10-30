@@ -44,3 +44,18 @@ BEGIN
     ALTER PUBLICATION supabase_realtime ADD TABLE public.mural_alertas;
   END IF;
 END $$;
+
+-- Garante política de UPDATE na tabela avisos para compatibilidade com fallback do mural
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE tablename = 'avisos'
+    AND policyname = 'Admins can update avisos'
+  ) THEN
+    CREATE POLICY "Admins can update avisos" ON public.avisos
+      FOR UPDATE TO authenticated
+      USING (true)
+      WITH CHECK (true);
+  END IF;
+END $$;

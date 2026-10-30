@@ -316,6 +316,7 @@ export function OrderDetailDialog({
       entregue_por: editData.prova_digital ? editData.entregue_por || null : null,
       entregue_em: editData.prova_digital ? editData.entregue_em || null : null,
       urgente:
+        editData.urgente ||
         editData.urgente_prova ||
         editData.urgente_impressao ||
         editData.urgente_acabamento ||

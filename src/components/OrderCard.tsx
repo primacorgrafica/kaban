@@ -348,7 +348,7 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
       entregue_para: editData.prova_digital ? (editData.entregue_para || null) : null,
       entregue_por: editData.prova_digital ? (editData.entregue_por || null) : null,
       entregue_em: editData.prova_digital ? (editData.entregue_em || null) : null,
-      urgente: editData.urgente_prova || editData.urgente_impressao || editData.urgente_acabamento || editData.urgente_expedicao,
+      urgente: editData.urgente || editData.urgente_prova || editData.urgente_impressao || editData.urgente_acabamento || editData.urgente_expedicao,
       urgente_prova: editData.urgente_prova,
       urgente_impressao: editData.urgente_impressao,
       urgente_acabamento: editData.urgente_acabamento,
