@@ -590,4 +590,28 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
 
     expect(mockUpdatedOrders.filter((o) => o.id === "order-uuid-73210")).toHaveLength(0);
   });
+
+  it("11. Consulta de ordens ativas NÃO deve solicitar coluna 'revisao' no Supabase", async () => {
+    let capturedSelectColumns: string = "";
+    const originalFrom = (supabase.from as any).getMockImplementation();
+
+    (supabase.from as any).mockImplementation((table: string) => {
+      const res = originalFrom(table);
+      if (table === "orders") {
+        const originalSelect = res.select;
+        res.select = vi.fn().mockImplementation((cols: string) => {
+          capturedSelectColumns = cols;
+          return originalSelect(cols);
+        });
+      }
+      return res;
+    });
+
+    vi.mocked(outlookService.fetchMailboxMessages).mockResolvedValue([]);
+
+    await runEmailSync();
+
+    expect(capturedSelectColumns).not.toContain("revisao");
+    expect(capturedSelectColumns).toContain("observacao");
+  });
 });

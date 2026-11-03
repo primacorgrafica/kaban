@@ -85,7 +85,7 @@ export async function runEmailSync(): Promise<SyncResult> {
     supabase.auth.getUser().catch(() => ({ data: { user: null }, error: null })),
     supabase
       .from("orders")
-      .select("id, titulo, criado_por, status, setor, setor_status, updated_at, created_at, revisao, observacao" as any)
+      .select("id, titulo, criado_por, status, setor, setor_status, updated_at, created_at, observacao")
       .neq("status", "arquivado"),
     supabase
       .from("order_email_events")
