@@ -213,6 +213,41 @@ export async function runEmailSync(): Promise<SyncResult> {
 
   const existingAvisosList: Array<{ id?: string; titulo: string; mensagem: string }> = avisosRes.data || [];
 
+  // Reconciliação imediata: se qualquer O.S. ativa estiver atualmente em 'preparando_arquivo' ou 'fila_de_entrada',
+  // mas já possui um evento de e-mail 'enviado' registrado após a última atualização/retorno para preparação,
+  // move imediatamente para 'aguardando_aprovacao' para que o card nunca fique preso na Preparação.
+  for (const [ordId, statusInfo] of orderStatusMap.entries()) {
+    if (statusInfo.status === "preparando_arquivo" || statusInfo.status === "fila_de_entrada") {
+      const orderUpTime = statusInfo.updated_at ? new Date(statusInfo.updated_at).getTime() : 0;
+      const hasSentEvent = (existingEvents || []).some((evt) => {
+        if (evt.order_id !== ordId || evt.direction !== "enviado") return false;
+        const evtTime = new Date(evt.email_datetime).getTime();
+        return !orderUpTime || evtTime >= orderUpTime - 60000;
+      });
+
+      if (hasSentEvent) {
+        console.info(`[EmailSync:AutoReconcile] Movendo O.S. (ID: ${ordId}) para AGUARDANDO APROVAÇÃO pois possui e-mail de envio correspondente.`);
+        statusInfo.status = "aguardando_aprovacao";
+        void supabase
+          .from("orders")
+          .update({
+            status: "aguardando_aprovacao",
+            setor_status: null,
+            setor: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", ordId)
+          .neq("status", "arquivo_liberado")
+          .neq("status", "arquivado")
+          .then(async ({ error: recErr }) => {
+            if (!recErr) {
+              await triggerSellerApprovalNotification(ordId);
+            }
+          });
+      }
+    }
+  }
+
   // Conjunto para evitar processamento duplicado durante a execução
   const processedEventKeys = new Set<string>();
   const notifiedOsNumbers = new Set<string>();
@@ -333,6 +368,39 @@ export async function runEmailSync(): Promise<SyncResult> {
 
         // Prevenção de duplicatas por message_id
         if (existingMessageIds.has(msg.id)) {
+          // Se o e-mail está em sentitems e a ordem ainda está em preparação ou fila de entrada,
+          // assegura que a O.S. seja movida para aguardando_aprovacao SE o e-mail não for anterior ao retorno para preparação
+          if (effectiveDirection === "enviado") {
+            const currentOrd = orderStatusMap.get(matchedOrderId);
+            const currentStatus = currentOrd?.status;
+            if (
+              (currentStatus === "fila_de_entrada" || currentStatus === "preparando_arquivo" || currentStatus === "aguardando_novo_arquivo") &&
+              currentStatus !== "arquivo_liberado" &&
+              currentStatus !== "arquivado"
+            ) {
+              const orderUpTime = currentOrd?.updated_at ? new Date(currentOrd.updated_at).getTime() : 0;
+              const sentTime = msg.sentDateTime ? new Date(msg.sentDateTime).getTime() : 0;
+              if (!orderUpTime || sentTime >= orderUpTime - 60000) {
+                const { error: moveErr } = await supabase
+                  .from("orders")
+                  .update({
+                    status: "aguardando_aprovacao",
+                    setor_status: null,
+                    setor: null,
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq("id", matchedOrderId)
+                  .neq("status", "arquivo_liberado")
+                  .neq("status", "arquivado");
+
+                if (!moveErr) {
+                  console.info(`[EmailSync] O.S. #${matchedOs} movida para AGUARDANDO APROVAÇÃO (recuperação de e-mail enviado).`);
+                  if (currentOrd) currentOrd.status = "aguardando_aprovacao";
+                  void triggerSellerApprovalNotification(matchedOrderId);
+                }
+              }
+            }
+          }
           continue;
         }
 
@@ -389,26 +457,20 @@ export async function runEmailSync(): Promise<SyncResult> {
             // 1. ENVIO DE E-MAIL AO CLIENTE:
             // Move automaticamente o CARD da respectiva O.S. para "AGUARDANDO APROVAÇÃO"
             const currentOrd = orderStatusMap.get(matchedOrderId);
-            const currentRev = currentOrd?.revisao || 0;
             const currentStatus = currentOrd?.status;
 
-            // REGRAS ESTRITAS DE PROTEÇÃO DO KANBAN:
-            // 1. Se a O.S. está em revisão (REV 1, REV 2, REV 3...):
-            //    O operador está editando a arte em Preparação. NUNCA mover automaticamente!
-            // 2. Se a O.S. está PARALISADA ou AGUARDANDO NOVO ARQUIVO:
-            //    NUNCA mover automaticamente.
-            // 3. Se a O.S. já foi LIBERADA / ARQUIVADA:
-            //    NUNCA mover automaticamente.
-            // 4. Se a O.S. está em PRODUZINDO PROVA:
-            //    NUNCA mover automaticamente.
-            //
-            // APENAS move automaticamente no fluxo inicial de primeira versão (original / rev 0):
-            // quando a O.S. estiver em 'fila_de_entrada' ou 'preparando_arquivo' inicial.
-            const isInitialPreparationOrEntry =
-              currentRev === 0 &&
-              (currentStatus === "fila_de_entrada" || currentStatus === "preparando_arquivo");
+            // Se a O.S. está em Fila de Entrada, Preparação ou Aguardando Novo Arquivo:
+            // O envio de e-mail ao cliente com o número numérico da O.S. indica envio de prova / layout,
+            // SEJA na versão inicial (REV 0) OU em qualquer revisão (REV 1, REV 2, REV 3...)!
+            // Deve mover automaticamente o card para AGUARDANDO APROVAÇÃO.
+            const canMoveToApproval =
+              (currentStatus === "fila_de_entrada" ||
+               currentStatus === "preparando_arquivo" ||
+               currentStatus === "aguardando_novo_arquivo") &&
+              currentStatus !== "arquivo_liberado" &&
+              currentStatus !== "arquivado";
 
-            if (isInitialPreparationOrEntry) {
+            if (canMoveToApproval) {
               const { error: moveError } = await supabase
                 .from("orders")
                 .update({
@@ -418,17 +480,19 @@ export async function runEmailSync(): Promise<SyncResult> {
                   updated_at: new Date().toISOString(),
                 })
                 .eq("id", matchedOrderId)
-                .neq("status", "arquivo_liberado");
+                .neq("status", "arquivo_liberado")
+                .neq("status", "arquivado");
 
               if (moveError) {
                 console.warn(`[EmailSync] Erro ao mover O.S. #${matchedOs} para aguardando_aprovacao:`, moveError.message);
               } else {
                 console.info(`[EmailSync] O.S. #${matchedOs} movida automaticamente para AGUARDANDO APROVAÇÃO`);
+                if (currentOrd) currentOrd.status = "aguardando_aprovacao";
                 // Dispara notificação por e-mail ao vendedor responsável
                 await triggerSellerApprovalNotification(matchedOrderId);
               }
             } else {
-              console.info(`[EmailSync] O.S. #${matchedOs} mantida em ${currentStatus} (proteção de fluxo: REV${currentRev}).`);
+              console.info(`[EmailSync] O.S. #${matchedOs} mantida em ${currentStatus}.`);
             }
           } else {
             // 2. RESPOSTAS DOS CLIENTES:

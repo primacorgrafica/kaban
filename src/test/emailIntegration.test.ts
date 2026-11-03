@@ -516,6 +516,7 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
       revisao: 2,
       updated_at: "2026-10-20T10:00:00Z",
     };
+    mockActiveOrders = [orderRev2];
 
     // E-mail que já existe no banco (enviado às 09:00, na Rev 1)
     mockExistingEvents = [
@@ -524,6 +525,8 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
         conversation_id: "conv-thread-100",
         order_id: "order-uuid-73210",
         os_number: "73210",
+        email_datetime: "2026-10-20T09:00:00Z",
+        direction: "enviado",
       },
     ];
 
@@ -553,7 +556,7 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
     expect(mockUpdatedOrders.filter((o) => o.id === "order-uuid-73210")).toHaveLength(0);
   });
 
-  it("10. O.S. em Preparação (REV 2): deve manter o card em Preparação (revisões REV 2+ nunca são movidas automaticamente)", async () => {
+  it("10. O.S. em Preparação (REV 2): envio de e-mail ao cliente deve mover o card para aguardando aprovação", async () => {
     // Ordem em preparação com REV 2
     mockActiveOrders = [
       { id: "order-uuid-73210", titulo: "73210", status: "preparando_arquivo", revisao: 2 },
@@ -580,7 +583,7 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
 
     const result = await runEmailSync();
 
-    // Evento de e-mail é registrado, mas o CARD NÃO é movido para aguardando_aprovacao
+    // Evento de e-mail é registrado e o CARD É MOVIDO para aguardando_aprovacao
     expect(result.newEvents).toBe(1);
     expect(mockInsertedEvents[0]).toMatchObject({
       order_id: "order-uuid-73210",
@@ -588,7 +591,12 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
       message_id: "msg-sent-rev2",
     });
 
-    expect(mockUpdatedOrders.filter((o) => o.id === "order-uuid-73210")).toHaveLength(0);
+    expect(mockUpdatedOrders).toContainEqual(
+      expect.objectContaining({
+        id: "order-uuid-73210",
+        status: "aguardando_aprovacao",
+      })
+    );
   });
 
   it("11. Consulta de ordens ativas NÃO deve solicitar coluna 'revisao' no Supabase", async () => {
