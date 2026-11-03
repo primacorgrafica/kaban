@@ -66,6 +66,7 @@ import { OrderAttachmentsSection } from "@/components/sharepoint/OrderAttachment
 import { CreateOrderDialog } from "./CreateOrderDialog";
 import { OrderEmailEventsSection } from "@/components/email/OrderEmailEventsSection";
 import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
+import { fetchOperadoresList, OperadorProfile } from "@/lib/operadores";
 
 // sortAndFilterProcessos importado de @/lib/processos
 
@@ -129,7 +130,7 @@ export function OrderDetailDialog({
   const [currentDept, setCurrentDept] = useState<Department | "">("");
   const [currentMachine, setCurrentMachine] = useState("");
   const [vendedoresList, setVendedoresList] = useState<{ id: string; nome: string }[]>([]);
-  const [operadoresList, setOperadoresList] = useState<{ id: string; user_id?: string; nome: string; setor_vinculado?: string | null }[]>([]);
+  const [operadoresList, setOperadoresList] = useState<OperadorProfile[]>([]);
   const [createdByName, setCreatedByName] = useState<string | null>(null);
   const [updatedByName, setUpdatedByName] = useState<string | null>(null);
   const { hasUnread, hasVerified, getUnreadEvents } = useUnreadEmailReplies();
@@ -222,16 +223,8 @@ export function OrderDetailDialog({
   }, [order]);
 
   useEffect(() => {
-    supabase
-      .from("profiles")
-      .select("id, user_id, nome, setor_vinculado")
-      .order("nome")
-      .then(({ data }) => {
-        if (data) {
-          setOperadoresList(data.filter((p) => p.nome && p.nome.trim().length > 0));
-        }
-      });
-  }, []);
+    fetchOperadoresList(order?.operador).then(setOperadoresList);
+  }, [order?.operador]);
 
   const handleAssignOperador = async (newOperador: string | null) => {
     if (!order) return;

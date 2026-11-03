@@ -48,6 +48,7 @@ import { OrderAttachmentsSection } from "./sharepoint/OrderAttachmentsSection";
 import { OrderEmailEventsSection } from "./email/OrderEmailEventsSection";
 import { CreateOrderDialog } from "./CreateOrderDialog";
 import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
+import { fetchOperadoresList, OperadorProfile } from "@/lib/operadores";
 
 // sortAndFilterProcessos importado diretamente de @/lib/processos
 
@@ -213,19 +214,11 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
     entrega_data_limite: order.entrega_data_limite ? order.entrega_data_limite.slice(0, 16) : "",
   });
   const [vendedoresList, setVendedoresList] = useState<{ id: string; nome: string }[]>([]);
-  const [operadoresList, setOperadoresList] = useState<{ id: string; user_id?: string; nome: string; setor_vinculado?: string | null }[]>([]);
+  const [operadoresList, setOperadoresList] = useState<OperadorProfile[]>([]);
 
   useEffect(() => {
-    supabase
-      .from("profiles")
-      .select("id, user_id, nome, setor_vinculado")
-      .order("nome")
-      .then(({ data }) => {
-        if (data) {
-          setOperadoresList(data.filter((p) => p.nome && p.nome.trim().length > 0));
-        }
-      });
-  }, []);
+    fetchOperadoresList(order?.operador).then(setOperadoresList);
+  }, [order?.operador]);
 
   const handleAssignOperador = async (newOperador: string | null) => {
     if (!order) return;
