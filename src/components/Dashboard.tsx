@@ -1196,7 +1196,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                           className="border-border/50 hover:bg-muted/40 transition-colors cursor-pointer group"
                         >
                           <TableCell className="py-2.5 font-mono-tech font-bold text-xs text-foreground group-hover:text-[#CCD0CF] transition-colors">
-                            #{o.titulo}
+                            {cleanOsNumber(o.titulo) || o.titulo?.replace(/^#+/, "")}
                           </TableCell>
                           <TableCell className="py-2.5">
                             <span className="text-xs font-semibold text-foreground truncate max-w-[200px] block uppercase">
@@ -1419,10 +1419,10 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                               <div className="flex items-center gap-2">
                                 <span className="font-pcp font-bold text-xs text-foreground">
                                   {isOrderFromOS(c.order)
-                                    ? `OS. #${cleanOsNumber(c.order.titulo)}`
+                                    ? `OS. ${cleanOsNumber(c.order.titulo)}`
                                     : (c.order as any).oc_numero
                                     ? `OC. ${String((c.order as any).oc_numero).padStart(4, "0")}`
-                                    : `OS. #${cleanOsNumber(c.order.titulo)}`}
+                                    : `OS. ${cleanOsNumber(c.order.titulo)}`}
                                 </span>
                                 <span className="text-[11px] font-medium text-foreground truncate">• {(c.order.cliente || "").toUpperCase()}</span>
                                 {c.pantoneActive && (
@@ -2141,10 +2141,10 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                               <div className="flex items-center gap-1.5 flex-wrap">
                                 <span className="font-pcp font-bold text-sm text-foreground">
                                   {isOrderFromOS(c.order)
-                                    ? `OS. #${cleanOsNumber(c.order.titulo)}`
+                                    ? `OS. ${cleanOsNumber(c.order.titulo)}`
                                     : (c.order as any).oc_numero
                                     ? `OC. ${String((c.order as any).oc_numero).padStart(4, "0")}`
-                                    : `OS. #${cleanOsNumber(c.order.titulo)}`}
+                                    : `OS. ${cleanOsNumber(c.order.titulo)}`}
                                 </span>
                                 {isOrderFromOS(c.order) && (c.order as any).oc_numero && (
                                   <span className="text-[11px] text-muted-foreground font-normal">

@@ -42,6 +42,7 @@ import { RotateCcw, Clock,
 import { toast } from "sonner";
 import { OrderDetailDialog } from "./OrderDetailDialog";
 import { getProcessoCor, sortAndFilterProcessos } from "@/lib/processos";
+import { cleanOsNumber } from "./ProductionCard";
 
 interface Permissions {
   canEditCard: boolean;
@@ -368,14 +369,14 @@ export function ProductionTable({
                           <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_#f43f5e] shrink-0" />
                         )}
                         <span className="px-1.5 py-0.5 rounded bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/60 text-[11px]">
-                          #{order.titulo}
+                          {cleanOsNumber(order.titulo) || order.titulo?.replace(/^#+/, "")}
                         </span>
                         {(order.tipo_trabalho === "repeticao" || order.os_anterior) && (
                           <span
                             className="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[10px] font-bold"
                             title={order.os_anterior ? `Repetição da O.S. Anterior: ${order.os_anterior}` : "Repetição"}
                           >
-                            REP {order.os_anterior ? `#${order.os_anterior}` : ""}
+                            REP {order.os_anterior ? (cleanOsNumber(order.os_anterior) || order.os_anterior.replace(/^#+/, "")) : ""}
                           </span>
                         )}
                         {getOrderRevision(order) >= 1 && (

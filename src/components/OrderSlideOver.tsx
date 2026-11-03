@@ -60,6 +60,7 @@ import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
 import { supabase } from "@/integrations/supabase/client";
 import { DELIVERY_STATUS_CONFIG, DeliveryStatus } from "@/types/delivery";
 import { cn } from "@/lib/utils";
+import { cleanOsNumber } from "./ProductionCard";
 
 interface OrderSlideOverProps {
   order: Order | null;
@@ -186,7 +187,7 @@ export function OrderSlideOver({
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <span className="font-mono-tech text-base font-extrabold text-primary tracking-wide">
-                  #{order.titulo}
+                  {cleanOsNumber(order.titulo) || order.titulo?.replace(/^#+/, "")}
                 </span>
                 <Badge
                   className={`text-[10px] px-2 py-0.5 rounded-full font-semibold uppercase tracking-wider bg-status-${statusInfo.colorKey}-bg text-status-${statusInfo.colorKey} border border-status-${statusInfo.colorKey}/30`}

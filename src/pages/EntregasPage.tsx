@@ -40,6 +40,7 @@ import { getEntregadoresList } from "@/lib/deliveryService";
 import { syncPendingProtocolsToSharePoint } from "@/lib/sharepointService";
 import type { Entregador, DeliveryStatus } from "@/types/delivery";
 import { DELIVERY_STATUS_CONFIG } from "@/types/delivery";
+import { cleanOsNumber } from "@/components/ProductionCard";
 
 export default function EntregasPage() {
   const { user, authReady } = useAuth();
@@ -676,7 +677,7 @@ export default function EntregasPage() {
                 : orderToDelete?.tipo_entrega?.includes("demanda_manual")
                 ? "a demanda de entrega"
                 : "a O.S."}{" "}
-              <strong className="text-foreground">#{orderToDelete?.titulo}</strong> ({orderToDelete?.cliente})?
+              <strong className="text-foreground">{cleanOsNumber(orderToDelete?.titulo) || orderToDelete?.titulo?.replace(/^#+/, "")}</strong> ({orderToDelete?.cliente})?
               Esta ação removerá o item da lista de entregas.
             </AlertDialogDescription>
           </AlertDialogHeader>

@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { parseOrderText, ParsedOrderDraft } from "@/lib/aiAssistant";
 import { Sparkles, Check, ArrowRight, RefreshCw, Wand2, FileText, User, Tag, Clock } from "lucide-react";
 import { toast } from "sonner";
+import { cleanOsNumber } from "./ProductionCard";
 
 interface AiOrderParserDialogProps {
   open: boolean;
@@ -106,7 +107,7 @@ export function AiOrderParserDialog({
                 <div className="rounded-lg bg-background/50 p-2 border border-border/50">
                   <span className="text-[10px] text-muted-foreground block">Número O.S.:</span>
                   <span className="font-mono-tech font-bold text-primary">
-                    {parsed.titulo ? `#${parsed.titulo}` : "(Auto ou Vazio)"}
+                    {parsed.titulo ? (cleanOsNumber(parsed.titulo) || parsed.titulo.replace(/^#+/, "")) : "(Auto ou Vazio)"}
                   </span>
                 </div>
 

@@ -29,6 +29,7 @@ import {
 import type { DeliveryStatus, Entregador } from "@/types/delivery";
 import { DELIVERY_STATUS_CONFIG } from "@/types/delivery";
 import type { Order } from "@/types/order";
+import { cleanOsNumber } from "@/components/ProductionCard";
 import { Link } from "react-router-dom";
 import {
   Bike,
@@ -466,7 +467,7 @@ export default function EntregadorPage() {
     });
 
     if (res.success) {
-      toast.success(`Rota iniciada para a O.S. #${order.titulo}!`);
+      toast.success(`Rota iniciada para a O.S. ${cleanOsNumber(order.titulo) || order.titulo?.replace(/^#+/, "")}!`);
       void sendGpsTelemetry(order.id);
       void fetchDriverData();
     } else {

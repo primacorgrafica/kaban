@@ -31,6 +31,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { cleanOsNumber } from "./ProductionCard";
 
 const CATEGORIAS_COMPRA = [
   { id: "estoque", label: "Estoque", color: "bg-blue-600 text-white" },
@@ -110,11 +111,7 @@ export function ComprasCard({
   // exibimos com prioridade o número da O.S. correspondente para identificar de qual O.S foi comprado o insumo.
   const isFromOS = (order as any).categoria_compra === "os" || !!order.parent_order_id || (!!order.titulo && order.titulo !== "OC");
   const formattedOsNumber = order.titulo
-    ? order.titulo.toUpperCase().startsWith("OS")
-      ? order.titulo
-      : order.titulo.startsWith("#")
-      ? `OS. ${order.titulo}`
-      : `OS. #${order.titulo}`
+    ? `OS. ${cleanOsNumber(order.titulo) || order.titulo.replace(/^#+/, "")}`
     : "";
 
   const displayCardNumber = isFromOS && formattedOsNumber

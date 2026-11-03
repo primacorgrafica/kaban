@@ -33,6 +33,7 @@ import {
 import { Order } from "@/types/order";
 import { useTheme } from "next-themes";
 import { Badge } from "@/components/ui/badge";
+import { cleanOsNumber } from "./ProductionCard";
 
 interface CommandPaletteProps {
   open: boolean;
@@ -220,7 +221,7 @@ export function CommandPalette({
                 >
                   <div className="flex items-center gap-2 overflow-hidden">
                     <span className="font-mono-tech font-bold text-xs text-primary shrink-0">
-                      #{order.titulo}
+                      {cleanOsNumber(order.titulo) || order.titulo?.replace(/^#+/, "")}
                     </span>
                     <span className="text-xs font-semibold text-foreground truncate max-w-[140px]">
                       {order.cliente}

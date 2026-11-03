@@ -36,6 +36,7 @@ import {
 import { format, parseISO, differenceInMinutes } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { cleanOsNumber } from "@/components/ProductionCard";
 
 interface DeliveryCompletedDetailsModalProps {
   order: Order | null;
@@ -281,7 +282,7 @@ export function DeliveryCompletedDetailsModal({
                     Entrega Concluída
                   </Badge>
                   <span className="text-xs text-slate-400 font-mono-tech">
-                    O.S. #{order.titulo}
+                    O.S. {cleanOsNumber(order.titulo) || order.titulo?.replace(/^#+/, "")}
                   </span>
                 </div>
                 <h2 className="text-base font-bold tracking-tight text-white mt-0.5 truncate">
@@ -575,7 +576,7 @@ export function DeliveryCompletedDetailsModal({
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-rose-400">
                 <AlertCircle className="h-5 w-5" />
-                Reabrir Entrega da O.S. #{order.titulo}?
+                Reabrir Entrega da O.S. {cleanOsNumber(order.titulo) || order.titulo?.replace(/^#+/, "")}?
               </DialogTitle>
             </DialogHeader>
             <p className="text-xs text-slate-300 leading-relaxed py-2">

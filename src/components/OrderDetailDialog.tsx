@@ -67,6 +67,7 @@ import { CreateOrderDialog } from "./CreateOrderDialog";
 import { OrderEmailEventsSection } from "@/components/email/OrderEmailEventsSection";
 import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
 import { fetchOperadoresList, OperadorProfile } from "@/lib/operadores";
+import { cleanOsNumber } from "./ProductionCard";
 
 // sortAndFilterProcessos importado de @/lib/processos
 
@@ -360,7 +361,7 @@ export function OrderDetailDialog({
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-mono-tech text-base font-bold text-foreground tracking-wide">
-                    O.S. #{order.titulo}
+                    O.S. {cleanOsNumber(order.titulo) || order.titulo?.replace(/^#+/, "")}
                   </span>
                   {currentRevision >= 1 && (
                     <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/40 text-[11px] font-bold font-mono-tech flex items-center gap-1">
@@ -371,7 +372,7 @@ export function OrderDetailDialog({
                   {(order.tipo_trabalho === "repeticao" || order.os_anterior) && (
                     <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40 text-[11px] font-bold flex items-center gap-1">
                       <Repeat className="h-3 w-3" />
-                      <span>REPETIÇÃO {order.os_anterior ? `(ANT: #${order.os_anterior})` : ""}</span>
+                      <span>REPETIÇÃO {order.os_anterior ? `(ANT: ${cleanOsNumber(order.os_anterior) || order.os_anterior.replace(/^#+/, "")})` : ""}</span>
                     </Badge>
                   )}
                   {isEmailUnread ? (
@@ -473,7 +474,7 @@ export function OrderDetailDialog({
                         <div className="text-xs">
                           <span className="text-muted-foreground mr-1">N.º O.S ANTERIOR:</span>
                           <span className="font-mono-tech font-bold text-foreground text-sm">
-                            {order.os_anterior ? `#${order.os_anterior}` : "—"}
+                            {order.os_anterior ? (cleanOsNumber(order.os_anterior) || order.os_anterior.replace(/^#+/, "")) : "—"}
                           </span>
                         </div>
                       </div>

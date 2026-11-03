@@ -82,7 +82,7 @@ export function isOrderFromOS(order: {
 
 export function cleanOsNumber(titulo: string | null | undefined): string {
   if (!titulo) return "";
-  return titulo.replace(/^O\.?S\.?[\s._-]*/i, "").replace(/^#/, "").trim();
+  return titulo.replace(/^O\.?S\.?[\s._-]*/i, "").replace(/^#+/, "").trim();
 }
 
 function ProductionCardImpl({
@@ -530,7 +530,7 @@ function ProductionCardImpl({
             <div className="min-w-[28px] flex justify-end">
               {typeof orderIndex === "number" && typeof totalOrders === "number" && totalOrders > 1 && (
                 <span className="text-[10px] font-mono-tech font-bold text-muted-foreground/70 px-1 py-0.2 rounded bg-background/50 border border-border/40">
-                  #{orderIndex + 1}
+                  {orderIndex + 1}º
                 </span>
               )}
             </div>
@@ -670,7 +670,7 @@ function ProductionCardImpl({
                 title={order.os_anterior ? `Repetição da O.S. Anterior: ${order.os_anterior}` : "Repetição"}
               >
                 <span>REP</span>
-                {order.os_anterior && <span className="opacity-90">#{order.os_anterior}</span>}
+                {order.os_anterior && <span className="opacity-90">{cleanOsNumber(order.os_anterior) || order.os_anterior.replace(/^#+/, "")}</span>}
               </span>
             )}
             {/* Cartinha de aviso de resposta de e-mail */}
@@ -1787,7 +1787,7 @@ function ProductionCardImpl({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
               <AlertTriangle className="h-5 w-5 text-amber-500" />
-              Motivo da Parada — O.S #{order.titulo}
+              Motivo da Parada — O.S {cleanOsNumber(order.titulo) || order.titulo.replace(/^#+/, "")}
             </DialogTitle>
             <p className="text-xs text-muted-foreground mt-1">
               Cliente: <span className="font-semibold text-foreground">{order.cliente}</span>

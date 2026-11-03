@@ -1,4 +1,5 @@
 import { Order } from "@/types/order";
+import { cleanOsNumber } from "./ProductionCard";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Archive, ArchiveRestore, Trash2, Search, Clock, ArrowRight, ChevronDown } from "lucide-react";
@@ -362,7 +363,7 @@ export function ArchivedOrders({ orders, onUnarchive, onDelete }: ArchivedOrders
             } else if (isNC) {
               titleDisplay = `NC. ${String((order as any).nc_numero).padStart(4, "0")}`;
             } else {
-              titleDisplay = `OS. #${order.titulo.replace(/^#/, "")}`;
+              titleDisplay = `OS. ${cleanOsNumber(order.titulo) || order.titulo.replace(/^#+/, "")}`;
             }
 
             return (
