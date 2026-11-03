@@ -86,4 +86,16 @@ describe("CTP & Digital - Novos Menus e Colunas Kanban", () => {
     expect(canSendBackIdx).toBeGreaterThan(-1);
     expect(activeDeptIdx).toBeLessThan(canSendBackIdx);
   });
+
+  it("ProductionCard.tsx deve disponibilizar a opção de Enviar → Próximo Setor quando o card estiver em Saída na Digital", () => {
+    const fs = require("fs");
+    const path = require("path");
+    const projectRoot = path.resolve(__dirname, "..");
+    const productionCardFile = fs.readFileSync(path.join(projectRoot, "components", "ProductionCard.tsx"), "utf8");
+
+    // Verifica bloco de saída dedicado da Digital com Enviar → Próximo Setor
+    expect(productionCardFile).toContain('department.id === "digital"');
+    expect(productionCardFile).toContain("Enviar → Próximo Setor");
+    expect(productionCardFile).toContain("Digital: Opção em destaque para Enviar ao Próximo Setor");
+  });
 });

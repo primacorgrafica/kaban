@@ -919,8 +919,8 @@ function ProductionCardImpl({
           )}
         </div>
 
-        {/* CTP & Digital: Voltar para Pré-Impressão OU O.S Concluídas */}
-        {!readOnly && isExitStatus && (department.id === "ctp" || department.id === "digital") && (
+        {/* CTP: Voltar para Pré-Impressão OU O.S Concluídas OU Outro Setor */}
+        {!readOnly && isExitStatus && department.id === "ctp" && (
           <div className="flex flex-col border-t border-border/70 divide-y divide-border/60">
             <div className="grid grid-cols-2 divide-x divide-border/60">
               <button
@@ -956,6 +956,49 @@ function ProductionCardImpl({
             >
               <Send className="h-3 w-3" /> Outro Setor...
             </button>
+          </div>
+        )}
+
+        {/* Digital: Opção em destaque para Enviar ao Próximo Setor, Pré-Impressão ou O.S Concluídas */}
+        {!readOnly && isExitStatus && department.id === "digital" && (
+          <div className="flex flex-col border-t border-border/70 divide-y divide-border/60">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSendDialogOpen(true);
+              }}
+              className="w-full py-2.5 px-3 text-xs font-bold uppercase tracking-wide flex items-center justify-center gap-1.5 transition-colors bg-primary hover:bg-primary/90 text-primary-foreground shadow-xs font-mono-tech"
+              title="Enviar O.S para o próximo setor da fábrica (Produção, Expedição, etc.)"
+            >
+              <Send className="h-3.5 w-3.5" /> Enviar → Próximo Setor
+            </button>
+            <div className="grid grid-cols-2 divide-x divide-border/60">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (onSendBackToPrePress) {
+                    onSendBackToPrePress(order.id);
+                  }
+                }}
+                className="py-2 px-1.5 text-[10.5px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-colors bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 dark:text-sky-300"
+                title="Voltar para Pré-Impressão"
+              >
+                <Undo2 className="h-3 w-3 shrink-0" /> Pré-Impressão
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onArchive(order.id);
+                }}
+                className="py-2 px-1.5 text-[10.5px] font-bold uppercase tracking-wider flex items-center justify-center gap-1 transition-colors bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-600 dark:text-emerald-400"
+                title="Mover para O.S Concluídas"
+              >
+                <CheckCircle className="h-3 w-3 shrink-0" /> O.S Concluídas
+              </button>
+            </div>
           </div>
         )}
 
