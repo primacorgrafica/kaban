@@ -351,16 +351,17 @@ export function CreateOrderDialog({
   };
 
   const validateStep1 = () => {
-    if (!form.titulo.trim()) {
-      toast.error("Informe o Nº da O.S.");
+    const cleanTitulo = form.titulo.replace(/\D/g, "");
+    if (!cleanTitulo) {
+      toast.error("Informe o Nº da O.S. (somente números)");
       return false;
     }
     if (!form.cliente.trim()) {
       toast.error("Informe o Nome do Cliente");
       return false;
     }
-    if (form.tipo_trabalho === "repeticao" && !form.os_anterior.trim()) {
-      toast.error("Informe o N.º O.S ANTERIOR");
+    if (form.tipo_trabalho === "repeticao" && !form.os_anterior.replace(/\D/g, "")) {
+      toast.error("Informe o N.º O.S ANTERIOR (somente números)");
       return false;
     }
     if (!form.vendedor) {
@@ -400,7 +401,7 @@ export function CreateOrderDialog({
     if (e) e.preventDefault();
     if (!validateStep1() || !validateStep2()) return;
 
-    const osTitulo = form.titulo.trim();
+    const osTitulo = form.titulo.replace(/\D/g, "");
 
     // MODO EDIÇÃO
     if (isEdit && orderToEdit) {
@@ -447,7 +448,7 @@ export function CreateOrderDialog({
           descricao: effectiveDescricao,
           cliente: form.cliente.trim().toUpperCase(),
           tipo_trabalho: form.tipo_trabalho,
-          os_anterior: form.tipo_trabalho === "repeticao" ? form.os_anterior.trim() || null : null,
+          os_anterior: form.tipo_trabalho === "repeticao" ? form.os_anterior.replace(/\D/g, "") || null : null,
           observacao: form.observacao.trim() || null,
           saida_direta: form.saida_direta,
           prova_digital: form.prova_digital,
@@ -603,7 +604,7 @@ export function CreateOrderDialog({
           descricao: effectiveDescricao,
           cliente: form.cliente.trim().toUpperCase(),
           tipo_trabalho: form.tipo_trabalho,
-          os_anterior: form.tipo_trabalho === "repeticao" ? form.os_anterior.trim() || undefined : undefined,
+          os_anterior: form.tipo_trabalho === "repeticao" ? form.os_anterior.replace(/\D/g, "") || undefined : undefined,
           observacao: form.observacao.trim() || undefined,
           saida_direta: form.saida_direta,
           prova_digital: form.prova_digital,
@@ -937,7 +938,37 @@ export function CreateOrderDialog({
                     id="titulo"
                     autoFocus
                     value={form.titulo}
-                    onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
+                    onChange={(e) => {
+                      const numericVal = e.target.value.replace(/\D/g, "");
+                      setForm((f) => ({ ...f, titulo: numericVal }));
+                    }}
+                    onKeyDown={(e) => {
+                      if (
+                        [
+                          "Backspace",
+                          "Tab",
+                          "Enter",
+                          "Escape",
+                          "Delete",
+                          "ArrowLeft",
+                          "ArrowRight",
+                          "ArrowUp",
+                          "ArrowDown",
+                          "Home",
+                          "End",
+                        ].includes(e.key) ||
+                        e.ctrlKey ||
+                        e.metaKey
+                      ) {
+                        return;
+                      }
+                      if (!/^\d$/.test(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="Apenas números (Ex: 75120)"
                     className="h-10 bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-[#4A5C6A] focus:ring-1 focus:ring-[#9BA8AB]/40 rounded-xl font-mono-tech text-sm font-semibold tracking-wider"
                   />
                 </div>
@@ -1036,7 +1067,36 @@ export function CreateOrderDialog({
                   <Input
                     id="os_anterior"
                     value={form.os_anterior}
-                    onChange={(e) => setForm((f) => ({ ...f, os_anterior: e.target.value }))}
+                    onChange={(e) => {
+                      const numericVal = e.target.value.replace(/\D/g, "");
+                      setForm((f) => ({ ...f, os_anterior: numericVal }));
+                    }}
+                    onKeyDown={(e) => {
+                      if (
+                        [
+                          "Backspace",
+                          "Tab",
+                          "Enter",
+                          "Escape",
+                          "Delete",
+                          "ArrowLeft",
+                          "ArrowRight",
+                          "ArrowUp",
+                          "ArrowDown",
+                          "Home",
+                          "End",
+                        ].includes(e.key) ||
+                        e.ctrlKey ||
+                        e.metaKey
+                      ) {
+                        return;
+                      }
+                      if (!/^\d$/.test(e.key)) {
+                        e.preventDefault();
+                      }
+                    }}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     placeholder="Digite o número da O.S. anterior (Ex: 69387)"
                     className="h-10 bg-background border-amber-500/40 text-foreground placeholder:text-muted-foreground focus:border-amber-500 focus:ring-1 focus:ring-amber-500/40 rounded-xl font-mono-tech text-sm font-bold tracking-wider"
                   />

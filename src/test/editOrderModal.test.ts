@@ -72,4 +72,17 @@ describe("Edição de Card em 3 Etapas (CreateOrderDialog)", () => {
     expect(slideOverFile).toContain("orderToEdit={order}");
     expect(slideOverFile).toContain("onUpdate={onUpdate}");
   });
+
+  it("CreateOrderDialog deve restringir o campo de Número da O.S. e O.S. anterior para aceitar apenas dígitos", () => {
+    const dialogFile = fs.readFileSync(
+      path.join(projectRoot, "components", "CreateOrderDialog.tsx"),
+      "utf8"
+    );
+
+    // Campo Nº da O.S. deve filtrar caracteres não numéricos
+    expect(dialogFile).toContain('replace(/\\D/g, "")');
+    expect(dialogFile).toContain('inputMode="numeric"');
+    expect(dialogFile).toContain('pattern="[0-9]*"');
+    expect(dialogFile).toContain('placeholder="Apenas números (Ex: 75120)"');
+  });
 });

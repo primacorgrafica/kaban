@@ -314,7 +314,37 @@ export function OrderSlideOver({
                     <Label className="text-xs text-muted-foreground">Número da O.S.</Label>
                     <Input
                       value={formData.titulo}
-                      onChange={(e) => setFormData({ ...formData, titulo: e.target.value })}
+                      onChange={(e) => {
+                        const numericVal = e.target.value.replace(/\D/g, "");
+                        setFormData({ ...formData, titulo: numericVal });
+                      }}
+                      onKeyDown={(e) => {
+                        if (
+                          [
+                            "Backspace",
+                            "Tab",
+                            "Enter",
+                            "Escape",
+                            "Delete",
+                            "ArrowLeft",
+                            "ArrowRight",
+                            "ArrowUp",
+                            "ArrowDown",
+                            "Home",
+                            "End",
+                          ].includes(e.key) ||
+                          e.ctrlKey ||
+                          e.metaKey
+                        ) {
+                          return;
+                        }
+                        if (!/^\d$/.test(e.key)) {
+                          e.preventDefault();
+                        }
+                      }}
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      placeholder="Apenas números (Ex: 75120)"
                       className="h-9 text-xs font-mono-tech mt-1"
                     />
                   </div>

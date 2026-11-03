@@ -268,7 +268,37 @@ export function ConvertToOrderDialog({
               <Input
                 autoFocus
                 value={form.titulo}
-                onChange={(e) => setForm((f) => ({ ...f, titulo: e.target.value }))}
+                onChange={(e) => {
+                  const numericVal = e.target.value.replace(/\D/g, "");
+                  setForm((f) => ({ ...f, titulo: numericVal }));
+                }}
+                onKeyDown={(e) => {
+                  if (
+                    [
+                      "Backspace",
+                      "Tab",
+                      "Enter",
+                      "Escape",
+                      "Delete",
+                      "ArrowLeft",
+                      "ArrowRight",
+                      "ArrowUp",
+                      "ArrowDown",
+                      "Home",
+                      "End",
+                    ].includes(e.key) ||
+                    e.ctrlKey ||
+                    e.metaKey
+                  ) {
+                    return;
+                  }
+                  if (!/^\d$/.test(e.key)) {
+                    e.preventDefault();
+                  }
+                }}
+                inputMode="numeric"
+                pattern="[0-9]*"
+                placeholder="Apenas números (Ex: 75120)"
                 className="h-10 rounded-xl font-pcp text-sm font-bold bg-background border-border"
                 required
               />
