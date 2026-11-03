@@ -129,18 +129,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // Inicializa com o próprio usuário logado como online
+    setOnlineUserIds(new Set([userId]));
+
     const upsertPresence = async () => {
       try {
-        await supabase
+        const now = new Date().toISOString();
+        const payload = {
+          user_id: userId,
+          last_seen: now,
+          logged_in_at: now,
+          last_logout_at: null,
+          last_session_duration_ms: 0,
+        };
+        const { error } = await supabase
           .from("user_presence")
-          .upsert(
-            {
-              user_id: userId,
-              last_seen: new Date().toISOString(),
-              logged_in_at: new Date().toISOString(),
-            } as any,
-            { onConflict: "user_id" }
-          );
+          .upsert(payload as any, { onConflict: "user_id" });
+
+        if (error) {
+          // Fallback: tentar update direto caso row já exista ou upsert falhe
+          await supabase
+            .from("user_presence")
+            .update(payload as any)
+            .eq("user_id", userId);
+        }
       } catch (err) {
         console.warn("Falha ao registrar presença:", err);
       }
@@ -148,10 +160,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const updateHeartbeat = async () => {
       try {
-        await supabase
+        const now = new Date().toISOString();
+        const { error } = await supabase
           .from("user_presence")
-          .update({ last_seen: new Date().toISOString() } as any)
+          .update({ last_seen: now, last_logout_at: null } as any)
           .eq("user_id", userId);
+
+        if (error) {
+          void upsertPresence();
+        }
       } catch (err) {
         console.warn("Falha no heartbeat:", err);
       }
@@ -159,6 +176,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     void upsertPresence();
     const interval = setInterval(updateHeartbeat, 30_000); // a cada 30s
+
+    // Atualiza heartbeat imediatamente quando a aba volta a ficar visível
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void updateHeartbeat();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     // Realtime Presence Channel (global e único para a aplicação)
     const presenceChannel = supabase.channel("primacor_online_presence", {
@@ -170,15 +195,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const state = presenceChannel.presenceState();
           const ids = new Set<string>();
+          if (userId) ids.add(userId);
           Object.entries(state).forEach(([k, presences]) => {
-            if (k && k !== userId) {
-              ids.add(k);
-            }
+            if (k) ids.add(k);
             if (Array.isArray(presences)) {
               presences.forEach((p: any) => {
-                if (p?.user_id && p.user_id !== userId) {
-                  ids.add(p.user_id);
-                }
+                if (p?.user_id) ids.add(p.user_id);
               });
             }
           });
@@ -189,15 +211,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .on("presence", { event: "join" }, ({ key, newPresences }: any) => {
         const idsToAdd: string[] = [];
-        if (key && key !== userId) idsToAdd.push(key);
+        if (key) idsToAdd.push(key);
         if (Array.isArray(newPresences)) {
           newPresences.forEach((p: any) => {
-            if (p?.user_id && p.user_id !== userId) idsToAdd.push(p.user_id);
+            if (p?.user_id) idsToAdd.push(p.user_id);
           });
         }
         if (idsToAdd.length > 0) {
           setOnlineUserIds((prev) => {
             const next = new Set(prev);
+            if (userId) next.add(userId);
             idsToAdd.forEach((id) => next.add(id));
             return next;
           });
@@ -205,15 +228,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .on("presence", { event: "leave" }, ({ key, leftPresences }: any) => {
         const idsToRemove: string[] = [];
-        if (key) idsToRemove.push(key);
+        if (key && key !== userId) idsToRemove.push(key);
         if (Array.isArray(leftPresences)) {
           leftPresences.forEach((p: any) => {
-            if (p?.user_id) idsToRemove.push(p.user_id);
+            if (p?.user_id && p.user_id !== userId) idsToRemove.push(p.user_id);
           });
         }
         if (idsToRemove.length > 0) {
           setOnlineUserIds((prev) => {
             const next = new Set(prev);
+            if (userId) next.add(userId);
             idsToRemove.forEach((id) => next.delete(id));
             return next;
           });
@@ -234,6 +258,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       void supabase.removeChannel(presenceChannel);
       setOnlineUserIds(new Set());
     };

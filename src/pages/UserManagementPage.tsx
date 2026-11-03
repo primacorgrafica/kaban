@@ -147,10 +147,11 @@ const ROLE_COLORS: Record<AppRole, string> = {
 };
 
 export default function UserManagementPage() {
-  const { signOut, user: currentUser, isAdmin } = useAuth();
+  const { signOut, user: currentUser, isAdmin, onlineUserIds } = useAuth();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [, setTick] = useState(0);
 
   // Create user dialog state
   const [createOpen, setCreateOpen] = useState(false);
@@ -273,6 +274,119 @@ export default function UserManagementPage() {
   }, [isAdmin]);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
+
+  // Função centralizada para determinar status online de forma resiliente
+  const isUserOnline = useCallback(
+    (u: UserRow): boolean => {
+      // 1. O próprio usuário atual conectado visualizando a tela
+      if (currentUser?.id && u.user_id === currentUser.id) return true;
+
+      // 2. Presente via canal WebSocket Realtime global (primacor_online_presence)
+      if (onlineUserIds && onlineUserIds.has(u.user_id)) return true;
+
+      // 3. Heartbeat recente no banco de dados (últimos 5 minutos, consistente com chatService)
+      const presence = u.presence;
+      if (presence?.last_seen) {
+        const lastSeenMs = new Date(presence.last_seen).getTime();
+        // Ignora sentinela de logout (1970)
+        if (lastSeenMs > 86400000) {
+          const diff = Date.now() - lastSeenMs;
+          const loggedOutAfter =
+            presence.last_logout_at &&
+            new Date(presence.last_logout_at).getTime() > lastSeenMs;
+          if (diff < 5 * 60 * 1000 && !loggedOutAfter) {
+            return true;
+          }
+        }
+      }
+
+      // 4. Login recente registrado em auth.users (últimos 5 minutos) sem logout posterior
+      if (u.last_sign_in_at) {
+        const signInMs = new Date(u.last_sign_in_at).getTime();
+        const signInDiff = Date.now() - signInMs;
+        const loggedOutAfter =
+          presence?.last_logout_at &&
+          new Date(presence.last_logout_at).getTime() > signInMs;
+        if (signInDiff < 5 * 60 * 1000 && !loggedOutAfter) {
+          return true;
+        }
+      }
+
+      return false;
+    },
+    [currentUser?.id, onlineUserIds]
+  );
+
+  // Atualização em tempo real de presença via Supabase Realtime e polling de fallback
+  useEffect(() => {
+    if (!isAdmin) return;
+
+    // Escuta alterações em tempo real na tabela user_presence
+    const presenceChan = supabase
+      .channel("user_presence_mgmt_realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "user_presence" },
+        (payload: any) => {
+          const row = payload.new;
+          if (row && row.user_id) {
+            setUsers((prev) =>
+              prev.map((u) => {
+                if (u.user_id !== row.user_id) return u;
+                return {
+                  ...u,
+                  presence: {
+                    last_seen: row.last_seen,
+                    logged_in_at: row.logged_in_at,
+                    last_logout_at: row.last_logout_at,
+                    last_session_duration_ms: row.last_session_duration_ms,
+                  },
+                };
+              })
+            );
+          }
+        }
+      )
+      .subscribe();
+
+    // Polling de fallback a cada 15 segundos para manter a lista sincronizada
+    const interval = setInterval(async () => {
+      try {
+        const { data: presences } = await supabase.from("user_presence").select("*");
+        if (presences && Array.isArray(presences)) {
+          const map: Record<string, PresenceInfo> = {};
+          presences.forEach((p: any) => {
+            map[p.user_id] = {
+              last_seen: p.last_seen,
+              logged_in_at: p.logged_in_at,
+              last_logout_at: p.last_logout_at,
+              last_session_duration_ms: p.last_session_duration_ms,
+            };
+          });
+          setUsers((prev) =>
+            prev.map((u) => {
+              const updated = map[u.user_id];
+              if (!updated) return u;
+              return { ...u, presence: updated };
+            })
+          );
+        }
+      } catch {
+        // silencioso
+      }
+    }, 15000);
+
+    // Timer de re-render para atualizar os contadores "Conectado há..."
+    const tickTimer = setInterval(() => {
+      setTick((v) => v + 1);
+    }, 30000);
+
+    return () => {
+      void supabase.removeChannel(presenceChan);
+      clearInterval(interval);
+      clearInterval(tickTimer);
+    };
+  }, [isAdmin]);
 
   const updateRole = (userId: string, newRole: AppRole) => {
     setUsers((prev) =>
@@ -832,10 +946,17 @@ export default function UserManagementPage() {
             </div>
             <span className="text-xs text-sidebar-foreground/40">{roleCounts["sem_papel"] || 0}</span>
           </div>
-          <div className="px-3 pt-2 border-t border-sidebar-border/30 mt-2">
+          <div className="px-3 pt-2 border-t border-sidebar-border/30 mt-2 space-y-1">
             <div className="flex items-center justify-between text-sm text-sidebar-foreground/90 font-medium">
               <span>Total</span>
               <span>{users.length}</span>
+            </div>
+            <div className="flex items-center justify-between text-xs text-emerald-400 font-medium">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block animate-pulse" />
+                Online agora
+              </span>
+              <span>{users.filter(isUserOnline).length}</span>
             </div>
           </div>
         </nav>
@@ -1060,8 +1181,7 @@ export default function UserManagementPage() {
                       <TableCell>
                         {(() => {
                           const presence = u.presence;
-                          const isOnline = presence?.last_seen && 
-                            (Date.now() - new Date(presence.last_seen).getTime()) < 2 * 60 * 1000; // 2min threshold
+                          const isOnline = isUserOnline(u);
                           
                           const formatDuration = (ms: number) => {
                             const mins = Math.floor(ms / 60000);
@@ -1072,11 +1192,15 @@ export default function UserManagementPage() {
                             return `${mins}min`;
                           };
 
+                          const connectedSince = isOnline
+                            ? (presence?.logged_in_at || u.last_sign_in_at)
+                            : null;
+
                           return (
                             <div className="space-y-0.5">
                               <div className="flex items-center gap-1.5">
-                                <Circle className={`h-2.5 w-2.5 fill-current ${isOnline ? "text-green-500" : "text-muted-foreground/40"}`} />
-                                <span className={`text-xs font-medium ${isOnline ? "text-green-600 dark:text-green-400" : "text-muted-foreground"}`}>
+                                <Circle className={`h-2.5 w-2.5 fill-current ${isOnline ? "text-emerald-500 animate-pulse" : "text-muted-foreground/40"}`} />
+                                <span className={`text-xs font-semibold ${isOnline ? "text-emerald-600 dark:text-emerald-400" : "text-muted-foreground"}`}>
                                   {isOnline ? "Online" : "Offline"}
                                 </span>
                               </div>
@@ -1085,14 +1209,14 @@ export default function UserManagementPage() {
                                   Último login: {format(new Date(u.last_sign_in_at), "dd/MM/yy HH:mm", { locale: ptBR })}
                                 </div>
                               )}
-                              {presence?.last_session_duration_ms && presence.last_session_duration_ms > 0 && !isOnline && (
+                              {!isOnline && presence?.last_session_duration_ms && presence.last_session_duration_ms > 0 && (
                                 <div className="text-[10px] text-muted-foreground leading-tight">
                                   Última sessão: {formatDuration(presence.last_session_duration_ms)}
                                 </div>
                               )}
-                              {isOnline && presence?.logged_in_at && (
-                                <div className="text-[10px] text-muted-foreground leading-tight">
-                                  Conectado há {formatDistanceToNow(new Date(presence.logged_in_at), { locale: ptBR })}
+                              {isOnline && connectedSince && (
+                                <div className="text-[10px] text-emerald-600 dark:text-emerald-400 leading-tight">
+                                  Conectado há {formatDistanceToNow(new Date(connectedSince), { locale: ptBR })}
                                 </div>
                               )}
                             </div>
