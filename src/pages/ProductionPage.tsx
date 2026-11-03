@@ -19,9 +19,22 @@ import { ProductionTable } from "@/components/ProductionTable";
 
 const VALID_DEPARTMENTS: Department[] = ["qualidade", "ctp", "digital", "compras", "manutencao"];
 
+const PATH_TO_DEPT: Record<string, Department> = {
+  "/compras": "compras",
+  "/manutencao": "manutencao",
+  "/qualidade": "qualidade",
+  "/producao/qualidade": "qualidade",
+  "/ctp": "ctp",
+  "/producao/ctp": "ctp",
+  "/digital": "digital",
+  "/producao/digital": "digital",
+};
+
 export default function ProductionPage() {
   const { departamento } = useParams<{ departamento: string }>();
   const location = useLocation();
+  const activeDepartment: Department = PATH_TO_DEPT[location.pathname] || (departamento as Department) || "qualidade";
+
   const { isAdmin, canAccessSector, setorVinculado } = useAuth();
   const permissions = usePermissions();
   const canSendBack =
@@ -74,18 +87,6 @@ export default function ProductionPage() {
     setViewMode(mode);
     localStorage.setItem(`primacor_view_mode_${location.pathname}`, mode);
   };
-
-  const PATH_TO_DEPT: Record<string, Department> = {
-    "/compras": "compras",
-    "/manutencao": "manutencao",
-    "/qualidade": "qualidade",
-    "/producao/qualidade": "qualidade",
-    "/ctp": "ctp",
-    "/producao/ctp": "ctp",
-    "/digital": "digital",
-    "/producao/digital": "digital",
-  };
-  const activeDepartment: Department = PATH_TO_DEPT[location.pathname] || (departamento as Department) || "qualidade";
 
   const currentDept = DEPARTMENT_MAP[activeDepartment];
   const isFaturamento = activeDepartment === "faturamento";

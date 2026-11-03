@@ -67,4 +67,18 @@ describe("CTP & Digital - Novos Menus e Colunas Kanban", () => {
     expect(normalized).toContain("qualidade");
     expect(normalized).toContain("pre_impressao");
   });
+
+  it("ProductionPage.tsx deve inicializar activeDepartment antes do cálculo de canSendBack evitando erro de TDZ", () => {
+    const fs = require("fs");
+    const path = require("path");
+    const projectRoot = path.resolve(__dirname, "..");
+    const productionPageFile = fs.readFileSync(path.join(projectRoot, "pages", "ProductionPage.tsx"), "utf8");
+
+    const activeDeptIdx = productionPageFile.indexOf("const activeDepartment: Department =");
+    const canSendBackIdx = productionPageFile.indexOf("const canSendBack =");
+
+    expect(activeDeptIdx).toBeGreaterThan(-1);
+    expect(canSendBackIdx).toBeGreaterThan(-1);
+    expect(activeDeptIdx).toBeLessThan(canSendBackIdx);
+  });
 });
