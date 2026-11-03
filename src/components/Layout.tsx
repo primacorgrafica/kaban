@@ -19,7 +19,7 @@ import { useAvisos, Aviso } from "@/hooks/useAvisos";
 import { NotificationBell } from "./NotificationBell";
 import { AvisoPopup } from "./AvisoPopup";
 import { SendAvisoDialog } from "./SendAvisoDialog";
-import { supabase, activeSupabaseConfig } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { subscribeOrders } from "@/lib/realtimeManager";
 import { ThemeToggle } from "./ThemeToggle";
 import { CommandPalette } from "./CommandPalette";
@@ -662,23 +662,6 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
           })()}
           {/* Alerta do Dia do Mural (Exibição Global no Topo - Conforme print de referência) */}
           <MuralHeaderBanner />
-          {activeSupabaseConfig.env === "staging" && (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-500 text-xs font-semibold shadow-xs">
-              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-              <span>🧪 Staging (Homologação)</span>
-              <button
-                type="button"
-                onClick={() => {
-                  localStorage.setItem("kaban_active_env", "prod");
-                  window.location.href = window.location.pathname.replace(/^\/entregador/, "/");
-                }}
-                className="ml-1.5 text-[10px] text-amber-400 underline hover:text-amber-300"
-                title="Alternar de volta para o banco de produção"
-              >
-                Voltar p/ Prod
-              </button>
-            </div>
-          )}
           <div className="flex items-center gap-2 ml-auto order-2">
             {(isAdmin || role === "coordenador") && <SharePointStatusIndicator />}
             {(isAdmin || role === "coordenador" || Boolean(typeof window !== "undefined" && localStorage.getItem("kaban_msal_user_info"))) && <OutlookStatusIndicator />}

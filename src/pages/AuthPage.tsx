@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { activeSupabaseConfig } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -347,41 +346,6 @@ export default function AuthPage() {
                   </span>
                 )}
               </Button>
-
-              {/* Seletor de Ambiente (Produção vs Homologação Staging) */}
-              <div className="mt-4 pt-3 border-t border-[#4A5C6A]/30 flex items-center justify-between text-xs text-[#9BA8AB]">
-                <span className="text-[11px] font-medium">Ambiente:</span>
-                <div className="flex items-center gap-1.5 bg-[#06141B]/60 p-1 rounded-lg border border-[#4A5C6A]/40">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      localStorage.setItem("kaban_active_env", "prod");
-                      window.location.href = "/login?env=prod";
-                    }}
-                    className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
-                      !activeSupabaseConfig.url.includes("msyelkzcmarpdazqfkri")
-                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-xs"
-                        : "text-[#9BA8AB] hover:text-white"
-                    }`}
-                  >
-                    Produção
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      localStorage.setItem("kaban_active_env", "staging");
-                      window.location.href = "/login?env=staging";
-                    }}
-                    className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
-                      activeSupabaseConfig.url.includes("msyelkzcmarpdazqfkri")
-                        ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-xs"
-                        : "text-[#9BA8AB] hover:text-white"
-                    }`}
-                  >
-                    🧪 Homologação (Staging)
-                  </button>
-                </div>
-              </div>
             </form>
           </div>
 

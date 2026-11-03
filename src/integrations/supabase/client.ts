@@ -21,17 +21,18 @@ export function getActiveSupabaseConfig() {
       return { url: PROD_URL, key: PROD_PUBLISHABLE_KEY, env: "prod" };
     }
 
+    // A rota do entregador usa staging por padrão para a homologação em nuvem
+    if (window.location.pathname.startsWith("/entregador")) {
+      localStorage.setItem("kaban_active_env", "staging");
+      return { url: STAGING_URL, key: STAGING_PUBLISHABLE_KEY, env: "staging" };
+    }
+
     const savedEnv = localStorage.getItem("kaban_active_env");
     if (savedEnv === "staging") {
       return { url: STAGING_URL, key: STAGING_PUBLISHABLE_KEY, env: "staging" };
     }
     if (savedEnv === "prod") {
       return { url: PROD_URL, key: PROD_PUBLISHABLE_KEY, env: "prod" };
-    }
-
-    // A rota do entregador usa staging por padrão para a homologação em nuvem
-    if (window.location.pathname.startsWith("/entregador")) {
-      return { url: STAGING_URL, key: STAGING_PUBLISHABLE_KEY, env: "staging" };
     }
   }
 

@@ -4,7 +4,7 @@ import { Layout } from "@/components/Layout";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useOrders } from "@/hooks/useOrders";
-import { supabase, activeSupabaseConfig } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -342,12 +342,6 @@ export default function EntregasPage() {
          <div className="flex items-center flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold text-foreground">Programação de Entregas</h1>
-            {activeSupabaseConfig.url.includes("msyelkzcmarpdazqfkri") && (
-              <Badge variant="outline" className="bg-amber-500/10 text-amber-300 border-amber-500/30 text-xs gap-1.5 font-mono">
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-                Homologação (Staging)
-              </Badge>
-            )}
             <div className="flex items-center rounded-lg bg-muted/60 border border-border p-0.5">
               <Button
                 variant={viewMode === "tabela" ? "secondary" : "ghost"}

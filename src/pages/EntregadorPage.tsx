@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase, activeSupabaseConfig } from "@/integrations/supabase/client";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -705,11 +705,6 @@ export default function EntregadorPage() {
             <p className="text-[11px] text-zinc-400 flex items-center gap-1.5">
               {driverProfile?.placa_veiculo ? `Placa: ${driverProfile.placa_veiculo} • ` : ""}
               <span>Primacor Entregas</span>
-              {activeSupabaseConfig.url.includes("msyelkzcmarpdazqfkri") && (
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  Staging
-                </span>
-              )}
             </p>
           </div>
         </div>
