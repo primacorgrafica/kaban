@@ -1,5 +1,5 @@
 import { getOrderRevision, cleanObservationRevision } from "@/lib/orderRevision";
-import { useState, useEffect, memo } from "react";
+import { useState, useEffect, useMemo, memo } from "react";
 import { Order, OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
 import { DEPARTMENTS, Department } from "@/types/production";
 import { format } from "date-fns";
@@ -50,6 +50,8 @@ import { CreateOrderDialog } from "./CreateOrderDialog";
 import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
 import { fetchOperadoresList, OperadorProfile } from "@/lib/operadores";
 import { cleanOsNumber } from "./ProductionCard";
+import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
 
 // sortAndFilterProcessos importado diretamente de @/lib/processos
 
@@ -61,6 +63,7 @@ interface Permissions {
   canDelete: boolean;
   canSendToProduction: boolean;
   isViewOnly: boolean;
+  canAssignAnyOperator?: boolean;
 }
 
 interface OrderCardProps {
@@ -218,6 +221,23 @@ function OrderCardImpl({ order, orderIndex, totalOrders, onUpdate, onMove, onArc
   });
   const [vendedoresList, setVendedoresList] = useState<{ id: string; nome: string }[]>([]);
   const [operadoresList, setOperadoresList] = useState<OperadorProfile[]>([]);
+  const { user, userName } = useAuth();
+  const permissionsHook = usePermissions();
+  const canAssignAnyOperator = permissions.canAssignAnyOperator ?? permissionsHook.canAssignAnyOperator;
+
+  // Identifica o operador logado para que operadores só possam se autoatribuir
+  const myOperatorProfile = useMemo(() => {
+    if (!user && !userName) return null;
+    return (
+      operadoresList.find(
+        (op) =>
+          (user?.id && op.user_id === user.id) ||
+          (userName && op.nome.trim().toLowerCase() === userName.trim().toLowerCase())
+      ) || null
+    );
+  }, [operadoresList, user, userName]);
+
+  const myOperatorName = myOperatorProfile?.nome || userName || user?.user_metadata?.nome || null;
 
   useEffect(() => {
     fetchOperadoresList(order?.operador).then(setOperadoresList);
@@ -225,6 +245,16 @@ function OrderCardImpl({ order, orderIndex, totalOrders, onUpdate, onMove, onArc
 
   const handleAssignOperador = async (newOperador: string | null) => {
     if (!order) return;
+
+    // Regra: Apenas COORDENADOR e ADMINISTRADOR podem colocar qualquer operador no card.
+    // O OPERADOR só consegue atribuir a ELE mesmo (ou desvincular caso esteja atribuído a ele).
+    if (!canAssignAnyOperator) {
+      if (newOperador && myOperatorName && newOperador.trim().toLowerCase() !== myOperatorName.trim().toLowerCase()) {
+        toast.error("Operadores só podem atribuir a O.S. a si mesmos. Apenas coordenadores e administradores podem selecionar outros operadores.");
+        return;
+      }
+    }
+
     onUpdate(order.id, { operador: newOperador });
     const { error } = await (supabase.from("orders") as any)
       .update({ operador: newOperador })
@@ -1180,32 +1210,91 @@ function OrderCardImpl({ order, orderIndex, totalOrders, onUpdate, onMove, onArc
                           </p>
                         </div>
                       </div>
-                      {order.operador && (
-                        <Badge variant="outline" className="text-[10px] bg-[#253745] text-[#CCD0CF] border-[#4A5C6A]/60">
-                          Atribuído
-                        </Badge>
-                      )}
+                      <div className="flex items-center gap-1.5">
+                        {order.operador && (
+                          <Badge variant="outline" className="text-[10px] bg-[#253745] text-[#CCD0CF] border-[#4A5C6A]/60">
+                            {myOperatorName && order.operador.trim().toLowerCase() === myOperatorName.trim().toLowerCase()
+                              ? "Atribuído a você"
+                              : "Atribuído"}
+                          </Badge>
+                        )}
+                        {/* Ação rápida para Operador: Assumir ou Liberar O.S */}
+                        {!canAssignAnyOperator && myOperatorName && (
+                          order.operador?.trim().toLowerCase() === myOperatorName.trim().toLowerCase() ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleAssignOperador(null)}
+                              className="h-6 px-2 text-[10px] text-muted-foreground hover:text-rose-400"
+                              title="Desvincular esta O.S de você"
+                            >
+                              Liberar
+                            </Button>
+                          ) : (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleAssignOperador(myOperatorName)}
+                              className="h-6 px-2 text-[10px] font-bold border-amber-500/40 bg-amber-500/10 text-amber-500 hover:bg-amber-500/20"
+                              title="Atribuir esta O.S para você trabalhar nela"
+                            >
+                              <HardHat className="h-3 w-3 mr-1" />
+                              Assumir O.S.
+                            </Button>
+                          )
+                        )}
+                      </div>
                     </div>
 
                     <div className="pt-1">
-                      <Select
-                        value={order.operador || "__none__"}
-                        onValueChange={(val) => handleAssignOperador(val === "__none__" ? null : val)}
-                      >
-                        <SelectTrigger className="h-9 text-xs bg-background/90 border-border/80 shadow-xs">
-                          <SelectValue placeholder="Selecionar operador para trabalhar na O.S..." />
-                        </SelectTrigger>
-                        <SelectContent className="max-h-56">
-                          <SelectItem value="__none__" className="text-muted-foreground italic text-xs">
-                            — Nenhum operador (Aguardando) —
-                          </SelectItem>
-                          {operadoresList.map((op) => (
-                            <SelectItem key={op.id} value={op.nome} className="text-xs font-medium">
-                              {op.nome} {op.setor_vinculado ? `(${op.setor_vinculado})` : ""}
+                      {canAssignAnyOperator ? (
+                        // COORDENADOR e ADMINISTRADOR: Podem selecionar QUALQUER operador
+                        <Select
+                          value={order.operador || "__none__"}
+                          onValueChange={(val) => handleAssignOperador(val === "__none__" ? null : val)}
+                        >
+                          <SelectTrigger className="h-9 text-xs bg-background/90 border-border/80 shadow-xs">
+                            <SelectValue placeholder="Selecionar operador para trabalhar na O.S..." />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-56">
+                            <SelectItem value="__none__" className="text-muted-foreground italic text-xs">
+                              — Nenhum operador (Aguardando) —
                             </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                            {operadoresList.map((op) => (
+                              <SelectItem key={op.id} value={op.nome} className="text-xs font-medium">
+                                {op.nome} {op.setor_vinculado ? `(${op.setor_vinculado})` : ""}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        // OPERADOR: Só consegue atribuir a ELE mesmo (ou desvincular caso seja ele)
+                        <Select
+                          value={order.operador || "__none__"}
+                          onValueChange={(val) => handleAssignOperador(val === "__none__" ? null : val)}
+                        >
+                          <SelectTrigger className="h-9 text-xs bg-background/90 border-border/80 shadow-xs">
+                            <SelectValue placeholder={myOperatorName ? `Atribuir a mim (${myOperatorName})...` : "Selecionar..."} />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-56">
+                            <SelectItem value="__none__" className="text-muted-foreground italic text-xs">
+                              — Nenhum operador (Aguardando) —
+                            </SelectItem>
+                            {myOperatorName && (
+                              <SelectItem value={myOperatorName} className="text-xs font-bold text-amber-500">
+                                {myOperatorName} (Você)
+                              </SelectItem>
+                            )}
+                            {order.operador && (!myOperatorName || order.operador.trim().toLowerCase() !== myOperatorName.trim().toLowerCase()) && (
+                              <SelectItem value={order.operador} disabled className="text-xs font-medium opacity-60">
+                                {order.operador} (Atribuído a outro operador)
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      )}
                     </div>
                   </div>
                 </div>

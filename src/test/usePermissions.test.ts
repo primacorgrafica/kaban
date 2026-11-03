@@ -51,4 +51,32 @@ describe("usePermissions - Permissões de Operador para Enviar a Outro Setor na 
     const perms = usePermissions();
     expect(perms.canSendToProduction).toBe(false);
   });
+
+  it("deve permitir canAssignAnyOperator = true para coordenador e administrador", () => {
+    (useAuth as any).mockReturnValue({
+      role: "coordenador",
+      user: { id: "user-coord-1" },
+      hasModule: vi.fn().mockReturnValue(false),
+    });
+    const permsCoord = usePermissions();
+    expect(permsCoord.canAssignAnyOperator).toBe(true);
+
+    (useAuth as any).mockReturnValue({
+      role: "admin",
+      user: { id: "user-admin-1" },
+      hasModule: vi.fn().mockReturnValue(false),
+    });
+    const permsAdmin = usePermissions();
+    expect(permsAdmin.canAssignAnyOperator).toBe(true);
+  });
+
+  it("deve manter canAssignAnyOperator = false para operador comum (apenas autoatribuição)", () => {
+    (useAuth as any).mockReturnValue({
+      role: "operador",
+      user: { id: "user-op-1" },
+      hasModule: vi.fn().mockReturnValue(false),
+    });
+    const permsOp = usePermissions();
+    expect(permsOp.canAssignAnyOperator).toBe(false);
+  });
 });

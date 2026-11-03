@@ -57,7 +57,13 @@ export function usePermissions() {
     canDelete: level >= 4,
     canSendToProduction: level >= 2 || currentRole === "orcamentista" || currentRole === "operador",
 
+    // Atribuição de Operadores: Coordenador (3) e Administrador (4) podem atribuir qualquer operador.
+    // Operadores só podem atribuir a si mesmos.
+    canAssignAnyOperator: level >= 3 || currentRole === "admin" || currentRole === "coordenador",
+
     isOperador: currentRole === "operador",
+    isCoordenador: currentRole === "coordenador",
+    isAdmin: currentRole === "admin" || level >= 4,
     isViewOnly: false, // ninguém é somente visualização agora
   };
 }

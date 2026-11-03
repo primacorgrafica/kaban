@@ -7,6 +7,7 @@ type AppRole = "admin" | "coordenador" | "operador" | "vendedor" | "user" | "orc
 interface AuthContextType {
   session: Session | null;
   user: User | null;
+  userName: string | null;
   loading: boolean;
   authReady: boolean;
   role: AppRole | null;
@@ -21,22 +22,21 @@ interface AuthContextType {
   signOut: () => Promise<void>;
 }
 
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<AppRole | null>(null);
+  const [userName, setUserName] = useState<string | null>(null);
   const [modulosAcesso, setModulosAcesso] = useState<string[]>([]);
   const [setorVinculado, setSetorVinculado] = useState<string | null>(null);
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
 
-
   const fetchRole = useCallback(async (userId: string) => {
     const [{ data, error }, { data: profile }] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle(),
-      supabase.from("profiles").select("modulos_acesso, setor_vinculado" as any).eq("user_id", userId).maybeSingle(),
+      supabase.from("profiles").select("nome, modulos_acesso, setor_vinculado" as any).eq("user_id", userId).maybeSingle(),
     ]);
 
     if (error) {
@@ -45,6 +45,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       setRole((data?.role as AppRole) ?? null);
     }
+    const pNome = (profile as any)?.nome;
+    setUserName(typeof pNome === "string" && pNome.trim() !== "" ? pNome.trim() : null);
     const mods = (profile as any)?.modulos_acesso;
     setModulosAcesso(Array.isArray(mods) ? mods : []);
     const setor = (profile as any)?.setor_vinculado;
@@ -68,6 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } else {
           setRole(null);
+          setUserName(null);
           setModulosAcesso([]);
           setSetorVinculado(null);
         }
@@ -330,6 +333,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         session,
         user: session?.user ?? null,
+        userName: userName || session?.user?.user_metadata?.nome || null,
         loading,
         authReady: !loading,
         role,
@@ -358,6 +362,7 @@ export function useAuth() {
     return {
       session: null,
       user: null,
+      userName: null,
       loading: true,
       authReady: false,
       role: null,
