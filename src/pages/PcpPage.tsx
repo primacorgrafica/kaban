@@ -250,7 +250,6 @@ export default function PcpPage() {
   }, [soundEnabled]);
 
   const announcedOrderIdsRef = useRef<Set<string>>(new Set());
-  const [autoScroll, setAutoScroll] = useState(true);
   const [mobileTab, setMobileTab] = useState<"todas" | "emitidas" | "liberadas">("emitidas");
 
   // Relógio ao vivo atualizado a cada segundo
@@ -604,27 +603,8 @@ export default function PcpPage() {
   const totalEmitidasHoje = emitidasGrouped.hoje.length;
   const totalLiberadasHoje = liberadasGrouped.hoje.length;
   const lastLiberada = liberadasGrouped.hoje[0] || liberadas[0] || null;
-
-  // Auto-scroll para TV: rola suavemente a lista de anteriores se houver muitos itens
   const listRefLeft = useRef<HTMLDivElement>(null);
   const listRefRight = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!autoScroll) return;
-    const interval = setInterval(() => {
-      [listRefLeft, listRefRight].forEach(ref => {
-        if (ref.current) {
-          const { scrollTop, scrollHeight, clientHeight } = ref.current;
-          if (scrollTop + clientHeight >= scrollHeight - 10) {
-            ref.current.scrollTo({ top: 0, behavior: "smooth" });
-          } else {
-            ref.current.scrollBy({ top: 140, behavior: "smooth" });
-          }
-        }
-      });
-    }, 10000);
-    return () => clearInterval(interval);
-  }, [autoScroll]);
 
   // Conteúdo principal
   const mainContent = (
@@ -767,21 +747,6 @@ export default function PcpPage() {
             >
               {soundEnabled ? <Volume2 className="h-3.5 w-3.5 text-[#CCD0CF]" /> : <VolumeX className="h-3.5 w-3.5" />}
               <span className="hidden xl:inline">{soundEnabled ? "Som Ativo" : "Mudo"}</span>
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setAutoScroll(!autoScroll)}
-              className={`h-8 px-2.5 rounded-xl border text-xs gap-1.5 transition-all ${
-                autoScroll
-                  ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300 shadow-[0_0_10px_rgba(16,185,129,0.2)]"
-                  : "bg-muted/60 dark:bg-[#11212D]/80 border-border dark:border-[#4A5C6A]/40 text-muted-foreground dark:text-[#CCD0CF] hover:text-foreground dark:hover:text-white"
-              }`}
-              title="Rolagem automática da lista de ordens na TV"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 text-emerald-400 ${autoScroll ? "animate-spin" : ""}`} />
-              <span className="hidden xl:inline">Auto-Scroll</span>
             </Button>
 
             <Button
