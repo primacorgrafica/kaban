@@ -11,6 +11,7 @@ import { subscribeApprovalEntry } from "@/lib/approvalEntryCache";
 import { RotateCcw, Calendar, User, FileText, Archive, Trash2, ChevronRight, ChevronLeft, GripVertical, UserCheck, Clock, AlertTriangle, Send, Undo2, Briefcase, Truck, Edit2, Check, Mail, HardHat, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { OrderEmailEventsSection } from "@/components/email/OrderEmailEventsSection";
+import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -99,6 +100,11 @@ function ProductionCardImpl({
   hasFaturamentoPendencia = false,
   parentSector,
 }: ProductionCardProps) {
+  const { hasUnread, hasVerified, getUnreadEvents } = useUnreadEmailReplies();
+  const isEmailUnread = hasUnread(order.id);
+  const unreadEmailEvents = getUnreadEvents(order.id);
+  const unreadEmailCount = unreadEmailEvents.length;
+  const isEmailVerified = hasVerified(order.id);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
@@ -616,6 +622,39 @@ function ProductionCardImpl({
                 {order.os_anterior && <span className="opacity-90">#{order.os_anterior}</span>}
               </span>
             )}
+            {/* Cartinha de aviso de resposta de e-mail */}
+            {isEmailUnread ? (
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpen(true);
+                }}
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10.5px] font-bold bg-amber-500/20 text-amber-500 border border-amber-500/40 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.5)] shrink-0 cursor-pointer hover:bg-amber-500/30 transition-all hover:scale-105"
+                title={
+                  unreadEmailCount > 1
+                    ? `${unreadEmailCount} respostas de e-mail não lidas nesta O.S.`
+                    : `Resposta de e-mail recebida do cliente${unreadEmailEvents[0]?.sender ? `: ${unreadEmailEvents[0].sender}` : ""}`
+                }
+              >
+                <Mail className="h-3 w-3 fill-amber-500/30" />
+                <span>{unreadEmailCount > 0 ? unreadEmailCount : 1}</span>
+              </span>
+            ) : isEmailVerified ? (
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setOpen(true);
+                }}
+                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10.5px] font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.3)] shrink-0 cursor-pointer hover:bg-emerald-500/30 transition-all hover:scale-105"
+                title="Respostas de e-mail verificadas pelo operador"
+              >
+                <Mail className="h-3 w-3 fill-emerald-500/30 text-emerald-600 dark:text-emerald-400" />
+              </span>
+            ) : null}
             {department.id === "faturamento" && order.parent_order_id && (
               <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-purple-600 text-white text-[10px] font-bold shrink-0" title="OS de Faturamento (sub-ordem)">F</span>
             )}

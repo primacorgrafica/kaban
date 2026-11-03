@@ -47,6 +47,7 @@ import {
   ShieldCheck,
   Bike,
   Navigation,
+  Mail,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -55,6 +56,7 @@ import { exportSingleOrderPDF } from "@/lib/pdfExport";
 import { OrderAttachmentsSection } from "@/components/sharepoint/OrderAttachmentsSection";
 import { CreateOrderDialog } from "./CreateOrderDialog";
 import { OrderEmailEventsSection } from "@/components/email/OrderEmailEventsSection";
+import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
 import { supabase } from "@/integrations/supabase/client";
 import { DELIVERY_STATUS_CONFIG, DeliveryStatus } from "@/types/delivery";
 import { cn } from "@/lib/utils";
@@ -114,6 +116,12 @@ export function OrderSlideOver({
       isMounted = false;
     };
   }, [order?.entregador_id]);
+
+  const { hasUnread, hasVerified, getUnreadEvents } = useUnreadEmailReplies();
+  const isEmailUnread = hasUnread(order.id);
+  const unreadEmailEvents = getUnreadEvents(order.id);
+  const unreadEmailCount = unreadEmailEvents.length;
+  const isEmailVerified = hasVerified(order.id);
 
   const [formData, setFormData] = useState({
     titulo: order.titulo,
@@ -185,6 +193,22 @@ export function OrderSlideOver({
                 >
                   {statusInfo.label}
                 </Badge>
+                {isEmailUnread ? (
+                  <span
+                    className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-500 border border-amber-500/40 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.5)] shrink-0"
+                    title={`${unreadEmailCount} resposta(s) de e-mail não lida(s) nesta O.S.`}
+                  >
+                    <Mail className="h-3 w-3 fill-amber-500/30" />
+                    <span>{unreadEmailCount}</span>
+                  </span>
+                ) : isEmailVerified ? (
+                  <span
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.3)] shrink-0"
+                    title="Respostas de e-mail verificadas pelo operador"
+                  >
+                    <Mail className="h-3 w-3 fill-emerald-500/30 text-emerald-600 dark:text-emerald-400" />
+                  </span>
+                ) : null}
                 {order.urgente && (
                   <Badge variant="destructive" className="text-[10px] px-2 py-0.5 font-bold uppercase animate-pulse">
                     Urgente

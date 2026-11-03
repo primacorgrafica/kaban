@@ -96,4 +96,21 @@ describe("UnreadEmailsManager - Notificação Visual no Card e Coluna sem Pop-up
     // order-uuid-404040 foi verificado acima
     expect(unreadEmailsManager.getVerifiedCountForOrders(orderIdsInColumn)).toBe(1);
   });
+
+  it("OrderCard.tsx e ProductionCard.tsx devem integrar a cartinha de aviso de e-mail no CARD correspondente", () => {
+    const fs = require("fs");
+    const path = require("path");
+    const projectRoot = path.resolve(__dirname, "..");
+
+    const orderCardFile = fs.readFileSync(path.join(projectRoot, "components", "OrderCard.tsx"), "utf8");
+    expect(orderCardFile).toContain('import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";');
+    expect(orderCardFile).toContain("const { hasUnread, hasVerified, getUnreadEvents } = useUnreadEmailReplies();");
+    expect(orderCardFile).toContain("isEmailUnread");
+    expect(orderCardFile).toContain("unreadEmailCount");
+
+    const productionCardFile = fs.readFileSync(path.join(projectRoot, "components", "ProductionCard.tsx"), "utf8");
+    expect(productionCardFile).toContain('import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";');
+    expect(productionCardFile).toContain("isEmailUnread");
+    expect(productionCardFile).toContain("unreadEmailCount");
+  });
 });

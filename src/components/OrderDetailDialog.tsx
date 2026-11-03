@@ -20,7 +20,8 @@ import { RotateCcw, Calendar,
   Repeat,
   Check,
   Sparkles,
-  HardHat, } from "lucide-react";
+  HardHat,
+  Mail, } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -64,6 +65,7 @@ import {
 import { OrderAttachmentsSection } from "@/components/sharepoint/OrderAttachmentsSection";
 import { CreateOrderDialog } from "./CreateOrderDialog";
 import { OrderEmailEventsSection } from "@/components/email/OrderEmailEventsSection";
+import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
 
 // sortAndFilterProcessos importado de @/lib/processos
 
@@ -130,6 +132,11 @@ export function OrderDetailDialog({
   const [operadoresList, setOperadoresList] = useState<{ id: string; user_id?: string; nome: string; setor_vinculado?: string | null }[]>([]);
   const [createdByName, setCreatedByName] = useState<string | null>(null);
   const [updatedByName, setUpdatedByName] = useState<string | null>(null);
+  const { hasUnread, hasVerified, getUnreadEvents } = useUnreadEmailReplies();
+  const isEmailUnread = hasUnread(order.id);
+  const unreadEmailEvents = getUnreadEvents(order.id);
+  const unreadEmailCount = unreadEmailEvents.length;
+  const isEmailVerified = hasVerified(order.id);
 
   const [editData, setEditData] = useState({
     titulo: order.titulo,
@@ -374,6 +381,23 @@ export function OrderDetailDialog({
                       <span>REPETIÇÃO {order.os_anterior ? `(ANT: #${order.os_anterior})` : ""}</span>
                     </Badge>
                   )}
+                  {isEmailUnread ? (
+                    <span
+                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-500 border border-amber-500/40 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.5)] shrink-0"
+                      title={`${unreadEmailCount} resposta(s) de e-mail não lida(s) nesta O.S.`}
+                    >
+                      <Mail className="h-3.5 w-3.5 fill-amber-500/30" />
+                      <span>{unreadEmailCount} resposta(s)</span>
+                    </span>
+                  ) : isEmailVerified ? (
+                    <span
+                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40 shadow-[0_0_8px_rgba(16,185,129,0.3)] shrink-0"
+                      title="Respostas de e-mail verificadas pelo operador"
+                    >
+                      <Mail className="h-3.5 w-3.5 fill-emerald-500/30 text-emerald-600 dark:text-emerald-400" />
+                      <span>E-mail Verificado</span>
+                    </span>
+                  ) : null}
                   <Badge
                     style={{
                       backgroundColor: `hsl(var(--status-${config.colorKey}-bg))`,
