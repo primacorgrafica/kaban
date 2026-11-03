@@ -248,6 +248,8 @@ export function ProductionColumn({
                           order={order}
                           department={department}
                           currentStatus={statusConfig}
+                          orderIndex={index}
+                          totalOrders={orders.length}
                           onUpdate={onUpdate}
                           onMove={onMove}
                           onSendToDepartment={onSendToDepartment}

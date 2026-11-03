@@ -90,7 +90,12 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
   });
 
   STATUS_ORDER.forEach((status) => {
-    ordersByStatus[status].sort((a, b) => a.posicao - b.posicao);
+    ordersByStatus[status].sort((a, b) => {
+      const posA = typeof a.posicao === "number" ? a.posicao : 9999;
+      const posB = typeof b.posicao === "number" ? b.posicao : 9999;
+      if (posA !== posB) return posA - posB;
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    });
   });
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -251,26 +256,32 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
     const newIndex = result.destination.index;
     const sourceStatus = result.source.droppableId as OrderStatus;
 
+    // Se for reordenação dentro da mesma coluna (ex: subir ou descer na fila):
+    // Move diretamente de forma instantânea sem abrir modal de confirmação.
+    if (sourceStatus === newStatus) {
+      if (result.source.index !== newIndex) {
+        onMove(result.draggableId, newStatus, newIndex);
+      }
+      return;
+    }
+
     // Find the order being moved
     const order = orders.find((o) => o.id === result.draggableId);
     const orderTitle = order?.titulo || "Card";
 
-    // If status changed or position changed, ask for confirmation
-    if (sourceStatus !== newStatus || result.source.index !== newIndex) {
-      // Ao arrastar card para paralisado ou qualquer coluna, sempre vir zerado
-      setMotivoParada("");
-      setApplyRevision(true);
-      setAgreedSaidaSupplies(false);
-      setMarkedSuppliesSent({});
+    // Mudança de status entre colunas:
+    setMotivoParada("");
+    setApplyRevision(true);
+    setAgreedSaidaSupplies(false);
+    setMarkedSuppliesSent({});
 
-      setPendingMove({
-        id: result.draggableId,
-        orderTitle,
-        fromStatus: sourceStatus,
-        toStatus: newStatus,
-        newIndex,
-      });
-    }
+    setPendingMove({
+      id: result.draggableId,
+      orderTitle,
+      fromStatus: sourceStatus,
+      toStatus: newStatus,
+      newIndex,
+    });
   };
 
   const confirmMove = () => {

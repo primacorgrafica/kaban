@@ -69,7 +69,12 @@ export function ProductionKanbanBoard({
   });
 
   department.statuses.forEach(s => {
-    ordersByStatus[s.id].sort((a, b) => a.posicao - b.posicao);
+    ordersByStatus[s.id].sort((a, b) => {
+      const posA = typeof a.posicao === "number" ? a.posicao : 9999;
+      const posB = typeof b.posicao === "number" ? b.posicao : 9999;
+      if (posA !== posB) return posA - posB;
+      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+    });
   });
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -176,8 +181,18 @@ export function ProductionKanbanBoard({
     const toStatus = result.destination.droppableId.split("__")[1];
     const fromStatus = result.source.droppableId.split("__")[1];
     const newIndex = result.destination.index;
+
+    // Se for reordenação dentro da mesma coluna (ex: subir ou descer na fila):
+    // Move diretamente de forma instantânea sem abrir modal de confirmação.
+    if (fromStatus === toStatus) {
+      if (result.source.index !== newIndex) {
+        onMove(result.draggableId, toStatus, newIndex);
+      }
+      return;
+    }
+
     const order = orders.find(o => o.id === result.draggableId);
-    if (fromStatus !== toStatus || result.source.index !== newIndex) {
+    if (fromStatus !== toStatus) {
       // Ao arrastar card para paralisado ou qualquer coluna, sempre vir zerado
       setMotivoParada("");
       const moveData = {

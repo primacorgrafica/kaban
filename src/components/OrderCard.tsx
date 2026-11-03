@@ -4,7 +4,7 @@ import { Order, OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
 import { DEPARTMENTS, Department } from "@/types/production";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { RotateCcw, ShoppingBag, Calendar, User, FileText, Archive, Trash2, GripVertical, UserCheck, Clock, AlertTriangle, Send, Truck, Briefcase, Copy, Edit2, MessageSquarePlus, Repeat, Sparkles, Check, Zap, Mail, HardHat } from "lucide-react";
+import { RotateCcw, ShoppingBag, Calendar, User, FileText, Archive, Trash2, GripVertical, UserCheck, Clock, AlertTriangle, Send, Truck, Briefcase, Copy, Edit2, MessageSquarePlus, Repeat, Sparkles, Check, Zap, Mail, HardHat, ArrowUp, ArrowDown } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -64,8 +64,10 @@ interface Permissions {
 
 interface OrderCardProps {
   order: Order;
+  orderIndex?: number;
+  totalOrders?: number;
   onUpdate: (id: string, data: Partial<Order>) => void;
-  onMove: (id: string, status: OrderStatus) => void;
+  onMove: (id: string, status: OrderStatus, newIndex?: number) => void;
   onArchive: (id: string) => void;
   onDelete: (id: string) => void;
   onDuplicate?: (order: Order) => void;
@@ -167,7 +169,7 @@ function getVisibleSections(departmentContext?: string): { general: boolean; pro
   }
 }
 
-function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplicate, onSendToProduction, onSendToMultipleProduction, onSendToExpedicao, onSendToCompras, dragHandleProps, updatedByName, createdByName, permissions, departmentContext, isSlowAlert }: OrderCardProps) {
+function OrderCardImpl({ order, orderIndex, totalOrders, onUpdate, onMove, onArchive, onDelete, onDuplicate, onSendToProduction, onSendToMultipleProduction, onSendToExpedicao, onSendToCompras, dragHandleProps, updatedByName, createdByName, permissions, departmentContext, isSlowAlert }: OrderCardProps) {
   const currentRevision = getOrderRevision(order);
   const cleanObs = cleanObservationRevision(order.observacao);
   const { hasUnread, hasVerified, getUnreadEvents } = useUnreadEmailReplies();
@@ -545,17 +547,44 @@ function OrderCardImpl({ order, onUpdate, onMove, onArchive, onDelete, onDuplica
             )}
           </div>
 
-          {/* Drag Handle: FIXO, COMPACTO E VISÍVEL */}
-          {dragHandleProps && (
-            <div
-              {...dragHandleProps}
-              className="p-1 -mr-1 rounded hover:bg-muted text-muted-foreground/60 hover:text-foreground cursor-grab active:cursor-grabbing transition-colors shrink-0 flex items-center justify-center"
-              onClick={(e) => e.stopPropagation()}
-              title="Clique e arraste para mover o cartão"
-            >
-              <GripVertical className="h-3.5 w-3.5" />
-            </div>
-          )}
+          {/* Controles de Fila e Drag Handle: Subir, Descer e Arrastar */}
+          <div className="flex items-center gap-0.5 shrink-0" onClick={(e) => e.stopPropagation()}>
+            {typeof orderIndex === "number" && orderIndex > 0 && onMove && !permissions.isViewOnly && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMove(order.id, order.status, orderIndex - 1);
+                }}
+                className="p-1 rounded hover:bg-muted text-muted-foreground/60 hover:text-foreground transition-colors cursor-pointer flex items-center justify-center"
+                title="Subir posição na fila da coluna"
+              >
+                <ArrowUp className="h-3 w-3" />
+              </button>
+            )}
+            {typeof orderIndex === "number" && typeof totalOrders === "number" && orderIndex < totalOrders - 1 && onMove && !permissions.isViewOnly && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMove(order.id, order.status, orderIndex + 1);
+                }}
+                className="p-1 rounded hover:bg-muted text-muted-foreground/60 hover:text-foreground transition-colors cursor-pointer flex items-center justify-center"
+                title="Descer posição na fila da coluna"
+              >
+                <ArrowDown className="h-3 w-3" />
+              </button>
+            )}
+            {dragHandleProps && (
+              <div
+                {...dragHandleProps}
+                className="p-1 -mr-1 rounded hover:bg-muted text-muted-foreground/60 hover:text-foreground cursor-grab active:cursor-grabbing transition-colors shrink-0 flex items-center justify-center"
+                title="Clique e arraste para mover o cartão para qualquer posição ou coluna"
+              >
+                <GripVertical className="h-3.5 w-3.5" />
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="px-3 pb-2.5 cursor-pointer space-y-1" onClick={() => setOpen(true)}>
@@ -1463,6 +1492,8 @@ export const OrderCard = memo(OrderCardImpl, (prev, next) => {
     prev.isSlowAlert === next.isSlowAlert &&
     prev.departmentContext === next.departmentContext &&
     prev.permissions === next.permissions &&
+    prev.orderIndex === next.orderIndex &&
+    prev.totalOrders === next.totalOrders &&
     prev.onUpdate === next.onUpdate &&
     prev.onMove === next.onMove &&
     prev.onArchive === next.onArchive &&

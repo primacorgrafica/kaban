@@ -199,6 +199,8 @@ export function KanbanColumn({
                     >
                       <OrderCard
                         order={order}
+                        orderIndex={index}
+                        totalOrders={orders.length}
                         onUpdate={onUpdate}
                         onMove={onMove}
                         onArchive={onArchive}

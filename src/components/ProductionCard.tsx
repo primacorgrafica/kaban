@@ -8,7 +8,7 @@ import { ptBR } from "date-fns/locale";
 import { businessHoursMs } from "@/lib/businessHours";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeApprovalEntry } from "@/lib/approvalEntryCache";
-import { RotateCcw, Calendar, User, FileText, Archive, Trash2, ChevronRight, ChevronLeft, GripVertical, UserCheck, Clock, AlertTriangle, Send, Undo2, Briefcase, Truck, Edit2, Check, Mail, HardHat, CheckCircle } from "lucide-react";
+import { RotateCcw, Calendar, User, FileText, Archive, Trash2, ChevronRight, ChevronLeft, GripVertical, UserCheck, Clock, AlertTriangle, Send, Undo2, Briefcase, Truck, Edit2, Check, Mail, HardHat, CheckCircle, ArrowUp, ArrowDown } from "lucide-react";
 import { toast } from "sonner";
 import { OrderEmailEventsSection } from "@/components/email/OrderEmailEventsSection";
 import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
@@ -43,6 +43,8 @@ interface ProductionCardProps {
   onSendBackToPrePress?: (id: string) => void;
   onArchive: (id: string) => void;
   onDelete: (id: string) => void;
+  orderIndex?: number;
+  totalOrders?: number;
   dragHandleProps?: Record<string, unknown>;
   updatedByName?: string | null;
   createdByName?: string | null;
@@ -93,6 +95,8 @@ function ProductionCardImpl({
   onSendBackToPrePress,
   onArchive,
   onDelete,
+  orderIndex,
+  totalOrders,
   dragHandleProps,
   updatedByName,
   createdByName,
@@ -476,13 +480,60 @@ function ProductionCardImpl({
         )}
 
 
-        {!readOnly && dragHandleProps && (
+        {!readOnly && (
           <div
-            {...dragHandleProps}
-            className="flex items-center justify-center py-1 cursor-grab active:cursor-grabbing hover:bg-black/5 transition-colors"
+            className="flex items-center justify-between px-2 py-0.5 border-b border-border/20 bg-muted/20 select-none"
             onClick={(e) => e.stopPropagation()}
           >
-            <GripVertical className="h-4 w-4 text-muted-foreground/50" />
+            {/* Controles rápidos de Fila: Subir / Descer Posição */}
+            <div className="flex items-center gap-0.5">
+              {typeof orderIndex === "number" && orderIndex > 0 && onMove && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onMove(order.id, currentStatus?.id || (order as any).setor_status || "entrada", orderIndex - 1);
+                  }}
+                  className="p-1 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors cursor-pointer flex items-center justify-center"
+                  title="Subir posição na fila da coluna"
+                >
+                  <ArrowUp className="h-3.5 w-3.5" />
+                </button>
+              )}
+              {typeof orderIndex === "number" && typeof totalOrders === "number" && orderIndex < totalOrders - 1 && onMove && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onMove(order.id, currentStatus?.id || (order as any).setor_status || "entrada", orderIndex + 1);
+                  }}
+                  className="p-1 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors cursor-pointer flex items-center justify-center"
+                  title="Descer posição na fila da coluna"
+                >
+                  <ArrowDown className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Drag Handle Central */}
+            {dragHandleProps && (
+              <div
+                {...dragHandleProps}
+                className="flex items-center justify-center flex-1 py-1 cursor-grab active:cursor-grabbing hover:bg-primary/10 transition-colors rounded"
+                title="Clique e arraste para mover o card para qualquer posição ou coluna"
+              >
+                <GripVertical className="h-4 w-4 text-muted-foreground/60" />
+              </div>
+            )}
+
+            {/* Indicador de Posição na Fila */}
+            <div className="min-w-[28px] flex justify-end">
+              {typeof orderIndex === "number" && typeof totalOrders === "number" && totalOrders > 1 && (
+                <span className="text-[10px] font-mono-tech font-bold text-muted-foreground/70 px-1 py-0.2 rounded bg-background/50 border border-border/40">
+                  #{orderIndex + 1}
+                </span>
+              )}
+            </div>
           </div>
         )}
 
@@ -1813,6 +1864,8 @@ export const ProductionCard = memo(ProductionCardImpl, (prev, next) => {
     prev.readOnly === next.readOnly &&
     prev.hasFaturamentoPendencia === next.hasFaturamentoPendencia &&
     prev.parentSector === next.parentSector &&
+    prev.orderIndex === next.orderIndex &&
+    prev.totalOrders === next.totalOrders &&
     prev.onUpdate === next.onUpdate &&
     prev.onMove === next.onMove &&
     prev.onSendToDepartment === next.onSendToDepartment &&

@@ -152,57 +152,62 @@ export function useProductionOrders() {
     const order = orders.find(o => o.id === orderId);
     if (!order) return;
 
+    // Normaliza status alvo e busca demais ordens do mesmo departamento e status
+    const targetStatus = newStatus || (order as any).setor_status || "entrada";
+
     const destOrders = orders
       .filter(o => 
         o.setor === order.setor && 
-        (o as any).setor_status === newStatus && 
+        ((o as any).setor_status || "entrada") === targetStatus && 
         o.id !== orderId &&
         (order.maquina ? o.maquina === order.maquina : true)
       )
-      .sort((a, b) => a.posicao - b.posicao);
+      .sort((a, b) => {
+        const posA = typeof a.posicao === "number" ? a.posicao : 9999;
+        const posB = typeof b.posicao === "number" ? b.posicao : 9999;
+        if (posA !== posB) return posA - posB;
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      });
 
-    const idx = newIndex !== undefined ? newIndex : destOrders.length;
-    destOrders.splice(idx, 0, { id: orderId } as Order);
+    const targetIdx = newIndex !== undefined ? Math.min(Math.max(0, newIndex), destOrders.length) : destOrders.length;
+    destOrders.splice(targetIdx, 0, { ...order, id: orderId, setor_status: targetStatus });
 
     const previousSnapshot = [...orders];
 
     let updatedProcsOnMovedCard = order.processos ? [...order.processos] : [];
     if (order.setor === "compras") {
-      updatedProcsOnMovedCard = setComprasStatusInProcessos(updatedProcsOnMovedCard, newStatus);
-      if (newStatus === "lancamento_ge" || newStatus === "saida") {
+      updatedProcsOnMovedCard = setComprasStatusInProcessos(updatedProcsOnMovedCard, targetStatus);
+      if (targetStatus === "lancamento_ge" || targetStatus === "saida") {
         if (!updatedProcsOnMovedCard.some(p => p.startsWith("COMPRADO"))) {
           updatedProcsOnMovedCard.push(`COMPRADO:${Date.now()}:Compras`);
         }
-      } else if (["entrada", "cotacao", "pedido"].includes(newStatus)) {
+      } else if (["entrada", "cotacao", "pedido"].includes(targetStatus)) {
         updatedProcsOnMovedCard = updatedProcsOnMovedCard.filter(p => !p.startsWith("COMPRADO") && !p.startsWith("COMPRA:ok"));
       }
     }
 
-    // 1. Atualização otimista
+    // 1. Atualização otimista imediata no estado da interface
     setOrders(prev =>
       prev.map(o => {
-        if (o.id === orderId) {
+        const foundIdx = destOrders.findIndex(d => d.id === o.id);
+        if (foundIdx !== -1) {
           return {
             ...o,
-            setor_status: newStatus,
-            posicao: idx,
-            processos: order.setor === "compras" ? updatedProcsOnMovedCard : o.processos,
+            setor_status: targetStatus,
+            posicao: foundIdx,
+            processos: o.id === orderId && order.setor === "compras" ? updatedProcsOnMovedCard : o.processos,
           };
         }
         if (order.setor === "compras" && order.parent_order_id && o.id === order.parent_order_id) {
-          let procs = setComprasStatusInProcessos(o.processos, newStatus);
-          if (newStatus === "lancamento_ge" || newStatus === "saida") {
+          let procs = setComprasStatusInProcessos(o.processos, targetStatus);
+          if (targetStatus === "lancamento_ge" || targetStatus === "saida") {
             if (!procs.some(p => p.startsWith("COMPRADO"))) {
               procs.push(`COMPRADO:${Date.now()}:Compras`);
             }
-          } else if (["entrada", "cotacao", "pedido"].includes(newStatus)) {
+          } else if (["entrada", "cotacao", "pedido"].includes(targetStatus)) {
             procs = procs.filter(p => !p.startsWith("COMPRADO") && !p.startsWith("COMPRA:ok"));
           }
           return { ...o, processos: procs };
-        }
-        const foundIdx = destOrders.findIndex(d => d.id === o.id);
-        if (foundIdx !== -1) {
-          return { ...o, posicao: foundIdx };
         }
         return o;
       })
@@ -210,14 +215,16 @@ export function useProductionOrders() {
 
     // Se o card for do setor de compras e tiver OS pai vinculada, sincroniza o status de compras no pai
     if (order.setor === "compras" && order.parent_order_id) {
-      void syncComprasStatusToParent(order.parent_order_id, newStatus, user?.id);
+      void syncComprasStatusToParent(order.parent_order_id, targetStatus, user?.id);
     }
 
+    // 2. Persistência de todas as posições da coluna no Supabase
     const updates: PromiseLike<{ error: any }>[] = [];
     for (let i = 0; i < destOrders.length; i++) {
-      if (destOrders[i].id === orderId) {
+      const item = destOrders[i];
+      if (item.id === orderId) {
         const payloadToUpdate: any = {
-          setor_status: newStatus,
+          setor_status: targetStatus,
           posicao: i,
           atualizado_por: user?.id || null,
         };
@@ -227,9 +234,9 @@ export function useProductionOrders() {
         updates.push(
           supabase.from("orders").update(payloadToUpdate).eq("id", orderId)
         );
-      } else if (destOrders[i].posicao !== i) {
+      } else {
         updates.push(
-          supabase.from("orders").update({ posicao: i }).eq("id", destOrders[i].id)
+          supabase.from("orders").update({ posicao: i }).eq("id", item.id)
         );
       }
     }

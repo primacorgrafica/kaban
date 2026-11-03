@@ -500,9 +500,14 @@ export function useOrders() {
 
     const destOrders = orders
       .filter(o => o.status === newStatus && !o.arquivado && o.id !== id)
-      .sort((a, b) => a.posicao - b.posicao);
+      .sort((a, b) => {
+        const posA = typeof a.posicao === "number" ? a.posicao : 9999;
+        const posB = typeof b.posicao === "number" ? b.posicao : 9999;
+        if (posA !== posB) return posA - posB;
+        return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+      });
 
-    const idx = newIndex !== undefined ? newIndex : destOrders.length;
+    const idx = newIndex !== undefined ? Math.min(Math.max(0, newIndex), destOrders.length) : destOrders.length;
     destOrders.splice(idx, 0, {
       ...currentOrder,
       status: newStatus,
@@ -561,7 +566,7 @@ export function useOrders() {
           updates.push(
             supabase.from("orders").update({ status: newStatus as string, setor: null, setor_status: null, posicao: i, atualizado_por: user?.id || null }).eq("id", id)
           );
-        } else if (destOrders[i].posicao !== i) {
+        } else {
           updates.push(
             supabase.from("orders").update({ posicao: i }).eq("id", destOrders[i].id)
           );
