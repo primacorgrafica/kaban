@@ -34,7 +34,10 @@ import {
   getActiveMicrosoftAccount,
   getStoredMicrosoftUser,
 } from "@/lib/msalClient";
-import { downloadFileFromSharePoint } from "@/lib/sharepointService";
+import {
+  downloadFileFromSharePoint,
+  downloadFolderAsZipFromSharePoint,
+} from "@/lib/sharepointService";
 import type { OrderAttachment } from "@/types/sharepoint";
 import type { AccountInfo } from "@azure/msal-browser";
 import { format } from "date-fns";
@@ -102,6 +105,8 @@ export function OrderAttachmentsSection({
   );
   const [deletingAttachment, setDeletingAttachment] = useState<OrderAttachment | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [isDownloadingZip, setIsDownloadingZip] = useState(false);
+  const [zipProgressText, setZipProgressText] = useState<string>("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -120,6 +125,40 @@ export function OrderAttachmentsSection({
       toast.error(`Falha ao baixar arquivo: ${err?.message || err}`);
     } finally {
       setDownloadingId(null);
+    }
+  };
+
+  const handleDownloadFolderZip = async () => {
+    if (!attachments || attachments.length === 0) return;
+
+    try {
+      setIsDownloadingZip(true);
+      const folderBaseName =
+        folderInfo?.folderName || (orderTitulo ? `OS_${orderTitulo}` : "Anexos_OS");
+      setZipProgressText("Preparando...");
+      toast.info(`Iniciando download da pasta completa (${folderBaseName})...`);
+
+      await downloadFolderAsZipFromSharePoint(
+        attachments,
+        folderBaseName,
+        (progress) => {
+          if (progress.status === "downloading") {
+            setZipProgressText(`${progress.currentFile}/${progress.totalFiles}`);
+          } else if (progress.status === "zipping") {
+            setZipProgressText("Compactando...");
+          } else if (progress.status === "done") {
+            setZipProgressText("Pronto!");
+          }
+        }
+      );
+
+      toast.success(`Pasta "${folderBaseName}.zip" baixada com sucesso!`);
+    } catch (err: any) {
+      console.error("[SharePoint] Erro ao baixar pasta como zip:", err);
+      toast.error(`Falha ao baixar pasta: ${err?.message || err}`);
+    } finally {
+      setIsDownloadingZip(false);
+      setZipProgressText("");
     }
   };
 
@@ -173,7 +212,7 @@ export function OrderAttachmentsSection({
           </Badge>
         </div>
 
-        {/* Status da Conta Microsoft (se conectado) e link da pasta */}
+        {/* Status da Conta Microsoft (se conectado), botão de baixar pasta e link da pasta */}
         <div className="flex items-center gap-2">
           {msAccount && (
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[11px] text-emerald-400 font-medium">
@@ -182,6 +221,29 @@ export function OrderAttachmentsSection({
                 {msAccount.name || msAccount.username}
               </span>
             </div>
+          )}
+
+          {attachments.length > 0 && (
+            <Button
+              type="button"
+              size="sm"
+              disabled={isDownloadingZip}
+              onClick={handleDownloadFolderZip}
+              className="h-7 px-2.5 text-xs font-semibold gap-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 rounded-lg shadow-sm transition-all"
+              title="Baixar todos os arquivos desta O.S. compactados em um arquivo .ZIP"
+            >
+              {isDownloadingZip ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-400" />
+                  <span>{zipProgressText || "Baixando pasta..."}</span>
+                </>
+              ) : (
+                <>
+                  <FileArchive className="h-3.5 w-3.5 text-amber-400" />
+                  <span>Baixar Pasta (.zip)</span>
+                </>
+              )}
+            </Button>
           )}
 
           {folderInfo?.folderWebUrl && (

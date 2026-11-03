@@ -10,6 +10,7 @@ import {
   resolveSharePointSiteAndDrive,
   getOrCreateOsFolder,
   resetSharePointCache,
+  downloadFolderAsZipFromSharePoint,
 } from "@/lib/sharepointService";
 import {
   AZURE_CLIENT_ID,
@@ -205,6 +206,77 @@ describe("Integração SharePoint - Resolução e Tratamento de Erros via Graph 
       expect(filtered).toHaveLength(1);
       expect(filtered[0].nome_arquivo).toBe("OS_99999_Protocolo_1730000000_Tete5.jpg");
       expect(filtered.some((f) => f.nome_arquivo.includes("Logotipo"))).toBe(false);
+    });
+  });
+
+  describe("downloadFolderAsZipFromSharePoint - Empacotamento de Pasta Completa", () => {
+    it("deve rejeitar se a lista de anexos estiver vazia", async () => {
+      await expect(downloadFolderAsZipFromSharePoint([], "OS-73492")).rejects.toThrow(
+        "Nenhum anexo encontrado para baixar."
+      );
+    });
+
+    it("deve baixar múltiplos anexos, invocar o callback de progresso e disparar o download do .zip", async () => {
+      // Mock de fetch para metadata e download direto
+      const mockBlob = new Blob(["mock content"], { type: "application/pdf" });
+      global.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes("items/item-1")) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: () => Promise.resolve({ "@microsoft.graph.downloadUrl": "https://cdn.example.com/item1.pdf" }),
+          });
+        }
+        if (url.includes("items/item-2")) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: () => Promise.resolve({ "@microsoft.graph.downloadUrl": "https://cdn.example.com/item2.pdf" }),
+          });
+        }
+        if (url.includes("cdn.example.com")) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            blob: () => Promise.resolve(mockBlob),
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.resolve({ id: "mock_drive_id" }),
+        });
+      });
+
+      // Mock da criação de link e clique
+      const clickSpy = vi.fn();
+      const originalCreateElement = document.createElement.bind(document);
+      vi.spyOn(document, "createElement").mockImplementation((tagName: string) => {
+        const el = originalCreateElement(tagName);
+        if (tagName === "a") {
+          el.click = clickSpy;
+        }
+        return el;
+      });
+
+      const progressSteps: any[] = [];
+      const attachments = [
+        { id: "1", sharepoint_item_id: "item-1", nome_arquivo: "Arquivo 1.pdf" },
+        { id: "2", sharepoint_item_id: "item-2", nome_arquivo: "Arquivo 2.pdf" },
+      ];
+
+      await downloadFolderAsZipFromSharePoint(attachments, "OS-73492", (p) => {
+        progressSteps.push({ ...p });
+      });
+
+      // Validou que o link foi clicado para iniciar o download
+      expect(clickSpy).toHaveBeenCalled();
+
+      // Validou os passos de progresso (downloading -> zipping -> done)
+      expect(progressSteps.length).toBeGreaterThanOrEqual(3);
+      expect(progressSteps.some((p) => p.status === "downloading")).toBe(true);
+      expect(progressSteps.some((p) => p.status === "zipping")).toBe(true);
+      expect(progressSteps.some((p) => p.status === "done")).toBe(true);
     });
   });
 });

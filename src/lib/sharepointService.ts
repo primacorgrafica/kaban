@@ -1,5 +1,6 @@
 import { getSharePointAccessToken, getActiveMicrosoftAccount, AZURE_CLIENT_ID } from "./msalClient";
 import { supabase } from "@/integrations/supabase/client";
+import JSZip from "jszip";
 import type {
   DriveItemResponse,
   SharePointFolderInfo,
@@ -1143,6 +1144,55 @@ export async function deleteFileFromSharePoint(itemId: string): Promise<void> {
 }
 
 /**
+ * Obtém os bytes binários (Blob) de um arquivo do SharePoint via downloadUrl ou stream do Graph
+ */
+export async function fetchSharePointFileBlob(
+  itemId: string,
+  driveId?: string
+): Promise<Blob> {
+  const token = await getSharePointAccessToken();
+  const resolved = await resolveSharePointSiteAndDrive();
+  const effectiveDriveId = driveId || resolved.driveId;
+
+  // 1. Tenta obter a URL de download direto (CDN pré-autenticada da Microsoft)
+  const metaUrl = `https://graph.microsoft.com/v1.0/sites/${resolved.siteId}/drives/${effectiveDriveId}/items/${itemId}?select=id,name,@microsoft.graph.downloadUrl`;
+  try {
+    const metaRes = await fetch(metaUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (metaRes.ok) {
+      const data = await metaRes.json();
+      const downloadUrl = data["@microsoft.graph.downloadUrl"];
+      if (downloadUrl) {
+        const fileRes = await fetch(downloadUrl);
+        if (fileRes.ok) {
+          return await fileRes.blob();
+        }
+      }
+    }
+  } catch (metaErr) {
+    console.warn("[SharePoint] Falha ao obter @microsoft.graph.downloadUrl, tentando stream binário:", metaErr);
+  }
+
+  // 2. Fallback: Baixa os bytes via Graph API
+  const contentUrl = `https://graph.microsoft.com/v1.0/sites/${resolved.siteId}/drives/${effectiveDriveId}/items/${itemId}/content`;
+  const contentRes = await fetch(contentUrl, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!contentRes.ok) {
+    throw new Error(`Falha ao obter arquivo do SharePoint (${contentRes.status})`);
+  }
+
+  return await contentRes.blob();
+}
+
+/**
  * Baixa um arquivo do SharePoint diretamente pelo Microsoft Graph
  */
 export async function downloadFileFromSharePoint(
@@ -1183,18 +1233,7 @@ export async function downloadFileFromSharePoint(
   }
 
   // 2. Fallback: Baixa os bytes via Graph API e cria um Object URL local
-  const contentUrl = `https://graph.microsoft.com/v1.0/sites/${resolved.siteId}/drives/${effectiveDriveId}/items/${itemId}/content`;
-  const contentRes = await fetch(contentUrl, {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
-
-  if (!contentRes.ok) {
-    throw new Error(`Falha ao baixar arquivo do SharePoint (${contentRes.status})`);
-  }
-
-  const blob = await contentRes.blob();
+  const blob = await fetchSharePointFileBlob(itemId, driveId);
   const blobUrl = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = blobUrl;
@@ -1202,6 +1241,95 @@ export async function downloadFileFromSharePoint(
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
-  setTimeout(() => URL.revokeObjectURL(blobUrl), 2000);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+}
+
+export interface FolderZipProgress {
+  currentFile: number;
+  totalFiles: number;
+  fileName: string;
+  status: "downloading" | "zipping" | "done";
+  percent: number;
+}
+
+/**
+ * Baixa todos os arquivos da pasta da O.S. e empacota em um arquivo .zip
+ */
+export async function downloadFolderAsZipFromSharePoint(
+  attachments: Array<{ id?: string; sharepoint_item_id: string; nome_arquivo: string; sharepoint_drive_id?: string }>,
+  zipBaseName: string,
+  onProgress?: (progress: FolderZipProgress) => void
+): Promise<void> {
+  if (!attachments || attachments.length === 0) {
+    throw new Error("Nenhum anexo encontrado para baixar.");
+  }
+
+  const zip = new JSZip();
+  const total = attachments.length;
+  const usedNames = new Set<string>();
+
+  for (let i = 0; i < total; i++) {
+    const att = attachments[i];
+    onProgress?.({
+      currentFile: i + 1,
+      totalFiles: total,
+      fileName: att.nome_arquivo,
+      status: "downloading",
+      percent: Math.round((i / total) * 90),
+    });
+
+    const fileBlob = await fetchSharePointFileBlob(
+      att.sharepoint_item_id,
+      att.sharepoint_drive_id
+    );
+
+    // Evita colisão de nomes idênticos no mesmo ZIP
+    let finalFileName = att.nome_arquivo;
+    if (usedNames.has(finalFileName)) {
+      const extIndex = finalFileName.lastIndexOf(".");
+      const nameWithoutExt = extIndex !== -1 ? finalFileName.slice(0, extIndex) : finalFileName;
+      const ext = extIndex !== -1 ? finalFileName.slice(extIndex) : "";
+      let count = 2;
+      while (usedNames.has(`${nameWithoutExt} (${count})${ext}`)) {
+        count++;
+      }
+      finalFileName = `${nameWithoutExt} (${count})${ext}`;
+    }
+    usedNames.add(finalFileName);
+
+    zip.file(finalFileName, fileBlob);
+  }
+
+  onProgress?.({
+    currentFile: total,
+    totalFiles: total,
+    fileName: "",
+    status: "zipping",
+    percent: 95,
+  });
+
+  const zipBlob = await zip.generateAsync({
+    type: "blob",
+    compression: "DEFLATE",
+    compressionOptions: { level: 6 },
+  });
+
+  const safeZipName = zipBaseName.endsWith(".zip") ? zipBaseName : `${zipBaseName}.zip`;
+  const blobUrl = URL.createObjectURL(zipBlob);
+  const a = document.createElement("a");
+  a.href = blobUrl;
+  a.download = safeZipName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+
+  onProgress?.({
+    currentFile: total,
+    totalFiles: total,
+    fileName: safeZipName,
+    status: "done",
+    percent: 100,
+  });
 }
 
