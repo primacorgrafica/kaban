@@ -29,6 +29,16 @@ export function OrderEmailEventsSection({
   const isUnread = hasUnread(orderId);
   const isVerified = hasVerified(orderId);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [isMarkingRead, setIsMarkingRead] = useState(false);
+
+  const handleMarkAsRead = async () => {
+    try {
+      setIsMarkingRead(true);
+      await markAsRead(orderId, orderTitulo);
+    } finally {
+      setIsMarkingRead(false);
+    }
+  };
 
   const handleRefreshAndSync = async () => {
     try {
@@ -91,12 +101,13 @@ export function OrderEmailEventsSection({
           {isUnread ? (
             <Button
               size="sm"
-              onClick={() => void markAsRead(orderId, orderTitulo)}
+              onClick={() => void handleMarkAsRead()}
+              disabled={isMarkingRead}
               className="h-8 px-2.5 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-xs cursor-pointer animate-pulse"
-              title="Marcar todas as respostas de e-mail desta O.S. como lidas"
+              title="Marcar todas as respostas de e-mail desta O.S. como lidas para todos os usuários"
             >
               <Check className="h-3.5 w-3.5 mr-1 stroke-[3]" />
-              Marcar como Lido
+              {isMarkingRead ? "Marcando..." : "Marcar como Lido"}
             </Button>
           ) : isVerified ? (
             <span

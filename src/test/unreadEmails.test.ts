@@ -4,6 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import type { OrderEmailEvent } from "@/types/email";
 
 // Mock do supabase client
+const { mockSend } = vi.hoisted(() => ({
+  mockSend: vi.fn().mockResolvedValue({}),
+}));
+
 vi.mock("@/integrations/supabase/client", () => {
   return {
     supabase: {
@@ -11,10 +15,12 @@ vi.mock("@/integrations/supabase/client", () => {
       channel: vi.fn().mockReturnValue({
         on: vi.fn().mockReturnThis(),
         subscribe: vi.fn().mockReturnThis(),
+        send: mockSend,
       }),
       auth: {
         getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-test-uuid" } } }),
       },
+      rpc: vi.fn().mockResolvedValue({ data: { success: true }, error: null }),
     },
   };
 });
@@ -74,6 +80,7 @@ describe("UnreadEmailsManager - Notificação Visual no Card e Coluna sem Pop-up
           select: vi.fn().mockReturnThis(),
           ilike: vi.fn().mockReturnThis(),
           limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+          delete: vi.fn().mockReturnThis(),
         };
       }
       return {
@@ -87,6 +94,34 @@ describe("UnreadEmailsManager - Notificação Visual no Card e Coluna sem Pop-up
     expect(unreadEmailsManager.hasVerified("order-uuid-404040")).toBe(true);
     expect(unreadEmailsManager.getUnreadCountForOrders(["order-uuid-404040"])).toBe(0);
     expect(unreadEmailsManager.getVerifiedCountForOrders(["order-uuid-404040"])).toBe(1);
+    expect(mockSend).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "broadcast",
+        event: "order_email_marked_read",
+        payload: expect.objectContaining({
+          orderId: "order-uuid-404040",
+          osNumber: "404040",
+        }),
+      })
+    );
+  });
+
+  it("sincroniza instantaneamente para outros usuários quando recebe broadcast de leitura (Zero-Delay)", () => {
+    // Simula uma nova O.S. não lida inicialmente
+    const remoteOrderId = "order-uuid-remote-777";
+    const remoteEventId = "event-remote-999";
+
+    // Simula recebimento de broadcast disparado por outro usuário em outra máquina
+    unreadEmailsManager.applyRemoteOrderRead(
+      remoteOrderId,
+      "77777",
+      new Date().toISOString(),
+      [remoteEventId]
+    );
+
+    // O status deve constar como lido / verificado imediatamente sem recarregar a página
+    expect(unreadEmailsManager.hasUnread(remoteOrderId)).toBe(false);
+    expect(unreadEmailsManager.hasVerified(remoteOrderId)).toBe(true);
   });
 
   it("calcula corretamente a quantidade de ordens com e-mails não lidos e verificados por coluna", () => {
