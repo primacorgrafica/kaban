@@ -604,7 +604,7 @@ function ProductionCardImpl({
             >
               OS. {cleanOsTitulo || order.titulo}
             </h4>
-            {getOrderRevision(order) >= 2 && (
+            {getOrderRevision(order) >= 1 && (
               <span
                 className="font-mono-tech text-[13px] font-extrabold px-2 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 shrink-0 flex items-center gap-1 shadow-xs tracking-wide"
                 title={`Revisão ${getOrderRevision(order)}`}

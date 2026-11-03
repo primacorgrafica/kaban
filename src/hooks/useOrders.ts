@@ -415,7 +415,7 @@ export function useOrders() {
       if (data.revisao !== undefined) {
         const currentOrder = orders.find(o => o.id === id);
         const targetObs = data.observacao !== undefined ? data.observacao : currentOrder?.observacao;
-        updatePayload.observacao = setObservationRevision(targetObs, data.revisao || 1);
+        updatePayload.observacao = setObservationRevision(targetObs, data.revisao ?? 0);
       }
       setOrders(prev => prev.map(o => o.id === id ? { ...o, ...data, ...(updatePayload.observacao !== undefined ? { observacao: updatePayload.observacao } : {}) } : o));
 
@@ -580,7 +580,7 @@ export function useOrders() {
     }
 
     // Feedback com ação rápida de Desfazer (Undo)
-    if (effectiveRevisao && effectiveRevisao >= 2 && isReturnToPreparation(oldStatus, newStatus)) {
+    if (effectiveRevisao && effectiveRevisao >= 1 && isReturnToPreparation(oldStatus, newStatus)) {
       toast.success(`OS retornou para Preparação (REV${effectiveRevisao})!`);
     } else if (oldStatus && oldStatus !== newStatus) {
       const targetLabel = STATUS_CONFIG[newStatus]?.label || newStatus;
@@ -588,7 +588,7 @@ export function useOrders() {
         action: {
           label: "Desfazer",
           onClick: () => {
-            moveOrder(id, oldStatus, oldPos, currentOrder.revisao || 1);
+            moveOrder(id, oldStatus, oldPos, currentOrder.revisao ?? 0);
           },
         },
       });

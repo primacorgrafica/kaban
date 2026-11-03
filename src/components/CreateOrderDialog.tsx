@@ -172,7 +172,7 @@ export function CreateOrderDialog({
         cliente: "",
         tipo_trabalho: "novo",
         os_anterior: "",
-        revisao: 1,
+        revisao: 0,
         observacao: "",
         obs_prova: "",
         saida_direta: false,
@@ -254,7 +254,7 @@ export function CreateOrderDialog({
       cliente: order.cliente || "",
       tipo_trabalho: order.tipo_trabalho || "novo",
       os_anterior: order.os_anterior || "",
-      revisao: order.revisao || 1,
+      revisao: typeof order.revisao === "number" ? order.revisao : getOrderRevision(order),
       observacao: order.observacao || "",
       obs_prova,
       saida_direta: order.saida_direta || false,
@@ -513,6 +513,7 @@ export function CreateOrderDialog({
           entrega_data_limite: form.entrega_data_limite
             ? new Date(form.entrega_data_limite).toISOString()
             : null,
+          revisao: form.revisao ?? 0,
         };
 
         if (onUpdate) {
@@ -671,6 +672,7 @@ export function CreateOrderDialog({
             : undefined,
           status_destino: form.status_destino || undefined,
           setor_destino: form.setor_destino || undefined,
+          revisao: form.revisao ?? 0,
         })
       );
 
@@ -1118,17 +1120,17 @@ export function CreateOrderDialog({
                       <span>Revisão da O.S. (REV)</span>
                     </Label>
                     <span className="text-[11px] font-mono-tech text-muted-foreground">
-                      Atual: Rev {form.revisao || 1}
+                      Atual: {form.revisao && form.revisao >= 1 ? `REV ${form.revisao}` : "Original"}
                     </span>
                   </div>
                   <Input
                     id="revisao"
                     type="number"
-                    min={1}
-                    value={form.revisao || 1}
+                    min={0}
+                    value={form.revisao ?? 0}
                     onChange={(e) => {
                       const val = parseInt(e.target.value, 10);
-                      setForm((f) => ({ ...f, revisao: isNaN(val) ? 1 : Math.max(1, val) }));
+                      setForm((f) => ({ ...f, revisao: isNaN(val) ? 0 : Math.max(0, val) }));
                     }}
                     className="h-9 bg-background border-input text-foreground font-mono-tech text-sm font-bold rounded-lg w-32"
                   />

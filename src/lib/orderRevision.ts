@@ -1,17 +1,14 @@
-﻿import { OrderStatus } from "@/types/order";
+import { OrderStatus } from "@/types/order";
 
 /**
  * Obtém o número da revisão da ordem.
  * Prioridade:
- * 1. Campo explícito `revisao` (number >= 1)
- * 2. Tag no campo `observacao` (ex: "[REV2]" ou "[REV:2]")
- * 3. Default: 1 (Versão original)
+ * 1. Tag no campo `observacao` (ex: "[REV1]", "[REV2]" ou "[REV:1]")
+ * 2. Campo explícito `revisao` (number >= 1)
+ * 3. Default: 0 (Versão original / sem revisão)
  */
 export function getOrderRevision(order?: { revisao?: number | null; observacao?: string | null } | null): number {
-  if (!order) return 1;
-  if (typeof order.revisao === "number" && order.revisao >= 1) {
-    return Math.floor(order.revisao);
-  }
+  if (!order) return 0;
   if (order.observacao) {
     const match = order.observacao.match(/\[REV:?(\d+)\]/i);
     if (match) {
@@ -19,7 +16,19 @@ export function getOrderRevision(order?: { revisao?: number | null; observacao?:
       if (!isNaN(num) && num >= 1) return num;
     }
   }
-  return 1;
+  if (typeof order.revisao === "number") {
+    const rev = Math.floor(order.revisao);
+    if (rev > 1) return rev;
+    if (rev === 1) {
+      // Se observacao foi fornecida (inclusive null) mas não possui a tag [REV],
+      // trata-se de um registro legado onde o banco definia DEFAULT 1 antes de qualquer revisão.
+      if (order.observacao !== undefined && (!order.observacao || !order.observacao.match(/\[REV/i))) {
+        return 0;
+      }
+      return 1;
+    }
+  }
+  return 0;
 }
 
 /**
@@ -36,7 +45,7 @@ export function cleanObservationRevision(obs?: string | null): string {
 export function setObservationRevision(obs: string | null | undefined, rev: number): string {
   const current = obs || "";
   const cleaned = cleanObservationRevision(current);
-  if (rev <= 1) return cleaned;
+  if (rev < 1) return cleaned;
   const tag = `[REV${rev}]`;
   return cleaned ? `${tag} ${cleaned}` : tag;
 }

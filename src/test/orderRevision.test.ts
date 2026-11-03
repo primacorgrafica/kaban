@@ -1,4 +1,4 @@
-﻿import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vitest";
 import { getOrderRevision, setObservationRevision, cleanObservationRevision, isReturnToPreparation } from "@/lib/orderRevision";
 
 describe("orderRevision logic", () => {
@@ -6,16 +6,26 @@ describe("orderRevision logic", () => {
     expect(getOrderRevision({ revisao: 2 })).toBe(2);
     expect(getOrderRevision({ revisao: 5 })).toBe(5);
     expect(getOrderRevision({ revisao: 1 })).toBe(1);
+    expect(getOrderRevision({ revisao: 0 })).toBe(0);
   });
 
-  it("should fallback to observation tags if revisao is not set", () => {
+  it("should fallback to observation tags if revisao is not set or treat legacy records", () => {
+    expect(getOrderRevision({ observacao: "[REV1] cliente solicitou alteracao" })).toBe(1);
     expect(getOrderRevision({ observacao: "[REV2] cliente solicitou alteracao" })).toBe(2);
     expect(getOrderRevision({ observacao: "[REV:3] ajustar sangria" })).toBe(3);
-    expect(getOrderRevision({ observacao: "sem revisao alguma" })).toBe(1);
-    expect(getOrderRevision(null)).toBe(1);
+    expect(getOrderRevision({ observacao: "sem revisao alguma" })).toBe(0);
+    expect(getOrderRevision(null)).toBe(0);
+    expect(getOrderRevision({})).toBe(0);
+
+    // Proteção de compatibilidade com banco legado onde DEFAULT era 1 antes de qualquer revisão
+    expect(getOrderRevision({ revisao: 1, observacao: "Ordem original sem tag" })).toBe(0);
+    expect(getOrderRevision({ revisao: 1, observacao: null })).toBe(0);
+    expect(getOrderRevision({ revisao: 1, observacao: "[REV1] Primeira revisão confirmada" })).toBe(1);
   });
 
   it("should clean observation tag from text", () => {
+    expect(cleanObservationRevision("[REV1]")).toBe("");
+    expect(cleanObservationRevision("[REV1] Ajuste")).toBe("Ajuste");
     expect(cleanObservationRevision("[REV2]")).toBe("");
     expect(cleanObservationRevision("[REV2] Ajuste")).toBe("Ajuste");
     expect(cleanObservationRevision("[REV:3] Ajuste")).toBe("Ajuste");
@@ -24,10 +34,13 @@ describe("orderRevision logic", () => {
   });
 
   it("should correctly update observation tags", () => {
+    expect(setObservationRevision("teste", 1)).toBe("[REV1] teste");
     expect(setObservationRevision("teste", 2)).toBe("[REV2] teste");
     expect(setObservationRevision("[REV2] teste anterior", 3)).toBe("[REV3] teste anterior");
-    expect(setObservationRevision("[REV3] teste", 1)).toBe("teste");
+    expect(setObservationRevision("[REV3] teste", 0)).toBe("teste");
+    expect(setObservationRevision("", 1)).toBe("[REV1]");
     expect(setObservationRevision("", 2)).toBe("[REV2]");
+    expect(setObservationRevision("teste", 0)).toBe("teste");
   });
 
   it("should detect return to preparation correctly", () => {

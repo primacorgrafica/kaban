@@ -389,11 +389,11 @@ export async function runEmailSync(): Promise<SyncResult> {
             // 1. ENVIO DE E-MAIL AO CLIENTE:
             // Move automaticamente o CARD da respectiva O.S. para "AGUARDANDO APROVAÇÃO"
             const currentOrd = orderStatusMap.get(matchedOrderId);
-            const currentRev = currentOrd?.revisao || 1;
+            const currentRev = currentOrd?.revisao || 0;
             const currentStatus = currentOrd?.status;
 
             // REGRAS ESTRITAS DE PROTEÇÃO DO KANBAN:
-            // 1. Se a O.S. está em revisão (REV 2, REV 3, REV 4...):
+            // 1. Se a O.S. está em revisão (REV 1, REV 2, REV 3...):
             //    O operador está editando a arte em Preparação. NUNCA mover automaticamente!
             // 2. Se a O.S. está PARALISADA ou AGUARDANDO NOVO ARQUIVO:
             //    NUNCA mover automaticamente.
@@ -402,10 +402,10 @@ export async function runEmailSync(): Promise<SyncResult> {
             // 4. Se a O.S. está em PRODUZINDO PROVA:
             //    NUNCA mover automaticamente.
             //
-            // APENAS move automaticamente no fluxo inicial de primeira versão (REV 1):
+            // APENAS move automaticamente no fluxo inicial de primeira versão (original / rev 0):
             // quando a O.S. estiver em 'fila_de_entrada' ou 'preparando_arquivo' inicial.
             const isInitialPreparationOrEntry =
-              currentRev <= 1 &&
+              currentRev === 0 &&
               (currentStatus === "fila_de_entrada" || currentStatus === "preparando_arquivo");
 
             if (isInitialPreparationOrEntry) {

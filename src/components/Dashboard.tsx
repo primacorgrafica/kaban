@@ -535,7 +535,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
   // ═══ GOVERNANÇA: CONTROLE DE REVISÕES (REVS - RETRABALHOS) ═══
   const revisionOrders = useMemo(() => {
     return orders
-      .filter((o) => !o.arquivado && getOrderRevision(o) >= 2)
+      .filter((o) => !o.arquivado && getOrderRevision(o) >= 1)
       .map((o) => {
         const revNumber = getOrderRevision(o);
         const cleanObs = cleanObservationRevision(o.observacao);
@@ -548,8 +548,8 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
       .sort((a, b) => b.revNumber - a.revNumber || new Date(b.order.updated_at).getTime() - new Date(a.order.updated_at).getTime());
   }, [orders]);
 
-  const rev2Count = useMemo(() => revisionOrders.filter((r) => r.revNumber === 2).length, [revisionOrders]);
-  const rev3PlusCount = useMemo(() => revisionOrders.filter((r) => r.revNumber >= 3).length, [revisionOrders]);
+  const rev1Count = useMemo(() => revisionOrders.filter((r) => r.revNumber === 1).length, [revisionOrders]);
+  const rev2PlusCount = useMemo(() => revisionOrders.filter((r) => r.revNumber >= 2).length, [revisionOrders]);
 
   // ═══ GOVERNANÇA: CENTRAL DE COMPRAS INTEGRADA (PANTONES & OUTROS) ═══
   const comprasOrders = useMemo(() => {
@@ -985,7 +985,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
 
           <div className="my-2 space-y-2">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">Revisões (REV 2+)</span>
+              <span className="text-muted-foreground">Revisões (REV 1+)</span>
               <span className={`font-mono-tech font-bold ${revisionOrders.length > 0 ? "text-rose-600 dark:text-rose-400" : "text-foreground"}`}>
                 {revisionOrders.length}
               </span>
@@ -1983,11 +1983,11 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="font-mono-tech text-xs bg-amber-500/10 text-amber-500 border-amber-500/30">
-                      REV 2: {rev2Count}
+                      REV 1: {rev1Count}
                     </Badge>
-                    {rev3PlusCount > 0 && (
+                    {rev2PlusCount > 0 && (
                       <Badge variant="outline" className="font-mono-tech text-xs bg-rose-500/15 text-rose-500 border-rose-500/40 animate-pulse font-bold">
-                        REV 3+: {rev3PlusCount} (CRÍTICO)
+                        REV 2+: {rev2PlusCount} (CRÍTICO)
                       </Badge>
                     )}
                   </div>
@@ -2016,7 +2016,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                       </TableRow>
                     ) : (
                       filteredRevisionOrders.map((r) => {
-                        const isCritical = r.revNumber >= 3;
+                        const isCritical = r.revNumber >= 2;
                         const statusConfig = r.order.status ? STATUS_CONFIG[r.order.status as OrderStatus] : null;
                         return (
                           <TableRow key={`rev-${r.order.id}`} className="border-border/60 hover:bg-accent/40 transition-colors">

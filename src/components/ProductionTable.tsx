@@ -378,7 +378,7 @@ export function ProductionTable({
                             REP {order.os_anterior ? `#${order.os_anterior}` : ""}
                           </span>
                         )}
-                        {getOrderRevision(order) >= 2 && (
+                        {getOrderRevision(order) >= 1 && (
                           <span
                             className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 text-[10px] font-extrabold flex items-center gap-1 shadow-xs ml-1"
                             title={`Revisão ${getOrderRevision(order)}`}

@@ -332,7 +332,7 @@ export function OrderDetailDialog({
       operador: editData.operador || null,
       tipo_trabalho: editData.tipo_trabalho || null,
       os_anterior: editData.tipo_trabalho === "repeticao" ? (editData.os_anterior || null) : null,
-      revisao: editData.revisao || 1,
+      revisao: editData.revisao ?? 0,
       processos: editData.processos.length > 0 ? editData.processos : [],
       nf: editData.tipo_documento === "NF" ? editData.valor_documento || null : null,
       protocolo: editData.tipo_documento === "PROTOCOLO" ? editData.valor_documento || null : null,
@@ -362,7 +362,7 @@ export function OrderDetailDialog({
                   <span className="font-mono-tech text-base font-bold text-foreground tracking-wide">
                     O.S. #{order.titulo}
                   </span>
-                  {currentRevision >= 2 && (
+                  {currentRevision >= 1 && (
                     <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/40 text-[11px] font-bold font-mono-tech flex items-center gap-1">
                       <RotateCcw className="h-3 w-3" />
                       <span>REV{currentRevision}</span>
@@ -451,7 +451,7 @@ export function OrderDetailDialog({
                         </p>
                       </div>
                     )}
-                    {currentRevision >= 2 && (
+                    {currentRevision >= 1 && (
                       <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 flex items-center justify-between gap-2">
                         <div className="flex items-center gap-1.5 font-bold text-xs">
                           <RotateCcw className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
