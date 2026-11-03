@@ -28,11 +28,12 @@ vi.mock("../lib/outlookService", () => {
 });
 
 describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook", () => {
-  const mockActiveOrders = [
+  const defaultActiveOrders = [
     { id: "order-uuid-73210", titulo: "73210" },
     { id: "order-uuid-85000", titulo: "85000" },
     { id: "order-uuid-99999", titulo: "O.S. 99999 - CAIXA FARMA" },
   ];
+  let mockActiveOrders = [...defaultActiveOrders];
 
   let mockExistingEvents: any[] = [];
   let mockInsertedEvents: any[] = [];
@@ -41,6 +42,7 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockActiveOrders = [...defaultActiveOrders];
     mockExistingEvents = [];
     mockInsertedEvents = [];
     mockInsertedAvisos = [];
@@ -59,7 +61,7 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
             maybeSingle: vi.fn().mockResolvedValue({ data: resolvedData[0] || null, error: null }),
             single: vi.fn().mockResolvedValue({ data: resolvedData[0] || null, error: null }),
             then: vi.fn().mockImplementation((cb) =>
-              Promise.resolve(cb ? cb({ data: resolvedData, error: null }) : { data: resolvedData, error: null })
+              Promise.resolve(cb ? cb({ data: mockActiveOrders, error: null }) : { data: mockActiveOrders, error: null })
             ),
           };
           return builder;
@@ -94,6 +96,8 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
             error: null,
             eq: vi.fn().mockImplementation(() => builder),
             gte: vi.fn().mockImplementation(() => builder),
+            order: vi.fn().mockImplementation(() => builder),
+            limit: vi.fn().mockImplementation(() => builder),
             then: vi.fn().mockImplementation((cb) =>
               Promise.resolve(cb ? cb({ data: dataToReturn, error: null }) : { data: dataToReturn, error: null })
             ),
@@ -499,7 +503,6 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
       expect.objectContaining({
         id: "order-uuid-99999",
         status: "aguardando_aprovacao",
-        setor_status: "aguardando_aprovacao",
       })
     );
   });
@@ -550,8 +553,12 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
     expect(mockUpdatedOrders.filter((o) => o.id === "order-uuid-73210")).toHaveLength(0);
   });
 
-  it("10. O.S. em Preparação (REV 2): NOVO e-mail enviado após a revisão deve mover o card para aguardando aprovação", async () => {
-    // Novo e-mail enviado às 10:30 (posterior ao retorno para preparação)
+  it("10. O.S. em Preparação (REV 2): deve manter o card em Preparação (revisões REV 2+ nunca são movidas automaticamente)", async () => {
+    // Ordem em preparação com REV 2
+    mockActiveOrders = [
+      { id: "order-uuid-73210", titulo: "73210", status: "preparando_arquivo", revisao: 2 },
+    ];
+
     const newSentEmailRev2: GraphMessage = {
       id: "msg-sent-rev2",
       subject: "Envio de Prova Digital REV 2 - OS 73210",
@@ -573,6 +580,7 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
 
     const result = await runEmailSync();
 
+    // Evento de e-mail é registrado, mas o CARD NÃO é movido para aguardando_aprovacao
     expect(result.newEvents).toBe(1);
     expect(mockInsertedEvents[0]).toMatchObject({
       order_id: "order-uuid-73210",
@@ -580,11 +588,6 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
       message_id: "msg-sent-rev2",
     });
 
-    expect(mockUpdatedOrders).toContainEqual(
-      expect.objectContaining({
-        id: "order-uuid-73210",
-        status: "aguardando_aprovacao",
-      })
-    );
+    expect(mockUpdatedOrders.filter((o) => o.id === "order-uuid-73210")).toHaveLength(0);
   });
 });

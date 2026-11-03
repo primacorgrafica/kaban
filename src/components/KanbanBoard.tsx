@@ -67,7 +67,8 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
   const DEPRECATED_SECTORS = ["ctp", "offset", "digital", "acabamento", "terceiros", "embalagens", "desenvolvimento"];
   orders.forEach((o) => {
     let s = o.status;
-    if (o.setor && DEPRECATED_SECTORS.includes(o.setor) && (o as any).setor_status) {
+    // Só usa o fallback de setor_status se o status principal não estiver definido
+    if (!s && o.setor && DEPRECATED_SECTORS.includes(o.setor) && (o as any).setor_status) {
       const ss = (o as any).setor_status;
       if (ss === "entrada") s = "fila_de_entrada";
       else if (ss === "preparacao" || ss === "desenvolvendo" || ss === "em_producao" || ss === "processando") s = "preparando_arquivo";

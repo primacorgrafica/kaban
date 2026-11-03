@@ -16,6 +16,7 @@ import { findOsInEmail, findOsInSubject } from "./emailMatcher";
 import { MONITORED_MAILBOXES, type MonitoredMailbox, type GraphMessage } from "@/types/email";
 import { trackGraphApiTelemetry } from "@/lib/autonomousEngine/telemetry";
 import { triggerSellerApprovalNotification } from "./sellerNotificationService";
+import { getOrderRevision } from "@/lib/orderRevision";
 
 export const LAST_EMAIL_SYNC_KEY = "kaban_last_email_sync_timestamp";
 
@@ -84,12 +85,14 @@ export async function runEmailSync(): Promise<SyncResult> {
     supabase.auth.getUser().catch(() => ({ data: { user: null }, error: null })),
     supabase
       .from("orders")
-      .select("id, titulo, criado_por, status, setor, setor_status, updated_at, created_at, revisao" as any)
+      .select("id, titulo, criado_por, status, setor, setor_status, updated_at, created_at, revisao, observacao" as any)
       .neq("status", "arquivado"),
     supabase
       .from("order_email_events")
       .select("id, message_id, conversation_id, order_id, os_number, subject, body_preview, email_datetime, direction")
-      .gte("email_datetime", rollingCutoff),
+      .gte("email_datetime", rollingCutoff)
+      .order("email_datetime", { ascending: false })
+      .limit(5000),
     supabase
       .from("avisos")
       .select("id, titulo, mensagem, created_at")
@@ -170,7 +173,7 @@ export async function runEmailSync(): Promise<SyncResult> {
         setor_status: (ord as any).setor_status || null,
         updated_at: (ord as any).updated_at || null,
         created_at: (ord as any).created_at || null,
-        revisao: (ord as any).revisao || 1,
+        revisao: getOrderRevision(ord as any),
       });
 
       if (ord.criado_por) {
@@ -385,25 +388,33 @@ export async function runEmailSync(): Promise<SyncResult> {
           if (effectiveDirection === "enviado") {
             // 1. ENVIO DE E-MAIL AO CLIENTE:
             // Move automaticamente o CARD da respectiva O.S. para "AGUARDANDO APROVAÇÃO"
-            // EXCETO se a ordem está em preparação com revisão >= 2 ou paralisada, e este e-mail
-            // for mais antigo que a última alteração feita pelo operador.
             const currentOrd = orderStatusMap.get(matchedOrderId);
-            const orderUpdatedAt = currentOrd?.updated_at ? new Date(currentOrd.updated_at).getTime() : 0;
-            const emailSentAt = new Date(emailDatetime).getTime();
+            const currentRev = currentOrd?.revisao || 1;
+            const currentStatus = currentOrd?.status;
 
-            const isEmailOlderThanOrderUpdate = orderUpdatedAt > 0 && emailSentAt < (orderUpdatedAt - 60000);
-            const isReturnOrStopped = currentOrd && (
-              currentOrd.status === "paralisado" ||
-              currentOrd.status === "aguardando_novo_arquivo" ||
-              (currentOrd.status === "preparando_arquivo" && ((currentOrd.revisao || 1) >= 2))
-            );
+            // REGRAS ESTRITAS DE PROTEÇÃO DO KANBAN:
+            // 1. Se a O.S. está em revisão (REV 2, REV 3, REV 4...):
+            //    O operador está editando a arte em Preparação. NUNCA mover automaticamente!
+            // 2. Se a O.S. está PARALISADA ou AGUARDANDO NOVO ARQUIVO:
+            //    NUNCA mover automaticamente.
+            // 3. Se a O.S. já foi LIBERADA / ARQUIVADA:
+            //    NUNCA mover automaticamente.
+            // 4. Se a O.S. está em PRODUZINDO PROVA:
+            //    NUNCA mover automaticamente.
+            //
+            // APENAS move automaticamente no fluxo inicial de primeira versão (REV 1):
+            // quando a O.S. estiver em 'fila_de_entrada' ou 'preparando_arquivo' inicial.
+            const isInitialPreparationOrEntry =
+              currentRev <= 1 &&
+              (currentStatus === "fila_de_entrada" || currentStatus === "preparando_arquivo");
 
-            if (!isEmailOlderThanOrderUpdate || !isReturnOrStopped) {
+            if (isInitialPreparationOrEntry) {
               const { error: moveError } = await supabase
                 .from("orders")
                 .update({
                   status: "aguardando_aprovacao",
-                  setor_status: "aguardando_aprovacao",
+                  setor_status: null,
+                  setor: null,
                   updated_at: new Date().toISOString(),
                 })
                 .eq("id", matchedOrderId)
@@ -417,7 +428,7 @@ export async function runEmailSync(): Promise<SyncResult> {
                 await triggerSellerApprovalNotification(matchedOrderId);
               }
             } else {
-              console.info(`[EmailSync] O.S. #${matchedOs} mantida em ${currentOrd?.status} (e-mail enviado antes da última atualização/revisão).`);
+              console.info(`[EmailSync] O.S. #${matchedOs} mantida em ${currentStatus} (proteção de fluxo: REV${currentRev}).`);
             }
           } else {
             // 2. RESPOSTAS DOS CLIENTES:

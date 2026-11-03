@@ -539,9 +539,16 @@ export function useOrders() {
       p_status: newStatus as string,
     });
 
-    if (currentOrder.setor === "desenvolvimento") {
-      void supabase.from("orders").update({ setor: null, setor_status: null }).eq("id", id);
-    }
+    // No Kanban de Pré-Impressão, garante que a O.S. movida tenha seu setor/setor_status desvinculados
+    // e seu updated_at atualizado, evitando que fique presa em estados legados
+    void supabase
+      .from("orders")
+      .update({
+        setor: null,
+        setor_status: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", id);
     if (effectiveRevisao !== getOrderRevision(currentOrder)) {
       void updateOrder(id, { revisao: effectiveRevisao, observacao: effectiveObservacao });
     }
