@@ -84,7 +84,7 @@ export async function runEmailSync(): Promise<SyncResult> {
     supabase.auth.getUser().catch(() => ({ data: { user: null }, error: null })),
     supabase
       .from("orders")
-      .select("id, titulo, criado_por, status, setor, setor_status")
+      .select("id, titulo, criado_por, status, setor, setor_status, updated_at, created_at, revisao" as any)
       .neq("status", "arquivado"),
     supabase
       .from("order_email_events")
@@ -117,7 +117,17 @@ export async function runEmailSync(): Promise<SyncResult> {
   // Mapeamento: numero_os (titulo normalizado) -> order_id & autor & status
   const osToOrderId = new Map<string, string>();
   const orderAuthorMap = new Map<string, string>();
-  const orderStatusMap = new Map<string, { status: string; setor: string | null; setor_status: string | null }>();
+  const orderStatusMap = new Map<
+    string,
+    {
+      status: string;
+      setor: string | null;
+      setor_status: string | null;
+      updated_at?: string | null;
+      created_at?: string | null;
+      revisao?: number | null;
+    }
+  >();
   const activeOsNumbers = new Set<string>();
 
   for (const ord of activeOrders) {
@@ -158,6 +168,9 @@ export async function runEmailSync(): Promise<SyncResult> {
         status: (ord as any).status || "fila_de_entrada",
         setor: (ord as any).setor || null,
         setor_status: (ord as any).setor_status || null,
+        updated_at: (ord as any).updated_at || null,
+        created_at: (ord as any).created_at || null,
+        revisao: (ord as any).revisao || 1,
       });
 
       if (ord.criado_por) {
@@ -317,23 +330,6 @@ export async function runEmailSync(): Promise<SyncResult> {
 
         // Prevenção de duplicatas por message_id
         if (existingMessageIds.has(msg.id)) {
-          // Se o e-mail está na pasta sentitems mas a ordem ainda não foi movida,
-          // move para aguardando_aprovacao e dispara aviso ao vendedor
-          if (effectiveDirection === "enviado") {
-            const { error: moveErr } = await supabase
-              .from("orders")
-              .update({
-                status: "aguardando_aprovacao",
-                setor_status: "aguardando_aprovacao",
-                updated_at: new Date().toISOString(),
-              })
-              .eq("id", matchedOrderId)
-              .neq("status", "arquivo_liberado");
-
-            if (!moveErr) {
-              void triggerSellerApprovalNotification(matchedOrderId);
-            }
-          }
           continue;
         }
 
@@ -349,17 +345,6 @@ export async function runEmailSync(): Promise<SyncResult> {
         const eventFingerprint = `${matchedOrderId}|${effectiveDirection === "recebido" ? "resp" : "env"}|${normSub}|${normBody}|${timeMin}`;
 
         if (existingFingerprints.has(eventFingerprint) || processedEventKeys.has(eventFingerprint)) {
-          if (effectiveDirection === "enviado") {
-            await supabase
-              .from("orders")
-              .update({
-                status: "aguardando_aprovacao",
-                setor_status: "aguardando_aprovacao",
-                updated_at: new Date().toISOString(),
-              })
-              .eq("id", matchedOrderId)
-              .neq("status", "arquivo_liberado");
-          }
           continue;
         }
         processedEventKeys.add(eventFingerprint);
@@ -400,22 +385,39 @@ export async function runEmailSync(): Promise<SyncResult> {
           if (effectiveDirection === "enviado") {
             // 1. ENVIO DE E-MAIL AO CLIENTE:
             // Move automaticamente o CARD da respectiva O.S. para "AGUARDANDO APROVAÇÃO"
-            const { error: moveError } = await supabase
-              .from("orders")
-              .update({
-                status: "aguardando_aprovacao",
-                setor_status: "aguardando_aprovacao",
-                updated_at: new Date().toISOString(),
-              })
-              .eq("id", matchedOrderId)
-              .neq("status", "arquivo_liberado");
+            // EXCETO se a ordem está em preparação com revisão >= 2 ou paralisada, e este e-mail
+            // for mais antigo que a última alteração feita pelo operador.
+            const currentOrd = orderStatusMap.get(matchedOrderId);
+            const orderUpdatedAt = currentOrd?.updated_at ? new Date(currentOrd.updated_at).getTime() : 0;
+            const emailSentAt = new Date(emailDatetime).getTime();
 
-            if (moveError) {
-              console.warn(`[EmailSync] Erro ao mover O.S. #${matchedOs} para aguardando_aprovacao:`, moveError.message);
+            const isEmailOlderThanOrderUpdate = orderUpdatedAt > 0 && emailSentAt < (orderUpdatedAt - 60000);
+            const isReturnOrStopped = currentOrd && (
+              currentOrd.status === "paralisado" ||
+              currentOrd.status === "aguardando_novo_arquivo" ||
+              (currentOrd.status === "preparando_arquivo" && ((currentOrd.revisao || 1) >= 2))
+            );
+
+            if (!isEmailOlderThanOrderUpdate || !isReturnOrStopped) {
+              const { error: moveError } = await supabase
+                .from("orders")
+                .update({
+                  status: "aguardando_aprovacao",
+                  setor_status: "aguardando_aprovacao",
+                  updated_at: new Date().toISOString(),
+                })
+                .eq("id", matchedOrderId)
+                .neq("status", "arquivo_liberado");
+
+              if (moveError) {
+                console.warn(`[EmailSync] Erro ao mover O.S. #${matchedOs} para aguardando_aprovacao:`, moveError.message);
+              } else {
+                console.info(`[EmailSync] O.S. #${matchedOs} movida automaticamente para AGUARDANDO APROVAÇÃO`);
+                // Dispara notificação por e-mail ao vendedor responsável
+                await triggerSellerApprovalNotification(matchedOrderId);
+              }
             } else {
-              console.info(`[EmailSync] O.S. #${matchedOs} movida automaticamente para AGUARDANDO APROVAÇÃO`);
-              // Dispara notificação por e-mail ao vendedor responsável
-              await triggerSellerApprovalNotification(matchedOrderId);
+              console.info(`[EmailSync] O.S. #${matchedOs} mantida em ${currentOrd?.status} (e-mail enviado antes da última atualização/revisão).`);
             }
           } else {
             // 2. RESPOSTAS DOS CLIENTES:

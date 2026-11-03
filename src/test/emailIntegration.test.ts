@@ -503,4 +503,88 @@ describe("emailIntegration - Ciclos de Sincronização e Validação do Outlook"
       })
     );
   });
+
+  it("9. O.S. retornada para Preparação (REV 2): e-mail enviado anteriormente não deve mover o card de volta para aguardando aprovação", async () => {
+    // Configura O.S. em preparação com REV 2 e updated_at recente (10:00)
+    const orderRev2 = {
+      id: "order-uuid-73210",
+      titulo: "73210",
+      status: "preparando_arquivo",
+      revisao: 2,
+      updated_at: "2026-10-20T10:00:00Z",
+    };
+
+    // E-mail que já existe no banco (enviado às 09:00, na Rev 1)
+    mockExistingEvents = [
+      {
+        message_id: "msg-sent-rev1",
+        conversation_id: "conv-thread-100",
+        order_id: "order-uuid-73210",
+        os_number: "73210",
+      },
+    ];
+
+    const oldSentEmail: GraphMessage = {
+      id: "msg-sent-rev1",
+      subject: "Envio de Prova Digital - OS 73210",
+      bodyPreview: "Prezado cliente, segue layout...",
+      from: { emailAddress: { name: "Pré-Impressão", address: "preimpressao@primacorgrafica.com.br" } },
+      toRecipients: [{ emailAddress: { name: "Cliente Alpha", address: "cliente@alpha.com.br" } }],
+      sentDateTime: "2026-10-20T09:00:00Z",
+      conversationId: "conv-thread-100",
+    };
+
+    vi.mocked(outlookService.fetchMailboxMessages).mockImplementation(
+      async (_mailbox, folder) => {
+        if (folder === "sentitems") {
+          return [oldSentEmail];
+        }
+        return [];
+      }
+    );
+
+    const result = await runEmailSync();
+
+    // Mensagem duplicada deve ser ignorada e NENHUMA ordem deve ser movida para aguardando_aprovacao
+    expect(result.newEvents).toBe(0);
+    expect(mockUpdatedOrders.filter((o) => o.id === "order-uuid-73210")).toHaveLength(0);
+  });
+
+  it("10. O.S. em Preparação (REV 2): NOVO e-mail enviado após a revisão deve mover o card para aguardando aprovação", async () => {
+    // Novo e-mail enviado às 10:30 (posterior ao retorno para preparação)
+    const newSentEmailRev2: GraphMessage = {
+      id: "msg-sent-rev2",
+      subject: "Envio de Prova Digital REV 2 - OS 73210",
+      bodyPreview: "Segue nova prova com as alterações solicitadas para a OS 73210.",
+      from: { emailAddress: { name: "Pré-Impressão", address: "preimpressao@primacorgrafica.com.br" } },
+      toRecipients: [{ emailAddress: { name: "Cliente Alpha", address: "cliente@alpha.com.br" } }],
+      sentDateTime: "2026-10-20T10:30:00Z",
+      conversationId: "conv-thread-100",
+    };
+
+    vi.mocked(outlookService.fetchMailboxMessages).mockImplementation(
+      async (_mailbox, folder) => {
+        if (folder === "sentitems") {
+          return [newSentEmailRev2];
+        }
+        return [];
+      }
+    );
+
+    const result = await runEmailSync();
+
+    expect(result.newEvents).toBe(1);
+    expect(mockInsertedEvents[0]).toMatchObject({
+      order_id: "order-uuid-73210",
+      os_number: "73210",
+      message_id: "msg-sent-rev2",
+    });
+
+    expect(mockUpdatedOrders).toContainEqual(
+      expect.objectContaining({
+        id: "order-uuid-73210",
+        status: "aguardando_aprovacao",
+      })
+    );
+  });
 });
