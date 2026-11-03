@@ -66,6 +66,7 @@ import {
   getSharePointAccessToken,
   type StoredMicrosoftUser,
 } from "@/lib/msalClient";
+import { getEffectiveOsAnterior } from "@/lib/orderAnterior";
 
 function toLocalDatetimeString(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -248,12 +249,13 @@ export function CreateOrderDialog({
       obs_prova = "";
     }
 
+    const effectiveOsAnt = getEffectiveOsAnterior(order);
     return {
       titulo: order.titulo || "",
       descricao: order.descricao || "",
       cliente: order.cliente || "",
-      tipo_trabalho: order.tipo_trabalho || "novo",
-      os_anterior: order.os_anterior || "",
+      tipo_trabalho: order.tipo_trabalho || (effectiveOsAnt ? "repeticao" : "novo"),
+      os_anterior: effectiveOsAnt || order.os_anterior || "",
       revisao: typeof order.revisao === "number" ? order.revisao : getOrderRevision(order),
       observacao: order.observacao || "",
       obs_prova,
@@ -395,6 +397,15 @@ export function CreateOrderDialog({
   const handleBack = () => {
     if (step === 3) setStep(2);
     else if (step === 2) setStep(1);
+  };
+
+  const handleQuickSave = async () => {
+    if (!validateStep1()) return;
+    if (!validateStep2()) {
+      setStep(2);
+      return;
+    }
+    await handleSubmit();
   };
 
   const handleSubmit = async (e?: React.FormEvent) => {
@@ -1058,14 +1069,19 @@ export function CreateOrderDialog({
               {/* Campo N.º O.S ANTERIOR (quando for Repetição) */}
               {form.tipo_trabalho === "repeticao" && (
                 <div className="p-3.5 rounded-xl border border-amber-500/40 bg-amber-500/5 dark:bg-amber-950/20 space-y-1.5 animate-in fade-in-50 duration-200">
-                  <Label
-                    htmlFor="os_anterior"
-                    className="text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5 uppercase tracking-wide"
-                  >
-                    <Hash className="h-3.5 w-3.5 text-amber-500" />
-                    <span>N.º O.S ANTERIOR</span>
-                    <span className="text-rose-500">*</span>
-                  </Label>
+                  <div className="flex items-center justify-between">
+                    <Label
+                      htmlFor="os_anterior"
+                      className="text-xs font-bold text-amber-700 dark:text-amber-400 flex items-center gap-1.5 uppercase tracking-wide"
+                    >
+                      <Hash className="h-3.5 w-3.5 text-amber-500" />
+                      <span>N.º O.S ANTERIOR</span>
+                      <span className="text-rose-500">*</span>
+                    </Label>
+                    <span className="text-[11px] font-mono-tech text-amber-600 dark:text-amber-400 font-semibold">
+                      Qualquer número de O.S.
+                    </span>
+                  </div>
                   <Input
                     id="os_anterior"
                     value={form.os_anterior}
@@ -1099,11 +1115,11 @@ export function CreateOrderDialog({
                     }}
                     inputMode="numeric"
                     pattern="[0-9]*"
-                    placeholder="Digite o número da O.S. anterior (Ex: 69387)"
+                    placeholder="Digite qualquer número da O.S. anterior (Ex: 69950)"
                     className="h-10 bg-background border-amber-500/40 text-foreground placeholder:text-muted-foreground focus:border-amber-500 focus:ring-1 focus:ring-amber-500/40 rounded-xl font-mono-tech text-sm font-bold tracking-wider"
                   />
                   <p className="text-[11px] text-muted-foreground">
-                    Informe o número da O.S. anterior para referência da pré-impressão e produção.
+                    Informe qualquer número de O.S. anterior desejado. Não precisa constar previamente no Kanban.
                   </p>
                 </div>
               )}
@@ -1726,6 +1742,22 @@ export function CreateOrderDialog({
           </div>
 
           <div className="flex items-center gap-2.5">
+            {isEdit && step < 3 && (
+              <Button
+                type="button"
+                disabled={isChecking || isSubmitting}
+                onClick={handleQuickSave}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-xl h-10 px-4 gap-1.5 shadow-md transition-all"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-white" />
+                ) : (
+                  <Check className="h-4 w-4" />
+                )}
+                <span>Salvar Alterações</span>
+              </Button>
+            )}
+
             {step < 3 ? (
               <Button
                 type="button"

@@ -1,4 +1,5 @@
 import { getOrderRevision } from "@/lib/orderRevision";
+import { getEffectiveOsAnterior } from "@/lib/orderAnterior";
 import { useState, useEffect, memo } from "react";
 import { getProcessoCor, sortAndFilterProcessos, SPECIAL_SUPPLIES, isSpecialSupplyActive, isSpecialSupplySent, toggleSpecialSupplySent, getSpecialSupplyDetails, getSpecialSupplyBadgeClasses, formatSafeDate } from "@/lib/processos";
 import { Order } from "@/types/order";
@@ -8,7 +9,7 @@ import { ptBR } from "date-fns/locale";
 import { businessHoursMs } from "@/lib/businessHours";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeApprovalEntry } from "@/lib/approvalEntryCache";
-import { RotateCcw, Calendar, User, FileText, Archive, Trash2, ChevronRight, ChevronLeft, GripVertical, UserCheck, Clock, AlertTriangle, Send, Undo2, Briefcase, Truck, Edit2, Check, Mail, HardHat, CheckCircle, ArrowUp, ArrowDown } from "lucide-react";
+import { RotateCcw, Calendar, User, FileText, Archive, Trash2, ChevronRight, ChevronLeft, GripVertical, UserCheck, Clock, AlertTriangle, Send, Undo2, Briefcase, Truck, Edit2, Check, Mail, HardHat, CheckCircle, ArrowUp, ArrowDown, Repeat } from "lucide-react";
 import { toast } from "sonner";
 import { OrderEmailEventsSection } from "@/components/email/OrderEmailEventsSection";
 import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
@@ -664,15 +665,27 @@ function ProductionCardImpl({
                 <span>REV{getOrderRevision(order)}</span>
               </span>
             )}
-            {(order.tipo_trabalho === "repeticao" || order.os_anterior) && (
-              <span
-                className="font-mono-tech text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shrink-0 flex items-center gap-1"
-                title={order.os_anterior ? `Repetição da O.S. Anterior: ${order.os_anterior}` : "Repetição"}
-              >
-                <span>REP</span>
-                {order.os_anterior && <span className="opacity-90">{cleanOsNumber(order.os_anterior) || order.os_anterior.replace(/^#+/, "")}</span>}
-              </span>
-            )}
+            {(() => {
+              const effectiveOsAnt = getEffectiveOsAnterior(order);
+              const isRep = order.tipo_trabalho === "repeticao" || !!effectiveOsAnt;
+              if (!isRep) return null;
+              return (
+                <span
+                  className="font-mono-tech text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 shrink-0 flex items-center gap-1 shadow-xs"
+                  title={effectiveOsAnt ? `Repetição da O.S. Anterior: #${effectiveOsAnt}` : "Repetição de O.S."}
+                >
+                  <Repeat className="h-2.5 w-2.5 text-amber-500 shrink-0" />
+                  <span>REP</span>
+                  {effectiveOsAnt ? (
+                    <span className="font-bold tracking-wider text-amber-700 dark:text-amber-300">
+                      {effectiveOsAnt}
+                    </span>
+                  ) : (
+                    <span className="opacity-75">(S/ Nº)</span>
+                  )}
+                </span>
+              );
+            })()}
             {/* Cartinha de aviso de resposta de e-mail */}
             {isEmailUnread ? (
               <span

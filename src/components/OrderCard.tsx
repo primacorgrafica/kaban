@@ -1,4 +1,5 @@
 import { getOrderRevision, cleanObservationRevision } from "@/lib/orderRevision";
+import { getEffectiveOsAnterior } from "@/lib/orderAnterior";
 import { useState, useEffect, useMemo, memo } from "react";
 import { Order, OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
 import { DEPARTMENTS, Department } from "@/types/production";
@@ -464,15 +465,27 @@ function OrderCardImpl({ order, orderIndex, totalOrders, onUpdate, onMove, onArc
                 <span>REV{currentRevision}</span>
               </span>
             )}
-            {(order.tipo_trabalho === "repeticao" || order.os_anterior) && (
-              <span
-                className="font-mono-tech text-[9px] font-bold px-1 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 shrink-0 flex items-center gap-0.5"
-                title={order.os_anterior ? `Repetição da O.S. Anterior: ${order.os_anterior}` : "Repetição"}
-              >
-                <span>REP</span>
-                {order.os_anterior && <span className="opacity-90">{cleanOsNumber(order.os_anterior) || order.os_anterior.replace(/^#+/, "")}</span>}
-              </span>
-            )}
+            {(() => {
+              const effectiveOsAnt = getEffectiveOsAnterior(order);
+              const isRep = order.tipo_trabalho === "repeticao" || !!effectiveOsAnt;
+              if (!isRep) return null;
+              return (
+                <span
+                  className="font-mono-tech text-[9.5px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 shrink-0 flex items-center gap-1 shadow-xs"
+                  title={effectiveOsAnt ? `Repetição da O.S. Anterior: #${effectiveOsAnt}` : "Repetição de O.S."}
+                >
+                  <Repeat className="h-2.5 w-2.5 text-amber-500 shrink-0" />
+                  <span>REP</span>
+                  {effectiveOsAnt ? (
+                    <span className="font-bold tracking-wider text-amber-700 dark:text-amber-300">
+                      {effectiveOsAnt}
+                    </span>
+                  ) : (
+                    <span className="opacity-75">(S/ Nº)</span>
+                  )}
+                </span>
+              );
+            })()}
 
             {/* Cartinha de aviso de resposta de e-mail */}
             {isEmailUnread ? (
@@ -950,12 +963,17 @@ function OrderCardImpl({ order, orderIndex, totalOrders, onUpdate, onMove, onArc
                       <span>REV{currentRevision}</span>
                     </Badge>
                   )}
-                  {(order.tipo_trabalho === "repeticao" || order.os_anterior) && (
-                    <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40 text-[11px] font-bold flex items-center gap-1">
-                      <Repeat className="h-3 w-3" />
-                      <span>REPETIÇÃO {order.os_anterior ? `(ANT: ${cleanOsNumber(order.os_anterior) || order.os_anterior.replace(/^#+/, "")})` : ""}</span>
-                    </Badge>
-                  )}
+                  {(() => {
+                    const effectiveOsAnt = getEffectiveOsAnterior(order);
+                    const isRep = order.tipo_trabalho === "repeticao" || !!effectiveOsAnt;
+                    if (!isRep) return null;
+                    return (
+                      <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/40 text-[11px] font-bold flex items-center gap-1">
+                        <Repeat className="h-3 w-3 text-amber-500" />
+                        <span>REPETIÇÃO {effectiveOsAnt ? `(O.S. ANT: #${effectiveOsAnt})` : ""}</span>
+                      </Badge>
+                    );
+                  })()}
                   <Badge
                     style={{
                       backgroundColor: `hsl(var(--status-${config.colorKey}-bg))`,
@@ -1040,20 +1058,25 @@ function OrderCardImpl({ order, orderIndex, totalOrders, onUpdate, onMove, onArc
                         </div>
                       </div>
                     )}
-                    {(order.tipo_trabalho === "repeticao" || order.os_anterior) && (
-                      <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 font-bold text-xs">
-                          <Repeat className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-                          <span>REPETIÇÃO</span>
+                    {(() => {
+                      const effectiveOsAnt = getEffectiveOsAnterior(order);
+                      const isRep = order.tipo_trabalho === "repeticao" || !!effectiveOsAnt;
+                      if (!isRep) return null;
+                      return (
+                        <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-300 flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5 font-bold text-xs">
+                            <Repeat className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                            <span>REPETIÇÃO</span>
+                          </div>
+                          <div className="text-xs">
+                            <span className="text-muted-foreground mr-1">N.º O.S ANTERIOR:</span>
+                            <span className="font-mono-tech font-bold text-amber-700 dark:text-amber-300 text-sm">
+                              {effectiveOsAnt ? `#${effectiveOsAnt}` : "—"}
+                            </span>
+                          </div>
                         </div>
-                        <div className="text-xs">
-                          <span className="text-muted-foreground mr-1">N.º O.S ANTERIOR:</span>
-                          <span className="font-mono-tech font-bold text-foreground text-sm">
-                            {order.os_anterior ? (cleanOsNumber(order.os_anterior) || order.os_anterior.replace(/^#+/, "")) : "—"}
-                          </span>
-                        </div>
-                      </div>
-                    )}
+                      );
+                    })()}
                     {cleanObservationRevision(order.observacao) && (
                       <div className="pt-1.5 border-t border-border/60">
                         <p className="text-[10px] text-muted-foreground uppercase font-medium">Observações</p>

@@ -1,4 +1,5 @@
 import { getOrderRevision, setObservationRevision, isReturnToPreparation } from "@/lib/orderRevision";
+import { getEffectiveOsAnterior, cleanObservationOsAnterior, setObservationOsAnterior } from "@/lib/orderAnterior";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -60,7 +61,15 @@ export function useOrders() {
         }
 
         const rows = (data as Order[]) || [];
-        all.push(...rows.map((r) => ({ ...r, revisao: getOrderRevision(r) })));
+        all.push(...rows.map((r) => {
+          const effectiveOsAnt = getEffectiveOsAnterior(r);
+          return {
+            ...r,
+            os_anterior: effectiveOsAnt || r.os_anterior || null,
+            tipo_trabalho: effectiveOsAnt && (!r.tipo_trabalho || r.tipo_trabalho === "novo") ? "repeticao" : (r.tipo_trabalho || "novo"),
+            revisao: getOrderRevision(r),
+          };
+        }));
         if (rows.length < PAGE_SIZE) break;
         from += PAGE_SIZE;
       }
@@ -88,7 +97,13 @@ export function useOrders() {
       return;
     }
     if (!newRow?.id) return;
-    const normalizedRow: Order = { ...newRow, revisao: getOrderRevision(newRow) };
+    const effectiveOsAnt = getEffectiveOsAnterior(newRow);
+    const normalizedRow: Order = {
+      ...newRow,
+      os_anterior: effectiveOsAnt || newRow.os_anterior || null,
+      tipo_trabalho: effectiveOsAnt && (!newRow.tipo_trabalho || newRow.tipo_trabalho === "novo") ? "repeticao" : (newRow.tipo_trabalho || "novo"),
+      revisao: getOrderRevision(newRow),
+    };
 
     if (oldRow?.status !== newRow.status) {
       invalidateApprovalEntry(newRow.id);
@@ -156,6 +171,7 @@ export function useOrders() {
     prazo: o.prazo,
     vendedor: o.vendedor,
     tipo_trabalho: o.tipo_trabalho,
+    os_anterior: o.os_anterior || getEffectiveOsAnterior(o) || null,
     revisao: o.revisao,
     equipamentos: o.equipamentos,
     acabamentos: o.acabamentos,
@@ -270,11 +286,19 @@ export function useOrders() {
             return maxData && maxData.length > 0 ? (maxData[0] as any).posicao + 1 : 0;
           })();
 
+      const cleanOsAnt = data.tipo_trabalho === "repeticao" && data.os_anterior
+        ? data.os_anterior.replace(/\D/g, "")
+        : null;
+
+      const initialObs = cleanOsAnt
+        ? setObservationOsAnterior(data.observacao || null, cleanOsAnt)
+        : (data.observacao || null);
+
       const insertPayload: any = {
         titulo: data.titulo,
         descricao: data.descricao,
         cliente: data.cliente ? data.cliente.trim().toUpperCase() : data.cliente,
-        observacao: data.observacao || null,
+        observacao: initialObs,
         obs_prova: data.obs_prova || null,
         saida_direta: data.saida_direta || false,
         prova_digital: data.prova_digital || false,
@@ -296,8 +320,8 @@ export function useOrders() {
         setor: sendToSetor,
         setor_status: sendToSetor ? "entrada" : null,
         vendedor: data.vendedor || null,
-        tipo_trabalho: data.tipo_trabalho || null,
-        os_anterior: data.os_anterior || null,
+        tipo_trabalho: data.tipo_trabalho || (cleanOsAnt ? "repeticao" : null),
+        os_anterior: cleanOsAnt || null,
         equipamentos: data.equipamentos || [],
         acabamentos: data.acabamentos || [],
         processos: data.processos || [],
@@ -320,9 +344,8 @@ export function useOrders() {
 
       if (error && (error.message?.includes("os_anterior") || error.details?.includes("os_anterior") || (error as any).code === "PGRST204" || (error as any).code === "42703")) {
         delete insertPayload.os_anterior;
-        if (data.os_anterior) {
-          const prefix = `[N.º O.S ANTERIOR: ${data.os_anterior}]`;
-          insertPayload.observacao = insertPayload.observacao ? `${prefix} ${insertPayload.observacao}` : prefix;
+        if (cleanOsAnt) {
+          insertPayload.observacao = setObservationOsAnterior(insertPayload.observacao, cleanOsAnt);
         }
         const retry = await supabase.from("orders").insert(insertPayload as any).select().single();
         created = retry.data;
@@ -412,12 +435,63 @@ export function useOrders() {
       if (updatePayload.cliente && typeof updatePayload.cliente === "string") {
         updatePayload.cliente = updatePayload.cliente.trim().toUpperCase();
       }
+
+      const currentOrder = orders.find(o => o.id === id);
+
+      // Tratamento resiliente de O.S. Anterior e Repetição
+      if (data.tipo_trabalho === "repeticao" || data.os_anterior !== undefined) {
+        const rawAnt = data.os_anterior !== undefined ? data.os_anterior : currentOrder?.os_anterior;
+        const cleanAnt = rawAnt ? String(rawAnt).replace(/\D/g, "") : "";
+        if (cleanAnt) {
+          updatePayload.os_anterior = cleanAnt;
+          updatePayload.tipo_trabalho = "repeticao";
+          const targetObs = updatePayload.observacao !== undefined ? updatePayload.observacao : (currentOrder?.observacao || "");
+          updatePayload.observacao = setObservationOsAnterior(targetObs, cleanAnt);
+        } else if (data.tipo_trabalho === "novo") {
+          updatePayload.os_anterior = null;
+          updatePayload.tipo_trabalho = "novo";
+          const targetObs = updatePayload.observacao !== undefined ? updatePayload.observacao : (currentOrder?.observacao || "");
+          updatePayload.observacao = cleanObservationOsAnterior(targetObs);
+        }
+      } else if (data.tipo_trabalho === "novo") {
+        updatePayload.os_anterior = null;
+        updatePayload.tipo_trabalho = "novo";
+        const targetObs = updatePayload.observacao !== undefined ? updatePayload.observacao : (currentOrder?.observacao || "");
+        updatePayload.observacao = cleanObservationOsAnterior(targetObs);
+      }
+
       if (data.revisao !== undefined) {
-        const currentOrder = orders.find(o => o.id === id);
-        const targetObs = data.observacao !== undefined ? data.observacao : currentOrder?.observacao;
+        const targetObs = updatePayload.observacao !== undefined ? updatePayload.observacao : currentOrder?.observacao;
         updatePayload.observacao = setObservationRevision(targetObs, data.revisao ?? 0);
       }
-      setOrders(prev => prev.map(o => o.id === id ? { ...o, ...data, ...(updatePayload.observacao !== undefined ? { observacao: updatePayload.observacao } : {}) } : o));
+
+      setOrders(prev => prev.map(o => {
+        const isTarget = o.id === id || (currentOrder?.parent_order_id && o.parent_order_id === currentOrder.parent_order_id) || o.parent_order_id === id;
+        if (isTarget) {
+          return {
+            ...o,
+            ...data,
+            ...(updatePayload.os_anterior !== undefined ? { os_anterior: updatePayload.os_anterior } : {}),
+            ...(updatePayload.tipo_trabalho !== undefined ? { tipo_trabalho: updatePayload.tipo_trabalho } : {}),
+            ...(updatePayload.observacao !== undefined ? { observacao: updatePayload.observacao } : {}),
+          };
+        }
+        return o;
+      }));
+
+      // Propaga tipo_trabalho e os_anterior para eventuais ordens-filhas / irmãs nos setores
+      const familyParentId = currentOrder?.parent_order_id || (orders.some(o => o.parent_order_id === id) ? id : null);
+      if (familyParentId && (updatePayload.os_anterior !== undefined || updatePayload.tipo_trabalho !== undefined)) {
+        const familyPayload: any = {
+          tipo_trabalho: updatePayload.tipo_trabalho,
+          os_anterior: updatePayload.os_anterior,
+          atualizado_por: user?.id || null,
+        };
+        if (updatePayload.observacao !== undefined) {
+          familyPayload.observacao = updatePayload.observacao;
+        }
+        void supabase.from("orders").update(familyPayload).or(`id.eq.${familyParentId},parent_order_id.eq.${familyParentId}`);
+      }
 
       let { error } = await supabase.from("orders").update(updatePayload as any).eq("id", id);
       if (error && (error.message?.includes("os_anterior") || error.details?.includes("os_anterior") || (error as any).code === "PGRST204" || (error as any).code === "42703")) {
@@ -833,6 +907,7 @@ export function useOrders() {
     return (
       o.titulo.toLowerCase().includes(q) ||
       o.cliente.toLowerCase().includes(q) ||
+      (o.os_anterior && o.os_anterior.toLowerCase().includes(q)) ||
       (o.observacao && o.observacao.toLowerCase().includes(q)) ||
       (o.vendedor && o.vendedor.toLowerCase().includes(q)) ||
       (o.descricao && o.descricao.toLowerCase().includes(q))

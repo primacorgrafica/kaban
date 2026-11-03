@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { hasSpecialSuppliesForCompras } from "@/lib/processos";
 import { syncOrderToCompras } from "@/lib/comprasSync";
+import { setObservationOsAnterior } from "@/lib/orderAnterior";
 
 export function useAddOrder() {
   const { user } = useAuth();
@@ -75,11 +76,19 @@ export function useAddOrder() {
 
       const targetStatus = data.status_destino || "fila_de_entrada";
 
+      const cleanOsAnt = data.tipo_trabalho === "repeticao" && data.os_anterior
+        ? data.os_anterior.replace(/\D/g, "")
+        : null;
+
+      const initialObs = cleanOsAnt
+        ? setObservationOsAnterior(data.observacao || null, cleanOsAnt)
+        : (data.observacao || null);
+
       const insertPayload: any = {
         titulo: data.titulo,
         descricao: data.descricao,
         cliente: data.cliente,
-        observacao: data.observacao || null,
+        observacao: initialObs,
         obs_prova: data.obs_prova || null,
         saida_direta: data.saida_direta || false,
         prova_digital: data.prova_digital || false,
@@ -102,8 +111,8 @@ export function useAddOrder() {
         setor: sendToSetor,
         setor_status: sendToSetor ? "entrada" : null,
         vendedor: data.vendedor || null,
-        tipo_trabalho: data.tipo_trabalho || null,
-        os_anterior: data.os_anterior || null,
+        tipo_trabalho: data.tipo_trabalho || (cleanOsAnt ? "repeticao" : null),
+        os_anterior: cleanOsAnt || null,
         equipamentos: data.equipamentos || [],
         acabamentos: data.acabamentos || [],
         processos: data.processos || [],
@@ -126,9 +135,8 @@ export function useAddOrder() {
 
       if (error && (error.message?.includes("os_anterior") || error.details?.includes("os_anterior") || (error as any).code === "PGRST204" || (error as any).code === "42703")) {
         delete insertPayload.os_anterior;
-        if (data.os_anterior) {
-          const prefix = `[N.º O.S ANTERIOR: ${data.os_anterior}]`;
-          insertPayload.observacao = insertPayload.observacao ? `${prefix} ${insertPayload.observacao}` : prefix;
+        if (cleanOsAnt) {
+          insertPayload.observacao = setObservationOsAnterior(insertPayload.observacao, cleanOsAnt);
         }
         const retry = await supabase.from("orders").insert(insertPayload as any).select().single();
         created = retry.data;

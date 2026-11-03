@@ -1,4 +1,5 @@
 import { getOrderRevision } from "@/lib/orderRevision";
+import { getEffectiveOsAnterior } from "@/lib/orderAnterior";
 import { useState, useMemo } from "react";
 import { Order, OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
 import { Department, DepartmentConfig, DEPARTMENTS } from "@/types/production";
@@ -38,7 +39,8 @@ import { RotateCcw, Clock,
   Layers,
   Sparkles,
   ChevronRight,
-  Filter, } from "lucide-react";
+  Filter,
+  Repeat, } from "lucide-react";
 import { toast } from "sonner";
 import { OrderDetailDialog } from "./OrderDetailDialog";
 import { getProcessoCor, sortAndFilterProcessos } from "@/lib/processos";
@@ -371,14 +373,20 @@ export function ProductionTable({
                         <span className="px-1.5 py-0.5 rounded bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/60 text-[11px]">
                           {cleanOsNumber(order.titulo) || order.titulo?.replace(/^#+/, "")}
                         </span>
-                        {(order.tipo_trabalho === "repeticao" || order.os_anterior) && (
-                          <span
-                            className="px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30 text-[10px] font-bold"
-                            title={order.os_anterior ? `Repetição da O.S. Anterior: ${order.os_anterior}` : "Repetição"}
-                          >
-                            REP {order.os_anterior ? (cleanOsNumber(order.os_anterior) || order.os_anterior.replace(/^#+/, "")) : ""}
-                          </span>
-                        )}
+                        {(() => {
+                          const effectiveOsAnt = getEffectiveOsAnterior(order);
+                          const isRep = order.tipo_trabalho === "repeticao" || !!effectiveOsAnt;
+                          if (!isRep) return null;
+                          return (
+                            <span
+                              className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 text-[10px] font-bold flex items-center gap-1 shadow-xs"
+                              title={effectiveOsAnt ? `Repetição da O.S. Anterior: #${effectiveOsAnt}` : "Repetição de O.S."}
+                            >
+                              <Repeat className="h-2.5 w-2.5 text-amber-500 shrink-0" />
+                              <span>REP {effectiveOsAnt ? `#${effectiveOsAnt}` : ""}</span>
+                            </span>
+                          );
+                        })()}
                         {getOrderRevision(order) >= 1 && (
                           <span
                             className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 text-[10px] font-extrabold flex items-center gap-1 shadow-xs ml-1"

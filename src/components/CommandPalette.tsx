@@ -223,6 +223,11 @@ export function CommandPalette({
                     <span className="font-mono-tech font-bold text-xs text-primary shrink-0">
                       {cleanOsNumber(order.titulo) || order.titulo?.replace(/^#+/, "")}
                     </span>
+                    {order.os_anterior && (
+                      <span className="font-mono-tech text-[10px] font-bold px-1 py-0.2 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30 shrink-0">
+                        REP #{order.os_anterior}
+                      </span>
+                    )}
                     <span className="text-xs font-semibold text-foreground truncate max-w-[140px]">
                       {order.cliente}
                     </span>

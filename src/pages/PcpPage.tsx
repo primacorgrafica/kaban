@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import logoSidebar from "@/assets/logo-sidebar.png";
 import logoLight from "@/assets/logo.png";
+import { getEffectiveOsAnterior } from "@/lib/orderAnterior";
 
 interface LiberadaEntry {
   order_id: string;
@@ -25,6 +26,7 @@ interface LiberadaEntry {
   vendedor: string | null;
   chegou_em: string;
   urgente?: boolean;
+  os_anterior?: string | null;
 }
 
 interface EmitidaEntry {
@@ -35,6 +37,7 @@ interface EmitidaEntry {
   vendedor: string | null;
   created_at: string;
   urgente?: boolean;
+  os_anterior?: string | null;
 }
 
 function isSameDay(a: Date, b: Date): boolean {
@@ -338,14 +341,21 @@ export default function PcpPage() {
 
     const { data: ordersData } = await supabase
       .from("orders")
-      .select("id, titulo, cliente, descricao, vendedor, status, setor, setor_status, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao")
+      .select("id, titulo, cliente, descricao, vendedor, status, setor, setor_status, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao")
       .in("id", Array.from(ids));
 
-    const map = new Map<string, { titulo: string; cliente: string; descricao: string; vendedor: string | null; urgente?: boolean }>();
+    const map = new Map<string, { titulo: string; cliente: string; descricao: string; vendedor: string | null; urgente?: boolean; os_anterior?: string | null }>();
     const stateMap = new Map<string, any>();
     (ordersData || []).forEach((o: any) => {
       const isUrg = !!(o.urgente || o.urgente_impressao || o.urgente_acabamento || o.urgente_expedicao);
-      map.set(o.id, { titulo: o.titulo, cliente: o.cliente, descricao: o.descricao, vendedor: o.vendedor, urgente: isUrg });
+      map.set(o.id, {
+        titulo: o.titulo,
+        cliente: o.cliente,
+        descricao: o.descricao,
+        vendedor: o.vendedor,
+        urgente: isUrg,
+        os_anterior: getEffectiveOsAnterior(o) || null,
+      });
       stateMap.set(o.id, o);
     });
 
@@ -425,7 +435,7 @@ export default function PcpPage() {
     since.setHours(0, 0, 0, 0);
     const { data } = await supabase
       .from("orders")
-      .select("id, titulo, cliente, descricao, vendedor, created_at, om_numero, oc_numero, nc_numero, setor, parent_order_id, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao")
+      .select("id, titulo, cliente, descricao, vendedor, created_at, om_numero, oc_numero, nc_numero, setor, parent_order_id, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao")
       .is("parent_order_id", null)
       .gte("created_at", since.toISOString())
       .order("created_at", { ascending: false });
@@ -441,7 +451,8 @@ export default function PcpPage() {
       descricao: o.descricao,
       vendedor: o.vendedor,
       created_at: o.created_at,
-      urgente: !!(o.urgente || o.urgente_impressao || o.urgente_acabamento || o.urgente_expedicao)
+      urgente: !!(o.urgente || o.urgente_impressao || o.urgente_acabamento || o.urgente_expedicao),
+      os_anterior: getEffectiveOsAnterior(o) || null,
     }));
 
     const byId = new Map<string, EmitidaEntry>();
@@ -879,6 +890,11 @@ export default function PcpPage() {
                       >
                         <td className="py-2 pl-3 font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap truncate">
                           {cleanOsTitle(e.titulo)}
+                          {e.os_anterior && (
+                            <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9.5px] bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center" title={`Repetição da O.S. Anterior: #${e.os_anterior}`}>
+                              REP #{e.os_anterior}
+                            </span>
+                          )}
                           {e.urgente && (
                             <span className="ml-1 text-[9px] text-rose-500 font-extrabold" title="Urgente">
                               🚨
@@ -951,6 +967,11 @@ export default function PcpPage() {
                       >
                         <td className="py-2 pl-3 font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap truncate">
                           {cleanOsTitle(e.titulo)}
+                          {e.os_anterior && (
+                            <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9.5px] bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center" title={`Repetição da O.S. Anterior: #${e.os_anterior}`}>
+                              REP #{e.os_anterior}
+                            </span>
+                          )}
                           {e.urgente && (
                             <span className="ml-1 text-[9px] text-rose-500 font-extrabold" title="Urgente">
                               🚨
@@ -1044,6 +1065,11 @@ export default function PcpPage() {
                         >
                           <td className="py-2 pl-3 font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap truncate">
                             {cleanOsTitle(e.titulo)}
+                            {e.os_anterior && (
+                              <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9.5px] bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center" title={`Repetição da O.S. Anterior: #${e.os_anterior}`}>
+                                REP #{e.os_anterior}
+                              </span>
+                            )}
                             {e.urgente && (
                               <span className="ml-1 text-[9px] text-rose-500 font-extrabold" title="Urgente">
                                 🚨
@@ -1122,6 +1148,11 @@ export default function PcpPage() {
                       >
                         <td className="py-2 pl-3 font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap truncate">
                           {cleanOsTitle(e.titulo)}
+                          {e.os_anterior && (
+                            <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9.5px] bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center" title={`Repetição da O.S. Anterior: #${e.os_anterior}`}>
+                              REP #{e.os_anterior}
+                            </span>
+                          )}
                           {e.urgente && (
                             <span className="ml-1 text-[9px] text-rose-500 font-extrabold" title="Urgente">
                               🚨
