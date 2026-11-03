@@ -8,7 +8,6 @@ import { fetchOsrmRoute } from "@/services/osrmService";
 import type { Entregador, OsrmRouteResult } from "@/types/delivery";
 import type { Order } from "@/types/order";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Radio, RefreshCw, AlertTriangle, ShieldCheck, MapPin } from "lucide-react";
 import { toast } from "sonner";
 
@@ -266,24 +265,9 @@ export function DeliveryMonitoringTab({
             <Radio className="h-5 w-5 animate-pulse" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-slate-100 flex items-center gap-2">
-              Monitoramento Operacional da Frota
-              <Badge
-                variant="outline"
-                className={`text-[10px] font-mono-tech px-2 py-0.5 uppercase ${
-                  realtimeStatus === "conectado"
-                    ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-400"
-                    : realtimeStatus === "reconectando"
-                    ? "border-amber-500/50 bg-amber-500/10 text-amber-400"
-                    : "border-rose-500/50 bg-rose-500/10 text-rose-400"
-                }`}
-              >
-                ● Realtime {realtimeStatus}
-              </Badge>
+            <h2 className="text-base font-bold text-slate-100 uppercase tracking-wide">
+              MONITORAMENTO
             </h2>
-            <p className="text-xs text-slate-400">
-              Rastreamento georreferenciado via OpenStreetMap (OSM) e cálculo viário OSRM em tempo real
-            </p>
           </div>
         </div>
 
