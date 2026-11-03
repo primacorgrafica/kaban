@@ -55,7 +55,7 @@ export function usePermissions() {
     canReorderEntry: true, // todos podem reordenar
     canArchive: level >= 3,
     canDelete: level >= 4,
-    canSendToProduction: level >= 3 || currentRole === "orcamentista",
+    canSendToProduction: level >= 2 || currentRole === "orcamentista" || currentRole === "operador",
 
     isOperador: currentRole === "operador",
     isViewOnly: false, // ninguém é somente visualização agora
