@@ -50,6 +50,7 @@ export const DIGITAL_DEPARTMENT: DepartmentConfig = {
   statuses: [
     { id: "entrada", label: "Entrada", colorKey: "entrada" },
     { id: "producao", label: "Produção", colorKey: "andamento" },
+    { id: "paralisado", label: "Paralisado", colorKey: "revisao" },
     { id: "saida", label: "Saída", colorKey: "concluido" },
   ],
 };

@@ -25,11 +25,11 @@ describe("CTP & Digital - Novos Menus e Colunas Kanban", () => {
     });
   });
 
-  it("deve conter a configuração do departamento DIGITAL com 3 colunas (ENTRADA, PRODUÇÃO e SAÍDA)", () => {
+  it("deve conter a configuração do departamento DIGITAL com 4 colunas (ENTRADA, PRODUÇÃO, PARALISADO e SAÍDA)", () => {
     expect(DIGITAL_DEPARTMENT).toBeDefined();
     expect(DIGITAL_DEPARTMENT.id).toBe("digital");
     expect(DIGITAL_DEPARTMENT.label).toBe("Digital");
-    expect(DIGITAL_DEPARTMENT.statuses).toHaveLength(3);
+    expect(DIGITAL_DEPARTMENT.statuses).toHaveLength(4);
     expect(DIGITAL_DEPARTMENT.statuses[0]).toEqual({
       id: "entrada",
       label: "Entrada",
@@ -41,6 +41,11 @@ describe("CTP & Digital - Novos Menus e Colunas Kanban", () => {
       colorKey: "andamento",
     });
     expect(DIGITAL_DEPARTMENT.statuses[2]).toEqual({
+      id: "paralisado",
+      label: "Paralisado",
+      colorKey: "revisao",
+    });
+    expect(DIGITAL_DEPARTMENT.statuses[3]).toEqual({
       id: "saida",
       label: "Saída",
       colorKey: "concluido",
