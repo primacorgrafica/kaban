@@ -6,6 +6,8 @@ export type DeliveryStatus =
   | "entregue"
   | "insucesso";
 
+export type EntregadorStatus = "disponivel" | "em_entrega" | "offline";
+
 export interface Entregador {
   id: string;
   user_id: string;
@@ -14,9 +16,30 @@ export interface Entregador {
   placa_veiculo: string | null;
   modelo_veiculo: string | null;
   ativo: boolean;
+  status?: EntregadorStatus;
+  latitude?: number | null;
+  longitude?: number | null;
+  precisao_metros?: number | null;
+  velocidade_kmh?: number | null;
+  bateria_percentual?: number | null;
+  ultima_atividade?: string | null;
   criado_por?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface NominatimResult {
+  place_id: number;
+  lat: string;
+  lon: string;
+  display_name: string;
+  importance?: number;
+}
+
+export interface OsrmRouteResult {
+  distanceKm: number;
+  durationMinutes: number;
+  geometry: [number, number][]; // [latitude, longitude] formatado para o Leaflet
 }
 
 export interface EntregadorPosicao {

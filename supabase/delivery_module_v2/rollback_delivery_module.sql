@@ -80,7 +80,17 @@ CREATE POLICY "Staff can update orders"
     AND COALESCE(public.get_user_role(auth.uid()), 'user') != 'entregador'
   );
 
--- (Nota: A política "Admins and coordinators can delete orders" permanece ativa).
+-- 1.5 Políticas de DELETE em public.orders:
+-- Preserva exatamente os perfis autorizados de exclusão do Kaban: administradores e coordenadores
+DROP POLICY IF EXISTS "Authenticated users can delete orders" ON public.orders;
+DROP POLICY IF EXISTS "Staff can delete orders" ON public.orders;
+DROP POLICY IF EXISTS "Admins and coordinators can delete orders" ON public.orders;
+
+CREATE POLICY "Admins and coordinators can delete orders" 
+  ON public.orders FOR DELETE TO authenticated 
+  USING (
+    public.get_user_role(auth.uid()) IN ('admin', 'coordenador')
+  );
 
 -- 1.6 Restauração de políticas seguras na tabela public.order_attachments
 DROP POLICY IF EXISTS "Drivers can view only assigned order attachments" ON public.order_attachments;

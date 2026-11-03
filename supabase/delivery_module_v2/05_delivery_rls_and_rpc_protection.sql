@@ -17,6 +17,8 @@
 DROP POLICY IF EXISTS "Authenticated users can view all orders" ON public.orders;
 DROP POLICY IF EXISTS "Authenticated users can create orders" ON public.orders;
 DROP POLICY IF EXISTS "Authenticated users can update orders" ON public.orders;
+DROP POLICY IF EXISTS "Authenticated users can delete orders" ON public.orders;
+DROP POLICY IF EXISTS "Admins and coordinators can delete orders" ON public.orders;
 
 -- 1.2 Políticas de SELECT em public.orders:
 -- Equipe interna (admin, coordenador, operador, vendedor, impressor, etc.) visualiza todas as ordens
@@ -71,7 +73,20 @@ CREATE POLICY "Staff can update orders"
     AND COALESCE(public.get_user_role(auth.uid()), 'user') != 'entregador'
   );
 
--- (Nota: A política "Admins and coordinators can delete orders" de 20261013 é mantida intacta).
+-- 1.5 Políticas de DELETE em public.orders:
+-- Preserva exatamente os perfis autorizados de exclusão do Kaban: administradores e coordenadores.
+-- Entregadores e demais perfis não autorizados NÃO possuem permissão de exclusão (default deny).
+DROP POLICY IF EXISTS "Authenticated users can delete orders" ON public.orders;
+DROP POLICY IF EXISTS "Staff can delete orders" ON public.orders;
+DROP POLICY IF EXISTS "Admins and coordinators can delete orders" ON public.orders;
+
+CREATE POLICY "Admins and coordinators can delete orders"
+  ON public.orders
+  FOR DELETE
+  TO authenticated
+  USING (
+    public.get_user_role(auth.uid()) IN ('admin', 'coordenador')
+  );
 
 -- --------------------------------------------------------------------
 -- 2. RPC SEGURA (SECURITY DEFINER): MÁQUINA DE ESTADOS DO ENTREGADOR

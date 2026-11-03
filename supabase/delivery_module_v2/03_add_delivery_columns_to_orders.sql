@@ -20,7 +20,12 @@ ALTER TABLE public.orders
   ADD COLUMN IF NOT EXISTS data_chegada_entrega TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS motivo_insucesso TEXT,
   ADD COLUMN IF NOT EXISTS status_comprovante_sync TEXT NOT NULL DEFAULT 'pendente'
-    CHECK (status_comprovante_sync IN ('pendente', 'sincronizado', 'erro'));
+    CHECK (status_comprovante_sync IN ('pendente', 'sincronizado', 'erro')),
+  ADD COLUMN IF NOT EXISTS destino_latitude DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS destino_longitude DOUBLE PRECISION,
+  ADD COLUMN IF NOT EXISTS geocoding_status TEXT DEFAULT 'pendente'
+    CHECK (geocoding_status IN ('pendente', 'geocodificado', 'falha', 'manual')),
+  ADD COLUMN IF NOT EXISTS geocoding_address_cached TEXT;
 
 -- 2. ÍNDICES DE ALTA PERFORMANCE PARA O MÓDULO DE ENTREGAS
 CREATE INDEX IF NOT EXISTS idx_orders_entregador_id 

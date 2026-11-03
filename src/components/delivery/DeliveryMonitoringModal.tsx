@@ -9,6 +9,7 @@ import { getEntregadoresList } from "@/lib/deliveryService";
 import type { Entregador, EntregadorPosicao, DeliveryStatus } from "@/types/delivery";
 import { DELIVERY_STATUS_CONFIG } from "@/types/delivery";
 import type { Order } from "@/types/order";
+import { DeliveryMonitoringTab } from "./monitoring/DeliveryMonitoringTab";
 import {
   Bike,
   MapPin,
@@ -41,7 +42,7 @@ export function DeliveryMonitoringModal({
   const [entregadores, setEntregadores] = useState<Entregador[]>([]);
   const [posicoes, setPosicoes] = useState<EntregadorPosicao[]>([]);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"frota" | "rotas" | "telemetria">("frota");
+  const [activeTab, setActiveTab] = useState<"mapa" | "frota" | "rotas" | "telemetria">("mapa");
 
   const loadData = async () => {
     setLoading(true);
@@ -161,7 +162,7 @@ export function DeliveryMonitoringModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[88vh] flex flex-col bg-card border-border overflow-hidden p-0 gap-0">
+      <DialogContent className="max-w-6xl w-[95vw] h-[90vh] max-h-[92vh] flex flex-col bg-card border-border overflow-hidden p-0 gap-0">
         <DialogHeader className="p-4 pb-3 border-b border-border bg-muted/20 flex flex-row items-center justify-between">
           <div className="flex items-center gap-2">
             <Radio className="h-5 w-5 text-primary animate-pulse" />
@@ -187,7 +188,10 @@ export function DeliveryMonitoringModal({
             onValueChange={(v) => setActiveTab(v as any)}
             className="flex-1 flex flex-col overflow-hidden"
           >
-            <TabsList className="grid grid-cols-3 max-w-md bg-muted">
+            <TabsList className="grid grid-cols-4 max-w-lg bg-muted">
+              <TabsTrigger value="mapa" className="text-xs font-semibold">
+                Mapa ao Vivo (OSM)
+              </TabsTrigger>
               <TabsTrigger value="frota" className="text-xs">
                 Frota & Status ({entregadores.length})
               </TabsTrigger>
@@ -198,6 +202,11 @@ export function DeliveryMonitoringModal({
                 Checkpoints GPS ({posicoes.length})
               </TabsTrigger>
             </TabsList>
+
+            {/* ABA 0: Mapa Interativo ao Vivo */}
+            <TabsContent value="mapa" className="flex-1 overflow-hidden mt-3 h-[calc(100%-48px)]">
+              <DeliveryMonitoringTab initialOrders={orders} />
+            </TabsContent>
 
             {/* ABA 1: Frota & Motoboys */}
             <TabsContent value="frota" className="flex-1 overflow-auto mt-3">

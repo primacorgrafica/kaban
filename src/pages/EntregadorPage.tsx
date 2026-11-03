@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, activeSupabaseConfig } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -31,6 +31,7 @@ import { DELIVERY_STATUS_CONFIG } from "@/types/delivery";
 import type { Order } from "@/types/order";
 import { cleanOsNumber } from "@/components/ProductionCard";
 import { Link } from "react-router-dom";
+import { useRealGpsTracker } from "@/hooks/useRealGpsTracker";
 import {
   Bike,
   Navigation,
@@ -53,6 +54,7 @@ import {
   Download,
   Cloud,
   ExternalLink,
+  Radio,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -161,6 +163,30 @@ export default function EntregadorPage() {
 
   // Microsoft / SharePoint corporativo
   const [msUser, setMsUser] = useState<StoredMicrosoftUser | null>(() => getStoredMicrosoftUser());
+
+  // Rastreamento contínuo em tempo real com alta precisão e Screen Wake Lock
+  const activeOrderForTracking = useMemo(() => {
+    return (
+      orders.find((o) => o.status_entrega === "em_rota" || o.status_entrega === "no_local") ||
+      orders[0] ||
+      null
+    );
+  }, [orders]);
+
+  const effectiveDriverId = canManage && selectedDriverId ? selectedDriverId : user?.id;
+
+  const {
+    status: gpsStatus,
+    coords: currentCoords,
+    accuracy: gpsAccuracy,
+    speedKmh: currentSpeed,
+    lastUpdated: gpsLastUpdated,
+    wakeLockActive,
+  } = useRealGpsTracker({
+    driverId: effectiveDriverId,
+    enabled: !!effectiveDriverId,
+    orderId: activeOrderForTracking?.id || null,
+  });
 
   useEffect(() => {
     void getActiveMicrosoftAccount().then((acc) => {
@@ -304,6 +330,17 @@ export default function EntregadorPage() {
 
   // Captura e envio seguro de coordenadas GPS
   const sendGpsTelemetry = async (orderId?: string) => {
+    if (currentCoords) {
+      void recordGpsCheckpoint({
+        orderId,
+        latitude: currentCoords.latitude,
+        longitude: currentCoords.longitude,
+        precisaoMetros: gpsAccuracy,
+        velocidadeKmh: currentSpeed,
+      });
+      return;
+    }
+
     if (!navigator.geolocation) return;
 
     navigator.geolocation.getCurrentPosition(
@@ -335,7 +372,7 @@ export default function EntregadorPage() {
       (err) => {
         console.warn("[GPS] Não foi possível obter localização:", err.message);
       },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
@@ -562,6 +599,15 @@ export default function EntregadorPage() {
             toast.error(uploadRes.error || "Erro ao salvar foto do comprovante.");
             return;
           }
+
+          // Disparo em segundo plano da Edge Function de sincronização App-Only com Microsoft Graph
+          void supabase.functions
+            .invoke("sync-delivery-proof-to-sharepoint", {
+              body: { orderId: completionOrder.id },
+            })
+            .catch((e) => {
+              console.warn("[EntregadorPage] Sincronização via Edge Function em espera na fila:", e);
+            });
         }
 
         // Atualiza status do comprovante na ordem (pendente_sharepoint ou sincronizado)
@@ -656,9 +702,14 @@ export default function EntregadorPage() {
             <h1 className="text-sm font-bold text-zinc-100 leading-tight">
               {driverProfile?.nome_completo || user?.email?.split("@")[0] || "Entregador"}
             </h1>
-            <p className="text-[11px] text-zinc-400">
+            <p className="text-[11px] text-zinc-400 flex items-center gap-1.5">
               {driverProfile?.placa_veiculo ? `Placa: ${driverProfile.placa_veiculo} • ` : ""}
-              Primacor Entregas
+              <span>Primacor Entregas</span>
+              {activeSupabaseConfig.url.includes("msyelkzcmarpdazqfkri") && (
+                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  Staging
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -842,6 +893,74 @@ export default function EntregadorPage() {
             </Select>
           </div>
         )}
+        {/* Banner de Rastreamento GPS em Alta Precisão */}
+        <div
+          className={cn(
+            "rounded-xl p-3 border flex flex-col gap-1.5 shadow-md transition-all",
+            gpsStatus === "conectado"
+              ? "bg-emerald-950/40 border-emerald-500/40 text-emerald-300"
+              : gpsStatus === "buscando"
+              ? "bg-sky-950/40 border-sky-500/40 text-sky-300"
+              : gpsStatus === "sem_permissao"
+              ? "bg-rose-950/40 border-rose-500/40 text-rose-300"
+              : "bg-zinc-900 border-zinc-800 text-zinc-400"
+          )}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Radio
+                className={cn(
+                  "h-4 w-4",
+                  gpsStatus === "conectado" && "text-emerald-400 animate-pulse"
+                )}
+              />
+              <span className="text-xs font-bold tracking-wide">
+                {gpsStatus === "conectado"
+                  ? "GPS Conectado (Sinal Real)"
+                  : gpsStatus === "buscando"
+                  ? "Buscando Sinal de Satélite GPS..."
+                  : gpsStatus === "sem_permissao"
+                  ? "Permissão de GPS Negada"
+                  : "GPS Offline ou Indisponível"}
+              </span>
+            </div>
+            {wakeLockActive && (
+              <Badge
+                variant="outline"
+                className="text-[10px] bg-emerald-500/10 border-emerald-500/40 text-emerald-300"
+              >
+                Tela Ativa
+              </Badge>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-zinc-400">
+            {gpsAccuracy !== null && (
+              <span>
+                Precisão: <strong className="text-zinc-200">±{Math.round(gpsAccuracy)}m</strong>
+              </span>
+            )}
+            {currentSpeed !== null && currentSpeed > 0 && (
+              <span>
+                Velocidade: <strong className="text-zinc-200">{Math.round(currentSpeed)} km/h</strong>
+              </span>
+            )}
+            {gpsLastUpdated && (
+              <span>
+                Último sinal:{" "}
+                <strong className="text-zinc-300">
+                  {format(gpsLastUpdated, "HH:mm:ss")}
+                </strong>
+              </span>
+            )}
+          </div>
+          {gpsStatus === "sem_permissao" && (
+            <p className="text-[11px] text-rose-300/90 mt-1">
+              Para registrar entregas e permitir o monitoramento da frota, conceda acesso à localização nas configurações do Chrome/Safari.
+            </p>
+          )}
+        </div>
+
         {/* Cards de Contagem */}
         <div className="grid grid-cols-3 gap-2">
           <div className="bg-zinc-900/70 border border-zinc-800 rounded-lg p-2.5 text-center">
@@ -970,9 +1089,11 @@ export default function EntregadorPage() {
 
                       <div className="flex items-center gap-2 pt-1 border-t border-zinc-800/50">
                         <a
-                          href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-                            address
-                          )}`}
+                          href={
+                            order.destino_latitude && order.destino_longitude
+                              ? `https://www.google.com/maps/dir/?api=1&destination=${order.destino_latitude},${order.destino_longitude}`
+                              : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`
+                          }
                           target="_blank"
                           rel="noreferrer"
                           className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium py-1.5 px-2.5 rounded flex items-center justify-center gap-1.5 transition-colors"
@@ -981,7 +1102,11 @@ export default function EntregadorPage() {
                           Navegar (Google Maps)
                         </a>
                         <a
-                          href={`https://waze.com/ul?q=${encodeURIComponent(address)}&navigate=yes`}
+                          href={
+                            order.destino_latitude && order.destino_longitude
+                              ? `https://waze.com/ul?ll=${order.destino_latitude},${order.destino_longitude}&navigate=yes`
+                              : `https://waze.com/ul?q=${encodeURIComponent(address)}&navigate=yes`
+                          }
                           target="_blank"
                           rel="noreferrer"
                           className="bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium py-1.5 px-3 rounded flex items-center justify-center gap-1 transition-colors"

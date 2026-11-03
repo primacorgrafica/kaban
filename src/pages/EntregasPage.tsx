@@ -4,7 +4,7 @@ import { Layout } from "@/components/Layout";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useOrders } from "@/hooks/useOrders";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, activeSupabaseConfig } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -33,6 +33,7 @@ import type { Order } from "@/types/order";
 import { DeliveryAddressCell } from "@/components/DeliveryAddressCell";
 import { AssignDriverModal } from "@/components/delivery/AssignDriverModal";
 import { DeliveryMonitoringModal } from "@/components/delivery/DeliveryMonitoringModal";
+import { DeliveryMonitoringTab } from "@/components/delivery/monitoring/DeliveryMonitoringTab";
 import { DeliveryCompletedDetailsModal } from "@/components/delivery/DeliveryCompletedDetailsModal";
 import { SharePointDiagnosticsModal } from "@/components/sharepoint/SharePointDiagnosticsModal";
 import { CreateDeliveryDemandModal } from "@/components/delivery/CreateDeliveryDemandModal";
@@ -55,6 +56,7 @@ export default function EntregasPage() {
   const [selectedOrderForDriver, setSelectedOrderForDriver] = useState<Order | null>(null);
   const [selectedDeliveredOrder, setSelectedDeliveredOrder] = useState<Order | null>(null);
   const [showMonitoring, setShowMonitoring] = useState(false);
+  const [viewMode, setViewMode] = useState<"tabela" | "monitoramento">("tabela");
   const [createDemandOpen, setCreateDemandOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -338,7 +340,38 @@ export default function EntregasPage() {
       <div className="flex flex-col h-full gap-4 p-4">
         {/* Header */}
          <div className="flex items-center flex-wrap gap-3">
-          <h1 className="text-xl font-bold text-foreground">Programação de Entregas</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl font-bold text-foreground">Programação de Entregas</h1>
+            {activeSupabaseConfig.url.includes("msyelkzcmarpdazqfkri") && (
+              <Badge variant="outline" className="bg-amber-500/10 text-amber-300 border-amber-500/30 text-xs gap-1.5 font-mono">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                Homologação (Staging)
+              </Badge>
+            )}
+            <div className="flex items-center rounded-lg bg-muted/60 border border-border p-0.5">
+              <Button
+                variant={viewMode === "tabela" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 text-xs px-2.5 font-medium gap-1.5 cursor-pointer"
+                onClick={() => setViewMode("tabela")}
+              >
+                <Truck className="h-3.5 w-3.5" />
+                Tabela
+              </Button>
+              <Button
+                variant={viewMode === "monitoramento" ? "secondary" : "ghost"}
+                size="sm"
+                className={cn(
+                  "h-7 text-xs px-2.5 font-medium gap-1.5 cursor-pointer",
+                  viewMode === "monitoramento" ? "text-emerald-500 font-bold" : "text-muted-foreground"
+                )}
+                onClick={() => setViewMode("monitoramento")}
+              >
+                <Radio className="h-3.5 w-3.5 text-emerald-500 animate-pulse" />
+                Monitoramento GPS
+              </Button>
+            </div>
+          </div>
           <div className="flex items-center gap-2">
             <Popover>
               <PopoverTrigger asChild>
@@ -461,8 +494,12 @@ export default function EntregasPage() {
           </Button>
         </div>
 
-        {/* Table */}
-        {loading ? (
+        {/* Content Area */}
+        {viewMode === "monitoramento" ? (
+          <div className="flex-1 min-h-[600px] h-[calc(100vh-175px)]">
+            <DeliveryMonitoringTab initialOrders={allOrders} />
+          </div>
+        ) : loading ? (
           <div className="flex items-center justify-center h-full text-muted-foreground">Carregando dados...</div>
         ) : (
           <div className="border rounded-lg overflow-x-auto overflow-y-auto flex-1 scrollbar-light">

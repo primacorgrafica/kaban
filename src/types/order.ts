@@ -76,6 +76,10 @@ export interface Order {
   data_chegada_entrega?: string | null;
   motivo_insucesso?: string | null;
   status_comprovante_sync?: "pendente" | "pendente_sharepoint" | "sincronizado" | "erro";
+  destino_latitude?: number | null;
+  destino_longitude?: number | null;
+  geocoding_status?: "pendente" | "geocodificado" | "falha" | "manual" | null;
+  geocoding_address_cached?: string | null;
   // Faturamento fields
   fat_cnpj_ok: boolean;
   fat_cnpj_obs: string | null;

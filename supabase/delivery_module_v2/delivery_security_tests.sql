@@ -9,22 +9,12 @@
 -- GUIA DE EXECUÇÃO EM AMBIENTE ISOLADO (NÃO EXECUTAR EM PRODUÇÃO):
 -- ####################################################################
 --
--- 1. REQUISITO DE PRIVILÉGIOS (POSTGRES SUPERUSER):
---    A fase de SETUP deste script realiza inserções transitórias no schema
---    'auth.users' para instanciar identidades UUID válidas de teste.
---    No Supabase, o schema 'auth' é protegido e requer privilégios da role
---    'postgres' (ou 'supabase_admin').
---
--- 2. OPÇÃO A: EXECUÇÃO VIA SUPABASE CLI (LOCAL DOCKER - RECOMENDADO):
---    $ supabase start
---    $ PGPASSWORD=postgres psql -h localhost -p 54322 -U postgres -d postgres -f supabase/delivery_module_v2/delivery_security_tests.sql
---
--- 3. OPÇÃO B: EXECUÇÃO NO SUPABASE SQL EDITOR (STAGING / HOMOLOGAÇÃO):
+-- 1. EXECUÇÃO NO SUPABASE SQL EDITOR (STAGING / HOMOLOGAÇÃO):
 --    - Abra o SQL Editor do projeto de Homologação logado como Administrador.
 --    - Cole o conteúdo deste arquivo e clique em 'Run'.
---    - Inspecione a aba 'Messages' para verificar os resultados '[PASS]'.
+--    - Inspecione a aba 'Messages' / 'Results' para verificar os resultados '[PASS]'.
 --
--- 4. GARANTIA DE ISOLAMENTO:
+-- 2. GARANTIA DE ISOLAMENTO:
 --    Este script é executado dentro de uma transação aberta com 'BEGIN;' e finalizado
 --    com 'ROLLBACK;', garantindo ZERO resíduo e ZERO persistência no banco.
 -- ####################################################################

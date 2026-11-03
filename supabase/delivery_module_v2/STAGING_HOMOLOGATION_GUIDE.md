@@ -1,92 +1,77 @@
-# Guia de Homologação em Nuvem — Módulo de Entregas & Motoboys
+# Roteiro Sequencial de Homologação em Nuvem — Módulo Entregas
 
-Este documento descreve o procedimento operacional padrão para homologar o módulo de entregas em um projeto **Supabase na nuvem**, isolado e separado da produção, sem uso de Docker, Podman ou WSL.
-
----
-
-## 1. Pré-Requisitos
-
-1. Acesso ao painel web do Supabase ([app.supabase.com](https://app.supabase.com)).
-2. Um projeto separado de **Homologação/Staging** (ex: `primacor-kaban-homolog`).
-3. **NUNCA** execute estes passos no projeto de produção.
+> [!IMPORTANT]
+> **Ambiente Exclusivo:** Realize os passos abaixo **apenas** no projeto Supabase de **Homologação/Staging**. Nunca execute em produção. Não requer Docker ou WSL.
 
 ---
 
-## 2. Ordem de Execução das Migrations (SQL Editor)
+## Passo 1: Executar as Migrations (Ordem Estrita no SQL Editor)
 
-No painel do projeto de homologação, abra o **SQL Editor** e execute os arquivos na ordem estrita abaixo:
+Acesse o painel do Supabase de Homologação ([app.supabase.com](https://app.supabase.com)), abra o **SQL Editor** e execute os arquivos na seguinte ordem:
 
-### Passo 1: Adicionar Papel 'entregador'
-* **Arquivo**: `supabase/delivery_module_v2/01_add_role_entregador.sql`
-* **Instrução**: Execute este comando de forma isolada, pois `ALTER TYPE ... ADD VALUE` exige autocommit no PostgreSQL.
-* **Validação**: Verifique se o enum `app_role` contém o valor `'entregador'`.
-
-### Passo 2: Criar Tabela de Motoboys
-* **Arquivo**: `supabase/delivery_module_v2/02_create_entregadores_table.sql`
-* **Resultado**: Cria `public.entregadores`, ativa RLS, índices e publicação no canal Realtime.
-
-### Passo 3: Colunas Logísticas na Tabela de Ordens
-* **Arquivo**: `supabase/delivery_module_v2/03_add_delivery_columns_to_orders.sql`
-* **Resultado**: Adiciona `entregador_id`, `status_entrega`, `ordem_parada`, `data_saida_entrega`, `data_chegada_entrega`, `motivo_insucesso`, `status_comprovante_sync`.
-
-### Passo 4: Telemetria GPS e Checkpoints
-* **Arquivo**: `supabase/delivery_module_v2/04_create_entregador_posicoes.sql`
-* **Resultado**: Cria `public.entregador_posicoes` e função de limpeza periódica de retenção (>= 7 dias).
-
-### Passo 5: Políticas RLS e RPCs Seguras
-* **Arquivo**: `supabase/delivery_module_v2/05_delivery_rls_and_rpc_protection.sql`
-* **Resultado**:
-  - Implanta RLS estrito: motoboys visualizam **apenas** suas próprias O.S. atribuídas e não visualizam dados fabris de PCP/Pré-Impressão.
-  - Implanta a RPC `driver_update_delivery_status` com locking `FOR UPDATE` e proteção de estado terminal.
-  - Implanta a RPC `manager_assign_delivery_driver` com trava de desatribuição em trânsito.
-  - Implanta trigger `guard_order_driver_tampering` impedindo manipulação direta de colunas protegidas.
-
-### Passo 6: Bucket de Comprovantes
-* **Arquivo**: `supabase/delivery_module_v2/06_storage_comprovantes_bucket_setup.sql`
-* **Resultado**: Cria o bucket privado `comprovantes-entrega` (10 MB, apenas JPG/PNG/WEBP/PDF) com RLS que restringe uploads ao entregador vinculado à ordem.
+1. **`01_add_role_entregador.sql`**
+   - Adiciona o valor `'entregador'` ao enum `public.app_role`.
+   - *Nota:* Execute individualmente fora de bloco de transação (`autocommit`).
+2. **`02_create_entregadores_table.sql`**
+   - Cria tabela `public.entregadores`, índices, RLS e habilita publicação em `supabase_realtime`.
+3. **`03_add_delivery_columns_to_orders.sql`**
+   - Adiciona colunas de entrega (`entregador_id`, `status_entrega`, `ordem_parada`, geolocalização e comprovantes).
+4. **`04_create_entregador_posicoes.sql`**
+   - Cria telemetria de posições em tempo real `public.entregador_posicoes` e rotina de purge.
+5. **`05_delivery_rls_and_rpc_protection.sql`**
+   - Restringe DELETE de ordens exclusivamente a administradores e coordenadores (`Admins and coordinators can delete orders`).
+   - Bloqueia entregadores de excluir O.S. ou visualizar dados fabris de PCP/Pré-impressão.
+   - Instala RPCs atômicas com locking: `driver_update_delivery_status` e `manager_assign_delivery_driver`.
+6. **`06_storage_comprovantes_bucket_setup.sql`**
+   - Cria o bucket privado `comprovantes-entrega` (10 MB máx, JPG/PNG/WEBP/PDF) com RLS atrelada à O.S. atribuída.
 
 ---
 
-## 3. Verificação Automatizada de Segurança (SQL)
+## Passo 2: Validar a Segurança (18 Testes Automatizados)
 
-Execute no SQL Editor de homologação:
+No SQL Editor, execute:
 * **Arquivo**: `supabase/delivery_module_v2/delivery_security_tests.sql`
-* **Propósito**: Executa **18 cenários de teste de segurança** cobrindo isolamento RLS, bloqueio de adulteração, regras de transição de status e permissões de storage.
-* **Comportamento**: O script roda dentro de uma transação com `ROLLBACK;` automático ao final, sem poluir os dados. Todas as 18 asserções devem retornar `[PASS]`.
+* **Resultado Esperado**:
+  - Verifique na aba **Messages / Results** se todas as 18 validações retornaram `[PASS]`.
+  - O script executa em transação protegida com `ROLLBACK;` automático ao final, sem gravar resíduos de teste no banco.
 
 ---
 
-## 4. Carga do Cenário de Teste Prático
+## Passo 3: Criar Usuário de Teste (Supabase Dashboard)
 
-Após os testes de segurança aprovados, carregue os dados de simulação:
+1. Acesse o menu **Authentication > Users** no painel do Supabase de Homologação.
+2. Clique em **Add User > Create User**.
+3. Preencha:
+   - **Email:** `motoboy.teste@primacorgrafica.com.br`
+   - **Password:** defina uma senha temporária da sua escolha.
+   - **Auto Confirm User?**: Ativado.
+4. Clique em **Create User**.
+
+---
+
+## Passo 4: Executar o Seed de Teste (Carga de Ordens)
+
+No SQL Editor, execute:
 * **Arquivo**: `supabase/delivery_module_v2/seed_staging_delivery_test.sql`
-* **Conteúdo Criado**:
-  1. Motoboy teste: `Carlos Eduardo` (Placa: `BRA-2E19`).
-  2. O.S. `#99001` (Parada 1): Farmácia Central Drogarias (Av. Paulista, 1578).
-  3. O.S. `#99002` (Parada 2): Laboratórios Bioclin Brasil (Rua Vergueiro, 2000).
-  4. 1 Ponto de telemetria GPS para visualização imediata no mapa do gestor.
+* **Resultado**:
+  - Vincula o usuário criado à tabela `public.entregadores` e define sua role como `entregador` em `public.user_roles`.
+  - Cria 2 O.S. de teste (#99001 e #99002) atribuídas ao entregador, já geocodificadas para rotas de Belo Horizonte.
 
 ---
 
-## 5. Roteiro de Teste Funcional Ponta a Ponta
+## Passo 5: Teste Funcional na Aplicação
 
-| Etapa | Perfil | Tela | Ação | Resultado Esperado |
-| :--- | :--- | :--- | :--- | :--- |
-| **1** | Gestor | `/entregas` | Clicar em **"Monitoramento"** | Abre o painel com o motoboy teste, contadores e ponto no mapa |
-| **2** | Gestor | `/entregas` | Clicar em **"Atribuir"** na O.S. | Abre o modal de atribuição com lista de motoboys e campo de parada |
-| **3** | Gestor | `/entregas` | Clicar em **"App Entregador"** | Abre a rota `/entregador` em nova aba |
-| **4** | Motoboy | `/entregador` | Visualizar lista de entregas | Mostra `#99001` (Parada 1) e `#99002` (Parada 2) |
-| **5** | Motoboy | `/entregador` | Clicar em **"Navegar (Google Maps)"** | Abre o Google Maps com o trajeto traçado |
-| **6** | Motoboy | `/entregador` | Clicar em **"Iniciar Rota"** | Status muda para `em_rota` e registra GPS |
-| **7** | Motoboy | `/entregador` | Clicar em **"Cheguei no Local"** | Status muda para `no_local` |
-| **8** | Motoboy | `/entregador` | Clicar em **"Concluir Entrega"** | Abre modal, exige nome de quem recebeu, aceita foto do canhoto |
-| **9** | Motoboy | `/entregador` | Confirmar conclusão | Status muda para `entregue`, salva comprovante e bloqueia edições posteriores |
-| **10** | Gestor | `/entregas` | Abrir O.S. no Kanban / SlideOver | Aba "Entrega" exibe badge `Entregue`, data/hora e recebedor |
+1. Conecte o frontend local ao projeto Supabase de Homologação (ajustando `.env.local` com `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`).
+2. Acesse a rota `/entregador` e faça login com `motoboy.teste@primacorgrafica.com.br`.
+3. Verifique:
+   - **Isolamento:** Apenas as 2 ordens atribuídas são exibidas. Nenhuma O.S. de PCP/Pré-Impressão é visível.
+   - **Telemetria:** Ao iniciar entrega, o hook `useRealGpsTracker` grava coordenadas em `entregador_posicoes`.
+   - **Monitoramento:** No Kaban (logado como gestor), abra o modal de monitoramento e veja o traçado viário OSRM e o marcador do entregador.
+   - **Finalização e Comprovante:** Capture a foto do canhoto; a foto é salva no bucket `comprovantes-entrega` e a Edge Function `sync-delivery-proof-to-sharepoint` valida JWT/permissões e sincroniza via Graph API App-Only.
 
 ---
 
-## 6. Procedimento de Rollback (Se Necessário)
+## Passo 6: Reversão / Rollback (Se Necessário)
 
-Se por qualquer motivo for necessário desfazer a implantação no ambiente de homologação:
+Caso precise reverter o módulo de homologação:
 * **Arquivo**: `supabase/delivery_module_v2/rollback_delivery_module.sql`
-* O script restaura as políticas anteriores de forma segura, removendo os componentes de entrega sem afetar as tabelas principais de produção.
