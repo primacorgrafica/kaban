@@ -468,47 +468,6 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
           </div>
         </div>
 
-        {/* Faixa Rápida de Usuários Online Agora */}
-        {allOnlineUsersList.length > 0 && (
-          <div className="px-3 py-2 border-b border-border/60 bg-muted/20 shrink-0">
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 font-mono-tech">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#34d399]" />
-                <span>ONLINE AGORA ({allOnlineUsersList.length})</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-              {allOnlineUsersList.map((onlineUser) => (
-                <button
-                  key={onlineUser.id}
-                  type="button"
-                  onClick={() => handleStartWithUser(onlineUser)}
-                  className="flex flex-col items-center gap-1 shrink-0 p-1 rounded-xl hover:bg-accent/80 transition-all group max-w-[58px]"
-                  title={`${onlineUser.nome} (${onlineUser.role || onlineUser.setor || "Colaborador"}) — Online agora. Clique para conversar.`}
-                >
-                  <div className="relative">
-                    {onlineUser.avatar_url ? (
-                      <img
-                        src={onlineUser.avatar_url}
-                        alt={onlineUser.nome}
-                        className="w-9 h-9 rounded-xl object-cover border border-[#4A5C6A]/60 group-hover:scale-105 transition-transform shadow-xs bg-muted"
-                      />
-                    ) : (
-                      <div className="w-9 h-9 rounded-xl bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center font-bold text-xs text-[#CCD0CF] group-hover:scale-105 transition-transform shadow-xs">
-                        {onlineUser.nome.charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-card shadow-[0_0_6px_#34d399]" />
-                  </div>
-                  <span className="text-[10px] text-foreground truncate w-full text-center group-hover:text-primary font-medium">
-                    {onlineUser.nome.split(" ")[0]}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Filtro: Todas vs Apenas Online */}
         <div className="px-3 py-1.5 flex items-center gap-1.5 border-b border-border/60 bg-muted/20 text-xs font-mono-tech shrink-0">
           <button
