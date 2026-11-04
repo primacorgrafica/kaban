@@ -65,10 +65,12 @@ function ProtectedRoute({
   children,
   module,
   requireAdmin = false,
+  requireCoordinatorOrAdmin = false,
 }: {
   children: React.ReactNode;
   module?: string;
   requireAdmin?: boolean;
+  requireCoordinatorOrAdmin?: boolean;
 }) {
   const { session, loading, hasModule, isAdmin, role } = useAuth();
   if (loading) return <div className="flex min-h-screen items-center justify-center text-muted-foreground">Carregando...</div>;
@@ -77,6 +79,16 @@ function ProtectedRoute({
   // Entregador: acesso exclusivo ao painel do entregador - NÃO ENXERGA O KABAN NEM OUTROS MÓDULOS
   if (role === "entregador" && module !== "entregador") {
     return <Navigate to="/entregador" replace />;
+  }
+
+  if (requireCoordinatorOrAdmin && !isAdmin && role !== "coordenador") {
+    void securityLogger.log({
+      event_type: "UNAUTHORIZED_ROUTE_ACCESS",
+      severity: "warning",
+      details: { attempted_route: typeof window !== "undefined" ? window.location.pathname : "" },
+      target_resource: "UserManagement",
+    });
+    return <Navigate to="/" replace />;
   }
 
   if (requireAdmin && !isAdmin) {
@@ -140,7 +152,7 @@ const App = () => (
                   <Route path="/producao/:departamento" element={<ProtectedRoute module="producao"><ProductionPage /></ProtectedRoute>} />
                   <Route path="/producao" element={<ProtectedRoute module="producao"><ProducaoPage /></ProtectedRoute>} />
                   <Route path="/expedicao" element={<ProtectedRoute module="expedicao"><ExpedicaoPage /></ProtectedRoute>} />
-                  <Route path="/usuarios" element={<ProtectedRoute requireAdmin><UserManagementPage /></ProtectedRoute>} />
+                  <Route path="/usuarios" element={<ProtectedRoute requireCoordinatorOrAdmin><UserManagementPage /></ProtectedRoute>} />
                   <Route path="/equipamentos" element={<ProtectedRoute module="cadastros"><EquipamentosPage /></ProtectedRoute>} />
                   <Route path="/comercial" element={<ProtectedRoute module="comercial"><ComercialPage /></ProtectedRoute>} />
                   <Route path="/pcp" element={<ProtectedRoute module="pcp"><PcpPage /></ProtectedRoute>} />

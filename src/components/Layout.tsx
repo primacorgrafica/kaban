@@ -281,7 +281,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
   ];
 
   const cadastrosItems = [
-    ...(isAdmin ? [{ to: "/usuarios", label: "Usuários", icon: Users }] : []),
+    ...(isAdmin || role === "coordenador" ? [{ to: "/usuarios", label: isAdmin ? "Usuários" : "Avatares e Equipe", icon: Users }] : []),
     { to: "/equipamentos", label: "Equipamentos", icon: Settings },
   ];
 

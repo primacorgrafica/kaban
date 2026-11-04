@@ -5,7 +5,32 @@ import {
   ChatReaction,
   ChatUser,
   ChatConversationSettings,
+  ChatAvatar,
 } from "@/types/chat";
+
+/**
+ * Avatares oficiais padrão do Primacor Kaban (PNGs oficiais)
+ */
+export const DEFAULT_OFFICIAL_AVATARS: ChatAvatar[] = [
+  {
+    id: "official-operadora-azul",
+    name: "Operadora Primacor (Azul)",
+    image_url: "/avatars/avatar-operadora-azul.png",
+    category: "oficial",
+    is_active: true,
+    created_at: "2026-11-04T00:00:00.000Z",
+    updated_at: "2026-11-04T00:00:00.000Z",
+  },
+  {
+    id: "official-operador-azul",
+    name: "Operador Primacor (Azul)",
+    image_url: "/avatars/avatar-operador-azul.png",
+    category: "oficial",
+    is_active: true,
+    created_at: "2026-11-04T00:00:00.000Z",
+    updated_at: "2026-11-04T00:00:00.000Z",
+  },
+];
 
 /**
  * Ordena dois UUIDs canonicamente para garantir uma única conversa por par
@@ -23,7 +48,7 @@ export async function fetchChatUsers(
 ): Promise<ChatUser[]> {
   try {
     const [{ data: profiles }, { data: roles }, { data: presence }] = await Promise.all([
-      supabase.from("profiles").select("user_id, nome, setor_vinculado" as any),
+      supabase.from("profiles").select("user_id, nome, setor_vinculado, avatar_url" as any),
       supabase.from("user_roles").select("user_id, role"),
       supabase.from("user_presence").select("user_id, last_seen"),
     ]);
@@ -60,6 +85,7 @@ export async function fetchChatUsers(
             setor: p.setor_vinculado || null,
             online: isOnline,
             last_seen: lastSeen,
+            avatar_url: p.avatar_url || null,
           });
         }
       });
@@ -432,6 +458,8 @@ export async function fetchConversationMessages(
       created_at: m.created_at,
       updated_at: m.updated_at,
       status: "sent",
+      is_read: Boolean(m.is_read),
+      read_at: m.read_at || null,
       reactions: m.reactions || [],
     }));
   } catch (error) {
@@ -517,6 +545,8 @@ export async function sendMessage(
       created_at: (created as any).created_at,
       updated_at: (created as any).updated_at,
       status: "sent",
+      is_read: false,
+      read_at: null,
       reactions: (created as any).reactions || [],
     };
   } catch (error) {
@@ -526,37 +556,41 @@ export async function sendMessage(
 }
 
 /**
- * Marca uma conversa como lida pelo usuário sem desocultar conversas excluídas
+ * Marca uma conversa como lida pelo usuário, persistindo em chat_message_reads
+ * e disparando atualização em tempo real para os dois tiques azuis
  */
 export async function markConversationAsRead(
   conversationId: string,
   userId: string
 ): Promise<void> {
+  if (!conversationId || !userId) return;
+
   try {
-    // 1. Tenta atualizar apenas last_read_at, preservando is_hidden intacto
-    const { data: updated, error: updateError } = await supabase
-      .from("chat_conversation_settings" as any)
-      .update({
-        last_read_at: new Date().toISOString(),
-      })
-      .eq("conversation_id", conversationId)
-      .eq("user_id", userId)
-      .select();
-
-    if (!updateError && updated && updated.length > 0) {
-      return;
-    }
-
-    // 2. Se não existia configuração prévia, cria respeitando se já está oculta no cache local
-    const localHidden = getLocalHiddenConversations(userId);
-    await supabase.from("chat_conversation_settings" as any).insert({
-      conversation_id: conversationId,
-      user_id: userId,
-      last_read_at: new Date().toISOString(),
-      is_hidden: localHidden.has(conversationId),
+    // 1. Invoca a RPC segura no banco de dados para registrar leitura e disparar UPDATE Realtime
+    const { error: rpcError } = await supabase.rpc("mark_chat_messages_read" as any, {
+      p_conversation_id: conversationId,
+      p_user_id: userId,
     });
+
+    if (rpcError) {
+      // Fallback gracioso caso a migration ainda não tenha sido executada no banco
+      const now = new Date().toISOString();
+      await Promise.all([
+        supabase
+          .from("chat_messages" as any)
+          .update({ is_read: true, read_at: now })
+          .eq("conversation_id", conversationId)
+          .neq("sender_id", userId)
+          .eq("is_read", false),
+        supabase
+          .from("chat_conversation_settings" as any)
+          .update({ last_read_at: now })
+          .eq("conversation_id", conversationId)
+          .eq("user_id", userId),
+      ]);
+    }
   } catch (error) {
-    console.error("Erro ao marcar como lida:", error);
+    console.error("Erro ao marcar mensagens como lidas:", error);
   }
 }
 
@@ -766,5 +800,197 @@ export async function toggleMessageReaction(
   } catch (error) {
     console.error("Erro ao reagir à mensagem:", error);
     return false;
+  }
+}
+
+/**
+ * -------------------------------------------------------------
+ * BIBLIOTECA DE AVATARES DO SISTEMA PRIMACOR KABAN
+ * -------------------------------------------------------------
+ */
+
+/**
+ * Busca avatares disponíveis na biblioteca
+ */
+export async function fetchAvatarLibrary(includeInactive = false): Promise<ChatAvatar[]> {
+  try {
+    let query = supabase
+      .from("chat_avatars" as any)
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!includeInactive) {
+      query = query.eq("is_active", true);
+    }
+
+    const { data, error } = await query;
+    if (error || !data || data.length === 0) {
+      // Fallback para os avatares padrão do sistema se a tabela estiver vazia
+      return DEFAULT_OFFICIAL_AVATARS;
+    }
+
+    return (data as any[]).map((a) => ({
+      id: a.id,
+      name: a.name,
+      image_url: a.image_url,
+      category: a.category || "oficial",
+      is_active: a.is_active ?? true,
+      created_by: a.created_by,
+      created_at: a.created_at,
+      updated_at: a.updated_at,
+    }));
+  } catch (error) {
+    console.warn("Erro ao buscar biblioteca de avatares, usando padrão:", error);
+    return DEFAULT_OFFICIAL_AVATARS;
+  }
+}
+
+/**
+ * Atualiza o avatar preferido do usuário em seu perfil (RLS: auth.uid() = user_id)
+ */
+export async function updateUserAvatarPreference(
+  userId: string,
+  avatarUrl: string,
+  avatarId?: string
+): Promise<{ success: boolean; error?: string }> {
+  if (!userId) return { success: false, error: "Usuário não autenticado" };
+
+  try {
+    const { error } = await supabase
+      .from("profiles" as any)
+      .update({
+        avatar_url: avatarUrl,
+        avatar_id: avatarId || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("user_id", userId);
+
+    if (error) {
+      console.error("Erro ao salvar preferência de avatar:", error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Erro desconhecido" };
+  }
+}
+
+/**
+ * Cadastra um novo avatar na biblioteca (Somente admin / coordenador)
+ */
+export async function createAvatarInLibrary(
+  name: string,
+  imageUrl: string,
+  category = "oficial",
+  userId?: string
+): Promise<{ success: boolean; data?: ChatAvatar; error?: string }> {
+  const trimmedName = name.trim();
+  const trimmedUrl = imageUrl.trim();
+
+  if (!trimmedName || !trimmedUrl) {
+    return { success: false, error: "Nome e imagem do avatar são obrigatórios" };
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from("chat_avatars" as any)
+      .insert({
+        name: trimmedName,
+        image_url: trimmedUrl,
+        category,
+        is_active: true,
+        created_by: userId || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Erro ao cadastrar avatar:", error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: data as ChatAvatar };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Erro ao cadastrar avatar" };
+  }
+}
+
+/**
+ * Ativa ou desativa um avatar na biblioteca (Preserva referências históricas)
+ */
+export async function toggleAvatarStatus(
+  avatarId: string,
+  isActive: boolean
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await supabase
+      .from("chat_avatars" as any)
+      .update({
+        is_active: isActive,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", avatarId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Erro ao atualizar avatar" };
+  }
+}
+
+/**
+ * Exclui avatar da biblioteca (ou desativa por segurança)
+ */
+export async function deleteAvatarFromLibrary(
+  avatarId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await supabase
+      .from("chat_avatars" as any)
+      .delete()
+      .eq("id", avatarId);
+
+    if (error) {
+      // Se houver restrição de integridade referencial, desativa suavemente
+      return toggleAvatarStatus(avatarId, false);
+    }
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Erro ao excluir avatar" };
+  }
+}
+
+/**
+ * Upload de arquivo de imagem de avatar para o bucket de storage do Supabase
+ */
+export async function uploadAvatarImage(
+  file: File
+): Promise<{ success: boolean; publicUrl?: string; error?: string }> {
+  try {
+    const fileExt = file.name.split(".").pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+    const filePath = `library/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("chat-avatars")
+      .upload(filePath, file, {
+        cacheControl: "3600",
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error("Erro no upload do avatar:", uploadError);
+      return { success: false, error: uploadError.message };
+    }
+
+    const { data } = supabase.storage.from("chat-avatars").getPublicUrl(filePath);
+    return { success: true, publicUrl: data.publicUrl };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Falha no upload da imagem" };
   }
 }

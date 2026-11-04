@@ -29,7 +29,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Link } from "react-router-dom";
-import { ArrowLeft, LogOut, Shield, Users, Save, UserPlus, Trash2, Pencil, Circle, Mail } from "lucide-react";
+import { ArrowLeft, LogOut, Shield, Users, Save, UserPlus, Trash2, Pencil, Circle, Mail, Sparkles } from "lucide-react";
+import { AdminAvatarManager } from "@/components/chat/AdminAvatarManager";
 import { formatDistanceToNow, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -147,7 +148,9 @@ const ROLE_COLORS: Record<AppRole, string> = {
 };
 
 export default function UserManagementPage() {
-  const { signOut, user: currentUser, isAdmin, onlineUserIds } = useAuth();
+  const { signOut, user: currentUser, isAdmin, role, onlineUserIds } = useAuth();
+  const canAccess = isAdmin || role === "coordenador";
+  const [activeTab, setActiveTab] = useState<"users" | "avatars">(isAdmin ? "users" : "avatars");
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -891,7 +894,7 @@ export default function UserManagementPage() {
     }
   };
 
-  if (!isAdmin) {
+  if (!canAccess) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background p-6">
         <div className="max-w-md text-center flex flex-col items-center">
@@ -900,7 +903,7 @@ export default function UserManagementPage() {
           </div>
           <h2 className="text-xl font-bold text-foreground">Acesso Restrito</h2>
           <p className="text-sm text-muted-foreground mt-2">
-            Apenas administradores do sistema têm permissão para acessar o gerenciamento de usuários e controle de privilégios.
+            Apenas administradores e coordenadores do sistema têm permissão para acessar esta área de gestão e avatares.
           </p>
           <Link to="/" className="mt-6">
             <Button variant="outline" className="gap-2">
@@ -925,7 +928,38 @@ export default function UserManagementPage() {
           <div className="w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold text-sidebar-primary-foreground" style={{ background: "var(--gradient-primary)" }}>
             <Shield className="h-4 w-4" />
           </div>
-          <h1 className="text-base font-bold text-sidebar-primary-foreground tracking-tight">Usuários</h1>
+          <h1 className="text-base font-bold text-sidebar-primary-foreground tracking-tight">Painel Gestão</h1>
+        </div>
+
+        {/* Alternância de Abas na Barra Lateral */}
+        <div className="px-3 pb-3 space-y-1">
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={() => setActiveTab("users")}
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all text-left ${
+                activeTab === "users"
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-black shadow-sm"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+              }`}
+            >
+              <Users className="h-4 w-4" />
+              Usuários e Acessos
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("avatars")}
+            className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-bold transition-all text-left ${
+              activeTab === "avatars"
+                ? "bg-sidebar-accent text-sidebar-accent-foreground font-black shadow-sm"
+                : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+            }`}
+          >
+            <Sparkles className="h-4 w-4 text-sky-400" />
+            Biblioteca de Avatares
+          </button>
         </div>
 
         <nav className="flex-1 px-3 space-y-0.5">
@@ -989,11 +1023,54 @@ export default function UserManagementPage() {
           <Link to="/" className="lg:hidden">
             <ArrowLeft className="h-5 w-5 text-muted-foreground" />
           </Link>
-          <Users className="h-5 w-5 text-primary" />
-          <h2 className="text-sm font-bold text-foreground">Gerenciamento de Usuários</h2>
+          
+          <div className="flex items-center gap-2">
+            {activeTab === "users" ? (
+              <>
+                <Users className="h-5 w-5 text-primary" />
+                <h2 className="text-sm font-bold text-foreground">Gerenciamento de Usuários</h2>
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-5 w-5 text-sky-400" />
+                <h2 className="text-sm font-bold text-foreground">Biblioteca de Avatares</h2>
+              </>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1 bg-muted/60 p-1 rounded-xl border border-border ml-2">
+            {isAdmin && (
+              <Button
+                size="sm"
+                variant={activeTab === "users" ? "default" : "ghost"}
+                onClick={() => setActiveTab("users")}
+                className={`h-7 px-2.5 text-xs font-semibold rounded-lg ${
+                  activeTab === "users"
+                    ? "bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]"
+                    : "text-muted-foreground"
+                }`}
+              >
+                Usuários
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant={activeTab === "avatars" ? "default" : "ghost"}
+              onClick={() => setActiveTab("avatars")}
+              className={`h-7 px-2.5 text-xs font-semibold rounded-lg ${
+                activeTab === "avatars"
+                  ? "bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]"
+                  : "text-muted-foreground"
+              }`}
+            >
+              Avatares
+            </Button>
+          </div>
+
           <div className="flex-1" />
 
-          <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          {activeTab === "users" && isAdmin && (
+            <Dialog open={createOpen} onOpenChange={setCreateOpen}>
             <DialogTrigger asChild>
               <Button size="sm" variant="outline" className="gap-1.5">
                 <UserPlus className="h-4 w-4" />
@@ -1102,8 +1179,9 @@ export default function UserManagementPage() {
               </div>
             </DialogContent>
           </Dialog>
+        )}
 
-          {dirtyCount > 0 && (
+          {activeTab === "users" && dirtyCount > 0 && (
             <Button size="sm" onClick={saveAll} disabled={saving} className="gap-1.5">
               <Save className="h-4 w-4" />
               {saving ? "Salvando..." : `Salvar (${dirtyCount})`}
@@ -1111,11 +1189,15 @@ export default function UserManagementPage() {
           )}
         </header>
 
-        <main className="flex-1 overflow-auto p-4">
-          {loading ? (
-            <div className="flex items-center justify-center h-full text-muted-foreground">Carregando...</div>
+        <main className="flex-1 overflow-auto p-4 sm:p-6">
+          {activeTab === "avatars" ? (
+            <AdminAvatarManager />
           ) : (
-            <div className="rounded-lg border border-border overflow-hidden">
+            <>
+              {loading ? (
+                <div className="flex items-center justify-center h-full text-muted-foreground">Carregando...</div>
+              ) : (
+                <div className="rounded-lg border border-border overflow-hidden">
               <Table>
                 <TableHeader>
                   <TableRow className="bg-muted/50">
@@ -1251,7 +1333,9 @@ export default function UserManagementPage() {
               </Table>
             </div>
           )}
-        </main>
+        </>
+      )}
+    </main>
       </div>
 
       {/* Delete dialog */}

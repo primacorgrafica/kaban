@@ -506,8 +506,64 @@ export function useChat() {
           const updated = payload.new;
           if (!updated) return;
           setMessages((prev) =>
-            prev.map((m) => (m.id === updated.id ? { ...m, ...updated } : m))
+            prev.map((m) =>
+              m.id === updated.id
+                ? {
+                    ...m,
+                    ...updated,
+                    is_read: Boolean(updated.is_read),
+                    read_at: updated.read_at || m.read_at,
+                  }
+                : m
+            )
           );
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "profiles",
+        },
+        (payload: any) => {
+          const updated = payload.new;
+          if (!updated) return;
+          setAvailableUsers((prev) =>
+            prev.map((u) =>
+              u.id === updated.user_id
+                ? { ...u, avatar_url: updated.avatar_url, nome: updated.nome || u.nome }
+                : u
+            )
+          );
+          setConversations((prev) =>
+            prev.map((c) =>
+              c.otherUser.id === updated.user_id
+                ? {
+                    ...c,
+                    otherUser: {
+                      ...c.otherUser,
+                      avatar_url: updated.avatar_url,
+                      nome: updated.nome || c.otherUser.nome,
+                    },
+                  }
+                : c
+            )
+          );
+          if (activeConvRef.current?.otherUser.id === updated.user_id) {
+            setActiveConversation((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    otherUser: {
+                      ...prev.otherUser,
+                      avatar_url: updated.avatar_url,
+                      nome: updated.nome || prev.otherUser.nome,
+                    },
+                  }
+                : null
+            );
+          }
         }
       )
       .on(

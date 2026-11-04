@@ -6,6 +6,7 @@ import { ChatConversationItem } from "./ChatConversationItem";
 import { ChatMessageItem } from "./ChatMessageItem";
 import { EmojiPickerPopover } from "./EmojiPickerPopover";
 import { NewConversationDialog } from "./NewConversationDialog";
+import { AvatarSelectorDialog } from "./AvatarSelectorDialog";
 import { notifyConversationViewed } from "./GlobalChatNotifier";
 import { getLocalHiddenOtherUsers } from "@/lib/chatService";
 import { supabase } from "@/integrations/supabase/client";
@@ -59,7 +60,7 @@ interface ChatContainerProps {
 }
 
 export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) {
-  const { user } = useAuth();
+  const { user, avatarUrl } = useAuth();
   const currentUserId = user?.id || "";
 
   const {
@@ -85,6 +86,7 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
   const [searchConvTerm, setSearchConvTerm] = useState("");
   const [filterMode, setFilterMode] = useState<"all" | "online">("all");
   const [newConvOpen, setNewConvOpen] = useState(false);
+  const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
   const [inputText, setInputText] = useState("");
   const [mobileView, setMobileView] = useState<"list" | "chat">("list");
 
@@ -346,15 +348,36 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
             </div>
           </div>
 
-          <Button
-            size="sm"
-            onClick={() => setNewConvOpen(true)}
-            className="h-8 px-2.5 bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] text-xs font-bold rounded-xl shadow-md font-mono-tech flex items-center gap-1.5 transition-all"
-            title="Nova conversa privada"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            <span>Novo</span>
-          </Button>
+          <div className="flex items-center gap-1.5">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setAvatarDialogOpen(true)}
+              className="h-8 px-2 border-[#4A5C6A]/50 hover:bg-accent text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all text-foreground"
+              title="Personalizar meu avatar"
+            >
+              {avatarUrl ? (
+                <img
+                  src={avatarUrl}
+                  alt="Meu Avatar"
+                  className="w-5 h-5 rounded-full object-cover border border-sky-400"
+                />
+              ) : (
+                <Sparkles className="h-3.5 w-3.5 text-sky-400" />
+              )}
+              <span className="hidden sm:inline text-[11px]">Avatar</span>
+            </Button>
+
+            <Button
+              size="sm"
+              onClick={() => setNewConvOpen(true)}
+              className="h-8 px-2.5 bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] text-xs font-bold rounded-xl shadow-md font-mono-tech flex items-center gap-1.5 transition-all"
+              title="Nova conversa privada"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>Novo</span>
+            </Button>
+          </div>
         </div>
 
         {/* Busca nas conversas */}
@@ -389,9 +412,17 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                   title={`${onlineUser.nome} (${onlineUser.role || onlineUser.setor || "Colaborador"}) — Online agora. Clique para conversar.`}
                 >
                   <div className="relative">
-                    <div className="w-9 h-9 rounded-xl bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center font-bold text-xs text-[#CCD0CF] group-hover:scale-105 transition-transform shadow-sm">
-                      {onlineUser.nome.charAt(0).toUpperCase()}
-                    </div>
+                    {onlineUser.avatar_url ? (
+                      <img
+                        src={onlineUser.avatar_url}
+                        alt={onlineUser.nome}
+                        className="w-9 h-9 rounded-xl object-cover border border-[#4A5C6A]/60 group-hover:scale-105 transition-transform shadow-sm"
+                      />
+                    ) : (
+                      <div className="w-9 h-9 rounded-xl bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center font-bold text-xs text-[#CCD0CF] group-hover:scale-105 transition-transform shadow-sm">
+                        {onlineUser.nome.charAt(0).toUpperCase()}
+                      </div>
+                    )}
                     <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-card shadow-[0_0_6px_#34d399]" />
                   </div>
                   <span className="text-[10px] text-foreground truncate w-full text-center group-hover:text-[#CCD0CF] font-medium">
@@ -545,9 +576,17 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
 
                 {/* Avatar */}
                 <div className="relative">
-                  <div className="w-9 h-9 rounded-xl bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center font-bold text-sm text-[#CCD0CF] shadow-md">
-                    {activeConversation.otherUser.nome.charAt(0).toUpperCase()}
-                  </div>
+                  {activeConversation.otherUser.avatar_url ? (
+                    <img
+                      src={activeConversation.otherUser.avatar_url}
+                      alt={activeConversation.otherUser.nome}
+                      className="w-9 h-9 rounded-xl object-cover border border-[#4A5C6A]/60 shadow-md"
+                    />
+                  ) : (
+                    <div className="w-9 h-9 rounded-xl bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center font-bold text-sm text-[#CCD0CF] shadow-md">
+                      {activeConversation.otherUser.nome.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   {activeConversation.otherUser.online && (
                     <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-card" />
                   )}
@@ -650,6 +689,8 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                         onDelete={deleteMessage}
                         onReact={reactToMessage}
                         currentUserId={currentUserId}
+                        senderAvatarUrl={activeConversation.otherUser.avatar_url}
+                        senderName={activeConversation.otherUser.nome}
                       />
                     );
                   }
@@ -798,6 +839,12 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ── DIÁLOGO: SELETOR DE AVATAR DO USUÁRIO ── */}
+      <AvatarSelectorDialog
+        open={avatarDialogOpen}
+        onOpenChange={setAvatarDialogOpen}
+      />
     </div>
   );
 }

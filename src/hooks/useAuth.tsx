@@ -8,6 +8,7 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   userName: string | null;
+  avatarUrl: string | null;
   loading: boolean;
   authReady: boolean;
   role: AppRole | null;
@@ -17,6 +18,8 @@ interface AuthContextType {
   onlineUserIds: Set<string>;
   hasModule: (mod: string) => boolean;
   canAccessSector: (sectorId: string) => boolean;
+  refreshProfile: () => Promise<void>;
+  updateAvatar: (url: string) => void;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -29,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState<AppRole | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [modulosAcesso, setModulosAcesso] = useState<string[]>([]);
   const [setorVinculado, setSetorVinculado] = useState<string | null>(null);
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
@@ -36,7 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchRole = useCallback(async (userId: string) => {
     const [{ data, error }, { data: profile }] = await Promise.all([
       supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle(),
-      supabase.from("profiles").select("nome, modulos_acesso, setor_vinculado" as any).eq("user_id", userId).maybeSingle(),
+      supabase.from("profiles").select("nome, modulos_acesso, setor_vinculado, avatar_url" as any).eq("user_id", userId).maybeSingle(),
     ]);
 
     if (error) {
@@ -47,10 +51,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const pNome = (profile as any)?.nome;
     setUserName(typeof pNome === "string" && pNome.trim() !== "" ? pNome.trim() : null);
+    const pAvatar = (profile as any)?.avatar_url;
+    setAvatarUrl(typeof pAvatar === "string" && pAvatar.trim() !== "" ? pAvatar.trim() : null);
     const mods = (profile as any)?.modulos_acesso;
     setModulosAcesso(Array.isArray(mods) ? mods : []);
     const setor = (profile as any)?.setor_vinculado;
     setSetorVinculado(typeof setor === "string" && setor.trim() !== "" ? setor.trim() : null);
+  }, []);
+
+  const refreshProfile = useCallback(async () => {
+    if (session?.user?.id) {
+      await fetchRole(session.user.id);
+    }
+  }, [session?.user?.id, fetchRole]);
+
+  const updateAvatar = useCallback((url: string) => {
+    setAvatarUrl(url);
   }, []);
 
 
@@ -363,11 +379,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authReady: !loading,
         role,
         isAdmin,
+        avatarUrl,
         modulosAcesso,
         setorVinculado,
         onlineUserIds,
         hasModule,
         canAccessSector,
+        refreshProfile,
+        updateAvatar,
         signIn,
         signUp,
         signOut,
@@ -388,6 +407,7 @@ export function useAuth() {
       session: null,
       user: null,
       userName: null,
+      avatarUrl: null,
       loading: true,
       authReady: false,
       role: null,
@@ -397,6 +417,8 @@ export function useAuth() {
       onlineUserIds: new Set<string>(),
       hasModule: () => false,
       canAccessSector: () => false,
+      refreshProfile: async () => {},
+      updateAvatar: () => {},
       signIn: async () => ({ error: new Error("Auth not ready") }),
       signUp: async () => ({ error: new Error("Auth not ready") }),
       signOut: async () => {},

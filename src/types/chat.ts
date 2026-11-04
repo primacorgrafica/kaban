@@ -6,6 +6,7 @@ export interface ChatUser {
   setor?: string | null;
   online?: boolean;
   last_seen?: string | null;
+  avatar_url?: string | null;
 }
 
 export interface ChatReaction {
@@ -28,6 +29,8 @@ export interface ChatMessage {
   created_at: string;
   updated_at: string;
   status?: "sending" | "sent" | "error";
+  is_read?: boolean;
+  read_at?: string | null;
   reactions?: ChatReaction[];
   reply_to?: {
     id: string;
@@ -35,6 +38,25 @@ export interface ChatMessage {
     content: string;
     sender_name?: string;
   } | null;
+}
+
+export interface ChatMessageRead {
+  id: string;
+  message_id: string;
+  conversation_id: string;
+  user_id: string;
+  read_at: string;
+}
+
+export interface ChatAvatar {
+  id: string;
+  name: string;
+  image_url: string;
+  category: string;
+  is_active: boolean;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ChatConversationSettings {

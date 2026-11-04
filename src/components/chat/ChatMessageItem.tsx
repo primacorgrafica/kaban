@@ -32,6 +32,8 @@ interface ChatMessageItemProps {
   onDelete: (messageId: string, mode: "for_me" | "for_all") => void;
   onReact: (messageId: string, emoji: string) => void;
   currentUserId: string;
+  senderAvatarUrl?: string | null;
+  senderName?: string;
 }
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "🔥", "👏", "✅"];
@@ -43,6 +45,8 @@ export function ChatMessageItem({
   onDelete,
   onReact,
   currentUserId,
+  senderAvatarUrl,
+  senderName,
 }: ChatMessageItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
@@ -76,7 +80,24 @@ export function ChatMessageItem({
 
   return (
     <div className={`flex flex-col mb-3 group ${isMe ? "items-end" : "items-start"}`}>
-      <div className={`flex items-end gap-1.5 max-w-[85%] sm:max-w-[70%] ${isMe ? "flex-row-reverse" : "flex-row"}`}>
+      <div className={`flex items-end gap-2 max-w-[85%] sm:max-w-[70%] ${isMe ? "flex-row-reverse" : "flex-row"}`}>
+        {/* Avatar do remetente para mensagens recebidas */}
+        {!isMe && (
+          <div className="shrink-0 mb-1">
+            {senderAvatarUrl ? (
+              <img
+                src={senderAvatarUrl}
+                alt={senderName || "Usuário"}
+                className="w-7 h-7 rounded-xl object-cover border border-border/80 shadow-xs"
+              />
+            ) : (
+              <div className="w-7 h-7 rounded-xl bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center font-bold text-[11px] text-[#CCD0CF] shadow-xs">
+                {(senderName || "U").charAt(0).toUpperCase()}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Message Bubble */}
         <div
           className={`relative px-3.5 py-2.5 rounded-2xl text-xs transition-all shadow-sm ${
@@ -137,11 +158,19 @@ export function ChatMessageItem({
                 <span>{formattedTime}</span>
 
                 {isMe && (
-                  <span>
+                  <span className="inline-flex items-center ml-0.5">
                     {message.status === "sending" ? (
-                      <Clock className="h-2.5 w-2.5 animate-spin" />
+                      <Clock className="h-2.5 w-2.5 animate-spin text-muted-foreground/60" title="Enviando..." />
+                    ) : message.is_read ? (
+                      <CheckCheck
+                        className="h-3 w-3 text-sky-400 font-bold"
+                        title={message.read_at ? `Lida às ${format(new Date(message.read_at), "HH:mm")}` : "Lida"}
+                      />
                     ) : (
-                      <CheckCheck className="h-3 w-3 text-[#CCD0CF]" />
+                      <CheckCheck
+                        className="h-3 w-3 text-muted-foreground/50"
+                        title="Enviada (não visualizada)"
+                      />
                     )}
                   </span>
                 )}

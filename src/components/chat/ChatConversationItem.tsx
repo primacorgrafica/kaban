@@ -52,15 +52,27 @@ export function ChatConversationItem({
       <div className="flex items-center gap-3 min-w-0 flex-1">
         {/* Avatar com status online */}
         <div className="relative shrink-0">
-          <div
-            className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shadow-sm transition-transform ${
-              isActive
-                ? "bg-[#253745] text-[#CCD0CF] font-black border border-[#4A5C6A]"
-                : "bg-muted border border-border text-foreground"
-            }`}
-          >
-            {otherUser.nome.charAt(0).toUpperCase()}
-          </div>
+          {otherUser.avatar_url ? (
+            <img
+              src={otherUser.avatar_url}
+              alt={otherUser.nome}
+              className={`w-10 h-10 rounded-xl object-cover shadow-sm transition-transform ${
+                isActive
+                  ? "border-2 border-sky-400 ring-1 ring-sky-400/40"
+                  : "border border-border"
+              }`}
+            />
+          ) : (
+            <div
+              className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shadow-sm transition-transform ${
+                isActive
+                  ? "bg-[#253745] text-[#CCD0CF] font-black border border-[#4A5C6A]"
+                  : "bg-muted border border-border text-foreground"
+              }`}
+            >
+              {otherUser.nome.charAt(0).toUpperCase()}
+            </div>
+          )}
           {otherUser.online && (
             <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-card" />
           )}
