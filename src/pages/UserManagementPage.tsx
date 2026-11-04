@@ -45,6 +45,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
+import { clearVendedoresCache } from "@/lib/vendedores";
 
 type AppRole = "admin" | "coordenador" | "operador" | "vendedor" | "user" | "orcamentista" | "impressor" | "entregador" | "rh";
 
@@ -460,6 +461,25 @@ export default function UserManagementPage() {
 
         if (!roleUpdated) {
           hasRoleErrors = true;
+        } else {
+          // Sincroniza tabela vendedores em caso de alteração de papel
+          if (u.role === "vendedor") {
+            try {
+              await supabase.from("vendedores").upsert(
+                {
+                  id: u.user_id,
+                  user_id: u.user_id,
+                  nome: u.nome,
+                  email: u.email || null,
+                } as any,
+                { onConflict: "id" }
+              );
+            } catch { /* ignore */ }
+          } else {
+            try {
+              await supabase.from("vendedores").delete().eq("user_id", u.user_id);
+            } catch { /* ignore */ }
+          }
         }
       }
 
@@ -497,6 +517,11 @@ export default function UserManagementPage() {
         } catch { /* tabela entregadores ainda não implantada */ }
       }
 
+    }
+
+    clearVendedoresCache();
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("vendedores-updated"));
     }
 
     setSaving(false);
@@ -823,14 +848,32 @@ export default function UserManagementPage() {
           errorMessage = err?.message || errorMessage;
         }
 
-        // Tenta sincronizar vendedores por user_id e nome
-        if (trimmedEmail) {
+        // Sincroniza tabela vendedores se for vendedor
+        const finalRole = editForm.role || editTarget.role;
+        if (finalRole === "vendedor") {
           try {
-            await supabase.from("vendedores").update({ email: trimmedEmail, nome: editForm.nome.trim() } as any).eq("user_id", editTarget.user_id);
+            await supabase.from("vendedores").upsert(
+              {
+                id: editTarget.user_id,
+                user_id: editTarget.user_id,
+                nome: editForm.nome.trim(),
+                email: trimmedEmail || null,
+              } as any,
+              { onConflict: "id" }
+            );
           } catch { /* ignore */ }
+          clearVendedoresCache();
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("vendedores-updated"));
+          }
+        } else if (editTarget.role === "vendedor" && finalRole !== "vendedor") {
           try {
-            await supabase.from("vendedores").update({ email: trimmedEmail } as any).ilike("nome", editForm.nome.trim());
+            await supabase.from("vendedores").delete().eq("user_id", editTarget.user_id);
           } catch { /* ignore */ }
+          clearVendedoresCache();
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("vendedores-updated"));
+          }
         }
       }
 

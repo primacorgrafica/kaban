@@ -306,11 +306,21 @@ export function OrderDetailDialog({
 
   useEffect(() => {
     if (editing) {
-      fetchVendedores().then((data) => {
+      fetchVendedores(true).then((data) => {
         if (data) setVendedoresList(data);
       });
     }
   }, [editing]);
+
+  useEffect(() => {
+    const handleUpdated = () => {
+      fetchVendedores(true).then((data) => {
+        if (data) setVendedoresList(data);
+      });
+    };
+    window.addEventListener("vendedores-updated", handleUpdated);
+    return () => window.removeEventListener("vendedores-updated", handleUpdated);
+  }, []);
 
   const config = STATUS_CONFIG[order.status] || { label: order.status, colorKey: "andamento" };
   const isLastStatus = order.status === "arquivo_liberado";

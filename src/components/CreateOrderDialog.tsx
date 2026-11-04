@@ -307,11 +307,21 @@ export function CreateOrderDialog({
       setCurrentUploadSpeedOrBytes("");
       setForm(getInitialForm(orderToEdit));
 
-      fetchVendedores().then((data) => {
+      fetchVendedores(true).then((data) => {
         if (data) setVendedores(data);
       });
     }
   }, [open, orderToEdit]);
+
+  useEffect(() => {
+    const handleVendedoresUpdated = () => {
+      fetchVendedores(true).then((data) => {
+        if (data) setVendedores(data);
+      });
+    };
+    window.addEventListener("vendedores-updated", handleVendedoresUpdated);
+    return () => window.removeEventListener("vendedores-updated", handleVendedoresUpdated);
+  }, []);
 
   const toggleProcesso = (sigla: string) => {
     setForm((f) => {
@@ -1212,6 +1222,13 @@ export function CreateOrderDialog({
                   <Select
                     value={form.vendedor}
                     onValueChange={(v) => setForm((f) => ({ ...f, vendedor: v }))}
+                    onOpenChange={(isOpen) => {
+                      if (isOpen) {
+                        fetchVendedores().then((data) => {
+                          if (data && data.length > 0) setVendedores(data);
+                        });
+                      }
+                    }}
                   >
                     <SelectTrigger className="h-10 bg-background border-input text-foreground rounded-xl focus:border-[#4A5C6A] focus:ring-1 focus:ring-[#9BA8AB]/40">
                       <SelectValue placeholder="Selecione o vendedor" />

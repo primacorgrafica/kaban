@@ -8,7 +8,7 @@ export interface VendedorProfile {
 }
 
 /**
- * 5 Vendedores Oficiais Reais do Primacor Kaban (perfis de usuário reais)
+ * 6 Vendedores Oficiais Reais do Primacor Kaban (perfis de usuário reais)
  */
 export const DEFAULT_VENDEDORES: VendedorProfile[] = [
   {
@@ -41,12 +41,18 @@ export const DEFAULT_VENDEDORES: VendedorProfile[] = [
     nome: "well",
     email: "well@primacorgrafica.com.br",
   },
+  {
+    id: "primacor-comercial-profile",
+    user_id: "primacor-comercial-profile",
+    nome: "Primacor",
+    email: "comercial@primacorgrafica.com.br",
+  },
 ];
 
 let cachedVendedores: VendedorProfile[] | null = null;
 let lastFetchTime = 0;
 let inFlightPromise: Promise<VendedorProfile[]> | null = null;
-const CACHE_TTL_MS = 30000; // 30 segundos de cache
+const CACHE_TTL_MS = 15000; // 15 segundos de cache
 
 export function clearVendedoresCache(): void {
   cachedVendedores = null;
@@ -57,7 +63,6 @@ export function clearVendedoresCache(): void {
 /**
  * Sanitiza e normaliza nomes de vendedores para garantir que:
  * - "Wellington" seja corrigido para "well" (perfil real)
- * - "Primacor" e outros nomes que não sejam vendedores sejam removidos
  */
 export function sanitizeVendedorNome(rawName: string): string {
   const clean = (rawName || "").trim();
@@ -67,110 +72,105 @@ export function sanitizeVendedorNome(rawName: string): string {
   return clean;
 }
 
+/**
+ * Valida se é um nome válido de vendedor
+ */
 export function isRealVendedor(nome: string): boolean {
-  const clean = (nome || "").trim().toLowerCase();
-  if (!clean || clean === "primacor") return false;
+  const clean = (nome || "").trim();
+  if (!clean) return false;
   return true;
 }
 
 async function fetchBaseVendedores(): Promise<VendedorProfile[]> {
-  let list: VendedorProfile[] = [];
+  const mapByUserOrName = new Map<string, VendedorProfile>();
 
-  // 1. Tenta chamar a RPC get_vendedores (SECURITY DEFINER)
+  const addItems = (items: (VendedorProfile | any)[]) => {
+    for (const item of items) {
+      if (!item || !item.nome) continue;
+      const cleanName = sanitizeVendedorNome(item.nome);
+      if (!isRealVendedor(cleanName)) continue;
+      const key = cleanName.toLowerCase().trim();
+      const existing = mapByUserOrName.get(key);
+      if (!existing) {
+        mapByUserOrName.set(key, {
+          id: item.id || item.user_id || key,
+          user_id: item.user_id || (item.id && typeof item.id === "string" && item.id.length === 36 ? item.id : undefined),
+          nome: cleanName,
+          email: item.email || null,
+        });
+      } else {
+        // Enriquecer email ou user_id se faltava
+        if (!existing.email && item.email) existing.email = item.email;
+        if (!existing.user_id && item.user_id) existing.user_id = item.user_id;
+      }
+    }
+  };
+
+  // 1. Fonte Primária: Consulta em tempo real aos usuários com role = 'vendedor' + perfis
+  try {
+    const [{ data: roles, error: rolesErr }, { data: profiles, error: profsErr }] = await Promise.all([
+      supabase.from("user_roles").select("user_id").eq("role", "vendedor"),
+      supabase.from("profiles").select("id, user_id, nome, email" as any).order("nome"),
+    ]);
+
+    if (!rolesErr && !profsErr && roles && profiles) {
+      const vendedorUserIds = new Set((roles || []).map((r: any) => r.user_id));
+      const currentVendedores = profiles
+        .filter((p: any) => p.user_id && vendedorUserIds.has(p.user_id) && p.nome)
+        .map((p: any) => ({
+          id: p.id || p.user_id,
+          user_id: p.user_id,
+          nome: p.nome,
+          email: p.email || null,
+        }));
+
+      if (currentVendedores.length > 0) {
+        addItems(currentVendedores);
+      }
+    }
+  } catch (err) {
+    console.warn("[vendedores] Erro ao consultar via user_roles/profiles:", err);
+  }
+
+  // 2. Consulta complementar via RPC get_vendedores
   try {
     const { data: rpcData, error: rpcError } = await (supabase.rpc as any)("get_vendedores");
     if (!rpcError && Array.isArray(rpcData) && rpcData.length > 0) {
-      list = rpcData
-        .filter((item: any) => item.nome && isRealVendedor(item.nome))
-        .map((item: any) => ({
-          id: item.id || item.user_id,
-          user_id: item.user_id,
-          nome: sanitizeVendedorNome(item.nome),
-          email: item.email || null,
-        }));
+      addItems(rpcData);
     }
   } catch (err) {
-    console.warn("[vendedores] Falha ao invocar RPC get_vendedores, usando fallback:", err);
+    console.warn("[vendedores] Falha ao invocar RPC get_vendedores:", err);
   }
 
-  // 2. Fallback: Consulta direta cruzando user_roles com role = 'vendedor' + profiles
-  if (list.length === 0) {
-    try {
-      const [{ data: roles }, { data: profiles }] = await Promise.all([
-        supabase.from("user_roles").select("user_id").eq("role", "vendedor"),
-        supabase.from("profiles").select("id, user_id, nome, email" as any).order("nome"),
-      ]);
+  // 3. Consulta complementar na tabela 'vendedores'
+  try {
+    const { data: tableData, error: tableErr } = await supabase
+      .from("vendedores")
+      .select("id, nome, email, user_id" as any)
+      .order("nome");
 
-      const vendedorUserIds = new Set((roles || []).map((r: any) => r.user_id));
-      if (vendedorUserIds.size > 0 && profiles && profiles.length > 0) {
-        const filtered = (profiles || [])
-          .filter((p: any) => p.user_id && vendedorUserIds.has(p.user_id) && p.nome && isRealVendedor(p.nome))
-          .map((p: any) => ({
-            id: p.id || p.user_id,
-            user_id: p.user_id,
-            nome: sanitizeVendedorNome(p.nome),
-            email: p.email || null,
-          }));
-
-        if (filtered.length > 0) {
-          list = filtered;
-        }
-      }
-    } catch (err) {
-      console.warn("[vendedores] Erro ao consultar via profiles/user_roles:", err);
+    if (!tableErr && tableData && tableData.length > 0) {
+      addItems(tableData);
     }
+  } catch (err) {
+    console.warn("[vendedores] Erro ao consultar tabela vendedores:", err);
   }
 
-  // 3. Fallback: Tabela vendedores
-  if (list.length === 0) {
-    try {
-      const { data: tableData, error: tableErr } = await supabase
-        .from("vendedores")
-        .select("id, nome, email, user_id" as any)
-        .order("nome");
-
-      if (!tableErr && tableData && tableData.length > 0) {
-        list = tableData
-          .filter((item: any) => item.nome && isRealVendedor(item.nome))
-          .map((item: any) => ({
-            id: item.id,
-            user_id: item.user_id,
-            nome: sanitizeVendedorNome(item.nome),
-            email: item.email || null,
-          }));
-      }
-    } catch (err) {
-      console.warn("[vendedores] Erro ao consultar tabela vendedores:", err);
-    }
+  // 4. Se a lista ainda estiver completamente vazia, fallback seguro com os vendedores oficiais
+  if (mapByUserOrName.size === 0) {
+    addItems(DEFAULT_VENDEDORES);
   }
 
-  // 4. Se a lista ainda estiver vazia ou com dados incompletos, usa a lista oficial dos 5 vendedores
-  if (list.length === 0) {
-    list = [...DEFAULT_VENDEDORES];
-  }
-
-  // Remove eventuais duplicatas por nome normalizado
-  const seenNames = new Set<string>();
-  const uniqueList: VendedorProfile[] = [];
-  for (const item of list) {
-    const key = item.nome.toLowerCase().trim();
-    if (!seenNames.has(key)) {
-      seenNames.add(key);
-      uniqueList.push(item);
-    }
-  }
-
-  // Ordena por nome alfabeticamente
-  return uniqueList.sort((a, b) => a.nome.localeCompare(b.nome));
+  return Array.from(mapByUserOrName.values()).sort((a, b) => a.nome.localeCompare(b.nome));
 }
 
-export async function fetchVendedores(): Promise<VendedorProfile[]> {
+export async function fetchVendedores(forceRefresh = false): Promise<VendedorProfile[]> {
   const now = Date.now();
-  if (cachedVendedores && now - lastFetchTime < CACHE_TTL_MS) {
+  if (!forceRefresh && cachedVendedores && now - lastFetchTime < CACHE_TTL_MS) {
     return cachedVendedores;
   }
 
-  if (inFlightPromise) {
+  if (inFlightPromise && !forceRefresh) {
     return inFlightPromise;
   }
 
@@ -188,4 +188,23 @@ export async function fetchVendedores(): Promise<VendedorProfile[]> {
     });
 
   return inFlightPromise;
+}
+
+// Configura monitoramento realtime global para invalidar cache automaticamente em caso de alteração de papel
+if (typeof window !== "undefined" && typeof supabase?.channel === "function") {
+  try {
+    supabase
+      .channel("vendedores-realtime-sync")
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_roles" }, () => {
+        clearVendedoresCache();
+        window.dispatchEvent(new CustomEvent("vendedores-updated"));
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "vendedores" }, () => {
+        clearVendedoresCache();
+        window.dispatchEvent(new CustomEvent("vendedores-updated"));
+      })
+      .subscribe();
+  } catch (e) {
+    console.warn("[vendedores] Não foi possível registrar channel realtime de vendedores:", e);
+  }
 }

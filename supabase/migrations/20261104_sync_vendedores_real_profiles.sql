@@ -5,7 +5,7 @@
 
 -- 1. Remove qualquer registro inválido que não seja um vendedor real
 DELETE FROM public.vendedores
-WHERE LOWER(TRIM(nome)) IN ('primacor', 'wellington');
+WHERE LOWER(TRIM(nome)) = 'wellington';
 
 -- 2. Insere/atualiza os 5 vendedores reais vinculados aos seus user_ids e perfis
 INSERT INTO public.vendedores (id, nome, email, user_id)
@@ -55,7 +55,6 @@ AS $$
   WHERE ur.role = 'vendedor'
     AND p.nome IS NOT NULL
     AND TRIM(p.nome) <> ''
-    AND LOWER(TRIM(p.nome)) <> 'primacor'
   ORDER BY p.nome;
 $$;
 
