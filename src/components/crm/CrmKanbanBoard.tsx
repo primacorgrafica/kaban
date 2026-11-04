@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef, useCallback, useEffect } from "react";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
+import { performDndAutoScroll } from "@/lib/dndAutoScroll";
 import { CrmOpportunity, CrmStage, isFollowUpLate, isFollowUpToday, formatCurrency } from "@/types/crm";
 import { CrmKanbanColumn } from "./CrmKanbanColumn";
 import { Input } from "@/components/ui/input";
@@ -232,60 +233,8 @@ export function CrmKanbanBoard({
       return;
     }
 
-    const EDGE_ZONE = 200;
-    const MAX_SPEED = 12;
-
     const tick = () => {
-      const el = containerRef.current;
-      if (!el) {
-        rafRef.current = requestAnimationFrame(tick);
-        return;
-      }
-
-      const rect = el.getBoundingClientRect();
-      const mouseX = mouseXRef.current;
-      const mouseY = mouseYRef.current;
-
-      // Auto-scroll horizontal
-      if (mouseY >= rect.top && mouseY <= rect.bottom) {
-        const relX = mouseX - rect.left;
-        const width = rect.width;
-
-        if (relX < EDGE_ZONE && relX >= -50) {
-          const ratio = Math.max(0, Math.min(1, 1 - relX / EDGE_ZONE));
-          const speed = Math.ceil(MAX_SPEED * Math.pow(ratio, 1.5));
-          if (el.scrollLeft > 0) {
-            el.scrollLeft -= speed;
-          }
-        } else if (relX > width - EDGE_ZONE && relX <= width + 50) {
-          const ratio = Math.max(0, Math.min(1, 1 - (width - relX) / EDGE_ZONE));
-          const speed = Math.ceil(MAX_SPEED * Math.pow(ratio, 1.5));
-          if (el.scrollLeft < el.scrollWidth - el.clientWidth) {
-            el.scrollLeft += speed;
-          }
-        }
-      }
-
-      // Auto-scroll vertical
-      if (mouseX >= rect.left && mouseX <= rect.right) {
-        const relY = mouseY - rect.top;
-        const height = rect.height;
-
-        if (relY < EDGE_ZONE && relY >= -50) {
-          const ratio = Math.max(0, Math.min(1, 1 - relY / EDGE_ZONE));
-          const speed = Math.ceil(MAX_SPEED * Math.pow(ratio, 1.5));
-          if (el.scrollTop > 0) {
-            el.scrollTop -= speed;
-          }
-        } else if (relY > height - EDGE_ZONE && relY <= height + 50) {
-          const ratio = Math.max(0, Math.min(1, 1 - (height - relY) / EDGE_ZONE));
-          const speed = Math.ceil(MAX_SPEED * Math.pow(ratio, 1.5));
-          if (el.scrollTop < el.scrollHeight - el.clientHeight) {
-            el.scrollTop += speed;
-          }
-        }
-      }
-
+      performDndAutoScroll(containerRef.current, mouseXRef.current, mouseYRef.current);
       rafRef.current = requestAnimationFrame(tick);
     };
 

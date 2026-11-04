@@ -4,6 +4,7 @@ import { DepartmentConfig, Department } from "@/types/production";
 import { ProductionColumn } from "./ProductionColumn";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { useRef, useCallback, useState, useEffect } from "react";
+import { performDndAutoScroll } from "@/lib/dndAutoScroll";
 import { ChevronLeft, ChevronRight, Car, Bike, AlertTriangle } from "lucide-react";
 import {
   AlertDialog,
@@ -109,49 +110,19 @@ export function ProductionKanbanBoard({
     const handler = (e: MouseEvent) => { mouseXRef.current = e.clientX; mouseYRef.current = e.clientY; };
     const touchHandler = (e: TouchEvent) => { if (e.touches[0]) { mouseXRef.current = e.touches[0].clientX; mouseYRef.current = e.touches[0].clientY; } };
     document.addEventListener("mousemove", handler, { capture: true, passive: true });
+    document.addEventListener("pointermove", handler as EventListener, { capture: true, passive: true });
     document.addEventListener("touchmove", touchHandler, { capture: true, passive: true });
     return () => {
       document.removeEventListener("mousemove", handler, { capture: true } as EventListenerOptions);
+      document.removeEventListener("pointermove", handler as EventListener, { capture: true } as EventListenerOptions);
       document.removeEventListener("touchmove", touchHandler, { capture: true } as EventListenerOptions);
     };
   }, [isDndActive]);
 
   useEffect(() => {
     if (!isDndActive) { if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; } return; }
-    const EDGE_ZONE = 200;
-    const MAX_SPEED = 12;
     const tick = () => {
-      const el = containerRef.current;
-      if (!el) { rafRef.current = requestAnimationFrame(tick); return; }
-      const rect = el.getBoundingClientRect();
-      const mouseX = mouseXRef.current;
-      const mouseY = mouseYRef.current;
-
-      // Horizontal auto-scroll
-      if (mouseY >= rect.top && mouseY <= rect.bottom) {
-        const relX = mouseX - rect.left;
-        if (relX < EDGE_ZONE && relX >= -50) {
-          const ratio = Math.max(0, Math.min(1, 1 - relX / EDGE_ZONE));
-          el.scrollLeft -= Math.ceil(MAX_SPEED * Math.pow(ratio, 1.5));
-        } else if (relX > rect.width - EDGE_ZONE && relX <= rect.width + 50) {
-          const ratio = Math.max(0, Math.min(1, 1 - (rect.width - relX) / EDGE_ZONE));
-          el.scrollLeft += Math.ceil(MAX_SPEED * Math.pow(ratio, 1.5));
-        }
-      }
-
-      // Vertical auto-scroll
-      if (mouseX >= rect.left && mouseX <= rect.right) {
-        const relY = mouseY - rect.top;
-        const height = rect.height;
-        if (relY < EDGE_ZONE && relY >= -50) {
-          const ratio = Math.max(0, Math.min(1, 1 - relY / EDGE_ZONE));
-          if (el.scrollTop > 0) el.scrollTop -= Math.ceil(MAX_SPEED * Math.pow(ratio, 1.5));
-        } else if (relY > height - EDGE_ZONE && relY <= height + 50) {
-          const ratio = Math.max(0, Math.min(1, 1 - (height - relY) / EDGE_ZONE));
-          if (el.scrollTop < el.scrollHeight - el.clientHeight) el.scrollTop += Math.ceil(MAX_SPEED * Math.pow(ratio, 1.5));
-        }
-      }
-
+      performDndAutoScroll(containerRef.current, mouseXRef.current, mouseYRef.current);
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
