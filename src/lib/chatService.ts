@@ -901,25 +901,28 @@ export async function updateUserAvatarPreference(
 
 /**
  * Cadastra um novo avatar na biblioteca (Somente admin / coordenador)
+ * O nome é totalmente opcional; se não informado, gera um nome padrão baseado no arquivo/categoria.
  */
 export async function createAvatarInLibrary(
-  name: string,
-  imageUrl: string,
+  name?: string | null,
+  imageUrl: string = "",
   category = "oficial",
   userId?: string
 ): Promise<{ success: boolean; data?: ChatAvatar; error?: string }> {
-  const trimmedName = name.trim();
-  const trimmedUrl = imageUrl.trim();
+  const trimmedUrl = (imageUrl || "").trim();
 
-  if (!trimmedName || !trimmedUrl) {
-    return { success: false, error: "Nome e imagem do avatar são obrigatórios" };
+  if (!trimmedUrl) {
+    return { success: false, error: "A imagem do avatar é obrigatória" };
   }
+
+  // Nome opcional: utiliza nome fornecido ou padrão amigável
+  const finalName = name && name.trim() ? name.trim() : "Avatar Primacor";
 
   try {
     const { data, error } = await supabase
       .from("chat_avatars" as any)
       .insert({
-        name: trimmedName,
+        name: finalName,
         image_url: trimmedUrl,
         category,
         is_active: true,
@@ -939,6 +942,67 @@ export async function createAvatarInLibrary(
   } catch (err: any) {
     return { success: false, error: err.message || "Erro ao cadastrar avatar" };
   }
+}
+
+/**
+ * Cadastra múltiplos avatares de uma só vez a partir de uma lista de arquivos de imagem
+ */
+export async function createMultipleAvatarsInLibrary(
+  files: File[],
+  category = "oficial",
+  userId?: string,
+  onProgress?: (current: number, total: number) => void
+): Promise<{ success: boolean; createdCount: number; errors: string[] }> {
+  if (!files || files.length === 0) {
+    return { success: false, createdCount: 0, errors: ["Nenhum arquivo selecionado"] };
+  }
+
+  let createdCount = 0;
+  const errors: string[] = [];
+
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (onProgress) {
+      onProgress(i + 1, files.length);
+    }
+
+    try {
+      // 1. Upload da imagem para o Storage
+      const uploadRes = await uploadAvatarImage(file);
+      if (!uploadRes.success || !uploadRes.publicUrl) {
+        errors.push(`"${file.name}": ${uploadRes.error || "Falha no upload"}`);
+        continue;
+      }
+
+      // 2. Extrai nome automático do arquivo sem a extensão
+      const autoName = file.name
+        .replace(/\.[^/.]+$/, "")
+        .replace(/[-_]/g, " ")
+        .trim();
+
+      // 3. Cadastra na biblioteca
+      const createRes = await createAvatarInLibrary(
+        autoName || "Avatar",
+        uploadRes.publicUrl,
+        category,
+        userId
+      );
+
+      if (createRes.success) {
+        createdCount++;
+      } else {
+        errors.push(`"${file.name}": ${createRes.error || "Erro ao registrar"}`);
+      }
+    } catch (err: any) {
+      errors.push(`"${file.name}": ${err.message || "Erro inesperado"}`);
+    }
+  }
+
+  return {
+    success: createdCount > 0,
+    createdCount,
+    errors,
+  };
 }
 
 /**

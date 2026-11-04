@@ -4,6 +4,7 @@ import { ChatAvatar } from "@/types/chat";
 import {
   fetchAvatarLibrary,
   createAvatarInLibrary,
+  createMultipleAvatarsInLibrary,
   toggleAvatarStatus,
   deleteAvatarFromLibrary,
   uploadAvatarImage,
@@ -49,6 +50,8 @@ import {
   Check,
   AlertCircle,
   ShieldCheck,
+  X,
+  FileCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -61,13 +64,23 @@ export function AdminAvatarManager() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
-  // Formulário de novo avatar
+  // Formulário de novo avatar / lote
   const [newName, setNewName] = useState("");
   const [newCategory, setNewCategory] = useState("oficial");
   const [imageUrlInput, setImageUrlInput] = useState("");
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+  const [filePreviews, setFilePreviews] = useState<string[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const resetForm = () => {
+    setCreateDialogOpen(false);
+    setNewName("");
+    setImageUrlInput("");
+    setUploadFiles([]);
+    setFilePreviews([]);
+    setUploadProgress(null);
+  };
 
   const loadAvatars = async () => {
     setLoading(true);
@@ -87,16 +100,20 @@ export function AdminAvatarManager() {
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith("image/")) {
-        toast.error("Por favor, selecione um arquivo de imagem válido (PNG, JPG, SVG, WebP)");
-        return;
-      }
-      setUploadFile(file);
-      const url = URL.createObjectURL(file);
-      setFilePreview(url);
+    const rawFiles = Array.from(e.target.files || []);
+    const validImages = rawFiles.filter((f) => f.type.startsWith("image/"));
+    if (validImages.length === 0 && rawFiles.length > 0) {
+      toast.error("Por favor, selecione arquivos de imagem válidos (PNG, JPG, SVG, WebP)");
+      return;
     }
+    setUploadFiles((prev) => [...prev, ...validImages]);
+    const newPreviews = validImages.map((f) => URL.createObjectURL(f));
+    setFilePreviews((prev) => [...prev, ...newPreviews]);
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setUploadFiles((prev) => prev.filter((_, i) => i !== index));
+    setFilePreviews((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleCreate = async () => {
@@ -105,49 +122,102 @@ export function AdminAvatarManager() {
       return;
     }
 
-    if (!newName.trim()) {
-      toast.error("Informe o nome do avatar");
+    // 1. Arquivos selecionados para upload em lote
+    if (uploadFiles.length > 0) {
+      setIsSubmitting(true);
+      try {
+        if (uploadFiles.length === 1 && newName.trim()) {
+          const uploadResult = await uploadAvatarImage(uploadFiles[0]);
+          if (!uploadResult.success || !uploadResult.publicUrl) {
+            toast.error(uploadResult.error || "Falha ao enviar arquivo de imagem");
+            setIsSubmitting(false);
+            return;
+          }
+          const res = await createAvatarInLibrary(
+            newName.trim(),
+            uploadResult.publicUrl,
+            newCategory,
+            user?.id
+          );
+          if (res.success) {
+            toast.success("Avatar cadastrado com sucesso!");
+            resetForm();
+            await loadAvatars();
+          } else {
+            toast.error(res.error || "Falha ao cadastrar avatar");
+          }
+        } else {
+          const result = await createMultipleAvatarsInLibrary(
+            uploadFiles,
+            newCategory,
+            user?.id,
+            (current, total) => setUploadProgress({ current, total })
+          );
+          if (result.success) {
+            toast.success(
+              result.createdCount > 1
+                ? `${result.createdCount} novos avatares importados com sucesso!`
+                : "Avatar cadastrado com sucesso!"
+            );
+            resetForm();
+            await loadAvatars();
+          } else {
+            toast.error(result.errors[0] || "Falha ao enviar avatares");
+          }
+        }
+      } catch (err: any) {
+        toast.error(err.message || "Erro inesperado");
+      } finally {
+        setIsSubmitting(false);
+        setUploadProgress(null);
+      }
+      return;
+    }
+
+    // 2. URLs diretas (uma ou múltiplas separadas por vírgula ou quebra de linha)
+    const rawUrls = imageUrlInput
+      .split(/[\n,]/)
+      .map((u) => u.trim())
+      .filter(Boolean);
+
+    if (rawUrls.length === 0) {
+      toast.error("Selecione um ou mais arquivos de imagem ou informe a URL");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      let finalImageUrl = imageUrlInput.trim();
-
-      // Se enviou arquivo, faz upload para o Storage
-      if (uploadFile) {
-        const uploadResult = await uploadAvatarImage(uploadFile);
-        if (!uploadResult.success || !uploadResult.publicUrl) {
-          toast.error(uploadResult.error || "Falha ao enviar arquivo de imagem");
-          setIsSubmitting(false);
-          return;
+      if (rawUrls.length === 1) {
+        const res = await createAvatarInLibrary(
+          newName.trim() || undefined,
+          rawUrls[0],
+          newCategory,
+          user?.id
+        );
+        if (res.success) {
+          toast.success("Avatar cadastrado com sucesso!");
+          resetForm();
+          await loadAvatars();
+        } else {
+          toast.error(res.error || "Falha ao cadastrar avatar");
         }
-        finalImageUrl = uploadResult.publicUrl;
-      }
-
-      if (!finalImageUrl) {
-        toast.error("Selecione um arquivo de imagem ou informe a URL da imagem");
-        setIsSubmitting(false);
-        return;
-      }
-
-      const res = await createAvatarInLibrary(
-        newName,
-        finalImageUrl,
-        newCategory,
-        user?.id
-      );
-
-      if (res.success) {
-        toast.success("Avatar cadastrado com sucesso!");
-        setCreateDialogOpen(false);
-        setNewName("");
-        setImageUrlInput("");
-        setUploadFile(null);
-        setFilePreview(null);
-        await loadAvatars();
       } else {
-        toast.error(res.error || "Falha ao cadastrar avatar");
+        let created = 0;
+        for (let i = 0; i < rawUrls.length; i++) {
+          const url = rawUrls[i];
+          const autoName =
+            url.split("/").pop()?.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ") ||
+            `Avatar Primacor ${i + 1}`;
+          const res = await createAvatarInLibrary(autoName, url, newCategory, user?.id);
+          if (res.success) created++;
+        }
+        if (created > 0) {
+          toast.success(`${created} avatares cadastrados com sucesso!`);
+          resetForm();
+          await loadAvatars();
+        } else {
+          toast.error("Falha ao cadastrar avatares via URL");
+        }
       }
     } catch (err: any) {
       toast.error(err.message || "Erro inesperado");
@@ -338,8 +408,14 @@ export function AdminAvatarManager() {
         </div>
       )}
 
-      {/* Diálogo de Cadastro de Novo Avatar */}
-      <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+      {/* Diálogo de Cadastro de Novo Avatar / Lote */}
+      <Dialog
+        open={createDialogOpen}
+        onOpenChange={(open) => {
+          if (!open) resetForm();
+          setCreateDialogOpen(open);
+        }}
+      >
         <DialogContent className="max-w-md bg-card border-border text-foreground rounded-2xl shadow-2xl p-6">
           <DialogHeader className="space-y-1.5 pb-2 border-b border-border">
             <div className="flex items-center gap-2">
@@ -348,28 +424,114 @@ export function AdminAvatarManager() {
               </div>
               <div>
                 <DialogTitle className="text-base font-bold text-foreground">
-                  Cadastrar Novo Avatar
+                  Cadastrar Novos Avatares
                 </DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground">
-                  Adicione uma nova ilustração ou foto à biblioteca oficial
+                  Importe uma ou várias imagens para a biblioteca oficial. O nome não é obrigatório.
                 </DialogDescription>
               </div>
             </div>
           </DialogHeader>
 
           <div className="space-y-4 py-3">
-            {/* Nome */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground">
-                Nome do Avatar <span className="text-rose-400">*</span>
-              </Label>
-              <Input
-                placeholder="Ex: Operador Pré-Impressão (Verde)"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                className="h-9 text-xs bg-muted/40 border-input text-foreground rounded-xl"
-              />
+            {/* Upload de Imagens em Lote */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold text-foreground">
+                  Arquivos de Imagem (PNG, JPG, SVG, WebP)
+                </Label>
+                {uploadFiles.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUploadFiles([]);
+                      setFilePreviews([]);
+                    }}
+                    className="text-[10px] text-muted-foreground hover:text-rose-400 font-mono-tech"
+                  >
+                    Limpar todos ({uploadFiles.length})
+                  </button>
+                )}
+              </div>
+
+              <label className="block cursor-pointer">
+                <div className="border border-dashed border-border hover:border-sky-400 rounded-xl p-4 flex flex-col items-center justify-center gap-1.5 bg-muted/20 hover:bg-muted/40 transition-all text-xs text-muted-foreground hover:text-foreground text-center">
+                  <Upload className="h-5 w-5 text-sky-400" />
+                  <span className="font-semibold text-foreground">
+                    Clique ou arraste imagens aqui
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    Você pode selecionar <strong>múltiplos arquivos</strong> de uma só vez
+                  </span>
+                </div>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </label>
+
+              {/* Grid de Previews com remoção individual */}
+              {uploadFiles.length > 0 && (
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center gap-1.5 text-[11px] text-emerald-400 font-mono-tech">
+                    <FileCheck className="h-3.5 w-3.5" />
+                    <span>{uploadFiles.length} arquivo(s) selecionado(s)</span>
+                  </div>
+
+                  <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 max-h-44 overflow-y-auto p-1.5 border border-border/60 rounded-xl bg-background/50">
+                    {uploadFiles.map((file, idx) => (
+                      <div
+                        key={idx}
+                        className="relative group rounded-lg overflow-hidden border border-border bg-card aspect-square flex items-center justify-center"
+                      >
+                        <img
+                          src={filePreviews[idx]}
+                          alt={file.name}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveFile(idx)}
+                          className="absolute -top-1 -right-1 bg-rose-600 text-white rounded-full p-1 opacity-90 hover:opacity-100 hover:scale-110 transition shadow"
+                          title="Remover"
+                        >
+                          <X className="h-2.5 w-2.5" />
+                        </button>
+                        <span
+                          className="absolute bottom-0 inset-x-0 bg-black/70 text-[9px] text-white px-1 truncate text-center"
+                          title={file.name}
+                        >
+                          {file.name}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* Nome Opcional (apenas se 1 arquivo ou se quiser personalizar) */}
+            {uploadFiles.length <= 1 && (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-semibold text-foreground">
+                    Nome do Avatar
+                  </Label>
+                  <span className="text-[10px] text-muted-foreground font-mono-tech">
+                    Opcional
+                  </span>
+                </div>
+                <Input
+                  placeholder="Ex: Operador Pré-Impressão (opcional, gerado pelo arquivo)"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  className="h-9 text-xs bg-muted/40 border-input text-foreground rounded-xl"
+                />
+              </div>
+            )}
 
             {/* Categoria */}
             <div className="space-y-1.5">
@@ -388,55 +550,27 @@ export function AdminAvatarManager() {
               </Select>
             </div>
 
-            {/* Upload de Imagem */}
-            <div className="space-y-2">
-              <Label className="text-xs font-semibold text-foreground">
-                Arquivo de Imagem (PNG, JPG, SVG)
-              </Label>
-              <div className="flex items-center gap-3">
-                <label className="flex-1 cursor-pointer">
-                  <div className="border border-dashed border-border hover:border-[#4A5C6A] rounded-xl p-3 flex items-center justify-center gap-2 bg-muted/20 hover:bg-muted/40 transition-all text-xs text-muted-foreground hover:text-foreground">
-                    <Upload className="h-4 w-4 text-sky-400" />
-                    <span>{uploadFile ? uploadFile.name : "Selecionar arquivo..."}</span>
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                </label>
-
-                {/* Preview */}
-                {(filePreview || imageUrlInput) && (
-                  <img
-                    src={filePreview || imageUrlInput}
-                    alt="Preview"
-                    className="w-12 h-12 rounded-xl object-cover border border-sky-400 shadow-sm shrink-0"
-                  />
-                )}
-              </div>
-            </div>
-
             {/* Ou URL Direta */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground">
-                Ou informe URL / Caminho da Imagem
-              </Label>
-              <Input
-                placeholder="Ex: /avatars/avatar-operador-azul.png ou https://..."
-                value={imageUrlInput}
-                onChange={(e) => setImageUrlInput(e.target.value)}
-                className="h-9 text-xs bg-muted/40 border-input text-foreground rounded-xl"
-              />
-            </div>
+            {uploadFiles.length === 0 && (
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-foreground">
+                  Ou informe URLs / Caminhos de Imagens
+                </Label>
+                <Input
+                  placeholder="Ex: /avatars/avatar.png (uma por linha ou separadas por vírgula)"
+                  value={imageUrlInput}
+                  onChange={(e) => setImageUrlInput(e.target.value)}
+                  className="h-9 text-xs bg-muted/40 border-input text-foreground rounded-xl"
+                />
+              </div>
+            )}
           </div>
 
           <DialogFooter className="flex items-center justify-end gap-2 pt-3 border-t border-border">
             <Button
               type="button"
               variant="ghost"
-              onClick={() => setCreateDialogOpen(false)}
+              onClick={resetForm}
               disabled={isSubmitting}
               className="text-xs h-9 text-muted-foreground hover:text-foreground"
             >
@@ -450,8 +584,13 @@ export function AdminAvatarManager() {
             >
               {isSubmitting ? (
                 <>
-                  <RefreshCw className="h-3.5 w-3.5 animate-spin mr-1.5" /> Salvando...
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin mr-1.5" />
+                  {uploadProgress
+                    ? `Importando ${uploadProgress.current}/${uploadProgress.total}...`
+                    : "Salvando..."}
                 </>
+              ) : uploadFiles.length > 1 ? (
+                `Importar (${uploadFiles.length}) Avatares`
               ) : (
                 "Cadastrar Avatar"
               )}

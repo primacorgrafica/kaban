@@ -6,7 +6,7 @@ import {
   fetchAvatarLibrary,
   updateUserAvatarPreference,
   createAvatarInLibrary,
-  uploadAvatarImage,
+  createMultipleAvatarsInLibrary,
 } from "@/lib/chatService";
 import {
   Dialog,
@@ -36,6 +36,8 @@ import {
   Upload,
   Settings,
   ShieldCheck,
+  X,
+  FileCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -60,14 +62,14 @@ export function AvatarSelectorDialog({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Estado de criação de novo avatar (Admin / Coordenador)
+  // Estado de criação/importação de novos avatares em lote (Admin / Coordenador)
   const [createOpen, setCreateOpen] = useState(false);
-  const [newName, setNewName] = useState("");
   const [newCategory, setNewCategory] = useState("oficial");
   const [imageUrlInput, setImageUrlInput] = useState("");
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [filePreview, setFilePreview] = useState<string | null>(null);
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+  const [filePreviews, setFilePreviews] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ current: number; total: number } | null>(null);
 
   const loadAvatars = async () => {
     setLoading(true);
@@ -92,70 +94,95 @@ export function AvatarSelectorDialog({
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (!file.type.startsWith("image/")) {
-        toast.error("Por favor, selecione um arquivo de imagem válido (PNG, JPG, SVG, WebP)");
-        return;
-      }
-      setUploadFile(file);
-      const url = URL.createObjectURL(file);
-      setFilePreview(url);
+    const rawFiles = Array.from(e.target.files || []);
+    const validImages = rawFiles.filter((f) => f.type.startsWith("image/"));
+
+    if (validImages.length === 0 && rawFiles.length > 0) {
+      toast.error("Por favor, selecione arquivos de imagem válidos (PNG, JPG, SVG, WebP)");
+      return;
     }
+
+    setUploadFiles((prev) => [...prev, ...validImages]);
+    const newPreviews = validImages.map((f) => URL.createObjectURL(f));
+    setFilePreviews((prev) => [...prev, ...newPreviews]);
   };
 
-  const handleCreateAvatar = async () => {
+  const handleRemoveFile = (index: number) => {
+    setUploadFiles((prev) => prev.filter((_, i) => i !== index));
+    setFilePreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleImportAvatars = async () => {
     if (!canManage) {
       toast.error("Apenas administradores e coordenadores podem adicionar avatares.");
       return;
     }
 
-    if (!newName.trim()) {
-      toast.error("Informe um nome para o avatar");
+    // 1. Importação via múltiplos arquivos de imagem selecionados
+    if (uploadFiles.length > 0) {
+      setIsSubmitting(true);
+      try {
+        const result = await createMultipleAvatarsInLibrary(
+          uploadFiles,
+          newCategory,
+          user?.id,
+          (current, total) => setUploadProgress({ current, total })
+        );
+
+        if (result.success) {
+          toast.success(
+            result.createdCount > 1
+              ? `${result.createdCount} novos avatares importados com sucesso!`
+              : "Avatar importado com sucesso!"
+          );
+          setCreateOpen(false);
+          setUploadFiles([]);
+          setFilePreviews([]);
+          setImageUrlInput("");
+          setUploadProgress(null);
+          await loadAvatars();
+        } else {
+          toast.error(result.errors[0] || "Falha ao importar imagens");
+        }
+      } catch (err: any) {
+        toast.error(err.message || "Erro ao importar avatares");
+      } finally {
+        setIsSubmitting(false);
+        setUploadProgress(null);
+      }
+      return;
+    }
+
+    // 2. Importação via URLs informadas (separadas por linha ou vírgula)
+    const urls = imageUrlInput
+      .split(/[\n,]/)
+      .map((u) => u.trim())
+      .filter(Boolean);
+
+    if (urls.length === 0) {
+      toast.error("Selecione um ou vários arquivos de imagem para importar");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      let finalImageUrl = imageUrlInput.trim();
-
-      if (uploadFile) {
-        const uploadResult = await uploadAvatarImage(uploadFile);
-        if (!uploadResult.success || !uploadResult.publicUrl) {
-          toast.error(uploadResult.error || "Falha ao enviar arquivo de imagem");
-          setIsSubmitting(false);
-          return;
-        }
-        finalImageUrl = uploadResult.publicUrl;
+      let created = 0;
+      for (const url of urls) {
+        const res = await createAvatarInLibrary(undefined, url, newCategory, user?.id);
+        if (res.success) created++;
       }
 
-      if (!finalImageUrl) {
-        toast.error("Selecione um arquivo de imagem ou informe a URL");
-        setIsSubmitting(false);
-        return;
-      }
-
-      const res = await createAvatarInLibrary(
-        newName,
-        finalImageUrl,
-        newCategory,
-        user?.id
-      );
-
-      if (res.success && res.data) {
-        toast.success("Novo avatar cadastrado com sucesso!");
+      if (created > 0) {
+        toast.success(
+          created > 1
+            ? `${created} avatares cadastrados com sucesso!`
+            : "Avatar cadastrado com sucesso!"
+        );
         setCreateOpen(false);
-        setNewName("");
         setImageUrlInput("");
-        setUploadFile(null);
-        setFilePreview(null);
-
-        // Atualiza lista e já seleciona o novo avatar automaticamente
         await loadAvatars();
-        setSelectedAvatarUrl(res.data.image_url);
-        setSelectedAvatarId(res.data.id);
       } else {
-        toast.error(res.error || "Falha ao cadastrar avatar");
+        toast.error("Falha ao cadastrar avatar via URL");
       }
     } catch (err: any) {
       toast.error(err.message || "Erro inesperado");
@@ -286,10 +313,10 @@ export function AvatarSelectorDialog({
                       size="sm"
                       onClick={() => setCreateOpen(true)}
                       className="h-6 px-2 text-[10px] font-bold font-mono-tech bg-sky-500 hover:bg-sky-400 text-white rounded-lg shadow-sm flex items-center gap-1"
-                      title="Adicionar novo avatar à biblioteca oficial"
+                      title="Importar um ou vários avatares para a biblioteca oficial"
                     >
                       <Plus className="h-3 w-3" />
-                      Novo Avatar
+                      Importar Avatares
                     </Button>
                   )}
                 </div>
@@ -369,39 +396,26 @@ export function AvatarSelectorDialog({
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Cadastro Rápido de Novo Avatar (Admin / Coordenador) */}
+      {/* Modal de Importação de Avatares (Admin / Coordenador) - Sem exigência de nomes & com suporte a múltiplos arquivos */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="max-w-md bg-card border-border text-foreground rounded-2xl shadow-2xl p-6 z-[60]">
           <DialogHeader className="space-y-1.5 pb-2 border-b border-border">
             <div className="flex items-center gap-2">
               <div className="p-2 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400">
-                <Plus className="h-4 w-4" />
+                <Upload className="h-4 w-4" />
               </div>
               <div>
                 <DialogTitle className="text-base font-bold text-foreground">
-                  Cadastrar Novo Avatar
+                  Importar Novos Avatares
                 </DialogTitle>
                 <DialogDescription className="text-xs text-muted-foreground">
-                  Adicione uma nova ilustração ou foto para disponibilizar a todos
+                  Selecione um ou vários arquivos de uma só vez (sem necessidade de digitar nomes)
                 </DialogDescription>
               </div>
             </div>
           </DialogHeader>
 
           <div className="space-y-4 py-3">
-            {/* Nome */}
-            <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-foreground">
-                Nome do Avatar <span className="text-rose-400">*</span>
-              </Label>
-              <Input
-                placeholder="Ex: Operador Pré-Impressão (Verde)"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                className="h-9 text-xs bg-muted/40 border-input text-foreground rounded-xl"
-              />
-            </div>
-
             {/* Categoria */}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-foreground">Categoria</Label>
@@ -419,55 +433,112 @@ export function AvatarSelectorDialog({
               </Select>
             </div>
 
-            {/* Upload de Imagem */}
+            {/* Upload de Múltiplos Arquivos */}
             <div className="space-y-2">
-              <Label className="text-xs font-semibold text-foreground">
-                Arquivo de Imagem (PNG, JPG, SVG)
-              </Label>
-              <div className="flex items-center gap-3">
-                <label className="flex-1 cursor-pointer">
-                  <div className="border border-dashed border-border hover:border-[#4A5C6A] rounded-xl p-3 flex items-center justify-center gap-2 bg-muted/20 hover:bg-muted/40 transition-all text-xs text-muted-foreground hover:text-foreground">
-                    <Upload className="h-4 w-4 text-sky-400" />
-                    <span>{uploadFile ? uploadFile.name : "Selecionar arquivo..."}</span>
-                  </div>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                </label>
-
-                {/* Preview */}
-                {(filePreview || imageUrlInput) && (
-                  <img
-                    src={filePreview || imageUrlInput}
-                    alt="Preview"
-                    className="w-12 h-12 rounded-xl object-cover border border-sky-400 shadow-sm shrink-0"
-                  />
+              <Label className="text-xs font-semibold text-foreground flex items-center justify-between">
+                <span>Arquivos de Imagem (PNG, JPG, SVG, WebP)</span>
+                {uploadFiles.length > 0 && (
+                  <span className="text-[10px] text-sky-400 font-mono-tech">
+                    {uploadFiles.length} {uploadFiles.length === 1 ? "arquivo" : "arquivos"}
+                  </span>
                 )}
-              </div>
+              </Label>
+
+              <label className="block cursor-pointer">
+                <div className="border-2 border-dashed border-border hover:border-sky-400 rounded-2xl p-4 flex flex-col items-center justify-center gap-2 bg-muted/20 hover:bg-muted/40 transition-all text-xs text-muted-foreground hover:text-foreground text-center">
+                  <div className="p-2.5 rounded-full bg-sky-500/10 text-sky-400">
+                    <Upload className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-foreground block">
+                      Clique para escolher imagens
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">
+                      Segure Ctrl ou Shift para selecionar múltiplos arquivos
+                    </span>
+                  </div>
+                </div>
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
+                />
+              </label>
+
+              {/* Previews dos arquivos selecionados */}
+              {filePreviews.length > 0 && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground font-mono-tech">
+                    <span>SELECIONADOS ({filePreviews.length})</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUploadFiles([]);
+                        setFilePreviews([]);
+                      }}
+                      className="text-rose-400 hover:text-rose-300 text-[10px]"
+                    >
+                      Limpar todos
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2 max-h-36 overflow-y-auto p-1 border border-border/50 rounded-xl bg-muted/10">
+                    {filePreviews.map((preview, idx) => (
+                      <div key={idx} className="relative group/thumb aspect-square">
+                        <img
+                          src={preview}
+                          alt="preview"
+                          className="w-full h-full object-cover rounded-lg border border-border bg-card"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveFile(idx)}
+                          className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white flex items-center justify-center opacity-0 group-hover/thumb:opacity-100 transition-opacity shadow-sm"
+                          title="Remover este arquivo"
+                        >
+                          <X className="h-2.5 w-2.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Ou URL / Caminho */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 pt-1">
               <Label className="text-xs font-semibold text-foreground">
-                Ou informe URL / Caminho da Imagem
+                Ou cole URLs diretas (uma por linha ou separadas por vírgula)
               </Label>
               <Input
-                placeholder="Ex: /avatars/novo-avatar.png ou https://..."
+                placeholder="Ex: /avatars/avatar1.png, /avatars/avatar2.png"
                 value={imageUrlInput}
                 onChange={(e) => setImageUrlInput(e.target.value)}
                 className="h-9 text-xs bg-muted/40 border-input text-foreground rounded-xl"
               />
             </div>
+
+            {/* Indicador de progresso do upload */}
+            {uploadProgress && (
+              <div className="p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-xs text-sky-400 flex items-center gap-2">
+                <RefreshCw className="h-3.5 w-3.5 animate-spin shrink-0" />
+                <span>
+                  Importando {uploadProgress.current} de {uploadProgress.total} avatares...
+                </span>
+              </div>
+            )}
           </div>
 
           <DialogFooter className="flex items-center justify-end gap-2 pt-3 border-t border-border">
             <Button
               type="button"
               variant="ghost"
-              onClick={() => setCreateOpen(false)}
+              onClick={() => {
+                setCreateOpen(false);
+                setUploadFiles([]);
+                setFilePreviews([]);
+              }}
               disabled={isSubmitting}
               className="text-xs h-9 text-muted-foreground hover:text-foreground"
             >
@@ -475,16 +546,18 @@ export function AvatarSelectorDialog({
             </Button>
             <Button
               type="button"
-              onClick={handleCreateAvatar}
-              disabled={isSubmitting}
+              onClick={handleImportAvatars}
+              disabled={isSubmitting || (uploadFiles.length === 0 && !imageUrlInput.trim())}
               className="text-xs h-9 font-bold bg-[#CCD0CF] hover:bg-white text-[#06141B] shadow-md px-4"
             >
               {isSubmitting ? (
                 <>
-                  <RefreshCw className="h-3.5 w-3.5 animate-spin mr-1.5" /> Salvando...
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin mr-1.5" /> Importando...
                 </>
+              ) : uploadFiles.length > 1 ? (
+                `Importar (${uploadFiles.length}) Avatares`
               ) : (
-                "Cadastrar Avatar"
+                "Importar Avatar"
               )}
             </Button>
           </DialogFooter>

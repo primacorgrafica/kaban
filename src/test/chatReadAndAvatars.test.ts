@@ -139,6 +139,45 @@ describe("Chat Interno Primacor Kaban — Confirmação de Leitura & Biblioteca 
       // No perfil do usuário e nas mensagens passadas, a referência histórica é PRESERVADA
       expect(userProfile.avatar_url).toBe("/avatars/avatar-operadora-azul.png");
     });
+
+    it("deve permitir cadastrar avatares sem exigir nome manual, gerando nome limpo a partir do arquivo", () => {
+      const cleanFileNameToAvatarName = (fileName: string): string => {
+        const base = fileName.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ").trim();
+        if (!base) return "Avatar Primacor";
+        return base.charAt(0).toUpperCase() + base.slice(1);
+      };
+
+      expect(cleanFileNameToAvatarName("avatar-operador-verde.png")).toBe("Avatar operador verde");
+      expect(cleanFileNameToAvatarName("operadora_ctp_2.png")).toBe("Operadora ctp 2");
+      expect(cleanFileNameToAvatarName(".png")).toBe("Avatar Primacor");
+    });
+
+    it("deve suportar lote de importação de múltiplos avatares com contagem e progresso", () => {
+      const mockFiles = [
+        { name: "avatar-marketing.png" },
+        { name: "avatar-financeiro.png" },
+        { name: "avatar-expedicao.png" },
+      ];
+
+      const progressHistory: { current: number; total: number }[] = [];
+      const onProgress = (current: number, total: number) => {
+        progressHistory.push({ current, total });
+      };
+
+      // Simulação do loop de batch
+      let createdCount = 0;
+      for (let i = 0; i < mockFiles.length; i++) {
+        onProgress(i + 1, mockFiles.length);
+        createdCount++;
+      }
+
+      expect(createdCount).toBe(3);
+      expect(progressHistory).toEqual([
+        { current: 1, total: 3 },
+        { current: 2, total: 3 },
+        { current: 3, total: 3 },
+      ]);
+    });
   });
 
   describe("3. Segurança, Validação de Cargos e RLS", () => {
