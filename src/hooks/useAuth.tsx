@@ -319,22 +319,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isAdmin = role === "admin";
   const hasModule = (mod: string) => {
     if (isAdmin) return true;
+
+    // Se o usuário possui um setor vinculado exclusivo (ex: "ctp", "digital", "pre_impressao", "qualidade", "producao")
+    // seu acesso operacional fica estritamente restrito a esse setor
+    if (setorVinculado) {
+      if (["pre_impressao", "ctp", "digital", "qualidade", "producao"].includes(mod)) {
+        return setorVinculado.toLowerCase() === mod.toLowerCase();
+      }
+    }
+
     if (modulosAcesso && modulosAcesso.length > 0) {
-      if (modulosAcesso.includes(mod)) return true;
-      // Compatibilidade retroativa com módulos legados
-      if (mod === "producao" && (modulosAcesso.includes("ctp") || modulosAcesso.includes("digital") || modulosAcesso.includes("qualidade") || modulosAcesso.includes("producao"))) return true;
-      if (mod === "pre_impressao" && modulosAcesso.includes("producao")) return true;
-      if (mod === "qualidade" && modulosAcesso.includes("producao")) return true;
-      if (mod === "ctp" && modulosAcesso.includes("producao")) return true;
-      if (mod === "digital" && modulosAcesso.includes("producao")) return true;
-      if ((mod === "entregas" || mod === "gestao_entregas") && (modulosAcesso.includes("entregas") || modulosAcesso.includes("gestao_entregas"))) return true;
-      if (mod === "entregador" && (modulosAcesso.includes("entregador") || modulosAcesso.includes("entregas") || modulosAcesso.includes("gestao_entregas"))) return true;
-      if ((mod === "cadastros" || mod === "cadastro") && (modulosAcesso.includes("cadastros") || modulosAcesso.includes("cadastro"))) return true;
+      const normalizedMods = modulosAcesso.map((m) => m.toLowerCase());
+      if (normalizedMods.includes(mod.toLowerCase())) return true;
+      // Compatibilidade retroativa com aliases legados
+      if ((mod === "entregas" || mod === "gestao_entregas") && (normalizedMods.includes("entregas") || normalizedMods.includes("gestao_entregas"))) return true;
+      if (mod === "entregador" && (normalizedMods.includes("entregador") || normalizedMods.includes("entregas") || normalizedMods.includes("gestao_entregas"))) return true;
+      if ((mod === "cadastros" || mod === "cadastro") && (normalizedMods.includes("cadastros") || normalizedMods.includes("cadastro"))) return true;
+      if ((mod === "mural" || mod === "mural_alertas") && (normalizedMods.includes("mural") || normalizedMods.includes("mural_alertas"))) return true;
       return false;
     }
+
     // Fallback seguro: default-deny baseado na role caso não haja módulos explicitamente configurados
     if (role === "coordenador") {
-      return ["comercial", "pcp", "pre_impressao", "ctp", "digital", "qualidade", "producao", "expedicao", "entregas", "gestao_entregas", "entregador", "trabalhos_concluidos", "compras", "manutencao", "dashboard", "cadastros", "cadastro", "utilidades"].includes(mod);
+      return ["comercial", "pcp", "pre_impressao", "ctp", "digital", "qualidade", "producao", "expedicao", "entregas", "gestao_entregas", "entregador", "trabalhos_concluidos", "compras", "manutencao", "dashboard", "cadastros", "cadastro", "utilidades", "mural"].includes(mod);
     }
     if (role === "vendedor") {
       return ["comercial", "utilidades"].includes(mod);
@@ -349,7 +356,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return mod === "entregador";
     }
     if (role === "rh") {
-      return ["dashboard", "cadastros", "cadastro", "utilidades"].includes(mod);
+      return ["dashboard", "cadastros", "cadastro", "utilidades", "mural"].includes(mod);
     }
     return false;
   };
@@ -358,21 +365,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Administrador tem acesso irrestrito
     if (isAdmin) return true;
 
+    // Se o usuário possui um setor vinculado, o acesso operacional é estritamente restrito a ele
+    if (setorVinculado) {
+      return setorVinculado.toLowerCase() === sectorId.toLowerCase();
+    }
+
     // Se o usuário possui módulos de acesso explicitamente configurados
     if (modulosAcesso && modulosAcesso.length > 0) {
       return hasModule(sectorId);
     }
 
-    // Se o usuário possui um setor vinculado, o acesso à produção é estritamente restrito a ele
-    if (setorVinculado) {
-      return setorVinculado === sectorId;
-    }
-
     // Coordenador sem setor fixo pode gerenciar todos os setores
     if (role === "coordenador") return true;
 
-    // Para usuários operacionais sem setor específico, checa o módulo 'pre_impressao' ou 'producao'
-    return hasModule("pre_impressao") || hasModule("producao");
+    // Para usuários operacionais sem setor específico, checa o módulo correspondente
+    return hasModule(sectorId);
   }, [isAdmin, setorVinculado, role, hasModule, modulosAcesso]);
 
   return (

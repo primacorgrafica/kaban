@@ -54,6 +54,7 @@ export const ACCESS_MODULES: { id: string; label: string }[] = [
   { id: "pre_impressao", label: "Pré-Impressão" },
   { id: "ctp", label: "CTP" },
   { id: "digital", label: "Digital" },
+  { id: "producao", label: "Produção" },
   { id: "qualidade", label: "Qualidade" },
   { id: "expedicao", label: "Expedição" },
   { id: "entregas", label: "Gestão Entregas" },
@@ -63,21 +64,19 @@ export const ACCESS_MODULES: { id: string; label: string }[] = [
   { id: "manutencao", label: "Manutenção" },
   { id: "dashboard", label: "Dashboard" },
   { id: "cadastros", label: "Cadastros" },
+  { id: "mural", label: "Mural de Alertas" },
   { id: "utilidades", label: "Utilidades" },
 ];
 
 export const normalizeModules = (modules: string[] = []): string[] => {
   const set = new Set<string>();
   modules.forEach((m) => {
-    if (m === "producao") {
-      set.add("pre_impressao");
-      set.add("ctp");
-      set.add("digital");
-      set.add("qualidade");
-    } else if (m === "cadastro") {
+    if (m === "cadastro") {
       set.add("cadastros");
     } else if (m === "gestao_entregas") {
       set.add("entregas");
+    } else if (m === "mural_alertas") {
+      set.add("mural");
     } else {
       set.add(m);
     }

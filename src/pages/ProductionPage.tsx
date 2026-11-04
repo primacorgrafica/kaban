@@ -139,7 +139,18 @@ export default function ProductionPage() {
       return <Navigate to="/" replace />;
     }
     if (setorVinculado) {
-      return <Navigate to={`/producao/${setorVinculado}`} replace />;
+      const clean = setorVinculado.toLowerCase();
+      const target =
+        clean === "ctp"
+          ? "/ctp"
+          : clean === "digital"
+          ? "/digital"
+          : clean === "qualidade"
+          ? "/qualidade"
+          : clean === "producao"
+          ? "/producao"
+          : `/producao/${clean}`;
+      return <Navigate to={target} replace />;
     }
     return <Navigate to="/" replace />;
   }

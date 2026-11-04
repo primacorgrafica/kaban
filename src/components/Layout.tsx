@@ -259,7 +259,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
     // 6. DIGITAL
     ...(canAccessSector("digital") ? [{ to: "/digital", label: "Digital", icon: PrinterCheck, count: deptCountsLoaded ? (deptCounts["digital"] ?? 0) : undefined }] : []),
     // 7. PRODUÇÃO (Fila de Entrada em Tabela)
-    ...(hasModule("producao") || canAccessSector("producao") || canAccessSector("ctp") || canAccessSector("digital") || canAccessSector("qualidade") || isAdmin ? [{ to: "/producao", label: "Produção", icon: Factory, count: deptCountsLoaded ? (deptCounts["producao_entrada"] ?? 0) : undefined }] : []),
+    ...(canAccessSector("producao") ? [{ to: "/producao", label: "Produção", icon: Factory, count: deptCountsLoaded ? (deptCounts["producao_entrada"] ?? 0) : undefined }] : []),
     // 8. EXPEDIÇÃO
     ...(hasModule("expedicao") ? [{ to: "/expedicao", label: "Expedição", icon: Truck, count: deptCountsLoaded ? (deptCounts["expedicao"] ?? 0) : undefined }] : []),
     // 9. GESTÃO DE ENTREGAS
@@ -533,12 +533,14 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
           )}
 
           {/* ÚLTIMO ITEM DO MENU LATERAL: MURAL DE ALERTAS */}
-          {renderNavLink({
-            to: "/mural",
-            label: "Mural de Alertas",
-            icon: Megaphone,
-            count: activeAlerts.length > 0 ? activeAlerts.length : undefined,
-          })}
+          {(isAdmin || role === "coordenador" || role === "rh" || hasModule("mural") || hasModule("mural_alertas")) &&
+            renderNavLink({
+              to: "/mural",
+              label: "Mural de Alertas",
+              icon: Megaphone,
+              count: activeAlerts.length > 0 ? activeAlerts.length : undefined,
+            })
+          }
         </nav>
 
         <div className={`p-3 border-t border-sidebar-border/60 bg-sidebar-background/60 ${sidebarCollapsed ? "flex flex-col items-center gap-2" : ""}`}>

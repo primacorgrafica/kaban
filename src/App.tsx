@@ -162,7 +162,7 @@ const App = () => (
                   <Route path="/entregas" element={<ProtectedRoute module="entregas"><EntregasPage /></ProtectedRoute>} />
                   <Route path="/entregador" element={<ProtectedRoute module="entregador"><EntregadorPage /></ProtectedRoute>} />
                   <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
-                  <Route path="/mural" element={<ProtectedRoute><MuralAlertasPage /></ProtectedRoute>} />
+                  <Route path="/mural" element={<ProtectedRoute module="mural"><MuralAlertasPage /></ProtectedRoute>} />
 
                   <Route path="*" element={<NotFound />} />
                 </Routes>

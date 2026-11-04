@@ -52,7 +52,18 @@ const Index = () => {
   // Se o usuário não tem acesso à Pré-Impressão e tenta acessar "/", redireciona para seu setor ou primeiro módulo acessível
   if (location.pathname === "/" && !canAccessSector("pre_impressao")) {
     if (setorVinculado) {
-      return <Navigate to={`/producao/${setorVinculado}`} replace />;
+      const cleanSetor = setorVinculado.toLowerCase();
+      const target =
+        cleanSetor === "ctp"
+          ? "/ctp"
+          : cleanSetor === "digital"
+          ? "/digital"
+          : cleanSetor === "qualidade"
+          ? "/qualidade"
+          : cleanSetor === "producao"
+          ? "/producao"
+          : `/producao/${cleanSetor}`;
+      return <Navigate to={target} replace />;
     }
     if (hasModule("comercial")) return <Navigate to="/comercial" replace />;
     if (hasModule("pcp")) return <Navigate to="/pcp" replace />;

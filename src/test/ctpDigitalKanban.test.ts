@@ -65,12 +65,10 @@ describe("CTP & Digital - Novos Menus e Colunas Kanban", () => {
     expect(ACCESS_MODULES.some((m) => m.id === "ctp" && m.label === "CTP")).toBe(true);
     expect(ACCESS_MODULES.some((m) => m.id === "digital" && m.label === "Digital")).toBe(true);
 
-    // Permissão de produção legada deve incluir ctp e digital
+    // Módulo de produção agora é isolado e mantido como 'producao'
     const normalized = normalizeModules(["producao"]);
-    expect(normalized).toContain("ctp");
-    expect(normalized).toContain("digital");
-    expect(normalized).toContain("qualidade");
-    expect(normalized).toContain("pre_impressao");
+    expect(normalized).toContain("producao");
+    expect(ACCESS_MODULES.some((m) => m.id === "producao" && m.label === "Produção")).toBe(true);
   });
 
   it("ProductionPage.tsx deve inicializar activeDepartment antes do cálculo de canSendBack evitando erro de TDZ", () => {
