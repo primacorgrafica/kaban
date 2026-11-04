@@ -68,6 +68,7 @@ import {
   type StoredMicrosoftUser,
 } from "@/lib/msalClient";
 import { getEffectiveOsAnterior } from "@/lib/orderAnterior";
+import { useAuth } from "@/hooks/useAuth";
 
 function toLocalDatetimeString(date: Date): string {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -142,6 +143,7 @@ export function CreateOrderDialog({
       setInternalOpen(val);
     }
   };
+  const { user } = useAuth();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [isChecking, setIsChecking] = useState(false);
   const [vendedores, setVendedores] = useState<{ id: string; nome: string }[]>([]);
@@ -542,7 +544,7 @@ export function CreateOrderDialog({
             setCurrentUploadSpeedOrBytes(`0.0 MB / ${sizeMb} MB (0%)`);
             setSubmitStatusText(`Enviando anexo ${i + 1} de ${filesToUpload.length}: ${file.name}...`);
 
-            await uploadFileToSharePoint(
+            const driveItem = await uploadFileToSharePoint(
               file,
               folder,
               ({ percent, loaded, total }) => {
@@ -552,7 +554,39 @@ export function CreateOrderDialog({
                 setCurrentUploadSpeedOrBytes(`${loadedMb} MB / ${totalMb} MB (${percent}%)`);
               }
             );
+
+            // Grava os metadados do anexo na tabela order_attachments
+            const { error: attErr } = await (supabase.from("order_attachments" as any) as any).insert({
+              order_id: orderToEdit.id,
+              nome_arquivo: driveItem.name || file.name,
+              tamanho_bytes: driveItem.size || file.size,
+              content_type: driveItem.file?.mimeType || file.type || "application/octet-stream",
+              sharepoint_item_id: driveItem.id,
+              sharepoint_folder_id: folder.folderId,
+              sharepoint_folder_name: folder.folderName,
+              sharepoint_drive_id: folder.driveId,
+              sharepoint_site_id: folder.siteId,
+              sharepoint_web_url: driveItem.webUrl,
+              sharepoint_path: `${SHAREPOINT_ROOT_FOLDER}/${folder.folderName}/${driveItem.name}`,
+              status: "concluido",
+              criado_por: user?.id || null,
+            });
+
+            if (attErr) {
+              console.warn("[CreateOrderDialog] Erro ao gravar order_attachments (edição):", attErr);
+            }
           }
+
+          // Atualiza a O.S. com a referência direta da pasta do SharePoint
+          try {
+            await (supabase.from("orders") as any)
+              .update({
+                sharepoint_folder_id: folder.folderId,
+                sharepoint_folder_url: folder.folderWebUrl,
+                sharepoint_folder_name: folder.folderName,
+              })
+              .eq("id", orderToEdit.id);
+          } catch (_) {}
         }
 
         toast.success(`O.S. #${osTitulo} atualizada com sucesso!`);
@@ -731,7 +765,7 @@ export function CreateOrderDialog({
             setCurrentUploadProgress(100);
             setCurrentUploadSpeedOrBytes(`${sizeMb} MB / ${sizeMb} MB (100%)`);
 
-            await (supabase.from("order_attachments" as any) as any).insert({
+            const { error: insErr } = await (supabase.from("order_attachments" as any) as any).insert({
               order_id: targetOrderId,
               nome_arquivo: driveItem.name || file.name,
               tamanho_bytes: driveItem.size || file.size,
@@ -744,9 +778,26 @@ export function CreateOrderDialog({
               sharepoint_web_url: driveItem.webUrl,
               sharepoint_path: `${SHAREPOINT_ROOT_FOLDER}/${folder.folderName}/${driveItem.name}`,
               status: "concluido",
+              criado_por: user?.id || null,
             });
+
+            if (insErr) {
+              console.warn("[CreateOrderDialog] Erro ao gravar order_attachments (criação):", insErr);
+            }
             uploadedCount++;
           }
+
+          // Atualiza a O.S. com a referência direta da pasta do SharePoint
+          try {
+            await (supabase.from("orders") as any)
+              .update({
+                sharepoint_folder_id: folder.folderId,
+                sharepoint_folder_url: folder.folderWebUrl,
+                sharepoint_folder_name: folder.folderName,
+              })
+              .eq("id", targetOrderId);
+          } catch (_) {}
+
           toast.success(
             `O.S. criada e ${uploadedCount} anexo(s) enviados para o SharePoint com sucesso!`
           );

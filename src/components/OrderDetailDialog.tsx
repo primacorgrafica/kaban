@@ -907,6 +907,7 @@ export function OrderDetailDialog({
                       orderTitulo={order.titulo}
                       readOnly={permissions.isViewOnly}
                       canDelete={permissions.canDelete || permissions.canEditCard}
+                      allowUpload={!permissions.isViewOnly}
                     />
                   </div>
                 </div>

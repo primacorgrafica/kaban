@@ -5,6 +5,7 @@ import {
   getOrCreateOsFolder,
   uploadFileToSharePoint,
   deleteFileFromSharePoint,
+  listFilesInOsFolder,
   SHAREPOINT_ROOT_FOLDER,
 } from "@/lib/sharepointService";
 import { uploadWithResilience } from "@/lib/autonomousEngine/uploadQueue";
@@ -19,11 +20,126 @@ export function useOrderAttachments(orderId: string | null, orderTitulo?: string
   const { user } = useAuth();
   const [attachments, setAttachments] = useState<OrderAttachment[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const [uploadQueue, setUploadQueue] = useState<Record<string, PendingUploadItem>>({});
   const [isUploading, setIsUploading] = useState(false);
   const [folderInfo, setFolderInfo] = useState<SharePointFolderInfo | null>(null);
 
   const isMountedRef = useRef(true);
+
+  /**
+   * Sincroniza ativamente os arquivos existentes na pasta do SharePoint com o Supabase.
+   * Auto-reconcilia arquivos colocados diretamente no SharePoint ou que falharam na gravação de metadados.
+   */
+  const syncWithSharePoint = useCallback(
+    async (options?: { silent?: boolean }) => {
+      if (!orderId) return;
+      setIsSyncing(true);
+      try {
+        const result = await listFilesInOsFolder(orderId, orderTitulo);
+        if (!result || !result.files || result.files.length === 0) {
+          if (!options?.silent) {
+            toast.info("Nenhum arquivo encontrado na pasta do SharePoint desta O.S.");
+          }
+          return;
+        }
+
+        const { folder, files } = result;
+
+        if (isMountedRef.current) {
+          setFolderInfo(folder);
+        }
+
+        // Atualiza a O.S. com a URL e dados da pasta do SharePoint
+        try {
+          await (supabase.from("orders") as any)
+            .update({
+              sharepoint_folder_id: folder.folderId,
+              sharepoint_folder_url: folder.folderWebUrl,
+              sharepoint_folder_name: folder.folderName,
+            })
+            .eq("id", orderId);
+        } catch (_) {}
+
+        // Busca anexos que já estão gravados no Supabase para esta O.S. ou pasta
+        const { data: existingRows } = await (supabase
+          .from("order_attachments" as any)
+          .select("id, order_id, sharepoint_item_id, nome_arquivo")
+          .or(`order_id.eq.${orderId},sharepoint_folder_name.eq.${folder.folderName}`) as any);
+
+        const existingItemIds = new Set((existingRows || []).map((r: any) => r.sharepoint_item_id).filter(Boolean));
+        const existingNames = new Set((existingRows || []).map((r: any) => (r.nome_arquivo || "").trim().toLowerCase()));
+
+        let newlySynced = 0;
+        for (const fileItem of files) {
+          const fileNameLower = (fileItem.name || "").trim().toLowerCase();
+          if (existingItemIds.has(fileItem.id) || existingNames.has(fileNameLower)) {
+            // Reconcilia order_id caso estivesse desvinculado
+            const matchedRow = (existingRows || []).find(
+              (r: any) => r.sharepoint_item_id === fileItem.id || (r.nome_arquivo || "").trim().toLowerCase() === fileNameLower
+            );
+            if (matchedRow && matchedRow.order_id !== orderId) {
+              await (supabase.from("order_attachments" as any) as any)
+                .update({ order_id: orderId })
+                .eq("id", matchedRow.id);
+            }
+            continue;
+          }
+
+          const attachmentPayload = {
+            order_id: orderId,
+            nome_arquivo: fileItem.name,
+            tamanho_bytes: fileItem.size || 0,
+            content_type: fileItem.file?.mimeType || "application/octet-stream",
+            sharepoint_item_id: fileItem.id,
+            sharepoint_folder_id: folder.folderId,
+            sharepoint_folder_name: folder.folderName,
+            sharepoint_drive_id: folder.driveId,
+            sharepoint_site_id: folder.siteId,
+            sharepoint_web_url: fileItem.webUrl,
+            sharepoint_path: `${SHAREPOINT_ROOT_FOLDER}/${folder.folderName}/${fileItem.name}`,
+            status: "concluido",
+            criado_por: user?.id || null,
+          };
+
+          const { error: insErr } = await (supabase
+            .from("order_attachments" as any)
+            .insert(attachmentPayload) as any);
+
+          if (!insErr) {
+            newlySynced++;
+          } else {
+            console.warn(`[useOrderAttachments] Falha ao registrar arquivo ${fileItem.name} no banco:`, insErr);
+          }
+        }
+
+        // Recarrega lista consolidada do banco
+        const { data: refreshedData } = await (supabase
+          .from("order_attachments" as any)
+          .select("*")
+          .eq("order_id", orderId)
+          .order("created_at", { ascending: false }) as any);
+
+        if (isMountedRef.current && refreshedData) {
+          setAttachments(refreshedData as OrderAttachment[]);
+        }
+
+        if (newlySynced > 0) {
+          toast.success(`${newlySynced} anexo(s) do SharePoint sincronizado(s) com este card!`);
+        } else if (!options?.silent) {
+          toast.info("Todos os arquivos da pasta do SharePoint já estão vinculados a este card.");
+        }
+      } catch (err: any) {
+        console.warn("[useOrderAttachments] Erro durante sincronização com SharePoint:", err);
+        if (!options?.silent) {
+          toast.error(`Falha ao sincronizar com SharePoint: ${err?.message || err}`);
+        }
+      } finally {
+        if (isMountedRef.current) setIsSyncing(false);
+      }
+    },
+    [orderId, orderTitulo, user?.id]
+  );
 
   // Busca anexos salvos no banco de dados
   const fetchAttachments = useCallback(async () => {
@@ -39,17 +155,46 @@ export function useOrderAttachments(orderId: string | null, orderTitulo?: string
         .eq("order_id", orderId)
         .order("created_at", { ascending: false }) as any);
 
+      let foundAttachments: OrderAttachment[] = [];
       if (error) {
         console.warn("Erro ao buscar anexos:", error);
-      } else if (isMountedRef.current && data) {
-        setAttachments(data as OrderAttachment[]);
+      } else if (data && data.length > 0) {
+        foundAttachments = data as OrderAttachment[];
+      }
+
+      // Se não encontrou por order_id mas temos o título da OS (ex: "73515"), tenta localizar por pasta
+      if (foundAttachments.length === 0 && orderTitulo) {
+        const cleanOs = orderTitulo.replace(/^OS[\s._-]*/i, "").trim();
+        const expectedFolderName = `OS-${cleanOs}`;
+        const { data: byFolder } = await (supabase
+          .from("order_attachments" as any)
+          .select("*")
+          .eq("sharepoint_folder_name", expectedFolderName)
+          .order("created_at", { ascending: false }) as any);
+
+        if (byFolder && byFolder.length > 0) {
+          foundAttachments = byFolder as OrderAttachment[];
+          // Auto-reconcilia o order_id correto se estava desvinculado
+          void (supabase.from("order_attachments" as any) as any)
+            .update({ order_id: orderId })
+            .eq("sharepoint_folder_name", expectedFolderName);
+        }
+      }
+
+      if (isMountedRef.current) {
+        setAttachments(foundAttachments);
+      }
+
+      // Auto-reconciliação silenciosa com SharePoint se não há anexos no banco
+      if (foundAttachments.length === 0 && orderId) {
+        void syncWithSharePoint({ silent: true });
       }
     } catch (err) {
       console.warn("Falha de rede ao consultar anexos:", err);
     } finally {
       if (isMountedRef.current) setLoading(false);
     }
-  }, [orderId]);
+  }, [orderId, orderTitulo, syncWithSharePoint]);
 
   // Carregamento inicial e subscrição Realtime
   useEffect(() => {
@@ -336,6 +481,7 @@ export function useOrderAttachments(orderId: string | null, orderTitulo?: string
   return {
     attachments,
     loading,
+    isSyncing,
     uploadQueue,
     isUploading,
     folderInfo,
@@ -344,5 +490,6 @@ export function useOrderAttachments(orderId: string | null, orderTitulo?: string
     dismissQueueItem,
     deleteAttachment,
     refresh: fetchAttachments,
+    syncWithSharePoint,
   };
 }

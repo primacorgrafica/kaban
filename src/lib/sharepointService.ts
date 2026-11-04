@@ -862,6 +862,75 @@ export async function getOrCreateOsFolder(
 }
 
 /**
+ * Lista todos os arquivos existentes dentro da pasta da O.S. no SharePoint.
+ * Utilizado para descoberta automática e sincronização resiliente de anexos (auto-reconciliação).
+ */
+export async function listFilesInOsFolder(
+  osIdentifier: string,
+  osNumberDisplay?: string,
+  interactiveFallback = false
+): Promise<{ folder: SharePointFolderInfo; files: DriveItemResponse[] } | null> {
+  try {
+    const { siteId, driveId } = await resolveSharePointSiteAndDrive(interactiveFallback);
+    const kabanFolderId = await ensureKabanRootFolder();
+    const token = await getSharePointAccessToken(interactiveFallback);
+
+    const folderName = formatOsFolderName(osIdentifier, osNumberDisplay);
+
+    // 1. Verifica se a pasta da O.S. existe dentro de KABAN
+    const folderUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/items/${kabanFolderId}:/${encodeURIComponent(
+      folderName
+    )}`;
+    const folderRes = await fetch(folderUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    });
+
+    if (!folderRes.ok) {
+      // Pasta ainda não existe no SharePoint
+      return null;
+    }
+
+    const folderData: DriveItemResponse = await folderRes.json();
+    const folderInfo: SharePointFolderInfo = {
+      folderId: folderData.id,
+      folderName: folderData.name,
+      folderWebUrl: folderData.webUrl,
+      driveId,
+      siteId,
+    };
+
+    // 2. Lista os arquivos filhos da pasta da O.S.
+    const listChildrenUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/items/${folderData.id}/children?$top=200`;
+    const listRes = await fetch(listChildrenUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    });
+
+    if (!listRes.ok) {
+      return { folder: folderInfo, files: [] };
+    }
+
+    const listData = await listRes.json();
+    const items: DriveItemResponse[] = listData.value || [];
+    // Filtra apenas itens de arquivo (ignora subpastas)
+    const files = items.filter((it) => !it.folder);
+
+    return {
+      folder: folderInfo,
+      files,
+    };
+  } catch (err) {
+    console.warn(`[sharepointService] Falha ao listar arquivos da pasta da O.S. (${osIdentifier}):`, err);
+    return null;
+  }
+}
+
+/**
  * Envia um arquivo diretamente do navegador para a pasta correspondente no SharePoint.
  * Arquivos < 4 MB: Upload direto via PUT no Microsoft Graph.
  * Arquivos >= 4 MB: Upload session em fatias (chunks de 5 MB) com progresso em tempo real.

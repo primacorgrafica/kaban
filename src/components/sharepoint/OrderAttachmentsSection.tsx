@@ -89,6 +89,7 @@ export function OrderAttachmentsSection({
   const {
     attachments,
     loading,
+    isSyncing,
     uploadQueue,
     isUploading,
     folderInfo,
@@ -96,6 +97,7 @@ export function OrderAttachmentsSection({
     cancelUpload,
     dismissQueueItem,
     deleteAttachment,
+    syncWithSharePoint,
   } = useOrderAttachments(orderId, orderTitulo);
 
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
@@ -245,6 +247,19 @@ export function OrderAttachmentsSection({
               )}
             </Button>
           )}
+
+          <Button
+            type="button"
+            size="sm"
+            variant="ghost"
+            disabled={isSyncing}
+            onClick={() => syncWithSharePoint({ silent: false })}
+            className="h-7 px-2 text-xs font-medium gap-1 text-[#CCD0CF] hover:text-white hover:bg-[#253745] rounded-lg transition-all"
+            title="Sincronizar arquivos da pasta do SharePoint desta O.S."
+          >
+            <RefreshCw className={`h-3.5 w-3.5 text-primary ${isSyncing ? "animate-spin" : ""}`} />
+            <span className="hidden sm:inline">{isSyncing ? "Sincronizando..." : "Sincronizar"}</span>
+          </Button>
 
           {folderInfo?.folderWebUrl && (
             <a
@@ -452,10 +467,23 @@ export function OrderAttachmentsSection({
         )}
 
         {!loading && attachments.length === 0 && queueItems.length === 0 && (
-          <div className="p-4 rounded-xl border border-border/60 bg-muted/20 text-center">
+          <div className="p-5 rounded-xl border border-dashed border-border/80 bg-muted/20 text-center space-y-3">
             <p className="text-xs text-muted-foreground italic">
               Nenhum anexo vinculado a esta Ordem de Serviço ainda.
             </p>
+            <div>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={isSyncing}
+                onClick={() => syncWithSharePoint({ silent: false })}
+                className="h-8 px-3 text-xs font-semibold gap-1.5 border-primary/40 text-primary hover:bg-primary/10 rounded-lg shadow-sm transition-all"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? "animate-spin" : ""}`} />
+                {isSyncing ? "Verificando SharePoint..." : "Sincronizar Arquivos do SharePoint"}
+              </Button>
+            </div>
           </div>
         )}
 

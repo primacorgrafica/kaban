@@ -1330,6 +1330,7 @@ function OrderCardImpl({ order, orderIndex, totalOrders, onUpdate, onMove, onArc
                     orderTitulo={order.titulo}
                     readOnly={permissions.isViewOnly}
                     canDelete={permissions.canDelete}
+                    allowUpload={!permissions.isViewOnly}
                   />
                 </div>
 

@@ -576,6 +576,7 @@ export function OrderSlideOver({
                 orderTitulo={order.titulo}
                 readOnly={false}
                 canDelete={true}
+                allowUpload={true}
               />
             </TabsContent>
 

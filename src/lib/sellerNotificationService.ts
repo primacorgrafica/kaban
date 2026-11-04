@@ -13,6 +13,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { getEmailAccessToken } from "./outlookService";
 import { MONITORED_MAILBOXES } from "@/types/email";
 import { getMsalInstance } from "./msalClient";
+import { sanitizeVendedorNome, DEFAULT_VENDEDORES } from "./vendedores";
+
+/** E-mails de serviço ou aliases que sabidamente não existem como caixas no Exchange e não devem receber mensagens */
+export const INVALID_NOTIFICATION_EMAILS = new Set([
+  "coordenadorpre@primacorgrafica.com.br",
+]);
 
 export interface SellerEmailResolution {
   email: string | null;
@@ -56,7 +62,9 @@ export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
  */
 export function isValidEmail(email: string | null | undefined): boolean {
   if (!email) return false;
-  return EMAIL_REGEX.test(email.trim().toLowerCase());
+  const clean = email.trim().toLowerCase();
+  if (INVALID_NOTIFICATION_EMAILS.has(clean)) return false;
+  return EMAIL_REGEX.test(clean);
 }
 
 /**
@@ -66,7 +74,7 @@ export async function resolveSellerEmail(
   vendedor: string | null | undefined,
   criadoPorUserId?: string | null
 ): Promise<SellerEmailResolution> {
-  const cleanVendedor = (vendedor || "").trim();
+  const cleanVendedor = sanitizeVendedorNome(vendedor || "").trim();
 
   // 1. Busca na tabela profiles por nome exato (case-insensitive)
   if (cleanVendedor) {
@@ -128,7 +136,19 @@ export async function resolveSellerEmail(
       // continua
     }
 
-    // 3. Busca por nome em profiles e resolve e-mail via list-users (auth.users)
+    // 3. Verifica vendedores padrão cadastrados no sistema (DEFAULT_VENDEDORES)
+    const defaultFound = DEFAULT_VENDEDORES.find(
+      (v) => v.nome.toLowerCase() === cleanVendedor.toLowerCase()
+    );
+    if (defaultFound?.email && isValidEmail(defaultFound.email)) {
+      return {
+        email: defaultFound.email.trim().toLowerCase(),
+        name: defaultFound.nome,
+        source: "vendedores",
+      };
+    }
+
+    // 4. Busca por nome em profiles e resolve e-mail via list-users (auth.users)
     try {
       const { data: pByName } = await supabase
         .from("profiles")
@@ -153,7 +173,7 @@ export async function resolveSellerEmail(
     }
   }
 
-  // 4. Fallback: criador da O.S. se for conhecido
+  // 5. Fallback: criador da O.S. se for conhecido e tiver e-mail válido (não-administrativo inválido)
   if (criadoPorUserId) {
     try {
       const { data: creatorProfile } = await supabase
