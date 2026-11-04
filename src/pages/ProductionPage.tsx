@@ -12,6 +12,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { KanbanFiltersBar, KanbanFilters } from "@/components/KanbanFiltersBar";
 import { Order } from "@/types/order";
 import { startOfDay, endOfDay } from "date-fns";
+import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
 import { supabase } from "@/integrations/supabase/client";
 import { LayoutGrid, TableProperties } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -71,12 +72,16 @@ export default function ProductionPage() {
     dateTo: undefined,
   });
 
+  const { hasUnread, hasVerified } = useUnreadEmailReplies();
+
   const [deptFilters, setDeptFilters] = useState<KanbanFilters>({
     statuses: [],
     vendedores: [],
     setores: [],
     dateFrom: undefined,
     dateTo: undefined,
+    emailsRespondidos: false,
+    apenasNaoLidos: false,
   });
 
   const [viewMode, setViewMode] = useState<"kanban" | "table">(() => {
@@ -177,6 +182,18 @@ export default function ProductionPage() {
       if (deptFilters.vendedores.length > 0 && (!o.vendedor || !deptFilters.vendedores.includes(o.vendedor))) return false;
       if (deptFilters.dateFrom && new Date(o.created_at) < startOfDay(deptFilters.dateFrom)) return false;
       if (deptFilters.dateTo && new Date(o.created_at) > endOfDay(deptFilters.dateTo)) return false;
+
+      // Filtro por E-mails Respondidos (cartinha no CARD)
+      if (deptFilters.emailsRespondidos) {
+        const isUnread = hasUnread(o.id, o.titulo);
+        const isVerified = hasVerified(o.id, o.titulo);
+        if (deptFilters.apenasNaoLidos) {
+          if (!isUnread) return false;
+        } else {
+          if (!isUnread && !isVerified) return false;
+        }
+      }
+
       return true;
     });
   };
@@ -244,7 +261,7 @@ export default function ProductionPage() {
               filters={deptFilters}
               onChange={setDeptFilters}
               department={currentDept}
-              showOnly={["statuses", "vendedores", "date"]}
+              showOnly={["statuses", "vendedores", "emails", "date"]}
             />
             <div className="flex items-center bg-card/85 dark:bg-[#11212D]/85 backdrop-blur-xl p-1 rounded-xl border border-border/80 dark:border-[#4A5C6A]/35 shrink-0 shadow-xs">
               <Button

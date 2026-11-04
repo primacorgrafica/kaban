@@ -127,10 +127,20 @@ class UnreadEmailsManager {
         if (evt.order_id) {
           allReceived.add(evt.order_id);
         }
+        if (evt.os_number) {
+          allReceived.add(evt.os_number);
+        }
         if (this.isEventUnread(evt)) {
-          const list = newUnreadMap.get(evt.order_id) || [];
-          list.push(evt);
-          newUnreadMap.set(evt.order_id, list);
+          if (evt.order_id) {
+            const list = newUnreadMap.get(evt.order_id) || [];
+            list.push(evt);
+            newUnreadMap.set(evt.order_id, list);
+          }
+          if (evt.os_number && evt.os_number !== evt.order_id) {
+            const list = newUnreadMap.get(evt.os_number) || [];
+            list.push(evt);
+            newUnreadMap.set(evt.os_number, list);
+          }
         }
       }
 
@@ -300,24 +310,74 @@ class UnreadEmailsManager {
 
   /**
    * Verifica se uma Ordem de Serviço específica possui resposta de e-mail não lida.
+   * Suporta tanto o UUID da ordem quanto o número de O.S. (extraído do título).
    */
-  public hasUnread(orderId: string): boolean {
+  public hasUnread(orderId: string, osNumberOrTitle?: string): boolean {
     const list = this.unreadByOrder.get(orderId);
-    return !!list && list.length > 0;
+    if (list && list.length > 0) return true;
+
+    if (osNumberOrTitle) {
+      const cleanOs = osNumberOrTitle.replace(/^[#\s]+/, "").split(/\s+/)[0].trim();
+      if (cleanOs && cleanOs !== orderId) {
+        const listByOs = this.unreadByOrder.get(cleanOs);
+        if (listByOs && listByOs.length > 0) return true;
+        for (const events of this.unreadByOrder.values()) {
+          if (events.some((e) => e.os_number === cleanOs || e.os_number?.includes(cleanOs))) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
   }
 
   /**
    * Verifica se uma Ordem de Serviço possui respostas de e-mail e todas já foram lidas/verificadas.
    */
-  public hasVerified(orderId: string): boolean {
-    return this.allReceivedOrderIds.has(orderId) && !this.hasUnread(orderId);
+  public hasVerified(orderId: string, osNumberOrTitle?: string): boolean {
+    if (this.hasUnread(orderId, osNumberOrTitle)) return false;
+
+    if (this.allReceivedOrderIds.has(orderId)) return true;
+
+    if (osNumberOrTitle) {
+      const cleanOs = osNumberOrTitle.replace(/^[#\s]+/, "").split(/\s+/)[0].trim();
+      if (cleanOs && cleanOs !== orderId) {
+        if (this.allReceivedOrderIds.has(cleanOs)) return true;
+      }
+    }
+
+    return false;
+  }
+
+  /**
+   * Verifica se uma Ordem de Serviço possui qualquer resposta de e-mail registrada (com cartinha amarela ou verde).
+   */
+  public hasEmailReply(orderId: string, osNumberOrTitle?: string): boolean {
+    return this.hasUnread(orderId, osNumberOrTitle) || this.hasVerified(orderId, osNumberOrTitle);
+  }
+
+  /**
+   * Retorna o conjunto de todos os orderIds/números com qualquer resposta de e-mail registrada.
+   */
+  public getAllRepliedOrderIds(): Set<string> {
+    const set = new Set<string>(this.allReceivedOrderIds);
+    this.unreadByOrder.forEach((_, id) => set.add(id));
+    return set;
   }
 
   /**
    * Retorna os eventos não lidos de uma O.S.
    */
-  public getUnreadEvents(orderId: string): OrderEmailEvent[] {
-    return this.unreadByOrder.get(orderId) || [];
+  public getUnreadEvents(orderId: string, osNumberOrTitle?: string): OrderEmailEvent[] {
+    const direct = this.unreadByOrder.get(orderId);
+    if (direct && direct.length > 0) return direct;
+    if (osNumberOrTitle) {
+      const cleanOs = osNumberOrTitle.replace(/^[#\s]+/, "").split(/\s+/)[0].trim();
+      if (cleanOs && cleanOs !== orderId) {
+        return this.unreadByOrder.get(cleanOs) || [];
+      }
+    }
+    return [];
   }
 
   /**

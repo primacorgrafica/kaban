@@ -3,9 +3,11 @@ import { unreadEmailsManager } from "@/lib/unreadEmailsManager";
 import type { OrderEmailEvent } from "@/types/email";
 
 export interface UseUnreadEmailRepliesReturn {
-  hasUnread: (orderId: string) => boolean;
-  hasVerified: (orderId: string) => boolean;
-  getUnreadEvents: (orderId: string) => OrderEmailEvent[];
+  hasUnread: (orderId: string, osNumberOrTitle?: string) => boolean;
+  hasVerified: (orderId: string, osNumberOrTitle?: string) => boolean;
+  hasEmailReply: (orderId: string, osNumberOrTitle?: string) => boolean;
+  getAllRepliedOrderIds: () => Set<string>;
+  getUnreadEvents: (orderId: string, osNumberOrTitle?: string) => OrderEmailEvent[];
   getUnreadCountForOrders: (orderIds: string[]) => number;
   getVerifiedCountForOrders: (orderIds: string[]) => number;
   markAsRead: (orderId: string, osNumber?: string) => Promise<void>;
@@ -27,16 +29,24 @@ export function useUnreadEmailReplies(): UseUnreadEmailRepliesReturn {
     return unsubscribe;
   }, []);
 
-  const hasUnread = useCallback((orderId: string) => {
-    return unreadEmailsManager.hasUnread(orderId);
+  const hasUnread = useCallback((orderId: string, osNumberOrTitle?: string) => {
+    return unreadEmailsManager.hasUnread(orderId, osNumberOrTitle);
   }, []);
 
-  const hasVerified = useCallback((orderId: string) => {
-    return unreadEmailsManager.hasVerified(orderId);
+  const hasVerified = useCallback((orderId: string, osNumberOrTitle?: string) => {
+    return unreadEmailsManager.hasVerified(orderId, osNumberOrTitle);
   }, []);
 
-  const getUnreadEvents = useCallback((orderId: string) => {
-    return unreadEmailsManager.getUnreadEvents(orderId);
+  const hasEmailReply = useCallback((orderId: string, osNumberOrTitle?: string) => {
+    return unreadEmailsManager.hasEmailReply(orderId, osNumberOrTitle);
+  }, []);
+
+  const getAllRepliedOrderIds = useCallback(() => {
+    return unreadEmailsManager.getAllRepliedOrderIds();
+  }, []);
+
+  const getUnreadEvents = useCallback((orderId: string, osNumberOrTitle?: string) => {
+    return unreadEmailsManager.getUnreadEvents(orderId, osNumberOrTitle);
   }, []);
 
   const getUnreadCountForOrders = useCallback((orderIds: string[]) => {
@@ -56,6 +66,8 @@ export function useUnreadEmailReplies(): UseUnreadEmailRepliesReturn {
   return {
     hasUnread,
     hasVerified,
+    hasEmailReply,
+    getAllRepliedOrderIds,
     getUnreadEvents,
     getUnreadCountForOrders,
     getVerifiedCountForOrders,

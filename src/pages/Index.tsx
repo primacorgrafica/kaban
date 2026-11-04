@@ -12,6 +12,7 @@ import { KanbanFiltersBar, KanbanFilters } from "@/components/KanbanFiltersBar";
 import { Order } from "@/types/order";
 import { startOfDay, endOfDay } from "date-fns";
 import { useSlowOrderAlerts } from "@/hooks/useSlowOrderAlerts";
+import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
 import { LayoutGrid, TableProperties } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -76,12 +77,16 @@ const Index = () => {
     localStorage.setItem("primacor_view_mode", mode);
   };
 
+  const { hasUnread, hasVerified } = useUnreadEmailReplies();
+
   const [filters, setFilters] = useState<KanbanFilters>({
     statuses: [],
     vendedores: [],
     setores: [],
     dateFrom: undefined,
     dateTo: undefined,
+    emailsRespondidos: false,
+    apenasNaoLidos: false,
   });
 
   const applyFilters = (list: Order[]) => {
@@ -94,6 +99,18 @@ const Index = () => {
       }
       if (filters.dateFrom && new Date(o.created_at) < startOfDay(filters.dateFrom)) return false;
       if (filters.dateTo && new Date(o.created_at) > endOfDay(filters.dateTo)) return false;
+
+      // Filtro por E-mails Respondidos (cartinha no CARD)
+      if (filters.emailsRespondidos) {
+        const isUnread = hasUnread(o.id, o.titulo);
+        const isVerified = hasVerified(o.id, o.titulo);
+        if (filters.apenasNaoLidos) {
+          if (!isUnread) return false;
+        } else {
+          if (!isUnread && !isVerified) return false;
+        }
+      }
+
       return true;
     });
   };

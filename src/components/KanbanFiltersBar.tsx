@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Filter, X } from "lucide-react";
+import { CalendarIcon, Filter, X, Mail } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
@@ -18,6 +18,8 @@ export interface KanbanFilters {
   dateTo: Date | undefined;
   setoresManut?: string[];
   categoriasManut?: string[];
+  emailsRespondidos?: boolean;
+  apenasNaoLidos?: boolean;
 }
 
 const SETORES_MANUT_LIST = [
@@ -44,15 +46,24 @@ const ALL_SECTORS: { id: string; label: string; group: string }[] = [
 interface KanbanFiltersBarProps {
   filters: KanbanFilters;
   onChange: (filters: KanbanFilters) => void;
-  showOnly?: ("statuses" | "vendedores" | "setores" | "date" | "setoresManut" | "categoriasManut")[];
+  showOnly?: ("statuses" | "vendedores" | "setores" | "date" | "setoresManut" | "categoriasManut" | "emails")[];
   department?: DepartmentConfig;
 }
 
 export function KanbanFiltersBar({ filters, onChange, showOnly, department }: KanbanFiltersBarProps) {
   const [open, setOpen] = useState(false);
   const [vendedoresList, setVendedoresList] = useState<string[]>([]);
-  const show = (section: "statuses" | "vendedores" | "setores" | "date" | "setoresManut" | "categoriasManut") => !showOnly || showOnly.includes(section as any);
-  const hasFilters = filters.statuses.length > 0 || filters.vendedores.length > 0 || filters.setores.length > 0 || filters.dateFrom || filters.dateTo || (filters.setoresManut?.length || 0) > 0 || (filters.categoriasManut?.length || 0) > 0;
+  const show = (section: "statuses" | "vendedores" | "setores" | "date" | "setoresManut" | "categoriasManut" | "emails") => !showOnly || showOnly.includes(section as any);
+  const hasFilters =
+    filters.statuses.length > 0 ||
+    filters.vendedores.length > 0 ||
+    filters.setores.length > 0 ||
+    Boolean(filters.dateFrom) ||
+    Boolean(filters.dateTo) ||
+    (filters.setoresManut?.length || 0) > 0 ||
+    (filters.categoriasManut?.length || 0) > 0 ||
+    Boolean(filters.emailsRespondidos) ||
+    Boolean(filters.apenasNaoLidos);
 
   useEffect(() => {
     supabase.from("vendedores").select("nome").order("nome").then(({ data }) => {
@@ -94,19 +105,39 @@ export function KanbanFiltersBar({ filters, onChange, showOnly, department }: Ka
   };
 
   const clearFilters = () => {
-    onChange({ statuses: [], vendedores: [], setores: [], dateFrom: undefined, dateTo: undefined, setoresManut: [], categoriasManut: [] });
+    onChange({
+      statuses: [],
+      vendedores: [],
+      setores: [],
+      dateFrom: undefined,
+      dateTo: undefined,
+      setoresManut: [],
+      categoriasManut: [],
+      emailsRespondidos: false,
+      apenasNaoLidos: false,
+    });
   };
+
+  const activeFiltersCount =
+    (filters.statuses.length > 0 ? 1 : 0) +
+    (filters.vendedores.length > 0 ? 1 : 0) +
+    (filters.setores.length > 0 ? 1 : 0) +
+    (filters.dateFrom || filters.dateTo ? 1 : 0) +
+    ((filters.setoresManut?.length || 0) > 0 ? 1 : 0) +
+    ((filters.categoriasManut?.length || 0) > 0 ? 1 : 0) +
+    (filters.emailsRespondidos ? 1 : 0) +
+    (filters.apenasNaoLidos ? 1 : 0);
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className={cn("gap-1.5 h-8", hasFilters && "border-primary text-primary")}>
+          <Button variant="outline" size="sm" className={cn("gap-1.5 h-8", hasFilters && "border-primary text-primary font-medium")}>
             <Filter className="h-3.5 w-3.5" />
             Filtros
             {hasFilters && (
-              <span className="bg-primary text-primary-foreground rounded-full text-[10px] w-4 h-4 flex items-center justify-center">
-                {(filters.statuses.length > 0 ? 1 : 0) + (filters.vendedores.length > 0 ? 1 : 0) + (filters.setores.length > 0 ? 1 : 0) + (filters.dateFrom || filters.dateTo ? 1 : 0)}
+              <span className="bg-primary text-primary-foreground rounded-full text-[10px] w-4 h-4 flex items-center justify-center font-bold">
+                {activeFiltersCount}
               </span>
             )}
           </Button>
@@ -142,6 +173,59 @@ export function KanbanFiltersBar({ filters, onChange, showOnly, department }: Ka
                 })}
               </div>
             </div>
+            )}
+
+            {/* E-mails Respondidos filter */}
+            {show("emails") && (
+              <div>
+                <p className="text-sm font-medium mb-2 flex items-center gap-1.5 text-foreground">
+                  <Mail className="h-3.5 w-3.5 text-amber-500" />
+                  E-mails
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !filters.emailsRespondidos;
+                      onChange({
+                        ...filters,
+                        emailsRespondidos: next,
+                        apenasNaoLidos: next ? filters.apenasNaoLidos : false,
+                      });
+                    }}
+                    className={cn(
+                      "text-xs px-2.5 py-1 rounded-full border transition-all flex items-center gap-1.5",
+                      filters.emailsRespondidos
+                        ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/50 font-bold shadow-xs ring-1 ring-amber-500/30"
+                        : "border-border text-muted-foreground hover:text-foreground hover:border-border/80"
+                    )}
+                  >
+                    <Mail className={cn("h-3 w-3", filters.emailsRespondidos ? "fill-amber-500 text-amber-500" : "")} />
+                    E-mails Respondidos
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = !filters.apenasNaoLidos;
+                      onChange({
+                        ...filters,
+                        apenasNaoLidos: next,
+                        emailsRespondidos: next ? true : filters.emailsRespondidos,
+                      });
+                    }}
+                    className={cn(
+                      "text-xs px-2.5 py-1 rounded-full border transition-all flex items-center gap-1.5",
+                      filters.apenasNaoLidos
+                        ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/50 font-bold shadow-xs ring-1 ring-amber-500/30"
+                        : "border-border text-muted-foreground hover:text-foreground hover:border-border/80"
+                    )}
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                    Apenas Não Lidos
+                  </button>
+                </div>
+              </div>
             )}
 
             {/* Vendedor filter */}
@@ -288,6 +372,17 @@ export function KanbanFiltersBar({ filters, onChange, showOnly, department }: Ka
       </Popover>
 
       {/* Active filter chips */}
+      {filters.emailsRespondidos && (
+        <span
+          className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 flex items-center gap-1 cursor-pointer font-bold shadow-xs hover:bg-amber-500/30 transition-colors"
+          onClick={() => onChange({ ...filters, emailsRespondidos: false, apenasNaoLidos: false })}
+          title="Remover filtro de e-mails respondidos"
+        >
+          <Mail className="h-2.5 w-2.5 fill-amber-500/30 text-amber-600 dark:text-amber-400" />
+          {filters.apenasNaoLidos ? "E-mails: Não Lidos" : "E-mails Respondidos"}
+          <X className="h-2.5 w-2.5" />
+        </span>
+      )}
       {filters.statuses.map((status) => {
         const config = STATUS_CONFIG[status];
         return (
