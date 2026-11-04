@@ -9,6 +9,7 @@ import { CalendarIcon, Filter, X, Mail } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
+import { fetchVendedores } from "@/lib/vendedores";
 
 export interface KanbanFilters {
   statuses: (OrderStatus | string)[];
@@ -66,8 +67,8 @@ export function KanbanFiltersBar({ filters, onChange, showOnly, department }: Ka
     Boolean(filters.apenasNaoLidos);
 
   useEffect(() => {
-    supabase.from("vendedores").select("nome").order("nome").then(({ data }) => {
-      if (data) setVendedoresList(data.map(v => v.nome));
+    fetchVendedores().then((data) => {
+      if (data) setVendedoresList(data.map((v) => v.nome));
     });
   }, []);
 

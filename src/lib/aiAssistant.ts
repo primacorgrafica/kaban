@@ -89,7 +89,7 @@ export function parseOrderText(input: string, knownVendors: string[] = []): Pars
 
   // 3. Detectar Vendedor
   const defaultVendors = [
-    "Deborah", "Ronaldo", "Wellington", "Ozeas", "Alexandre", "Andre", "Marcelo", "Giovani", "Elana", "Carlos", "Primacor"
+    "Deborah", "Ronaldo", "well", "Ozeas", "Bianca", "Alexandre", "Andre", "Marcelo", "Giovani", "Elana", "Carlos"
   ];
   const allVendors = Array.from(new Set([...defaultVendors, ...knownVendors]));
 

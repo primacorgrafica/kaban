@@ -55,6 +55,7 @@ import {
   getSpecialSupplyCustomText,
   setSpecialSupplyCustomText,
 } from "@/lib/processos";
+import { fetchVendedores } from "@/lib/vendedores";
 import {
   getOrCreateOsFolder,
   uploadFileToSharePoint,
@@ -304,13 +305,9 @@ export function CreateOrderDialog({
       setCurrentUploadSpeedOrBytes("");
       setForm(getInitialForm(orderToEdit));
 
-      supabase
-        .from("vendedores")
-        .select("id, nome")
-        .order("nome")
-        .then(({ data }) => {
-          if (data) setVendedores(data);
-        });
+      fetchVendedores().then((data) => {
+        if (data) setVendedores(data);
+      });
     }
   }, [open, orderToEdit]);
 

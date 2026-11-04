@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CrmOpportunity, CrmProposal, formatCurrency } from "@/types/crm";
+import { fetchVendedores } from "@/lib/vendedores";
 import {
   Sparkles,
   Building,
@@ -68,7 +69,7 @@ export function ConvertToOrderDialog({
   // Carregar lista de vendedores
   useEffect(() => {
     async function loadVendedores() {
-      const { data } = await supabase.from("vendedores").select("id, nome").order("nome");
+      const data = await fetchVendedores();
       if (data) setVendedores(data);
     }
     if (open) {

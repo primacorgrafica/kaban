@@ -23,6 +23,7 @@ import {
   LeadOrigin,
 } from "@/types/crm";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchVendedores } from "@/lib/vendedores";
 import {
   Building,
   User,
@@ -88,10 +89,7 @@ export function CreateOpportunityDialog({
   // Carregar lista de vendedores da tabela do banco
   useEffect(() => {
     async function loadVendedores() {
-      const { data } = await supabase
-        .from("vendedores")
-        .select("id, nome")
-        .order("nome", { ascending: true });
+      const data = await fetchVendedores();
       if (data) setVendedores(data);
     }
     if (open) {

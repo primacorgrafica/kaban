@@ -1,5 +1,6 @@
 import { getOrderRevision, cleanObservationRevision } from "@/lib/orderRevision";
 import { getEffectiveOsAnterior } from "@/lib/orderAnterior";
+import { fetchVendedores } from "@/lib/vendedores";
 import { useState, useEffect, useMemo } from "react";
 import { Order, OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
 import { DEPARTMENTS, Department } from "@/types/production";
@@ -305,7 +306,7 @@ export function OrderDetailDialog({
 
   useEffect(() => {
     if (editing) {
-      supabase.from("vendedores").select("id, nome").order("nome").then(({ data }) => {
+      fetchVendedores().then((data) => {
         if (data) setVendedoresList(data);
       });
     }

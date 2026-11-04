@@ -66,6 +66,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { fetchVendedores } from "@/lib/vendedores";
 
 interface OpportunitySlideOverProps {
   opportunity: CrmOpportunity | null;
@@ -160,8 +161,8 @@ export function OpportunitySlideOver({
   // Carregar vendedores e histórico
   useEffect(() => {
     async function loadData() {
-      const [{ data: vends }, { data: hist }] = await Promise.all([
-        supabase.from("vendedores").select("id, nome").order("nome"),
+      const [vends, { data: hist }] = await Promise.all([
+        fetchVendedores(),
         supabase
           .from("crm_oportunidade_historico")
           .select("*")
