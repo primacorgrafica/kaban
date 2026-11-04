@@ -236,15 +236,26 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
   };
 
   // Usuários online que ainda não possuem conversa no histórico
+  const existingOtherUserIds = useMemo(() => {
+    return new Set(conversations.map((c) => c.otherUser.id));
+  }, [conversations]);
+
+  const hiddenUsers = useMemo(() => {
+    return currentUserId ? getLocalHiddenOtherUsers(currentUserId) : new Set<string>();
+  }, [currentUserId]);
+
   const onlineUsersWithoutConversation = useMemo(() => {
-    const existingOtherUserIds = new Set(
-      conversations.map((c) => c.otherUser.id)
-    );
-    const hiddenUsers = currentUserId ? getLocalHiddenOtherUsers(currentUserId) : new Set<string>();
     return availableUsers.filter(
       (u) => u.online && !existingOtherUserIds.has(u.id) && !hiddenUsers.has(u.id)
     );
-  }, [availableUsers, conversations, currentUserId]);
+  }, [availableUsers, existingOtherUserIds, hiddenUsers]);
+
+  // Usuários offline que ainda não possuem conversa no histórico (todos os outros usuários do sistema)
+  const offlineUsersWithoutConversation = useMemo(() => {
+    return availableUsers.filter(
+      (u) => !u.online && !existingOtherUserIds.has(u.id) && !hiddenUsers.has(u.id)
+    );
+  }, [availableUsers, existingOtherUserIds, hiddenUsers]);
 
   // Lista de todos os usuários online no momento
   const allOnlineUsersList = useMemo(() => {
@@ -279,8 +290,22 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
     });
   }, [onlineUsersWithoutConversation, searchConvTerm]);
 
-  // Iniciar conversa com um usuário online diretamente
-  const handleStartWithOnlineUser = async (targetUser: ChatUser) => {
+  // Usuários offline sem conversa prévia filtrados por busca
+  const filteredOfflineWithoutConv = useMemo(() => {
+    if (filterMode === "online") return [];
+    const term = searchConvTerm.toLowerCase().trim();
+    return offlineUsersWithoutConversation.filter((u) => {
+      if (!term) return true;
+      return (
+        u.nome.toLowerCase().includes(term) ||
+        (u.role && u.role.toLowerCase().includes(term)) ||
+        (u.setor && u.setor.toLowerCase().includes(term))
+      );
+    });
+  }, [offlineUsersWithoutConversation, searchConvTerm, filterMode]);
+
+  // Iniciar conversa com um usuário diretamente (seja online ou offline)
+  const handleStartWithUser = async (targetUser: ChatUser) => {
     const existing = conversations.find((c) => c.otherUser.id === targetUser.id);
     if (existing) {
       handleSelectConv(existing);
@@ -407,7 +432,7 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                 <button
                   key={onlineUser.id}
                   type="button"
-                  onClick={() => handleStartWithOnlineUser(onlineUser)}
+                  onClick={() => handleStartWithUser(onlineUser)}
                   className="flex flex-col items-center gap-1 shrink-0 p-1 rounded-xl hover:bg-accent transition-all group max-w-[58px]"
                   title={`${onlineUser.nome} (${onlineUser.role || onlineUser.setor || "Colaborador"}) — Online agora. Clique para conversar.`}
                 >
@@ -445,7 +470,7 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Todas ({conversations.length + onlineUsersWithoutConversation.length})
+            Todas ({conversations.length + onlineUsersWithoutConversation.length + offlineUsersWithoutConversation.length})
           </button>
           <button
             type="button"
@@ -461,20 +486,22 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
           </button>
         </div>
 
-        {/* Lista de conversas e usuários online */}
+        {/* Lista de conversas e colaboradores */}
         <div className="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-thin">
           {loading ? (
             <div className="flex flex-col items-center justify-center h-48 gap-2 text-muted-foreground text-xs">
               <div className="w-5 h-5 border-2 border-[#CCD0CF] border-t-transparent rounded-full animate-spin" />
               <span>Carregando conversas...</span>
             </div>
-          ) : filteredConversations.length === 0 && filteredOnlineWithoutConv.length === 0 ? (
+          ) : filteredConversations.length === 0 &&
+            filteredOnlineWithoutConv.length === 0 &&
+            filteredOfflineWithoutConv.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-48 text-center px-4 text-muted-foreground text-xs">
               <Users className="h-8 w-8 mb-2 opacity-50" />
               <span>
                 {filterMode === "online"
                   ? "Nenhum outro colaborador online no momento."
-                  : "Nenhuma conversa encontrada."}
+                  : "Nenhum colaborador ou conversa encontrada."}
               </span>
               <Button
                 variant="ghost"
@@ -512,7 +539,7 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                       return (
                         <div
                           key={u.id}
-                          onClick={() => handleStartWithOnlineUser(u)}
+                          onClick={() => handleStartWithUser(u)}
                           className={`group flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-all border ${
                             isSelected
                               ? "bg-[#253745] border-[#4A5C6A]/60 shadow-sm"
@@ -521,14 +548,22 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                         >
                           <div className="flex items-center gap-3 min-w-0 flex-1">
                             <div className="relative shrink-0">
-                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#253745] to-[#11212D] border border-[#4A5C6A]/50 flex items-center justify-center font-bold text-sm text-[#CCD0CF] shadow-sm">
-                                {u.nome.charAt(0).toUpperCase()}
-                              </div>
+                              {u.avatar_url ? (
+                                <img
+                                  src={u.avatar_url}
+                                  alt={u.nome}
+                                  className="w-10 h-10 rounded-xl object-cover border border-[#4A5C6A]/60 shadow-xs group-hover:scale-105 transition-transform bg-muted"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#253745] to-[#11212D] border border-[#4A5C6A]/50 flex items-center justify-center font-bold text-sm text-[#CCD0CF] shadow-xs group-hover:scale-105 transition-transform">
+                                  {u.nome.charAt(0).toUpperCase()}
+                                </div>
+                              )}
                               <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-card shadow-[0_0_6px_#34d399]" />
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center justify-between gap-1 mb-0.5">
-                                <span className="text-xs font-bold truncate text-foreground group-hover:text-[#CCD0CF]">
+                                <span className="text-xs font-bold truncate text-foreground group-hover:text-emerald-400 transition-colors">
                                   {u.nome}
                                 </span>
                                 {u.role && (
@@ -542,6 +577,79 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                                 Online agora · Clique para conversar
                               </p>
                             </div>
+                          </div>
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                            <span className="p-1.5 rounded-lg bg-[#253745] text-[#CCD0CF] text-xs flex items-center gap-1 shadow-sm">
+                              <MessageSquare className="h-3 w-3" />
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Colaboradores Offline (todos os usuários cadastrados exibindo seus avatares) */}
+              {filteredOfflineWithoutConv.length > 0 && filterMode === "all" && (
+                <div className="pt-2">
+                  <div className="px-2 py-1 text-[10px] font-mono-tech font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
+                    <span>Colaboradores Offline ({filteredOfflineWithoutConv.length})</span>
+                  </div>
+                  <div className="space-y-1 mt-1">
+                    {filteredOfflineWithoutConv.map((u) => {
+                      const isSelected = activeConversation?.otherUser.id === u.id;
+                      return (
+                        <div
+                          key={u.id}
+                          onClick={() => handleStartWithUser(u)}
+                          className={`group flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-all border ${
+                            isSelected
+                              ? "bg-[#253745] border-[#4A5C6A]/60 shadow-sm"
+                              : "hover:bg-accent border-transparent hover:border-border opacity-85 hover:opacity-100"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3 min-w-0 flex-1">
+                            <div className="relative shrink-0">
+                              {u.avatar_url ? (
+                                <img
+                                  src={u.avatar_url}
+                                  alt={u.nome}
+                                  className="w-10 h-10 rounded-xl object-cover border border-border shadow-xs group-hover:scale-105 transition-transform bg-muted"
+                                />
+                              ) : (
+                                <div className="w-10 h-10 rounded-xl bg-muted border border-border flex items-center justify-center font-bold text-sm text-muted-foreground shadow-xs group-hover:scale-105 transition-transform">
+                                  {u.nome.charAt(0).toUpperCase()}
+                                </div>
+                              )}
+                              <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-muted-foreground/30 ring-2 ring-card" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center justify-between gap-1 mb-0.5">
+                                <span className="text-xs font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+                                  {u.nome}
+                                </span>
+                                {u.role && (
+                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-muted/60 text-muted-foreground font-mono-tech uppercase border border-border/50 shrink-0">
+                                    {u.role}
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center justify-between gap-1 text-[11px] text-muted-foreground">
+                                <span className="truncate">
+                                  {u.setor ? u.setor : "Primacor"}
+                                </span>
+                                <span className="text-[10px] text-muted-foreground/70 font-mono-tech shrink-0">
+                                  offline
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                            <span className="p-1.5 rounded-lg bg-muted text-foreground text-xs flex items-center gap-1 shadow-sm">
+                              <MessageSquare className="h-3 w-3" />
+                            </span>
                           </div>
                         </div>
                       );

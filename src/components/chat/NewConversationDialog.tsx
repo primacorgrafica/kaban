@@ -95,12 +95,22 @@ export function NewConversationDialog({
                 className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-accent transition-colors text-left group border border-transparent hover:border-border"
               >
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="relative">
-                    <div className="w-9 h-9 rounded-xl bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center font-bold text-sm text-[#CCD0CF]">
-                      {user.nome.charAt(0).toUpperCase()}
-                    </div>
-                    {user.online && (
-                      <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-card" />
+                  <div className="relative shrink-0">
+                    {user.avatar_url ? (
+                      <img
+                        src={user.avatar_url}
+                        alt={user.nome}
+                        className="w-9 h-9 rounded-xl object-cover border border-[#4A5C6A]/60 shadow-xs"
+                      />
+                    ) : (
+                      <div className="w-9 h-9 rounded-xl bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center font-bold text-sm text-[#CCD0CF]">
+                        {user.nome.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    {user.online ? (
+                      <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-card shadow-[0_0_6px_#34d399]" />
+                    ) : (
+                      <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-muted-foreground/30 ring-2 ring-card" />
                     )}
                   </div>
                   <div className="min-w-0">

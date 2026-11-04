@@ -287,7 +287,7 @@ export default function UserManagementPage() {
       // 2. Presente via canal WebSocket Realtime global (primacor_online_presence)
       if (onlineUserIds && onlineUserIds.has(u.user_id)) return true;
 
-      // 3. Heartbeat recente no banco de dados (últimos 5 minutos, consistente com chatService)
+      // 3. Heartbeat recente no banco de dados (últimos 10 minutos, consistente com chatService)
       const presence = u.presence;
       if (presence?.last_seen) {
         const lastSeenMs = new Date(presence.last_seen).getTime();
@@ -297,20 +297,20 @@ export default function UserManagementPage() {
           const loggedOutAfter =
             presence.last_logout_at &&
             new Date(presence.last_logout_at).getTime() > lastSeenMs;
-          if (diff < 5 * 60 * 1000 && !loggedOutAfter) {
+          if (diff < 10 * 60 * 1000 && !loggedOutAfter) {
             return true;
           }
         }
       }
 
-      // 4. Login recente registrado em auth.users (últimos 5 minutos) sem logout posterior
+      // 4. Login recente registrado em auth.users (últimos 10 minutos) sem logout posterior
       if (u.last_sign_in_at) {
         const signInMs = new Date(u.last_sign_in_at).getTime();
         const signInDiff = Date.now() - signInMs;
         const loggedOutAfter =
           presence?.last_logout_at &&
           new Date(presence.last_logout_at).getTime() > signInMs;
-        if (signInDiff < 5 * 60 * 1000 && !loggedOutAfter) {
+        if (signInDiff < 10 * 60 * 1000 && !loggedOutAfter) {
           return true;
         }
       }

@@ -50,7 +50,7 @@ export async function fetchChatUsers(
     const [{ data: profiles }, { data: roles }, { data: presence }] = await Promise.all([
       supabase.from("profiles").select("user_id, nome, setor_vinculado, avatar_url" as any),
       supabase.from("user_roles").select("user_id, role"),
-      supabase.from("user_presence").select("user_id, last_seen"),
+      supabase.from("user_presence").select("user_id, last_seen, last_logout_at"),
     ]);
 
     const roleMap: Record<string, string> = {};
@@ -60,10 +60,13 @@ export async function fetchChatUsers(
       });
     }
 
-    const presenceMap: Record<string, string | null> = {};
+    const presenceMap: Record<string, { last_seen: string | null; last_logout_at?: string | null }> = {};
     if (presence) {
-      presence.forEach((p: { user_id: string; last_seen: string | null }) => {
-        presenceMap[p.user_id] = p.last_seen;
+      presence.forEach((p: any) => {
+        presenceMap[p.user_id] = {
+          last_seen: p.last_seen || null,
+          last_logout_at: p.last_logout_at || null,
+        };
       });
     }
 
@@ -71,11 +74,25 @@ export async function fetchChatUsers(
     if (profiles && profiles.length > 0) {
       profiles.forEach((p: any) => {
         if (p.user_id !== currentUserId) {
-          const lastSeen = presenceMap[p.user_id] || null;
+          const pres = presenceMap[p.user_id];
+          const lastSeen = pres?.last_seen || null;
           const isRealtime = realtimeOnlineIds ? realtimeOnlineIds.has(p.user_id) : false;
-          const isRecentHeartbeat = lastSeen
-            ? Date.now() - new Date(lastSeen).getTime() < 5 * 60 * 1000
-            : false;
+
+          let isRecentHeartbeat = false;
+          if (lastSeen) {
+            const lastSeenMs = new Date(lastSeen).getTime();
+            if (!isNaN(lastSeenMs) && lastSeenMs > 86400000) {
+              const diff = Date.now() - lastSeenMs;
+              const loggedOutAfter =
+                pres?.last_logout_at &&
+                new Date(pres.last_logout_at).getTime() > lastSeenMs;
+              // Tolerância de 10 minutos para abas em background
+              if (diff < 10 * 60 * 1000 && !loggedOutAfter) {
+                isRecentHeartbeat = true;
+              }
+            }
+          }
+
           const isOnline = isRealtime || isRecentHeartbeat;
 
           users.push({

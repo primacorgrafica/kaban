@@ -580,6 +580,17 @@ export function useChat() {
           }
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "user_presence",
+        },
+        () => {
+          void checkDbPresence();
+        }
+      )
       .subscribe();
 
     // Listener para novas conversas despachadas pelo Notifier global
@@ -593,27 +604,33 @@ export function useChat() {
       try {
         const { data } = await supabase
           .from("user_presence")
-          .select("user_id, last_seen");
+          .select("user_id, last_seen, last_logout_at");
         if (data) {
           const now = Date.now();
           const nextSet = new Set<string>();
           data.forEach((row: any) => {
             if (row.user_id !== currentUserId && row.last_seen) {
-              const diff = now - new Date(row.last_seen).getTime();
-              if (diff < 5 * 60 * 1000) {
-                nextSet.add(row.user_id);
+              const lastSeenMs = new Date(row.last_seen).getTime();
+              if (lastSeenMs > 86400000) {
+                const diff = now - lastSeenMs;
+                const loggedOutAfter =
+                  row.last_logout_at &&
+                  new Date(row.last_logout_at).getTime() > lastSeenMs;
+                if (diff < 10 * 60 * 1000 && !loggedOutAfter) {
+                  nextSet.add(row.user_id);
+                }
               }
             }
           });
 
-          // Também verifica quem enviou mensagens nos últimos 10 minutos (garantia de estar online)
+          // Também verifica quem enviou mensagens nos últimos 15 minutos (garantia de estar online)
           try {
-            const tenMinAgo = new Date(now - 10 * 60 * 1000).toISOString();
+            const fifteenMinAgo = new Date(now - 15 * 60 * 1000).toISOString();
             const { data: recentMsgs } = await supabase
               .from("chat_messages" as any)
               .select("sender_id")
               .neq("sender_id", currentUserId)
-              .gte("created_at", tenMinAgo)
+              .gte("created_at", fifteenMinAgo)
               .limit(30);
 
             if (recentMsgs) {
