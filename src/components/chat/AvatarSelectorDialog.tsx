@@ -62,6 +62,8 @@ export function AvatarSelectorDialog({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const selectedAvatar = avatars.find((a) => a.image_url === selectedAvatarUrl);
+
   // Estado de criação/importação de novos avatares em lote (Admin / Coordenador)
   const [createOpen, setCreateOpen] = useState(false);
   const [newCategory, setNewCategory] = useState("oficial");
@@ -226,7 +228,7 @@ export function AvatarSelectorDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md bg-card border-border text-foreground rounded-2xl shadow-2xl p-6">
+        <DialogContent className="max-w-xl sm:max-w-2xl md:max-w-3xl bg-card border-border text-foreground rounded-2xl shadow-2xl p-6">
           <DialogHeader className="space-y-1.5 pb-2 border-b border-border">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
@@ -259,7 +261,7 @@ export function AvatarSelectorDialog({
                 {selectedAvatarUrl ? (
                   <img
                     src={selectedAvatarUrl}
-                    alt="Avatar selecionado"
+                    alt={selectedAvatar?.name || "Avatar selecionado"}
                     className="w-14 h-14 rounded-2xl object-cover border-2 border-sky-400 shadow-md"
                   />
                 ) : (
@@ -269,11 +271,24 @@ export function AvatarSelectorDialog({
                 )}
               </div>
               <div className="min-w-0 flex-1">
-                <span className="text-xs font-semibold text-foreground block">
-                  Avatar Selecionado
-                </span>
-                <span className="text-[11px] text-muted-foreground block truncate">
-                  {selectedAvatarUrl ? "Pronto para salvar no seu perfil" : "Nenhum avatar selecionado"}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-xs font-semibold text-foreground">
+                    Avatar Selecionado
+                  </span>
+                  {selectedAvatar?.name && (
+                    <Badge
+                      variant="outline"
+                      className="text-[10px] py-0.5 px-2 border-sky-500/40 text-sky-400 bg-sky-500/10 font-mono-tech max-w-[280px] truncate"
+                      title={selectedAvatar.name}
+                    >
+                      {selectedAvatar.name}
+                    </Badge>
+                  )}
+                </div>
+                <span className="text-[11px] text-muted-foreground block truncate mt-0.5">
+                  {selectedAvatarUrl
+                    ? "Pronto para salvar no seu perfil"
+                    : "Nenhum avatar selecionado"}
                 </span>
               </div>
 
@@ -281,7 +296,7 @@ export function AvatarSelectorDialog({
                 <Link
                   to="/usuarios"
                   onClick={() => onOpenChange(false)}
-                  className="text-[11px] text-sky-400 hover:text-sky-300 font-mono-tech flex items-center gap-1 border border-sky-500/30 hover:border-sky-400 bg-sky-500/10 px-2.5 py-1 rounded-xl transition-all"
+                  className="text-[11px] text-sky-400 hover:text-sky-300 font-mono-tech flex items-center gap-1 border border-sky-500/30 hover:border-sky-400 bg-sky-500/10 px-2.5 py-1 rounded-xl transition-all shrink-0"
                   title="Abrir o painel completo de gestão de avatares"
                 >
                   <Settings className="h-3 w-3" />
@@ -331,7 +346,7 @@ export function AvatarSelectorDialog({
                   Nenhum avatar disponível na biblioteca no momento.
                 </p>
               ) : (
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 max-h-64 overflow-y-auto p-1">
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-3 max-h-72 sm:max-h-96 overflow-y-auto p-1.5">
                   {avatars.map((avatar) => {
                     const isSelected = selectedAvatarUrl === avatar.image_url;
                     return (
@@ -339,9 +354,10 @@ export function AvatarSelectorDialog({
                         key={avatar.id}
                         type="button"
                         onClick={() => handleSelect(avatar)}
-                        className={`relative flex flex-col items-center p-2 rounded-2xl transition-all border text-left group ${
+                        title={avatar.name}
+                        className={`relative flex flex-col items-center p-2.5 rounded-2xl transition-all border text-center group cursor-pointer ${
                           isSelected
-                            ? "bg-[#253745] border-sky-400 ring-2 ring-sky-400/40 shadow-md scale-105"
+                            ? "bg-[#253745] border-sky-400 ring-2 ring-sky-400/50 shadow-md scale-[1.02]"
                             : "bg-muted/30 border-border hover:bg-muted/70 hover:border-[#4A5C6A]"
                         }`}
                       >
@@ -349,7 +365,7 @@ export function AvatarSelectorDialog({
                           <img
                             src={avatar.image_url}
                             alt={avatar.name}
-                            className="w-14 h-14 rounded-xl object-cover shadow-xs group-hover:scale-105 transition-transform bg-muted"
+                            className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl object-cover shadow-xs group-hover:scale-105 transition-transform bg-muted"
                           />
                           {isSelected && (
                             <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-sky-500 text-white flex items-center justify-center shadow-md">
@@ -357,7 +373,10 @@ export function AvatarSelectorDialog({
                             </span>
                           )}
                         </div>
-                        <span className="mt-1.5 text-[10px] font-medium text-foreground truncate w-full text-center leading-tight">
+                        <span
+                          className="mt-2 text-[11px] sm:text-xs font-medium text-foreground w-full text-center leading-snug break-words line-clamp-3 min-h-[2.8em] flex items-center justify-center px-1"
+                          title={avatar.name}
+                        >
                           {avatar.name}
                         </span>
                       </button>

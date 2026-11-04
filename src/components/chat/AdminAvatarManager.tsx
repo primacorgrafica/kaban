@@ -366,7 +366,10 @@ export function AdminAvatarManager() {
                   </div>
                 </div>
 
-                <h3 className="text-sm font-bold text-foreground leading-snug truncate" title={avatar.name}>
+                <h3
+                  className="text-sm font-bold text-foreground leading-snug break-words line-clamp-2 sm:line-clamp-3"
+                  title={avatar.name}
+                >
                   {avatar.name}
                 </h3>
                 <p className="text-[10px] text-muted-foreground font-mono-tech truncate mt-0.5">
