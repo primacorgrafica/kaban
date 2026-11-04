@@ -13,7 +13,7 @@ import {
  */
 export const DEFAULT_OFFICIAL_AVATARS: ChatAvatar[] = [
   {
-    id: "official-operadora-azul",
+    id: "00000000-0000-0000-0000-000000000001",
     name: "Operadora Primacor (Azul)",
     image_url: "/avatars/avatar-operadora-azul.png",
     category: "oficial",
@@ -22,7 +22,7 @@ export const DEFAULT_OFFICIAL_AVATARS: ChatAvatar[] = [
     updated_at: "2026-11-04T00:00:00.000Z",
   },
   {
-    id: "official-operador-azul",
+    id: "00000000-0000-0000-0000-000000000002",
     name: "Operador Primacor (Azul)",
     image_url: "/avatars/avatar-operador-azul.png",
     category: "oficial",
@@ -856,18 +856,41 @@ export async function updateUserAvatarPreference(
   if (!userId) return { success: false, error: "Usuário não autenticado" };
 
   try {
-    const { error } = await supabase
+    // 1. Armazena imediatamente em cache local para resposta visual instantânea e resiliente
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(`primacor_user_avatar_${userId}`, avatarUrl);
+      } catch {}
+    }
+
+    const isUUID =
+      avatarId &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(avatarId);
+
+    // 2. Monta o payload sem updated_at (pois profiles não possui essa coluna)
+    const payload: { avatar_url: string; avatar_id?: string | null } = {
+      avatar_url: avatarUrl,
+    };
+    if (isUUID) {
+      payload.avatar_id = avatarId;
+    }
+
+    const { error: primaryError } = await supabase
       .from("profiles" as any)
-      .update({
-        avatar_url: avatarUrl,
-        avatar_id: avatarId || null,
-        updated_at: new Date().toISOString(),
-      })
+      .update(payload)
       .eq("user_id", userId);
 
-    if (error) {
-      console.error("Erro ao salvar preferência de avatar:", error);
-      return { success: false, error: error.message };
+    if (primaryError) {
+      // Se falhar (ex: coluna avatar_id ainda não criada ou tipo incompatível), tenta atualizar apenas avatar_url
+      const { error: fallbackError } = await supabase
+        .from("profiles" as any)
+        .update({ avatar_url: avatarUrl })
+        .eq("user_id", userId);
+
+      if (fallbackError) {
+        console.error("Erro ao salvar preferência de avatar:", fallbackError);
+        return { success: false, error: fallbackError.message };
+      }
     }
 
     return { success: true };

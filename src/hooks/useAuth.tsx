@@ -51,7 +51,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     const pNome = (profile as any)?.nome;
     setUserName(typeof pNome === "string" && pNome.trim() !== "" ? pNome.trim() : null);
-    const pAvatar = (profile as any)?.avatar_url;
+    const localAvatar = typeof window !== "undefined" ? localStorage.getItem(`primacor_user_avatar_${userId}`) : null;
+    const pAvatar = (profile as any)?.avatar_url || localAvatar;
     setAvatarUrl(typeof pAvatar === "string" && pAvatar.trim() !== "" ? pAvatar.trim() : null);
     const mods = (profile as any)?.modulos_acesso;
     setModulosAcesso(Array.isArray(mods) ? mods : []);
@@ -67,7 +68,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const updateAvatar = useCallback((url: string) => {
     setAvatarUrl(url);
-  }, []);
+    if (session?.user?.id && typeof window !== "undefined") {
+      try {
+        localStorage.setItem(`primacor_user_avatar_${session.user.id}`, url);
+      } catch {}
+    }
+  }, [session?.user?.id]);
 
 
   useEffect(() => {
