@@ -1,38 +1,19 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
-export const STAGING_URL = "https://msyelkzcmarpdazqfkri.supabase.co";
-export const STAGING_PUBLISHABLE_KEY = "sb_publishable_LYRM1fqlirI0qsOn7KGyHQ_lGzHx2W1";
-
 export const PROD_URL = "https://zkpfuotxkdbokytqtjgj.supabase.co";
 export const PROD_PUBLISHABLE_KEY = "sb_publishable_TVmaFLWNi5gRGc6O_e6eHg_JkKzoEWA";
 
 export function getActiveSupabaseConfig() {
   if (typeof window !== "undefined") {
-    const urlParams = new URLSearchParams(window.location.search);
-    const envParam = urlParams.get("env") || urlParams.get("ambiente");
-
-    if (envParam === "staging" || envParam === "homologacao") {
-      localStorage.setItem("kaban_active_env", "staging");
-      return { url: STAGING_URL, key: STAGING_PUBLISHABLE_KEY, env: "staging" };
-    }
-    if (envParam === "prod" || envParam === "producao") {
-      localStorage.setItem("kaban_active_env", "prod");
-      return { url: PROD_URL, key: PROD_PUBLISHABLE_KEY, env: "prod" };
-    }
-
-    // A rota do entregador usa staging por padrão para a homologação em nuvem
-    if (window.location.pathname.startsWith("/entregador")) {
-      localStorage.setItem("kaban_active_env", "staging");
-      return { url: STAGING_URL, key: STAGING_PUBLISHABLE_KEY, env: "staging" };
-    }
-
-    const savedEnv = localStorage.getItem("kaban_active_env");
-    if (savedEnv === "staging") {
-      return { url: STAGING_URL, key: STAGING_PUBLISHABLE_KEY, env: "staging" };
-    }
-    if (savedEnv === "prod") {
-      return { url: PROD_URL, key: PROD_PUBLISHABLE_KEY, env: "prod" };
+    // Limpa qualquer resquício residual de staging salvo em navegadores locais/produção
+    try {
+      const savedEnv = localStorage.getItem("kaban_active_env");
+      if (savedEnv === "staging") {
+        localStorage.removeItem("kaban_active_env");
+      }
+    } catch {
+      // Ignora restrições de localStorage em ambientes isolados
     }
   }
 
@@ -42,7 +23,7 @@ export function getActiveSupabaseConfig() {
     import.meta.env.VITE_SUPABASE_ANON_KEY ||
     PROD_PUBLISHABLE_KEY;
 
-  return { url: defaultUrl, key: defaultKey, env: "default" };
+  return { url: defaultUrl, key: defaultKey, env: "prod" };
 }
 
 export const activeSupabaseConfig = getActiveSupabaseConfig();
@@ -51,8 +32,6 @@ export const supabase = createClient<Database>(activeSupabaseConfig.url, activeS
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    storageKey: activeSupabaseConfig.url.includes("msyelkzcmarpdazqfkri")
-      ? "sb-msyelkzcmarpdazqfkri-auth-token"
-      : "sb-zkpfuotxkdbokytqtjgj-auth-token",
+    storageKey: "sb-zkpfuotxkdbokytqtjgj-auth-token",
   },
 });
