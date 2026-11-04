@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ChatMessage } from "@/types/chat";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,12 +17,8 @@ import {
   Copy,
   Pencil,
   Trash2,
-  Check,
   CheckCheck,
   Clock,
-  CornerDownRight,
-  Smile,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -34,6 +31,7 @@ interface ChatMessageItemProps {
   currentUserId: string;
   senderAvatarUrl?: string | null;
   senderName?: string;
+  isConsecutive?: boolean;
 }
 
 const QUICK_REACTIONS = ["👍", "❤️", "😂", "🔥", "👏", "✅"];
@@ -47,9 +45,11 @@ export function ChatMessageItem({
   currentUserId,
   senderAvatarUrl,
   senderName,
+  isConsecutive = false,
 }: ChatMessageItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.content);
+  const shouldReduceMotion = useReducedMotion();
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message.content);
@@ -79,38 +79,53 @@ export function ChatMessageItem({
   }
 
   return (
-    <div className={`flex flex-col mb-3 group ${isMe ? "items-end" : "items-start"}`}>
-      <div className={`flex items-end gap-2 max-w-[85%] sm:max-w-[70%] ${isMe ? "flex-row-reverse" : "flex-row"}`}>
+    <motion.div
+      initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.16, ease: "easeOut" }}
+      className={`flex flex-col group ${isConsecutive ? "mt-1" : "mt-2.5"} ${
+        isMe ? "items-end" : "items-start"
+      }`}
+    >
+      <div
+        className={`flex items-end gap-2 max-w-[85%] sm:max-w-[72%] ${
+          isMe ? "flex-row-reverse" : "flex-row"
+        }`}
+      >
         {/* Avatar do remetente para mensagens recebidas */}
         {!isMe && (
-          <div className="shrink-0 mb-1">
-            {senderAvatarUrl ? (
-              <img
-                src={senderAvatarUrl}
-                alt={senderName || "Usuário"}
-                className="w-7 h-7 rounded-xl object-cover border border-border/80 shadow-xs"
-              />
+          <div className="shrink-0 mb-0.5 w-7">
+            {!isConsecutive ? (
+              senderAvatarUrl ? (
+                <img
+                  src={senderAvatarUrl}
+                  alt={senderName || "Usuário"}
+                  className="w-7 h-7 rounded-xl object-cover border border-border/80 shadow-xs bg-muted"
+                />
+              ) : (
+                <div className="w-7 h-7 rounded-xl bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center font-bold text-[11px] text-[#CCD0CF] shadow-xs">
+                  {(senderName || "U").charAt(0).toUpperCase()}
+                </div>
+              )
             ) : (
-              <div className="w-7 h-7 rounded-xl bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center font-bold text-[11px] text-[#CCD0CF] shadow-xs">
-                {(senderName || "U").charAt(0).toUpperCase()}
-              </div>
+              <div className="w-7" />
             )}
           </div>
         )}
 
         {/* Message Bubble */}
         <div
-          className={`relative px-3.5 py-2.5 rounded-2xl text-xs transition-all shadow-sm ${
+          className={`relative px-3.5 py-2 rounded-2xl text-[13px] leading-relaxed transition-all shadow-xs ${
             message.is_deleted
-              ? "bg-muted/70 border border-border text-muted-foreground italic"
+              ? "bg-muted/50 border border-border/70 text-muted-foreground/80 italic text-xs py-2 px-3"
               : isMe
-              ? "bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A] rounded-br-xs font-medium"
-              : "bg-muted border border-border text-foreground rounded-bl-xs"
+              ? "bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/80 rounded-br-xs font-normal"
+              : "bg-muted/90 dark:bg-[#11212D] border border-border/80 dark:border-[#253745] text-foreground rounded-bl-xs font-normal"
           }`}
         >
           {/* Edit Mode Inline */}
           {isEditing ? (
-            <div className="space-y-2 min-w-[200px]">
+            <div className="space-y-2 min-w-[220px]">
               <Input
                 value={editContent}
                 onChange={(e) => setEditContent(e.target.value)}
@@ -148,23 +163,30 @@ export function ChatMessageItem({
 
               {/* Footer Meta: Time, Edit, Checkmarks */}
               <div
-                className={`flex items-center gap-1 justify-end mt-1 text-[10px] font-mono-tech ${
-                  isMe ? "text-[#CCD0CF]/80" : "text-muted-foreground"
+                className={`flex items-center gap-1.5 justify-end mt-0.5 text-[10px] font-mono-tech select-none ${
+                  isMe ? "text-[#CCD0CF]/75" : "text-muted-foreground"
                 }`}
               >
                 {message.is_edited && !message.is_deleted && (
                   <span className="text-[9px] opacity-75">editada</span>
                 )}
-                <span>{formattedTime}</span>
+                <span className="tabular-nums">{formattedTime}</span>
 
                 {isMe && (
                   <span className="inline-flex items-center ml-0.5">
                     {message.status === "sending" ? (
-                      <Clock className="h-2.5 w-2.5 animate-spin text-muted-foreground/60" title="Enviando..." />
+                      <Clock
+                        className="h-2.5 w-2.5 animate-spin text-muted-foreground/60"
+                        title="Enviando..."
+                      />
                     ) : message.is_read ? (
                       <CheckCheck
                         className="h-3 w-3 text-sky-400 font-bold"
-                        title={message.read_at ? `Lida às ${format(new Date(message.read_at), "HH:mm")}` : "Lida"}
+                        title={
+                          message.read_at
+                            ? `Mensagem lida às ${format(new Date(message.read_at), "HH:mm")}`
+                            : "Mensagem lida"
+                        }
                       />
                     ) : (
                       <CheckCheck
@@ -181,19 +203,20 @@ export function ChatMessageItem({
 
         {/* Action Dropdown Menu & Quick React Trigger */}
         {!message.is_deleted && !isEditing && (
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5">
+          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-0.5 shrink-0 self-center">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+                  className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent/70 transition-colors"
+                  title="Mais ações"
                 >
                   <MoreHorizontal className="h-3.5 w-3.5" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align={isMe ? "end" : "start"}
-                className="bg-popover border-border text-popover-foreground min-w-[170px] p-1.5 rounded-xl shadow-xl z-50"
+                className="bg-popover border-border text-popover-foreground min-w-[170px] p-1.5 rounded-xl shadow-xl z-50 backdrop-blur-md"
               >
                 {/* Quick reactions bar inside menu */}
                 <div className="flex items-center justify-between p-1 border-b border-border mb-1">
@@ -252,7 +275,11 @@ export function ChatMessageItem({
 
       {/* Reactions Bar Below Bubble */}
       {Object.keys(reactionCounts).length > 0 && (
-        <div className={`flex flex-wrap gap-1 mt-1 ${isMe ? "justify-end" : "justify-start"}`}>
+        <div
+          className={`flex flex-wrap gap-1 mt-1 ${
+            isMe ? "justify-end mr-1" : "justify-start ml-9"
+          }`}
+        >
           {Object.entries(reactionCounts).map(([emoji, data]) => (
             <button
               key={emoji}
@@ -269,6 +296,6 @@ export function ChatMessageItem({
           ))}
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

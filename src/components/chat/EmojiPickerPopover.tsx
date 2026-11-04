@@ -193,10 +193,10 @@ export function EmojiPickerPopover({ onSelectEmoji, trigger }: EmojiPickerPopove
             type="button"
             variant="ghost"
             size="icon"
-            className="h-8 w-8 text-muted-foreground hover:text-[#CCD0CF] hover:bg-[#253745] rounded-lg transition-colors"
+            className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent rounded-xl transition-colors shrink-0"
             title="Inserir Emoji"
           >
-            <Smile className="h-5 w-5" />
+            <Smile className="h-4 w-4" />
           </Button>
         )}
       </PopoverTrigger>
@@ -225,10 +225,10 @@ export function EmojiPickerPopover({ onSelectEmoji, trigger }: EmojiPickerPopove
                 key={cat.id}
                 type="button"
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`p-1.5 text-base rounded-lg transition-all ${
+                className={`p-1.5 text-base rounded-xl transition-all ${
                   selectedCategory === cat.id
-                    ? "bg-[#253745] ring-1 ring-[#4A5C6A] scale-110"
-                    : "opacity-60 hover:opacity-100 hover:bg-accent"
+                    ? "bg-accent text-foreground ring-1 ring-border shadow-xs scale-105"
+                    : "opacity-60 hover:opacity-100 hover:bg-accent/60"
                 }`}
                 title={cat.label}
               >
@@ -241,7 +241,7 @@ export function EmojiPickerPopover({ onSelectEmoji, trigger }: EmojiPickerPopove
         {/* Emoji Grid */}
         <div className="grid grid-cols-7 gap-1 max-h-48 overflow-y-auto p-1 scrollbar-thin">
           {filteredEmojis.length === 0 ? (
-            <div className="col-span-7 py-6 text-center text-xs text-slate-500">
+            <div className="col-span-7 py-6 text-center text-xs text-muted-foreground">
               Nenhum emoji encontrado
             </div>
           ) : (
@@ -250,7 +250,7 @@ export function EmojiPickerPopover({ onSelectEmoji, trigger }: EmojiPickerPopove
                 key={`${item.emoji}-${idx}`}
                 type="button"
                 onClick={() => handleSelect(item.emoji)}
-                className="h-8 w-8 text-lg flex items-center justify-center rounded-lg hover:bg-[#253745] hover:scale-125 transition-transform"
+                className="h-8 w-8 text-lg flex items-center justify-center rounded-xl hover:bg-accent hover:scale-120 transition-all active:scale-95"
                 title={item.name}
               >
                 {item.emoji}

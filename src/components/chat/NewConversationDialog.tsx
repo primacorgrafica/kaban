@@ -92,7 +92,7 @@ export function NewConversationDialog({
                 key={user.id}
                 type="button"
                 onClick={() => handleSelect(user)}
-                className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-accent transition-colors text-left group border border-transparent hover:border-border"
+                className="w-full flex items-center justify-between p-2.5 rounded-2xl hover:bg-accent/80 transition-all text-left group border border-transparent hover:border-border/60"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <div className="relative shrink-0">
@@ -100,10 +100,10 @@ export function NewConversationDialog({
                       <img
                         src={user.avatar_url}
                         alt={user.nome}
-                        className="w-9 h-9 rounded-xl object-cover border border-[#4A5C6A]/60 shadow-xs"
+                        className="w-10 h-10 rounded-2xl object-cover border border-border/80 shadow-xs group-hover:scale-105 transition-transform bg-muted"
                       />
                     ) : (
-                      <div className="w-9 h-9 rounded-xl bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center font-bold text-sm text-[#CCD0CF]">
+                      <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#253745] to-[#11212D] border border-[#4A5C6A]/50 flex items-center justify-center font-bold text-sm text-[#CCD0CF] shadow-xs group-hover:scale-105 transition-transform">
                         {user.nome.charAt(0).toUpperCase()}
                       </div>
                     )}
@@ -115,7 +115,7 @@ export function NewConversationDialog({
                   </div>
                   <div className="min-w-0">
                     <div className="text-xs font-semibold text-foreground truncate flex items-center gap-1.5">
-                      <span>{user.nome}</span>
+                      <span className="group-hover:text-primary transition-colors">{user.nome}</span>
                       {user.online && (
                         <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono-tech">
                           online
@@ -124,7 +124,7 @@ export function NewConversationDialog({
                     </div>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       {user.role && (
-                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-muted text-muted-foreground font-mono-tech uppercase">
+                        <span className="text-[9px] px-1.5 py-0.2 rounded bg-muted/80 text-muted-foreground font-mono-tech uppercase border border-border/60">
                           {user.role}
                         </span>
                       )}
@@ -138,8 +138,8 @@ export function NewConversationDialog({
                 </div>
 
                 <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span className="p-1.5 rounded-lg bg-[#253745] text-[#CCD0CF] text-xs flex items-center gap-1">
-                    <MessageSquare className="h-3 w-3" />
+                  <span className="p-1.5 rounded-xl bg-accent text-foreground text-xs flex items-center gap-1 shadow-xs">
+                    <MessageSquare className="h-3.5 w-3.5" />
                   </span>
                 </div>
               </button>

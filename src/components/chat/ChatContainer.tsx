@@ -47,9 +47,11 @@ import {
   MessageSquare,
   Users,
   Shield,
-  Circle,
   Clock,
   Sparkles,
+  ChevronDown,
+  X,
+  CheckCheck,
 } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -58,6 +60,13 @@ interface ChatContainerProps {
   onClose?: () => void;
   isModal?: boolean;
 }
+
+const QUICK_PROMPTS = [
+  "Olá, tudo bem?",
+  "Pode verificar essa O.S.?",
+  "Arquivo aprovado!",
+  "Já conferi a chapa no CTP.",
+];
 
 export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) {
   const { user, avatarUrl } = useAuth();
@@ -89,12 +98,14 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
   const [avatarDialogOpen, setAvatarDialogOpen] = useState(false);
   const [inputText, setInputText] = useState("");
   const [mobileView, setMobileView] = useState<"list" | "chat">("list");
+  const [showScrollBottomPill, setShowScrollBottomPill] = useState(false);
 
   // Diálogos de confirmação
   const [confirmHideConvId, setConfirmHideConvId] = useState<string | null>(null);
   const [confirmClearConvId, setConfirmClearConvId] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -114,7 +125,6 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
       return;
     }
 
-    // Se a conversa ainda não está na lista em memória (ex: acabou de receber a notificação e clicou em Responder)
     let isCancelled = false;
     const fetchAndOpenConv = async () => {
       try {
@@ -179,13 +189,24 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
   }, [activeConversation]);
 
   // Auto-scroll para a última mensagem
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  const scrollToBottom = (behavior: ScrollBehavior = "smooth") => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+    setShowScrollBottomPill(false);
   };
 
   useEffect(() => {
-    scrollToBottom();
+    if (!showScrollBottomPill) {
+      scrollToBottom("auto");
+    }
   }, [messages]);
+
+  // Monitorar scroll do container da thread
+  const handleScroll = () => {
+    if (!scrollContainerRef.current) return;
+    const { scrollTop, scrollHeight, clientHeight } = scrollContainerRef.current;
+    const distanceToBottom = scrollHeight - scrollTop - clientHeight;
+    setShowScrollBottomPill(distanceToBottom > 160);
+  };
 
   // Alterna visualização no mobile ao selecionar conversa
   const handleSelectConv = (conv: ChatConversation) => {
@@ -230,6 +251,14 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
   // Inserção de emoji
   const handleSelectEmoji = (emoji: string) => {
     setInputText((prev) => prev + emoji);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  };
+
+  // Preencher prompt rápido
+  const handleQuickPrompt = (prompt: string) => {
+    setInputText(prompt);
     if (textareaRef.current) {
       textareaRef.current.focus();
     }
@@ -345,30 +374,30 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
   }, [messages]);
 
   return (
-    <div className="flex h-full w-full bg-card text-foreground overflow-hidden rounded-2xl border border-border shadow-2xl relative">
+    <div className="flex h-full w-full bg-card text-foreground overflow-hidden rounded-2xl border border-border/80 shadow-2xl relative select-none">
       {/* ── PAINEL ESQUERDO: LISTA DE CONVERSAS & USUÁRIOS ONLINE ── */}
       <div
-        className={`w-full md:w-80 lg:w-96 flex flex-col border-r border-border bg-card/95 backdrop-blur-xl shrink-0 transition-all ${
+        className={`w-full md:w-80 lg:w-96 flex flex-col border-r border-border/80 bg-card/95 backdrop-blur-xl shrink-0 transition-all ${
           mobileView === "chat" ? "hidden md:flex" : "flex"
         }`}
       >
         {/* Header da lista de conversas */}
-        <div className="p-3.5 border-b border-border flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-xl bg-[#253745] border border-[#4A5C6A]/50 text-[#CCD0CF]">
+        <div className="p-3.5 border-b border-border/70 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-[#253745] border border-[#4A5C6A]/50 text-[#CCD0CF] shadow-xs">
               <MessageSquare className="h-4 w-4" />
             </div>
             <div>
               <h2 className="text-sm font-bold tracking-tight text-foreground flex items-center gap-2">
-                Chat Privado
+                Chat Corporativo
                 {totalUnreadCount > 0 && (
-                  <Badge className="bg-[#CCD0CF] text-[#06141B] text-[10px] font-bold px-1.5 py-0 rounded-full font-mono-tech">
+                  <Badge className="bg-[#CCD0CF] text-[#06141B] text-[10px] font-bold px-1.5 py-0 rounded-full font-mono-tech shadow-xs">
                     {totalUnreadCount}
                   </Badge>
                 )}
               </h2>
               <span className="text-[10px] text-muted-foreground font-mono-tech">
-                Mensagens Internas
+                Primacor Kaban
               </span>
             </div>
           </div>
@@ -378,14 +407,14 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
               size="sm"
               variant="outline"
               onClick={() => setAvatarDialogOpen(true)}
-              className="h-8 px-2 border-[#4A5C6A]/50 hover:bg-accent text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all text-foreground"
+              className="h-8 px-2.5 border-border/80 hover:bg-accent text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-all text-foreground"
               title="Personalizar meu avatar"
             >
               {avatarUrl ? (
                 <img
                   src={avatarUrl}
                   alt="Meu Avatar"
-                  className="w-5 h-5 rounded-full object-cover border border-sky-400"
+                  className="w-5 h-5 rounded-lg object-cover border border-sky-400"
                 />
               ) : (
                 <Sparkles className="h-3.5 w-3.5 text-sky-400" />
@@ -396,12 +425,24 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
             <Button
               size="sm"
               onClick={() => setNewConvOpen(true)}
-              className="h-8 px-2.5 bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] text-xs font-bold rounded-xl shadow-md font-mono-tech flex items-center gap-1.5 transition-all"
+              className="h-8 px-2.5 bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] text-xs font-bold rounded-xl shadow-xs font-mono-tech flex items-center gap-1.5 transition-all"
               title="Nova conversa privada"
             >
               <Plus className="h-3.5 w-3.5" />
               <span>Novo</span>
             </Button>
+
+            {isModal && onClose && (
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={onClose}
+                className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-xl md:hidden"
+                title="Fechar chat"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
 
@@ -410,19 +451,28 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
             <Input
-              placeholder="Buscar conversas ou colaboradores..."
+              placeholder="Buscar conversa ou colaborador..."
               value={searchConvTerm}
               onChange={(e) => setSearchConvTerm(e.target.value)}
-              className="pl-8 h-8 text-xs bg-muted/50 border-input text-foreground placeholder:text-muted-foreground rounded-xl"
+              className="pl-8 pr-7 h-8 text-xs bg-muted/40 border-input text-foreground placeholder:text-muted-foreground rounded-xl focus-visible:ring-1 focus-visible:ring-primary/40"
             />
+            {searchConvTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchConvTerm("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
         </div>
 
         {/* Faixa Rápida de Usuários Online Agora */}
         {allOnlineUsersList.length > 0 && (
-          <div className="px-3 py-2 border-b border-border/60 bg-muted/30 shrink-0">
+          <div className="px-3 py-2 border-b border-border/60 bg-muted/20 shrink-0">
             <div className="flex items-center justify-between mb-1.5">
-              <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-600 dark:text-emerald-400 font-mono-tech">
+              <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 font-mono-tech">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#34d399]" />
                 <span>ONLINE AGORA ({allOnlineUsersList.length})</span>
               </div>
@@ -433,7 +483,7 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                   key={onlineUser.id}
                   type="button"
                   onClick={() => handleStartWithUser(onlineUser)}
-                  className="flex flex-col items-center gap-1 shrink-0 p-1 rounded-xl hover:bg-accent transition-all group max-w-[58px]"
+                  className="flex flex-col items-center gap-1 shrink-0 p-1 rounded-xl hover:bg-accent/80 transition-all group max-w-[58px]"
                   title={`${onlineUser.nome} (${onlineUser.role || onlineUser.setor || "Colaborador"}) — Online agora. Clique para conversar.`}
                 >
                   <div className="relative">
@@ -441,16 +491,16 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                       <img
                         src={onlineUser.avatar_url}
                         alt={onlineUser.nome}
-                        className="w-9 h-9 rounded-xl object-cover border border-[#4A5C6A]/60 group-hover:scale-105 transition-transform shadow-sm"
+                        className="w-9 h-9 rounded-xl object-cover border border-[#4A5C6A]/60 group-hover:scale-105 transition-transform shadow-xs bg-muted"
                       />
                     ) : (
-                      <div className="w-9 h-9 rounded-xl bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center font-bold text-xs text-[#CCD0CF] group-hover:scale-105 transition-transform shadow-sm">
+                      <div className="w-9 h-9 rounded-xl bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center font-bold text-xs text-[#CCD0CF] group-hover:scale-105 transition-transform shadow-xs">
                         {onlineUser.nome.charAt(0).toUpperCase()}
                       </div>
                     )}
                     <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-card shadow-[0_0_6px_#34d399]" />
                   </div>
-                  <span className="text-[10px] text-foreground truncate w-full text-center group-hover:text-[#CCD0CF] font-medium">
+                  <span className="text-[10px] text-foreground truncate w-full text-center group-hover:text-primary font-medium">
                     {onlineUser.nome.split(" ")[0]}
                   </span>
                 </button>
@@ -466,7 +516,7 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
             onClick={() => setFilterMode("all")}
             className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-all ${
               filterMode === "all"
-                ? "bg-primary text-primary-foreground font-semibold"
+                ? "bg-primary text-primary-foreground font-semibold shadow-xs"
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
@@ -489,9 +539,23 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
         {/* Lista de conversas e colaboradores */}
         <div className="flex-1 overflow-y-auto p-2 space-y-1 scrollbar-thin">
           {loading ? (
-            <div className="flex flex-col items-center justify-center h-48 gap-2 text-muted-foreground text-xs">
-              <div className="w-5 h-5 border-2 border-[#CCD0CF] border-t-transparent rounded-full animate-spin" />
-              <span>Carregando conversas...</span>
+            /* Skeleton Loader idêntico à geometria dos itens */
+            <div className="space-y-1.5 p-1 animate-pulse">
+              {[...Array(5)].map((_, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 p-2.5 rounded-2xl bg-muted/30 border border-border/40"
+                >
+                  <div className="w-11 h-11 rounded-2xl bg-muted/60 shrink-0" />
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <div className="h-3.5 bg-muted/60 rounded w-28" />
+                      <div className="h-2.5 bg-muted/40 rounded w-10" />
+                    </div>
+                    <div className="h-3 bg-muted/40 rounded w-44" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : filteredConversations.length === 0 &&
             filteredOnlineWithoutConv.length === 0 &&
@@ -507,7 +571,7 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                 variant="ghost"
                 size="sm"
                 onClick={() => setNewConvOpen(true)}
-                className="mt-3 text-[#CCD0CF] hover:bg-[#253745] text-xs rounded-xl"
+                className="mt-3 text-primary hover:bg-accent text-xs rounded-xl"
               >
                 Iniciar uma conversa
               </Button>
@@ -540,10 +604,10 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                         <div
                           key={u.id}
                           onClick={() => handleStartWithUser(u)}
-                          className={`group flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-all border ${
+                          className={`group flex items-center justify-between p-2.5 rounded-2xl cursor-pointer transition-all border ${
                             isSelected
-                              ? "bg-[#253745] border-[#4A5C6A]/60 shadow-sm"
-                              : "hover:bg-accent border-transparent hover:border-border"
+                              ? "bg-[#253745] border-[#4A5C6A]/70 shadow-xs"
+                              : "hover:bg-accent/80 border-transparent hover:border-border/60"
                           }`}
                         >
                           <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -552,10 +616,10 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                                 <img
                                   src={u.avatar_url}
                                   alt={u.nome}
-                                  className="w-10 h-10 rounded-xl object-cover border border-[#4A5C6A]/60 shadow-xs group-hover:scale-105 transition-transform bg-muted"
+                                  className="w-10 h-10 rounded-2xl object-cover border border-[#4A5C6A]/60 shadow-xs group-hover:scale-105 transition-transform bg-muted"
                                 />
                               ) : (
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#253745] to-[#11212D] border border-[#4A5C6A]/50 flex items-center justify-center font-bold text-sm text-[#CCD0CF] shadow-xs group-hover:scale-105 transition-transform">
+                                <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#253745] to-[#11212D] border border-[#4A5C6A]/50 flex items-center justify-center font-bold text-sm text-[#CCD0CF] shadow-xs group-hover:scale-105 transition-transform">
                                   {u.nome.charAt(0).toUpperCase()}
                                 </div>
                               )}
@@ -563,24 +627,24 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                             </div>
                             <div className="min-w-0 flex-1">
                               <div className="flex items-center justify-between gap-1 mb-0.5">
-                                <span className="text-xs font-bold truncate text-foreground group-hover:text-emerald-400 transition-colors">
+                                <span className="text-xs font-semibold truncate text-foreground group-hover:text-primary transition-colors">
                                   {u.nome}
                                 </span>
                                 {u.role && (
-                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-muted text-[#CCD0CF] font-mono-tech uppercase border border-border shrink-0">
+                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-muted/80 text-muted-foreground font-mono-tech uppercase border border-border/60 shrink-0">
                                     {u.role}
                                   </span>
                                 )}
                               </div>
-                              <p className="text-[11px] text-emerald-600 dark:text-emerald-400/90 truncate flex items-center gap-1 font-medium">
+                              <p className="text-[11px] text-emerald-600 dark:text-emerald-400 truncate flex items-center gap-1 font-medium">
                                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                                 Online agora · Clique para conversar
                               </p>
                             </div>
                           </div>
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                            <span className="p-1.5 rounded-lg bg-[#253745] text-[#CCD0CF] text-xs flex items-center gap-1 shadow-sm">
-                              <MessageSquare className="h-3 w-3" />
+                            <span className="p-1.5 rounded-xl bg-accent text-foreground text-xs flex items-center gap-1 shadow-xs">
+                              <MessageSquare className="h-3.5 w-3.5" />
                             </span>
                           </div>
                         </div>
@@ -604,10 +668,10 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                         <div
                           key={u.id}
                           onClick={() => handleStartWithUser(u)}
-                          className={`group flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-all border ${
+                          className={`group flex items-center justify-between p-2.5 rounded-2xl cursor-pointer transition-all border ${
                             isSelected
-                              ? "bg-[#253745] border-[#4A5C6A]/60 shadow-sm"
-                              : "hover:bg-accent border-transparent hover:border-border opacity-85 hover:opacity-100"
+                              ? "bg-[#253745] border-[#4A5C6A]/70 shadow-xs"
+                              : "hover:bg-accent/80 border-transparent hover:border-border/60 opacity-85 hover:opacity-100"
                           }`}
                         >
                           <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -616,10 +680,10 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                                 <img
                                   src={u.avatar_url}
                                   alt={u.nome}
-                                  className="w-10 h-10 rounded-xl object-cover border border-border shadow-xs group-hover:scale-105 transition-transform bg-muted"
+                                  className="w-10 h-10 rounded-2xl object-cover border border-border/80 shadow-xs group-hover:scale-105 transition-transform bg-muted"
                                 />
                               ) : (
-                                <div className="w-10 h-10 rounded-xl bg-muted border border-border flex items-center justify-center font-bold text-sm text-muted-foreground shadow-xs group-hover:scale-105 transition-transform">
+                                <div className="w-10 h-10 rounded-2xl bg-muted border border-border/80 flex items-center justify-center font-bold text-sm text-muted-foreground shadow-xs group-hover:scale-105 transition-transform">
                                   {u.nome.charAt(0).toUpperCase()}
                                 </div>
                               )}
@@ -647,8 +711,8 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                             </div>
                           </div>
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity ml-2">
-                            <span className="p-1.5 rounded-lg bg-muted text-foreground text-xs flex items-center gap-1 shadow-sm">
-                              <MessageSquare className="h-3 w-3" />
+                            <span className="p-1.5 rounded-xl bg-muted text-foreground text-xs flex items-center gap-1 shadow-xs">
+                              <MessageSquare className="h-3.5 w-3.5" />
                             </span>
                           </div>
                         </div>
@@ -670,124 +734,191 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
       >
         {activeConversation ? (
           <>
-            {/* Header da conversa ativa */}
-            <div className="h-14 px-4 border-b border-border bg-card/90 backdrop-blur-xl flex items-center justify-between shrink-0">
+            {/* Header da conversa ativa (Linear / Telegram SaaS Glass) */}
+            <div className="h-15 px-4 border-b border-border/80 bg-card/85 backdrop-blur-xl flex items-center justify-between shrink-0 sticky top-0 z-10 shadow-xs">
               <div className="flex items-center gap-3 min-w-0">
                 {/* Botão voltar no mobile */}
                 <button
                   type="button"
                   onClick={handleBackToList}
-                  className="md:hidden p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent"
+                  className="md:hidden p-1.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent"
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </button>
 
-                {/* Avatar */}
+                {/* Avatar com status */}
                 <div className="relative">
                   {activeConversation.otherUser.avatar_url ? (
                     <img
                       src={activeConversation.otherUser.avatar_url}
                       alt={activeConversation.otherUser.nome}
-                      className="w-9 h-9 rounded-xl object-cover border border-[#4A5C6A]/60 shadow-md"
+                      className="w-10 h-10 rounded-2xl object-cover border border-[#4A5C6A]/70 shadow-sm bg-muted"
                     />
                   ) : (
-                    <div className="w-9 h-9 rounded-xl bg-[#253745] border border-[#4A5C6A]/60 flex items-center justify-center font-bold text-sm text-[#CCD0CF] shadow-md">
+                    <div className="w-10 h-10 rounded-2xl bg-[#253745] border border-[#4A5C6A]/70 flex items-center justify-center font-bold text-sm text-[#CCD0CF] shadow-sm">
                       {activeConversation.otherUser.nome.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  {activeConversation.otherUser.online && (
-                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-card" />
+                  {activeConversation.otherUser.online ? (
+                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-card shadow-[0_0_6px_#34d399]" />
+                  ) : (
+                    <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-muted-foreground/40 ring-2 ring-card" />
                   )}
                 </div>
 
                 {/* Informações do usuário */}
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-foreground truncate">
+                    <span className="text-sm font-bold text-foreground truncate">
                       {activeConversation.otherUser.nome}
                     </span>
                     {activeConversation.otherUser.role && (
-                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-muted text-[#9BA8AB] font-mono-tech uppercase border border-border">
+                      <span className="text-[9px] px-1.5 py-0.2 rounded bg-muted/80 text-muted-foreground font-mono-tech uppercase border border-border/60">
                         {activeConversation.otherUser.role}
                       </span>
                     )}
                   </div>
 
                   {/* Status / Digitando */}
-                  <div className="text-[10px] text-muted-foreground font-mono-tech truncate">
+                  <div className="text-[11px] text-muted-foreground font-mono-tech truncate">
                     {typingUsers.length > 0 ? (
-                      <span className="text-[#CCD0CF] font-semibold flex items-center gap-1 animate-pulse">
-                        <span className="w-1.5 h-1.5 rounded-full bg-[#CCD0CF]" />
-                        {typingUsers.join(", ")} está digitando...
+                      <span className="text-primary font-semibold flex items-center gap-1 animate-pulse">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+                        {typingUsers.join(", ")} digitando...
                       </span>
                     ) : activeConversation.otherUser.online ? (
-                      <span className="text-emerald-600 dark:text-emerald-400 font-medium">online</span>
+                      <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                        Online agora
+                      </span>
                     ) : (
-                      <span>offline</span>
+                      <span>Offline</span>
                     )}
                   </div>
                 </div>
               </div>
 
               {/* Opções da conversa */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+              <div className="flex items-center gap-1">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-xl"
+                      title="Opções da conversa"
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    className="bg-popover border-border text-popover-foreground min-w-[190px] p-1.5 rounded-xl shadow-xl z-50 backdrop-blur-md"
+                  >
+                    <DropdownMenuItem
+                      onClick={() => setConfirmClearConvId(activeConversation.id)}
+                      className="text-xs hover:bg-accent cursor-pointer text-foreground"
+                    >
+                      <Eraser className="h-3.5 w-3.5 mr-2 text-amber-500" /> Limpar meu histórico
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-border" />
+                    <DropdownMenuItem
+                      onClick={() => setConfirmHideConvId(activeConversation.id)}
+                      className="text-xs hover:bg-rose-500/10 text-rose-500 hover:text-rose-600 cursor-pointer"
+                    >
+                      <Trash2 className="h-3.5 w-3.5 mr-2" /> Excluir conversa para mim
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {isModal && onClose && (
                   <Button
-                    variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-lg"
+                    variant="ghost"
+                    onClick={onClose}
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-xl hidden md:flex"
+                    title="Fechar chat"
                   >
-                    <MoreVertical className="h-4 w-4" />
+                    <X className="h-4 w-4" />
                   </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="bg-popover border-border text-popover-foreground min-w-[180px] p-1.5 rounded-xl shadow-xl z-50"
-                >
-                  <DropdownMenuItem
-                    onClick={() => setConfirmClearConvId(activeConversation.id)}
-                    className="text-xs hover:bg-accent cursor-pointer text-foreground"
-                  >
-                    <Eraser className="h-3.5 w-3.5 mr-2 text-amber-500" /> Limpar meu histórico
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator className="bg-border" />
-                  <DropdownMenuItem
-                    onClick={() => setConfirmHideConvId(activeConversation.id)}
-                    className="text-xs hover:bg-rose-500/10 text-rose-500 hover:text-rose-600 cursor-pointer"
-                  >
-                    <Trash2 className="h-3.5 w-3.5 mr-2" /> Excluir conversa para mim
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                )}
+              </div>
             </div>
 
             {/* Thread de mensagens */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-1 scrollbar-thin">
+            <div
+              ref={scrollContainerRef}
+              onScroll={handleScroll}
+              className="flex-1 overflow-y-auto px-4 py-3 space-y-0.5 scrollbar-thin relative"
+            >
               {messagesLoading ? (
                 <div className="flex flex-col items-center justify-center h-full gap-2 text-muted-foreground text-xs">
-                  <div className="w-5 h-5 border-2 border-[#CCD0CF] border-t-transparent rounded-full animate-spin" />
+                  <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                   <span>Carregando mensagens...</span>
                 </div>
               ) : messages.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full text-center px-4 text-muted-foreground text-xs">
-                  <Sparkles className="h-8 w-8 mb-2 text-[#CCD0CF]/40" />
-                  <p className="font-semibold text-foreground">Inicie a conversa!</p>
-                  <p className="text-[11px] text-muted-foreground mt-1 max-w-xs">
-                    Esta é uma conversa privada segura com {activeConversation.otherUser.nome}. Envie a primeira mensagem abaixo.
+                /* Empty state com prompts rápidos */
+                <div className="flex flex-col items-center justify-center h-full text-center px-4 py-8 text-muted-foreground">
+                  <div className="w-14 h-14 rounded-2xl bg-muted/50 border border-border/80 flex items-center justify-center text-primary mb-3 shadow-sm">
+                    {activeConversation.otherUser.avatar_url ? (
+                      <img
+                        src={activeConversation.otherUser.avatar_url}
+                        alt={activeConversation.otherUser.nome}
+                        className="w-12 h-12 rounded-xl object-cover"
+                      />
+                    ) : (
+                      <Sparkles className="h-6 w-6 text-primary" />
+                    )}
+                  </div>
+                  <h4 className="font-bold text-sm text-foreground">
+                    Inicie a conversa com {activeConversation.otherUser.nome}!
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-xs leading-relaxed">
+                    Esta é uma conversa direta e segura. Envie uma mensagem rápida para iniciar o contato:
                   </p>
+                  <div className="flex flex-wrap justify-center gap-2 mt-4 max-w-md">
+                    {QUICK_PROMPTS.map((prompt) => (
+                      <button
+                        key={prompt}
+                        type="button"
+                        onClick={() => handleQuickPrompt(prompt)}
+                        className="px-3 py-1.5 rounded-xl bg-card border border-border/80 hover:border-primary/50 text-xs text-foreground hover:text-primary transition-all shadow-xs"
+                      >
+                        {prompt}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               ) : (
                 messagesWithDateDividers.map((item, idx) => {
                   if (item.type === "date") {
                     return (
-                      <div key={`date-${idx}`} className="flex justify-center my-3">
-                        <span className="px-2.5 py-0.5 rounded-full bg-muted/80 border border-border text-[10px] text-muted-foreground font-mono-tech">
+                      <div key={`date-${idx}`} className="flex items-center justify-center my-4 relative">
+                        <div className="absolute inset-0 flex items-center">
+                          <div className="w-full border-t border-border/50" />
+                        </div>
+                        <span className="relative px-3 py-0.5 rounded-full bg-card/90 border border-border/80 text-[10px] text-muted-foreground font-mono-tech shadow-xs backdrop-blur-sm">
                           {item.date}
                         </span>
                       </div>
                     );
                   }
                   if (item.msg) {
+                    // Determinar se é mensagem consecutiva do mesmo remetente
+                    let isConsecutive = false;
+                    if (idx > 0) {
+                      const prevItem = messagesWithDateDividers[idx - 1];
+                      if (prevItem.type === "message" && prevItem.msg) {
+                        const isSameSender = prevItem.msg.sender_id === item.msg.sender_id;
+                        const timeDiff =
+                          new Date(item.msg.created_at).getTime() -
+                          new Date(prevItem.msg.created_at).getTime();
+                        if (isSameSender && timeDiff < 5 * 60 * 1000) {
+                          isConsecutive = true;
+                        }
+                      }
+                    }
+
                     return (
                       <ChatMessageItem
                         key={item.msg.id}
@@ -799,6 +930,7 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                         currentUserId={currentUserId}
                         senderAvatarUrl={activeConversation.otherUser.avatar_url}
                         senderName={activeConversation.otherUser.nome}
+                        isConsecutive={isConsecutive}
                       />
                     );
                   }
@@ -806,11 +938,23 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                 })
               )}
               <div ref={messagesEndRef} />
+
+              {/* Botão flutuante: Rolar para o fim quando o usuário rola para cima */}
+              {showScrollBottomPill && (
+                <button
+                  type="button"
+                  onClick={() => scrollToBottom("smooth")}
+                  className="fixed bottom-24 right-8 z-30 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#253745] hover:bg-[#11212D] text-[#CCD0CF] border border-[#4A5C6A] shadow-xl text-xs font-mono-tech transition-all animate-in fade-in zoom-in-95"
+                >
+                  <ChevronDown className="h-3.5 w-3.5" />
+                  <span>Rolar para o fim</span>
+                </button>
+              )}
             </div>
 
-            {/* Compositor de mensagem */}
-            <div className="p-3 border-t border-border bg-card/90 backdrop-blur-xl shrink-0">
-              <div className="flex items-end gap-2 bg-background border border-border rounded-2xl p-2 focus-within:border-[#4A5C6A] focus-within:ring-1 focus-within:ring-[#9BA8AB]/40 transition-all">
+            {/* Compositor de mensagem (Linear / Slack Box) */}
+            <div className="p-3 border-t border-border/80 bg-card/85 backdrop-blur-xl shrink-0">
+              <div className="flex items-end gap-2 bg-background/90 border border-border/90 rounded-2xl p-2 focus-within:border-primary/60 focus-within:ring-2 focus-within:ring-primary/20 transition-all shadow-xs">
                 {/* Emoji Picker Popover */}
                 <EmojiPickerPopover onSelectEmoji={handleSelectEmoji} />
 
@@ -822,7 +966,7 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                   onKeyDown={handleKeyDown}
                   placeholder={`Mensagem para ${activeConversation.otherUser.nome}... (Enter para enviar)`}
                   rows={1}
-                  className="flex-1 min-h-[36px] max-h-[120px] resize-none text-xs bg-transparent border-0 text-foreground placeholder:text-muted-foreground focus-visible:ring-0 p-1.5 scrollbar-none"
+                  className="flex-1 min-h-[36px] max-h-[120px] resize-none text-[13px] bg-transparent border-0 text-foreground placeholder:text-muted-foreground focus-visible:ring-0 p-1.5 scrollbar-none"
                 />
 
                 {/* Botão de Envio */}
@@ -830,16 +974,16 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
                   size="icon"
                   onClick={handleSend}
                   disabled={!inputText.trim()}
-                  className="h-8 w-8 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] disabled:opacity-30 disabled:pointer-events-none shadow-md transition-all shrink-0"
+                  className="h-8 w-8 rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] disabled:opacity-30 disabled:pointer-events-none shadow-xs transition-all shrink-0 hover:scale-105 active:scale-95"
                   title="Enviar mensagem"
                 >
                   <Send className="h-4 w-4" />
                 </Button>
               </div>
               <div className="flex items-center justify-between px-2 pt-1 text-[9px] text-muted-foreground font-mono-tech">
-                <span>Shift + Enter para quebra de linha</span>
+                <span>Enter para enviar • Shift + Enter para quebra de linha</span>
                 <span className="flex items-center gap-1">
-                  <Shield className="h-2.5 w-2.5 text-[#9BA8AB]" /> Conversa Privada Primacor
+                  <Shield className="h-2.5 w-2.5 text-muted-foreground" /> Chat Corporativo Primacor
                 </span>
               </div>
             </div>
@@ -851,14 +995,14 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
               <MessageSquare className="h-8 w-8" />
             </div>
             <h3 className="text-base font-bold text-foreground mb-1">
-              Chat Privado Primacor
+              Chat Corporativo Primacor
             </h3>
-            <p className="text-xs text-muted-foreground max-w-sm mb-4">
+            <p className="text-xs text-muted-foreground max-w-sm mb-4 leading-relaxed">
               Selecione uma conversa ao lado ou inicie um novo bate-papo privado com qualquer operador ou gestor cadastrado.
             </p>
             <Button
               onClick={() => setNewConvOpen(true)}
-              className="bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] text-xs font-bold rounded-xl shadow-md font-mono-tech transition-all"
+              className="bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] text-xs font-bold rounded-xl shadow-xs font-mono-tech transition-all hover:scale-105 active:scale-95"
             >
               <Plus className="h-3.5 w-3.5 mr-1.5" /> Iniciar Nova Conversa
             </Button>
@@ -879,10 +1023,10 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
         open={!!confirmHideConvId}
         onOpenChange={(open) => !open && setConfirmHideConvId(null)}
       >
-        <AlertDialogContent className="bg-card border-border text-foreground rounded-2xl">
+        <AlertDialogContent className="bg-card border-border text-foreground rounded-2xl shadow-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir conversa para você?</AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground text-xs">
+            <AlertDialogDescription className="text-muted-foreground text-xs leading-relaxed">
               Esta conversa será removida da sua lista. O outro participante ainda manterá as mensagens visíveis na conta dele.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -921,10 +1065,10 @@ export function ChatContainer({ onClose, isModal = false }: ChatContainerProps) 
         open={!!confirmClearConvId}
         onOpenChange={(open) => !open && setConfirmClearConvId(null)}
       >
-        <AlertDialogContent className="bg-card border-border text-foreground rounded-2xl">
+        <AlertDialogContent className="bg-card border-border text-foreground rounded-2xl shadow-2xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Limpar histórico desta conversa?</AlertDialogTitle>
-            <AlertDialogDescription className="text-muted-foreground text-xs">
+            <AlertDialogDescription className="text-muted-foreground text-xs leading-relaxed">
               Todas as mensagens enviadas até agora serão ocultadas apenas para você. Novas mensagens futuras continuarão aparecendo normalmente.
             </AlertDialogDescription>
           </AlertDialogHeader>
