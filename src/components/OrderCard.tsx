@@ -622,10 +622,10 @@ function OrderCardImpl({ order, orderIndex, totalOrders, onUpdate, onMove, onArc
             {dragHandleProps && (
               <div
                 {...dragHandleProps}
-                className="p-1 -mr-1 rounded hover:bg-muted text-muted-foreground/60 hover:text-foreground cursor-grab active:cursor-grabbing transition-colors shrink-0 flex items-center justify-center"
+                className="p-1.5 -mr-1 rounded hover:bg-muted text-muted-foreground/70 hover:text-foreground cursor-grab active:cursor-grabbing transition-colors shrink-0 flex items-center justify-center"
                 title="Clique e arraste para mover o cartão para qualquer posição ou coluna"
               >
-                <GripVertical className="h-3.5 w-3.5" />
+                <GripVertical className="h-4 w-4" />
               </div>
             )}
           </div>

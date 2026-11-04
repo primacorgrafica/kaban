@@ -147,7 +147,7 @@ export function ProductionColumn({
   const verifiedEmailCount = getVerifiedCountForOrders(columnOrderIds);
 
   return (
-    <div className="flex-shrink-0 w-[80vw] sm:w-72 flex flex-col rounded-2xl glass-bento min-h-full h-fit transition-all duration-200">
+    <div className="flex-shrink-0 w-[80vw] sm:w-72 flex flex-col rounded-2xl glass-bento min-h-full transition-all duration-200">
       <div
         className="flex items-center gap-2.5 px-3.5 py-3 border-b flex-shrink-0 rounded-t-2xl"
         style={{
@@ -201,8 +201,8 @@ export function ProductionColumn({
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`flex-1 space-y-2 p-2.5 pb-6 transition-colors duration-200 ${
-              snapshot.isDraggingOver ? "bg-primary/5" : ""
+            className={`flex-1 flex flex-col space-y-2 p-2.5 pb-6 transition-colors duration-200 ${
+              snapshot.isDraggingOver ? "bg-primary/5 rounded-b-2xl" : ""
             }`}
             style={{ minHeight: "120px" }}
           >

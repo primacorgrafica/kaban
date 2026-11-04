@@ -117,7 +117,7 @@ export function KanbanColumn({
   const verifiedEmailCount = getVerifiedCountForOrders(columnOrderIds);
 
   return (
-    <div className="flex-shrink-0 w-[82vw] sm:w-[290px] flex flex-col rounded-2xl glass-bento transition-all min-h-full h-fit">
+    <div className="flex-shrink-0 w-[82vw] sm:w-[290px] flex flex-col rounded-2xl glass-bento transition-all min-h-full">
       <div className="flex items-center gap-2.5 px-3.5 py-3 border-b border-border/60 dark:border-[#4A5C6A]/25 flex-shrink-0 rounded-t-2xl bg-muted/30 dark:bg-[#11212D]/40">
         <div
           className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 border"
@@ -171,12 +171,12 @@ export function KanbanColumn({
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`flex-1 space-y-2.5 p-2.5 pb-6 transition-all duration-200 ${
+            className={`flex-1 flex flex-col space-y-2.5 p-2.5 pb-6 transition-all duration-200 ${
               snapshot.isDraggingOver
                 ? "bg-[#253745]/30 ring-2 ring-[#9BA8AB]/40 rounded-b-2xl"
                 : ""
             }`}
-            style={{ minHeight: "130px" }}
+            style={{ minHeight: "150px" }}
           >
             {orders.length === 0 && !snapshot.isDraggingOver && (
               <div className="h-24 rounded-xl border border-dashed border-border/60 flex items-center justify-center text-[11px] text-muted-foreground/60 select-none">

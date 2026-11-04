@@ -35,7 +35,7 @@ export function CrmKanbanColumn({
   }, [opportunities]);
 
   return (
-    <div className="flex-shrink-0 w-[85vw] sm:w-80 flex flex-col rounded-2xl glass-bento min-h-full h-fit transition-all duration-200">
+    <div className="flex-shrink-0 w-[85vw] sm:w-80 flex flex-col rounded-2xl glass-bento min-h-full transition-all duration-200">
       {/* Coluna Header */}
       <div className="p-3.5 border-b border-border/60 bg-muted/40 rounded-t-2xl">
         <div className="flex items-center justify-between gap-2">
@@ -83,7 +83,7 @@ export function CrmKanbanColumn({
           <div
             ref={provided.innerRef}
             {...provided.droppableProps}
-            className={`flex-1 space-y-2.5 p-2.5 pb-6 transition-colors duration-200 ${
+            className={`flex-1 flex flex-col space-y-2.5 p-2.5 pb-6 transition-colors duration-200 ${
               snapshot.isDraggingOver
                 ? "bg-[#253745]/20 ring-1 ring-[#4A5C6A]/60 rounded-b-2xl"
                 : ""
