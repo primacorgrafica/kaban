@@ -221,6 +221,28 @@ export function ProductionTable({
     setSelectedIds(new Set());
   };
 
+  const handleBatchTogglePriority = async () => {
+    if (permissions.isViewOnly) return;
+    const targetOrders = orders.filter((o) => selectedIds.has(o.id));
+    if (targetOrders.length === 0) return;
+
+    const anyWithoutPriority = targetOrders.some((o) => !hasProductionPriority(o));
+    const nextState = anyWithoutPriority;
+
+    for (const ord of targetOrders) {
+      if (hasProductionPriority(ord) !== nextState) {
+        await toggleProductionPriority(ord, (id, data) => onUpdate(id, data));
+      }
+    }
+
+    toast.success(
+      nextState
+        ? `${targetOrders.length} O.S. marcadas como prioridade na Produção! ⭐`
+        : `Prioridade removida de ${targetOrders.length} O.S.`
+    );
+    setSelectedIds(new Set());
+  };
+
   const handleOpenSlideOver = (order: Order) => {
     setInspectOrder(order);
     setSlideOverOpen(true);
@@ -269,6 +291,17 @@ export function ProductionTable({
               </DropdownMenuContent>
             </DropdownMenu>
 
+            {/* Botão de Prioridade em Lote */}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleBatchTogglePriority}
+              className="h-7 text-xs text-amber-400 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 rounded-lg font-semibold"
+              title="Alternar Prioridade na Produção para as O.S. selecionadas"
+            >
+              <Star className="h-3 w-3 mr-1 fill-amber-400 text-amber-400" /> Prioridade
+            </Button>
+
             {permissions.canArchive && (
               <Button
                 size="sm"
@@ -303,6 +336,9 @@ export function ProductionTable({
                   onCheckedChange={(c) => handleSelectAll(!!c)}
                   className="rounded border-border data-[state=checked]:bg-[#CCD0CF] data-[state=checked]:text-[#06141B] data-[state=checked]:border-[#CCD0CF]"
                 />
+              </TableHead>
+              <TableHead className="w-10 px-1 text-center" title="Prioridade na Produção">
+                <Star className="h-3.5 w-3.5 mx-auto text-amber-500 fill-amber-500/20" />
               </TableHead>
               <TableHead className="w-24 font-mono-tech cursor-pointer select-none" onClick={() => handleSort("titulo")}>
                 <div className="flex items-center gap-1 text-foreground font-bold">
@@ -345,7 +381,7 @@ export function ProductionTable({
           <TableBody>
             {sortedOrders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={showSectorColumn ? 10 : 9} className="h-48 text-center text-muted-foreground">
+                <TableCell colSpan={showSectorColumn ? 11 : 10} className="h-48 text-center text-muted-foreground">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Filter className="h-8 w-8 opacity-40 text-muted-foreground" />
                     <span>Nenhuma ordem de serviço encontrada com os filtros atuais.</span>
@@ -356,7 +392,7 @@ export function ProductionTable({
               sortedOrders.map((order) => {
                 const config = getStatusConfig(order);
                 const isSelected = selectedIds.has(order.id);
-                const isUrgent = order.urgente;
+                const isPriority = hasProductionPriority(order);
                 const isSlowAlert = slowAlertIds?.has(order.id);
                 const isNearDeadline = order.prazo && new Date(order.prazo).getTime() <= Date.now();
 
@@ -364,7 +400,9 @@ export function ProductionTable({
                   <TableRow
                     key={order.id}
                     className={`border-b border-border/60 transition-colors cursor-pointer ${
-                      isSelected
+                      isPriority
+                        ? "bg-amber-500/[0.05] hover:bg-amber-500/[0.09] border-l-2 border-l-amber-500"
+                        : isSelected
                         ? "bg-[#253745]/40 hover:bg-[#253745]/60"
                         : "hover:bg-accent/50"
                     }`}
@@ -377,6 +415,28 @@ export function ProductionTable({
                         onCheckedChange={() => toggleSelectOne(order.id)}
                         className="rounded border-border data-[state=checked]:bg-[#CCD0CF] data-[state=checked]:text-[#06141B] data-[state=checked]:border-[#CCD0CF]"
                       />
+                    </TableCell>
+
+                    {/* Estrela de Prioridade (1-Click) */}
+                    <TableCell className="w-10 px-1 text-center" onClick={(e) => e.stopPropagation()}>
+                      {!permissions.isViewOnly ? (
+                        <button
+                          type="button"
+                          onClick={() => void toggleProductionPriority(order, (id, data) => onUpdate(id, data))}
+                          className={`h-7 w-7 rounded-lg mx-auto flex items-center justify-center transition-all cursor-pointer ${
+                            isPriority
+                              ? "bg-amber-500/20 text-amber-500 border border-amber-500/40 hover:bg-amber-500/30 shadow-xs"
+                              : "text-muted-foreground/30 hover:text-amber-500 hover:bg-amber-500/10"
+                          }`}
+                          title={isPriority ? "Remover prioridade da Produção" : "Marcar como prioridade na Produção"}
+                        >
+                          <Star className={`h-4 w-4 ${isPriority ? "fill-amber-500 text-amber-500" : ""}`} />
+                        </button>
+                      ) : (
+                        <div className="h-7 w-7 mx-auto flex items-center justify-center">
+                          {isPriority && <Star className="h-4 w-4 fill-amber-500 text-amber-500" />}
+                        </div>
+                      )}
                     </TableCell>
 
                     {/* O.S. # */}
@@ -537,12 +597,12 @@ export function ProductionTable({
                           >
                             <ExternalLink className="h-3.5 w-3.5 mr-2 text-[#9BA8AB]" /> Inspecionar O.S.
                           </DropdownMenuItem>
-                          {!permissions.isViewOnly && isOrderInProduction(order) && (
+                          {!permissions.isViewOnly && (
                             <DropdownMenuItem
                               onClick={() => void toggleProductionPriority(order, (id, data) => onUpdate(id, data))}
                               className="text-xs hover:bg-accent cursor-pointer text-amber-500"
                             >
-                              <Star className={`h-3.5 w-3.5 mr-2 ${hasProductionPriority(order) ? "fill-amber-500" : ""}`} />
+                              <Star className={`h-3.5 w-3.5 mr-2 ${hasProductionPriority(order) ? "fill-amber-500 text-amber-500" : ""}`} />
                               {hasProductionPriority(order) ? "Remover prioridade" : "Marcar como prioridade"}
                             </DropdownMenuItem>
                           )}

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { Order } from "@/types/order";
 import { isOrderBlocked, hasSpecialSupply } from "@/pages/ProducaoPage";
-import { hasProductionPriority } from "@/lib/productionPriority";
+import { hasProductionPriority, isOrderInProduction } from "@/lib/productionPriority";
 
 describe("ProducaoPage — Regras operacionais e blocos por setor", () => {
   const baseOrder = (overrides: Partial<Order> = {}): Order =>
@@ -103,6 +103,24 @@ describe("ProducaoPage — Regras operacionais e blocos por setor", () => {
       expect(sorted[0].id).toBe("prio-1");
       expect(sorted[1].id).toBe("norm-1");
       expect(sorted[2].id).toBe("norm-2");
+    });
+  });
+
+  describe("Validação de O.S. em Produção (isOrderInProduction)", () => {
+    it("deve reconhecer como em produção ordens com setor de produção, CTP ou Digital", () => {
+      expect(isOrderInProduction(baseOrder({ setor: "producao" }))).toBe(true);
+      expect(isOrderInProduction(baseOrder({ setor: "ctp" }))).toBe(true);
+      expect(isOrderInProduction(baseOrder({ setor: "digital" }))).toBe(true);
+    });
+
+    it("deve reconhecer como em produção ordens na fila de entrada mesmo sem sub-setor explicitamente definido", () => {
+      expect(isOrderInProduction(baseOrder({ setor: null, setor_status: "entrada" }))).toBe(true);
+    });
+
+    it("não deve considerar em produção setores externos como pre_impressao, compras, expedicao", () => {
+      expect(isOrderInProduction(baseOrder({ setor: "pre_impressao" }))).toBe(false);
+      expect(isOrderInProduction(baseOrder({ setor: "compras" }))).toBe(false);
+      expect(isOrderInProduction(baseOrder({ setor: "expedicao" }))).toBe(false);
     });
   });
 

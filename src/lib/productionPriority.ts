@@ -14,15 +14,19 @@ export const NON_PRODUCTION_SECTOR_KEYS = [
 
 /**
  * Determina se a O.S. está atualmente dentro da etapa/setor de Produção.
- * Válido para ordens ativas cujo setor seja produção, ctp, digital, qualidade ou subdepartamentos produtivos.
+ * Válido para ordens ativas cujo setor seja produção, ctp, digital, qualidade,
+ * ou ordens em fluxo de entrada da produção mesmo sem sub-setor fixado ainda.
  */
 export function isOrderInProduction(
-  order?: { setor?: string | null; arquivado?: boolean | null } | null
+  order?: { setor?: string | null; arquivado?: boolean | null; setor_status?: string | null } | null
 ): boolean {
   if (!order || order.arquivado) return false;
   const s = (order.setor || "").toLowerCase().trim();
-  if (!s) return false;
-  return !NON_PRODUCTION_SECTOR_KEYS.includes(s);
+  if (s) {
+    return !NON_PRODUCTION_SECTOR_KEYS.includes(s);
+  }
+  // Se não tiver setor explícito mas estiver na fila de entrada / produção da fábrica
+  return order.setor_status === "entrada" || order.setor_status === "producao";
 }
 
 /**
