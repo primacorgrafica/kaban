@@ -68,6 +68,8 @@ import {
   type StoredMicrosoftUser,
 } from "@/lib/msalClient";
 import { getEffectiveOsAnterior } from "@/lib/orderAnterior";
+import { RelatedOrdersField } from "./orders/RelatedOrdersField";
+import { syncOrderRelations } from "@/lib/orderRelationsService";
 import { useAuth } from "@/hooks/useAuth";
 
 function toLocalDatetimeString(date: Date): string {
@@ -116,12 +118,14 @@ export interface CreateOrderDialogProps {
     entrega_data_limite?: string;
     status_destino?: string;
     setor_destino?: string;
+    related_order_ids?: string[];
   }) => Promise<any> | any;
   onUpdate?: (id: string, data: Partial<Order>) => Promise<any> | any;
   orderToEdit?: Order | null;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   trigger?: React.ReactNode;
+  existingOrders?: Order[];
 }
 
 export function CreateOrderDialog({
@@ -131,6 +135,7 @@ export function CreateOrderDialog({
   open: controlledOpen,
   onOpenChange,
   trigger,
+  existingOrders = [],
 }: CreateOrderDialogProps) {
   const isEdit = Boolean(orderToEdit);
   const [internalOpen, setInternalOpen] = useState(false);
@@ -208,6 +213,7 @@ export function CreateOrderDialog({
         entrega_data_limite: "",
         status_destino: "",
         setor_destino: "",
+        related_order_ids: [] as string[],
       };
     }
 
@@ -291,6 +297,7 @@ export function CreateOrderDialog({
       entrega_data_limite: order.entrega_data_limite ? toLocalDatetimeString(new Date(order.entrega_data_limite)) : "",
       status_destino: order.status || "",
       setor_destino: order.setor || "",
+      related_order_ids: Array.isArray(order.related_order_ids) ? [...order.related_order_ids] : [],
     };
   };
 
@@ -534,10 +541,23 @@ export function CreateOrderDialog({
             ? new Date(form.entrega_data_limite).toISOString()
             : null,
           revisao: form.revisao ?? 0,
+          related_order_ids: form.related_order_ids,
         };
 
         if (onUpdate) {
           await Promise.resolve(onUpdate(orderToEdit.id, updatePayload));
+        }
+
+        // Sincroniza vínculos de O.S. relacionadas bidirecionalmente
+        try {
+          await syncOrderRelations(
+            orderToEdit.id,
+            form.related_order_ids,
+            user?.id,
+            orderToEdit.related_order_ids || []
+          );
+        } catch (relErr) {
+          console.warn("[CreateOrderDialog] Aviso ao sincronizar relações:", relErr);
         }
 
         if (filesToUpload.length > 0) {
@@ -725,22 +745,34 @@ export function CreateOrderDialog({
           status_destino: form.status_destino || undefined,
           setor_destino: form.setor_destino || undefined,
           revisao: form.revisao ?? 0,
+          related_order_ids: form.related_order_ids.length > 0 ? form.related_order_ids : undefined,
         })
       );
 
+      // Resolve o ID da O.S. recém-criada
+      let targetOrderId = (result as any)?.id;
+      if (!targetOrderId) {
+        const { data: latest } = await supabase
+          .from("orders")
+          .select("id")
+          .eq("titulo", osTitulo)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        targetOrderId = latest?.id;
+      }
+
+      // Sincroniza vínculos de O.S. relacionadas bidirecionalmente
+      if (targetOrderId && form.related_order_ids.length > 0) {
+        try {
+          await syncOrderRelations(targetOrderId, form.related_order_ids, user?.id);
+        } catch (relErr) {
+          console.warn("[CreateOrderDialog] Aviso ao sincronizar relações no cadastro:", relErr);
+        }
+      }
+
       // 3. Upload dos arquivos diretamente para o SharePoint Corporativo
       if (filesToUpload.length > 0) {
-        let targetOrderId = (result as any)?.id;
-        if (!targetOrderId) {
-          const { data: latest } = await supabase
-            .from("orders")
-            .select("id")
-            .eq("titulo", osTitulo)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle();
-          targetOrderId = latest?.id;
-        }
 
         if (targetOrderId) {
           setSubmitStatusText("Criando pasta da O.S. no SharePoint...");
@@ -1261,6 +1293,14 @@ export function CreateOrderDialog({
                   className="min-h-[70px] bg-background border-input text-foreground placeholder:text-muted-foreground focus:border-[#4A5C6A] focus:ring-1 focus:ring-[#9BA8AB]/40 rounded-xl text-xs"
                 />
               </div>
+
+              {/* Vínculo de O.S. Relacionadas (Mesmo Projeto / Serviço) */}
+              <RelatedOrdersField
+                currentOrderId={orderToEdit?.id}
+                selectedOrderIds={form.related_order_ids}
+                onChange={(newIds) => setForm((f) => ({ ...f, related_order_ids: newIds }))}
+                existingOrders={existingOrders}
+              />
 
               {/* Anexos da O.S. para o SharePoint Corporativo */}
               <div className="p-3.5 rounded-xl border border-border bg-muted/30 space-y-2">

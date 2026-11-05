@@ -144,11 +144,36 @@ export function useOrders() {
       void fetchProfiles();
     });
 
+    const handleRelationsUpdated = (e: Event) => {
+      const custom = e as CustomEvent<{ orderId: string; relatedOrderIds: string[] }>;
+      if (custom.detail?.orderId) {
+        setOrders((prev) =>
+          prev.map((o) => {
+            if (o.id === custom.detail.orderId) {
+              return { ...o, related_order_ids: custom.detail.relatedOrderIds };
+            }
+            if (custom.detail.relatedOrderIds.includes(o.id)) {
+              const current = Array.isArray(o.related_order_ids) ? o.related_order_ids : [];
+              if (!current.includes(custom.detail.orderId)) {
+                return { ...o, related_order_ids: [...current, custom.detail.orderId] };
+              }
+            } else if (Array.isArray(o.related_order_ids) && o.related_order_ids.includes(custom.detail.orderId)) {
+              return { ...o, related_order_ids: o.related_order_ids.filter((id) => id !== custom.detail.orderId) };
+            }
+            return o;
+          })
+        );
+      }
+    };
+
+    window.addEventListener("orders-relations-updated", handleRelationsUpdated);
+
     return () => {
       isMounted = false;
       unsubOrders();
       unsubProfiles();
       unsubReconcile();
+      window.removeEventListener("orders-relations-updated", handleRelationsUpdated);
     };
   }, [authReady, user, applyOrderPayload]);
 
@@ -246,6 +271,7 @@ export function useOrders() {
       processos?: string[]; nf?: string; protocolo?: string; empresa_entrega?: string; obs_entrega?: string;
       tipo_entrega?: string[]; entrega_para?: string; entrega_endereco?: string; entrega_ac?: string; entrega_data_limite?: string;
       status_destino?: string; setor_destino?: string;
+      related_order_ids?: string[];
     }) => {
       const isUrgente = data.urgente === true;
       const sendToSetor = data.setor_destino || null;
@@ -334,6 +360,7 @@ export function useOrders() {
         entrega_endereco: data.entrega_endereco || null,
         entrega_ac: data.entrega_ac || null,
         entrega_data_limite: data.entrega_data_limite || null,
+        related_order_ids: data.related_order_ids || [],
       };
 
       let { data: created, error } = await supabase
@@ -341,6 +368,13 @@ export function useOrders() {
         .insert(insertPayload as any)
         .select()
         .single();
+
+      if (error && (error.message?.includes("related_order_ids") || error.details?.includes("related_order_ids") || (error as any).code === "PGRST204" || (error as any).code === "42703")) {
+        delete insertPayload.related_order_ids;
+        const retry = await supabase.from("orders").insert(insertPayload as any).select().single();
+        created = retry.data;
+        error = retry.error;
+      }
 
       if (error && (error.message?.includes("os_anterior") || error.details?.includes("os_anterior") || (error as any).code === "PGRST204" || (error as any).code === "42703")) {
         delete insertPayload.os_anterior;
@@ -501,6 +535,11 @@ export function useOrders() {
       }
       if (error && (error.message?.includes("revisao") || error.details?.includes("revisao") || (error as any).code === "PGRST204" || (error as any).code === "42703")) {
         delete updatePayload.revisao;
+        const retry = await supabase.from("orders").update(updatePayload as any).eq("id", id);
+        error = retry.error;
+      }
+      if (error && (error.message?.includes("related_order_ids") || error.details?.includes("related_order_ids") || (error as any).code === "PGRST204" || (error as any).code === "42703")) {
+        delete updatePayload.related_order_ids;
         const retry = await supabase.from("orders").update(updatePayload as any).eq("id", id);
         error = retry.error;
       }

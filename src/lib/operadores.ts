@@ -15,6 +15,7 @@ export interface OperadorProfile {
 export const ADMIN_OPERATOR_EMAILS = [
   "embalagens@primacorgrafica.com.br",
   "coordenadorpre@primacorgrafica.com.br",
+  "carlos@primacorgrafica.com.br",
 ] as const;
 
 export const ADMIN_OPERATOR_USER_IDS = [

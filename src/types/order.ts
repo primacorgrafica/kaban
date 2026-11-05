@@ -62,6 +62,7 @@ export interface Order {
   obs_entrega: string | null;
   obs_prova: string | null;
   parent_order_id: string | null;
+  related_order_ids?: string[] | null;
   // New ENTREGA fields
   tipo_entrega: string[];
   entrega_para: string | null;
@@ -158,3 +159,14 @@ export const STATUS_ORDER: OrderStatus[] = [
   "aguardando_aprovacao",
   "arquivo_liberado",
 ];
+
+export interface RelatedOrderSummary {
+  id: string;
+  titulo: string;
+  cliente: string;
+  descricao?: string | null;
+  setor?: string | null;
+  status?: string | null;
+  setor_status?: string | null;
+  arquivado?: boolean;
+}

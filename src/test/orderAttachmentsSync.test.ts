@@ -2,11 +2,46 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { formatOsFolderName } from "../lib/sharepointService";
 import { isValidEmail, resolveSellerEmail, INVALID_NOTIFICATION_EMAILS } from "../lib/sellerNotificationService";
 import { DEFAULT_VENDEDORES } from "../lib/vendedores";
+import { supabase } from "@/integrations/supabase/client";
 import * as fs from "fs";
 import * as path from "path";
 
+vi.mock("@/integrations/supabase/client", () => {
+  return {
+    supabase: {
+      from: vi.fn(),
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-123" } }, error: null }),
+      },
+      rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
+    },
+  };
+});
+
 describe("Resiliência e Sincronização de Anexos do SharePoint", () => {
   const projectRoot = path.resolve(__dirname, "..");
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    (supabase.from as any).mockReturnValue({
+      select: vi.fn().mockReturnValue({
+        ilike: vi.fn().mockReturnValue({
+          not: vi.fn().mockReturnValue({
+            limit: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+            }),
+          }),
+        }),
+        eq: vi.fn().mockReturnValue({
+          not: vi.fn().mockReturnValue({
+            limit: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+            }),
+          }),
+        }),
+      }),
+    });
+  });
 
   it("1. formatOsFolderName deve padronizar o nome de pasta como 'OS-{numero}'", () => {
     expect(formatOsFolderName("order-uuid-123", "73515")).toBe("OS-73515");

@@ -15,6 +15,7 @@ import { useSlowOrderAlerts } from "@/hooks/useSlowOrderAlerts";
 import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
 import { LayoutGrid, TableProperties } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useOrderHighlight } from "@/hooks/useOrderHighlight";
 
 const Index = () => {
   const perms = usePermissions();
@@ -38,6 +39,9 @@ const Index = () => {
     sendToCompras,
     getProfileName,
   } = useOrders();
+
+  // Ativa detecção de destaque de card de O.S. relacionada (?highlight=<id> e evento)
+  useOrderHighlight(loading);
 
   const { canAccessSector, setorVinculado, hasModule, role } = useAuth();
   const location = useLocation();

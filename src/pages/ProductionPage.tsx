@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { LayoutGrid, TableProperties } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ProductionTable } from "@/components/ProductionTable";
+import { useOrderHighlight } from "@/hooks/useOrderHighlight";
 
 const VALID_DEPARTMENTS: Department[] = ["qualidade", "ctp", "digital", "compras", "manutencao"];
 
@@ -60,6 +61,9 @@ export default function ProductionPage() {
     getOrdersByDepartment,
     getArchivedByDepartment,
   } = useProductionOrders();
+
+  // Destaque de O.S. relacionada ao navegar com ?highlight=<id>
+  useOrderHighlight(productionLoading);
 
   const { addOrder } = useAddOrder();
 

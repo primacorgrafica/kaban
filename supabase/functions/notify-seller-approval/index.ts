@@ -12,6 +12,19 @@ const jsonResponse = (body: Record<string, unknown>, status: number) =>
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 
+/** E-mails que sabidamente não existem como caixas no Exchange e causam bounce */
+const INVALID_NOTIFICATION_EMAILS = new Set([
+  "coordenadorpre@primacorgrafica.com.br",
+]);
+
+function normalizeAndValidateEmail(email: string | null | undefined): string | null {
+  if (!email) return null;
+  const clean = email.trim().toLowerCase();
+  if (INVALID_NOTIFICATION_EMAILS.has(clean)) return null;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) return null;
+  return clean;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -44,10 +57,27 @@ Deno.serve(async (req) => {
         return jsonResponse({ error: pErr.message }, 500);
       }
 
+      const validItems = [];
+      for (const item of pendings || []) {
+        if (!normalizeAndValidateEmail(item.vendedor_email)) {
+          // Marca imediatamente como falho para evitar disparos com bounces conhecidos (ex: coordenadorpre)
+          await adminClient
+            .from("order_seller_notifications")
+            .update({
+              sent_status: "failed",
+              error_message: `Endereço de e-mail inválido ou inexistente: ${item.vendedor_email}`,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", item.id);
+        } else {
+          validItems.push(item);
+        }
+      }
+
       return jsonResponse({
         success: true,
-        pending_count: pendings?.length || 0,
-        items: pendings || [],
+        pending_count: validItems.length,
+        items: validItems,
       }, 200);
     }
 
@@ -98,8 +128,11 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         if (prof?.email) {
-          sellerEmail = prof.email.trim().toLowerCase();
-          sellerName = prof.nome || sellerName;
+          const validated = normalizeAndValidateEmail(prof.email);
+          if (validated) {
+            sellerEmail = validated;
+            sellerName = prof.nome || sellerName;
+          }
         }
 
         if (!sellerEmail) {
@@ -112,8 +145,11 @@ Deno.serve(async (req) => {
             .maybeSingle();
 
           if (vend?.email) {
-            sellerEmail = vend.email.trim().toLowerCase();
-            sellerName = vend.nome || sellerName;
+            const validated = normalizeAndValidateEmail(vend.email);
+            if (validated) {
+              sellerEmail = validated;
+              sellerName = vend.nome || sellerName;
+            }
           }
         }
       }
@@ -128,8 +164,11 @@ Deno.serve(async (req) => {
           .maybeSingle();
 
         if (creator?.email) {
-          sellerEmail = creator.email.trim().toLowerCase();
-          sellerName = creator.nome || sellerName;
+          const validated = normalizeAndValidateEmail(creator.email);
+          if (validated) {
+            sellerEmail = validated;
+            sellerName = creator.nome || sellerName;
+          }
         }
       }
 

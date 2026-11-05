@@ -33,6 +33,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RadioGroup as RadioGroupBase, RadioGroupItem } from "@/components/ui/radio-group";
+import { RelatedOrdersPopover } from "./orders/RelatedOrdersPopover";
 
 interface ProductionCardProps {
   order: Order;
@@ -307,6 +308,8 @@ function ProductionCardImpl({
   return (
     <>
       <div
+        id={`order-card-${order.id}`}
+        data-order-id={order.id}
         className={`group rounded-2xl border shadow-xs hover:shadow-lg backdrop-blur-xl transition-all duration-200 overflow-hidden relative ${
           sectorUrgent
             ? "bg-rose-500/10 border-rose-500/40 text-card-foreground"
@@ -656,6 +659,14 @@ function ProductionCardImpl({
             >
               OS. {cleanOsTitulo || order.titulo}
             </h4>
+            {/* Ícone de O.S. Relacionadas com menu e navegação */}
+            {order.related_order_ids && order.related_order_ids.length > 0 && (
+              <RelatedOrdersPopover
+                currentOrderId={order.id}
+                currentOrderTitle={order.titulo}
+                relatedOrderIds={order.related_order_ids}
+              />
+            )}
             {getOrderRevision(order) >= 1 && (
               <span
                 className="font-mono-tech text-[13px] font-extrabold px-2 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 shrink-0 flex items-center gap-1 shadow-xs tracking-wide"

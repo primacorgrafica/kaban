@@ -49,6 +49,7 @@ import {
 import { OrderAttachmentsSection } from "./sharepoint/OrderAttachmentsSection";
 import { OrderEmailEventsSection } from "./email/OrderEmailEventsSection";
 import { CreateOrderDialog } from "./CreateOrderDialog";
+import { RelatedOrdersPopover } from "./orders/RelatedOrdersPopover";
 import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
 import { fetchOperadoresList, OperadorProfile } from "@/lib/operadores";
 import { cleanOsNumber } from "./ProductionCard";
@@ -423,6 +424,8 @@ function OrderCardImpl({ order, orderIndex, totalOrders, onUpdate, onMove, onArc
   return (
     <>
       <div
+        id={`order-card-${order.id}`}
+        data-order-id={order.id}
         className={`group rounded-2xl border shadow-xs hover:shadow-lg transition-all duration-200 overflow-hidden relative backdrop-blur-xl ${
           shouldBlinkCard ? "animate-pulse" : ""
         } ${
@@ -521,6 +524,15 @@ function OrderCardImpl({ order, orderIndex, totalOrders, onUpdate, onMove, onArc
                 <Mail className="h-3 w-3 fill-emerald-500/30 text-emerald-600 dark:text-emerald-400" />
               </span>
             ) : null}
+
+            {/* Ícone de O.S. Relacionadas com menu e navegação */}
+            {order.related_order_ids && order.related_order_ids.length > 0 && (
+              <RelatedOrdersPopover
+                currentOrderId={order.id}
+                currentOrderTitle={order.titulo}
+                relatedOrderIds={order.related_order_ids}
+              />
+            )}
           </div>
 
           {/* Centro / Direita: FLAGS DE STATUS */}
