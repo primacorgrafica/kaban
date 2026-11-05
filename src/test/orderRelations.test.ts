@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import * as fs from "fs";
+import * as path from "path";
 import {
+  cleanOsNumber,
   toRelatedOrderSummary,
   searchOrdersForRelation,
   getRelatedOrdersInfo,
@@ -347,6 +350,25 @@ describe("Primacor Kaban - Vinculação de O.S. Relacionadas", () => {
       expect(isValidEmail("carlos@primacorgrafica.com.br")).toBe(true);
       expect(isValidEmail("bianca@primacorgrafica.com.br")).toBe(true);
       expect(isValidEmail("well@primacorgrafica.com.br")).toBe(true);
+    });
+  });
+
+  describe("8. RelatedOrdersPopover e cleanOsNumber", () => {
+    it("cleanOsNumber deve extrair corretamente os dígitos numéricos ou sanitizar a O.S.", () => {
+      expect(cleanOsNumber("#73438")).toBe("73438");
+      expect(cleanOsNumber("O.S. 73400")).toBe("73400");
+      expect(cleanOsNumber("73401")).toBe("73401");
+      expect(cleanOsNumber("")).toBe("");
+      expect(cleanOsNumber(null)).toBe("");
+    });
+
+    it("RelatedOrdersPopover.tsx deve importar cleanOsNumber para evitar ReferenceError na renderização do card", () => {
+      const popoverFile = fs.readFileSync(
+        path.join(__dirname, "../components/orders/RelatedOrdersPopover.tsx"),
+        "utf-8"
+      );
+      expect(popoverFile).toContain("cleanOsNumber");
+      expect(popoverFile).toMatch(/import\s*\{[^}]*cleanOsNumber[^}]*\}\s*from/);
     });
   });
 });
