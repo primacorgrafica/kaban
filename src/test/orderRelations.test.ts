@@ -391,6 +391,14 @@ describe("Primacor Kaban - Vinculação de O.S. Relacionadas", () => {
       expect(popoverFile).toContain("cleanOsNumber");
       expect(popoverFile).toMatch(/import\s*\{[^}]*cleanOsNumber[^}]*\}\s*from/);
     });
+
+    it("ProductionCard.tsx deve importar cleanOsNumber no escopo local para evitar ReferenceError no CTP e Produção", () => {
+      const prodCardContent = fs.readFileSync(
+        path.join(__dirname, "../components/ProductionCard.tsx"),
+        "utf-8"
+      );
+      expect(prodCardContent).toMatch(/import\s*\{[^}]*cleanOsNumber[^}]*\}\s*from\s*["']@\/lib\/orderRelationsService["']/);
+    });
   });
 
   describe("9. Persistência Resiliente via Observação (Fallback Cross-Operator)", () => {

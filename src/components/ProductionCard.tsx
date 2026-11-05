@@ -34,8 +34,12 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup as RadioGroupBase, RadioGroupItem } from "@/components/ui/radio-group";
 import { RelatedOrdersPopover } from "./orders/RelatedOrdersPopover";
-import { cleanObservationRelatedOrders, getEffectiveRelatedOrders } from "@/lib/orderRelationsService";
-export { cleanOsNumber } from "@/lib/orderRelationsService";
+import {
+  cleanObservationRelatedOrders,
+  getEffectiveRelatedOrders,
+  cleanOsNumber,
+} from "@/lib/orderRelationsService";
+export { cleanOsNumber };
 import {
   hasProductionPriority,
   toggleProductionPriority,
