@@ -35,18 +35,13 @@ export function ProducaoSectorBlock({
 }: ProducaoSectorBlockProps) {
   // Ordenação inteligente dentro do bloco:
   // 1. Prioridades na Produção primeiro (⭐)
-  // 2. Urgentes em seguida (🚨)
-  // 3. Ordem de fila (posicao) ou data de criação
+  // 2. Ordem de fila (posicao) ou data de criação
   const sortedOrders = useMemo(() => {
     return [...orders].sort((a, b) => {
       const prioA = hasProductionPriority(a);
       const prioB = hasProductionPriority(b);
       if (prioA !== prioB) {
         return prioA ? -1 : 1;
-      }
-
-      if (a.urgente !== b.urgente) {
-        return a.urgente ? -1 : 1;
       }
 
       const posA = typeof a.posicao === "number" ? a.posicao : 9999;

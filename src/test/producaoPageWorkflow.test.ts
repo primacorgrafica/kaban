@@ -81,9 +81,9 @@ describe("ProducaoPage — Regras operacionais e blocos por setor", () => {
   });
 
   describe("Ordenação de Cards dentro do Bloco", () => {
-    it("deve colocar O.S. com Prioridade na Produção sempre antes das demais", () => {
-      const orderNormal = baseOrder({ id: "norm-1", titulo: "73001", posicao: 1 });
-      const orderUrgent = baseOrder({ id: "urg-1", titulo: "73002", urgente: true, posicao: 2 });
+    it("deve colocar O.S. com Prioridade na Produção (estrela) sempre antes das demais na fila", () => {
+      const orderNormal1 = baseOrder({ id: "norm-1", titulo: "73001", posicao: 1 });
+      const orderNormal2 = baseOrder({ id: "norm-2", titulo: "73002", posicao: 2 });
       const orderPriority = baseOrder({
         id: "prio-1",
         titulo: "73003",
@@ -91,19 +91,18 @@ describe("ProducaoPage — Regras operacionais e blocos por setor", () => {
         posicao: 99,
       });
 
-      const list = [orderNormal, orderUrgent, orderPriority];
+      const list = [orderNormal1, orderNormal2, orderPriority];
 
       const sorted = [...list].sort((a, b) => {
         const prioA = hasProductionPriority(a);
         const prioB = hasProductionPriority(b);
         if (prioA !== prioB) return prioA ? -1 : 1;
-        if (a.urgente !== b.urgente) return a.urgente ? -1 : 1;
         return (a.posicao || 0) - (b.posicao || 0);
       });
 
       expect(sorted[0].id).toBe("prio-1");
-      expect(sorted[1].id).toBe("urg-1");
-      expect(sorted[2].id).toBe("norm-1");
+      expect(sorted[1].id).toBe("norm-1");
+      expect(sorted[2].id).toBe("norm-2");
     });
   });
 

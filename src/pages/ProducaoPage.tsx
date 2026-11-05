@@ -90,7 +90,6 @@ export default function ProducaoPage() {
   // Filtros de Setor e Toggles rápidos
   const [selectedSector, setSelectedSector] = useState<string>("todos");
   const [onlyPriority, setOnlyPriority] = useState<boolean>(false);
-  const [onlyUrgent, setOnlyUrgent] = useState<boolean>(false);
   const [onlySpecialSupplies, setOnlySpecialSupplies] = useState<boolean>(false);
   const [onlyBlocked, setOnlyBlocked] = useState<boolean>(false);
 
@@ -165,11 +164,6 @@ export default function ProducaoPage() {
         return false;
       }
 
-      // Filtro apenas urgentes
-      if (onlyUrgent && !o.urgente) {
-        return false;
-      }
-
       // Filtro suprimentos especiais (Pantone, Faca, Clichê, Filme, Outros)
       if (onlySpecialSupplies && !hasSpecialSupply(o)) {
         return false;
@@ -199,7 +193,6 @@ export default function ProducaoPage() {
     producaoEntradaOrders,
     selectedSector,
     onlyPriority,
-    onlyUrgent,
     onlySpecialSupplies,
     onlyBlocked,
     searchQuery,
@@ -210,7 +203,6 @@ export default function ProducaoPage() {
   const stats = useMemo(() => {
     const total = producaoEntradaOrders.length;
     const prioritarias = producaoEntradaOrders.filter(hasProductionPriority).length;
-    const urgentes = producaoEntradaOrders.filter((o) => o.urgente).length;
     const comSuprimento = producaoEntradaOrders.filter(hasSpecialSupply).length;
     const bloqueadas = producaoEntradaOrders.filter(isOrderBlocked).length;
 
@@ -223,7 +215,6 @@ export default function ProducaoPage() {
     return {
       total,
       prioritarias,
-      urgentes,
       comSuprimento,
       bloqueadas,
       ctpCount,
@@ -314,16 +305,6 @@ export default function ProducaoPage() {
                   <Star className="h-3.5 w-3.5 fill-amber-500 text-amber-500 shrink-0" />
                   <span className="text-[11px]">Prioritárias:</span>
                   <span className="font-bold font-mono-tech">{stats.prioritarias}</span>
-                </div>
-              )}
-
-              {stats.urgentes > 0 && (
-                <div className="px-2.5 py-1.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs flex items-center gap-1.5 text-rose-400">
-                  <AlertTriangle className="h-3.5 w-3.5 text-rose-500 shrink-0" />
-                  <span className="text-[11px]">Urgentes:</span>
-                  <span className="font-bold font-mono-tech text-rose-300">
-                    {stats.urgentes}
-                  </span>
                 </div>
               )}
 
@@ -469,7 +450,7 @@ export default function ProducaoPage() {
             })}
           </div>
 
-          {/* Filtros de toggle rápido (Prioritárias, Urgentes, Suprimentos, Bloqueadas) */}
+          {/* Filtros de toggle rápido (Prioritárias, Suprimentos, Bloqueadas) */}
           <div className="flex items-center gap-1.5 shrink-0 justify-end flex-wrap">
             <Button
               type="button"
@@ -484,21 +465,6 @@ export default function ProducaoPage() {
             >
               <Star className={`h-3 w-3 mr-1 ${onlyPriority ? "fill-amber-500 text-amber-500" : ""}`} />
               Prioritárias
-            </Button>
-
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setOnlyUrgent((prev) => !prev)}
-              className={`h-7 px-2.5 text-xs rounded-lg transition-all cursor-pointer ${
-                onlyUrgent
-                  ? "bg-rose-500/20 text-rose-300 border-rose-500 font-bold"
-                  : "text-muted-foreground border-border hover:text-foreground"
-              }`}
-            >
-              <AlertTriangle className="h-3 w-3 mr-1 text-rose-500" />
-              Apenas Urgentes
             </Button>
 
             <Button

@@ -879,16 +879,20 @@ export function useOrders() {
 
   const sendToProduction = useCallback(async (orderId: string, department: Department, machine?: string) => {
     const order = orders.find(o => o.id === orderId);
-    const isUrgent = order && (order.urgente_prova || order.urgente_impressao || order.urgente_acabamento || order.urgente_expedicao);
     const cleanedObs = cleanObservationProductionPriority(order?.observacao);
 
     const payload: any = {
       setor: department,
       setor_status: "entrada",
       maquina: machine || null,
-      posicao: isUrgent ? 0 : 9999,
+      posicao: 9999,
       atualizado_por: user?.id || null,
       prioridade_producao: false,
+      urgente: false,
+      urgente_prova: false,
+      urgente_impressao: false,
+      urgente_acabamento: false,
+      urgente_expedicao: false,
       observacao: cleanedObs,
     };
 
@@ -986,7 +990,7 @@ export function useOrders() {
 
     const originalOrder = orders.find(o => o.id === orderId);
     if (!originalOrder) return;
-    const isUrgent = originalOrder.urgente_prova || originalOrder.urgente_impressao || originalOrder.urgente_acabamento || originalOrder.urgente_expedicao;
+    const cleanedObs = cleanObservationProductionPriority(originalOrder?.observacao);
 
     // Remove setores repetidos na mesma seleção
     const uniqueDepartments = departments.filter(
@@ -1006,8 +1010,15 @@ export function useOrders() {
         setor: first.department,
         setor_status: "entrada",
         maquina: first.machine || null,
-        posicao: isUrgent ? 0 : 9999,
+        posicao: 9999,
         atualizado_por: user?.id || null,
+        prioridade_producao: false,
+        urgente: false,
+        urgente_prova: false,
+        urgente_impressao: false,
+        urgente_acabamento: false,
+        urgente_expedicao: false,
+        observacao: cleanedObs,
       })
       .eq("id", orderId);
 
@@ -1030,7 +1041,14 @@ export function useOrders() {
         setor: dept.department,
         setor_status: "entrada",
         maquina: dept.machine || null,
-        posicao: isUrgent ? 0 : 9999,
+        posicao: 9999,
+        prioridade_producao: false,
+        urgente: false,
+        urgente_prova: false,
+        urgente_impressao: false,
+        urgente_acabamento: false,
+        urgente_expedicao: false,
+        observacao: cleanedObs,
         parent_order_id: orderId,
       } as any);
 

@@ -88,7 +88,6 @@ export function ProducaoBlockCard({
   // Informações fundamentais
   const cleanTitulo = cleanOsNumber(order.titulo) || order.titulo?.replace(/^#+/, "") || "S/N";
   const isPriority = hasProductionPriority(order);
-  const isUrgent = Boolean(order.urgente);
   const effectiveRelatedIds = useMemo(() => {
     return order.related_order_ids && order.related_order_ids.length > 0
       ? order.related_order_ids
@@ -163,8 +162,6 @@ export function ProducaoBlockCard({
           ? "border-amber-500/60 bg-gradient-to-br from-amber-500/10 via-card/95 to-card border-l-4 border-l-amber-500 shadow-md shadow-amber-500/5 hover:border-amber-400"
           : isBlocked
           ? "border-rose-500/50 bg-gradient-to-br from-rose-500/10 via-card/95 to-card border-l-4 border-l-rose-500 hover:border-rose-400"
-          : isUrgent
-          ? "border-red-500/40 bg-card/90 border-l-4 border-l-red-500 hover:border-red-400"
           : "border-border/70 bg-card/85 hover:border-[#9BA8AB]/60 hover:bg-card hover:shadow-md"
       }`}
     >
@@ -174,7 +171,7 @@ export function ProducaoBlockCard({
           <div className="flex items-center gap-1.5">
             <span
               className={`font-mono-tech font-extrabold text-sm tracking-tight ${
-                isPriority ? "text-amber-500" : isUrgent ? "text-red-500" : "text-foreground"
+                isPriority ? "text-amber-500" : "text-foreground"
               }`}
             >
               OS. #{cleanTitulo}
@@ -189,13 +186,6 @@ export function ProducaoBlockCard({
             >
               <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500" />
               <span>PRIORIDADE</span>
-            </span>
-          )}
-
-          {/* Badge de Urgência Geral */}
-          {isUrgent && !isPriority && (
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-600 text-white shadow-xs">
-              URGENTE
             </span>
           )}
 

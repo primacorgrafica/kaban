@@ -382,9 +382,6 @@ export function ProductionTable({
                     {/* O.S. # */}
                     <TableCell className="font-mono-tech font-bold">
                       <div className="flex items-center gap-1.5">
-                        {isUrgent && (
-                          <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_8px_#f43f5e] shrink-0" />
-                        )}
                         <span className="px-1.5 py-0.5 rounded bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/60 text-[11px]">
                           {cleanOsNumber(order.titulo) || order.titulo?.replace(/^#+/, "")}
                         </span>
