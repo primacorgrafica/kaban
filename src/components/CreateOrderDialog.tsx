@@ -75,6 +75,7 @@ import {
   setObservationRelatedOrders,
   getEffectiveRelatedOrders,
 } from "@/lib/orderRelationsService";
+import { cleanObservationProductionPriority } from "@/lib/productionPriority";
 import { useAuth } from "@/hooks/useAuth";
 
 function toLocalDatetimeString(date: Date): string {
@@ -271,7 +272,7 @@ export function CreateOrderDialog({
       tipo_trabalho: order.tipo_trabalho || (effectiveOsAnt ? "repeticao" : "novo"),
       os_anterior: effectiveOsAnt || order.os_anterior || "",
       revisao: typeof order.revisao === "number" ? order.revisao : getOrderRevision(order),
-      observacao: cleanObservationRelatedOrders(order.observacao || ""),
+      observacao: cleanObservationProductionPriority(cleanObservationRelatedOrders(order.observacao || "")),
       obs_prova,
       saida_direta: order.saida_direta || false,
       prova_digital: order.prova_digital || false,

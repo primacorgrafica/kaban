@@ -1,5 +1,7 @@
 import { getOrderRevision, cleanObservationRevision } from "@/lib/orderRevision";
 import { getEffectiveOsAnterior } from "@/lib/orderAnterior";
+import { cleanObservationRelatedOrders } from "@/lib/orderRelationsService";
+import { cleanObservationProductionPriority } from "@/lib/productionPriority";
 import { fetchVendedores } from "@/lib/vendedores";
 import { useState, useEffect, useMemo } from "react";
 import { Order, OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
@@ -532,12 +534,16 @@ export function OrderDetailDialog({
                         </div>
                       );
                     })()}
-                    {cleanObservationRevision(order.observacao) && (
-                      <div className="pt-1.5 border-t border-border/60">
-                        <p className="text-[10px] text-muted-foreground uppercase font-medium">Observações</p>
-                        <p className="text-xs text-foreground whitespace-pre-wrap">{cleanObservationRevision(order.observacao)}</p>
-                      </div>
-                    )}
+                    {(() => {
+                      const clean = cleanObservationProductionPriority(cleanObservationRelatedOrders(cleanObservationRevision(order.observacao)));
+                      if (!clean) return null;
+                      return (
+                        <div className="pt-1.5 border-t border-border/60">
+                          <p className="text-[10px] text-muted-foreground uppercase font-medium">Observações</p>
+                          <p className="text-xs text-foreground whitespace-pre-wrap">{clean}</p>
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Bloco de Provas Técnicas */}

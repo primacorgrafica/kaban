@@ -14,6 +14,11 @@ import { Department } from "@/types/production";
 import { hasSpecialSuppliesForCompras, setComprasStatusInProcessos } from "@/lib/processos";
 import { syncOrderToCompras, syncComprasStatusToParent } from "@/lib/comprasSync";
 import { getEffectiveRelatedOrders, registerKnownOrders } from "@/lib/orderRelationsService";
+import {
+  hasProductionPriority,
+  setObservationProductionPriority,
+  cleanObservationProductionPriority,
+} from "@/lib/productionPriority";
 
 export function useProductionOrders() {
   const { user, authReady } = useAuth();
@@ -52,8 +57,10 @@ export function useProductionOrders() {
       const batch = (data as Order[]) || [];
       all.push(...batch.map((r) => {
         const effectiveRelated = getEffectiveRelatedOrders(r);
+        const hasPrio = hasProductionPriority(r);
         return {
           ...r,
+          prioridade_producao: hasPrio,
           related_order_ids: (r.related_order_ids && r.related_order_ids.length > 0) ? r.related_order_ids : effectiveRelated,
         };
       }));
@@ -78,8 +85,10 @@ export function useProductionOrders() {
     }
     if (!newRow?.id) return;
     const effectiveRelated = getEffectiveRelatedOrders(newRow);
+    const hasPrio = hasProductionPriority(newRow);
     const normalizedRow: Order = {
       ...newRow,
+      prioridade_producao: hasPrio,
       related_order_ids: (newRow.related_order_ids && newRow.related_order_ids.length > 0) ? newRow.related_order_ids : effectiveRelated,
     };
 
@@ -155,16 +164,27 @@ export function useProductionOrders() {
   const sendToProduction = useCallback(async (orderId: string, department: Department) => {
     const order = orders.find(o => o.id === orderId);
     const isUrgent = order && (order.urgente_prova || order.urgente_impressao || order.urgente_acabamento || order.urgente_expedicao);
-    const { error } = await supabase
+    const cleanObs = cleanObservationProductionPriority(order?.observacao);
+    const prodPayload: any = {
+      setor: department,
+      setor_status: "entrada",
+      maquina: null,
+      posicao: isUrgent ? 0 : 9999,
+      prioridade_producao: false,
+      observacao: cleanObs,
+      atualizado_por: user?.id || null,
+    };
+
+    let { error } = await supabase
       .from("orders")
-      .update({
-        setor: department,
-        setor_status: "entrada",
-        maquina: null,
-        posicao: isUrgent ? 0 : 9999,
-        atualizado_por: user?.id || null,
-      })
+      .update(prodPayload)
       .eq("id", orderId);
+
+    if (error && (error.message?.includes("prioridade_producao") || (error as any).code === "42703" || (error as any).code === "PGRST204")) {
+      delete prodPayload.prioridade_producao;
+      const retry = await supabase.from("orders").update(prodPayload).eq("id", orderId);
+      error = retry.error;
+    }
 
     if (error) {
       if ((error as any).code === "23505") {
@@ -317,22 +337,31 @@ export function useProductionOrders() {
   const sendBackToPrePress = useCallback(async (id: string) => {
     const order = orders.find(o => o.id === id);
     const isUrgent = order && (order.urgente_prova || order.urgente_impressao || order.urgente_acabamento || order.urgente_expedicao);
-    const { error } = await supabase
-      .from("orders")
-      .update({
-        setor: null,
-        setor_status: null,
-        maquina: null,
-        status: "fila_de_entrada",
-        posicao: isUrgent ? 0 : 9999,
-        atualizado_por: user?.id || null,
-      })
-      .eq("id", id);
+    const cleanedObs = cleanObservationProductionPriority(order?.observacao);
+
+    const payload: any = {
+      setor: null,
+      setor_status: null,
+      maquina: null,
+      status: "fila_de_entrada",
+      posicao: isUrgent ? 0 : 9999,
+      atualizado_por: user?.id || null,
+      prioridade_producao: false,
+      observacao: cleanedObs,
+    };
+
+    let { error } = await (supabase.from("orders") as any).update(payload).eq("id", id);
+    if (error && ((error as any).code === "42703" || (error as any).code === "PGRST204" || error.message?.includes("prioridade_producao"))) {
+      delete payload.prioridade_producao;
+      const retry = await (supabase.from("orders") as any).update(payload).eq("id", id);
+      error = retry.error;
+    }
 
     if (error) {
       toast.error("Erro ao devolver para Pré-Impressão");
       console.error(error);
     } else {
+      setOrders(prev => prev.filter(o => o.id !== id));
       toast.success("OS. devolvida para Pré-Impressão");
     }
   }, [user, orders]);
@@ -421,13 +450,45 @@ export function useProductionOrders() {
 
   const updateOrder = useCallback(
     async (id: string, data: Partial<Order>) => {
-      const { error } = await supabase.from("orders").update({ ...data, atualizado_por: user?.id || null }).eq("id", id);
+      const currentOrder = orders.find((o) => o.id === id);
+      const updatePayload: any = { ...data, atualizado_por: user?.id || null };
+
+      if (data.prioridade_producao !== undefined) {
+        const targetObs = updatePayload.observacao !== undefined ? updatePayload.observacao : (currentOrder?.observacao || "");
+        updatePayload.observacao = setObservationProductionPriority(targetObs, Boolean(data.prioridade_producao));
+      }
+
+      // Atualização otimista imediata no estado local
+      setOrders((prev) =>
+        prev.map((o) => {
+          if (o.id === id) {
+            return {
+              ...o,
+              ...data,
+              ...(updatePayload.observacao !== undefined ? { observacao: updatePayload.observacao } : {}),
+            };
+          }
+          return o;
+        })
+      );
+
+      let { error } = await (supabase.from("orders") as any).update(updatePayload).eq("id", id);
+      if (error && (error.message?.includes("prioridade_producao") || (error as any).code === "42703" || (error as any).code === "PGRST204")) {
+        delete updatePayload.prioridade_producao;
+        const retry = await (supabase.from("orders") as any).update(updatePayload).eq("id", id);
+        error = retry.error;
+      }
+      if (error && (error.message?.includes("related_order_ids") || (error as any).code === "42703" || (error as any).code === "PGRST204")) {
+        delete updatePayload.related_order_ids;
+        const retry = await (supabase.from("orders") as any).update(updatePayload).eq("id", id);
+        error = retry.error;
+      }
       if (error) {
         toast.error("Erro ao atualizar OS.");
         console.error(error);
       }
     },
-    [user]
+    [user, orders]
   );
 
   const filteredOrders = orders.filter((o) => {

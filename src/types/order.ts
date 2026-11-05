@@ -63,6 +63,7 @@ export interface Order {
   obs_prova: string | null;
   parent_order_id: string | null;
   related_order_ids?: string[] | null;
+  prioridade_producao?: boolean | null;
   // New ENTREGA fields
   tipo_entrega: string[];
   entrega_para: string | null;

@@ -180,7 +180,7 @@ describe("Primacor Kaban - Vinculação de O.S. Relacionadas", () => {
     });
 
     it("deve buscar no banco caso não esteja em memória", async () => {
-      const mockSelect = vi.fn().mockReturnValue({
+      const mockChain: any = {
         in: vi.fn().mockResolvedValue({
           data: [
             {
@@ -195,9 +195,13 @@ describe("Primacor Kaban - Vinculação de O.S. Relacionadas", () => {
           ],
           error: null,
         }),
-      });
+        ilike: vi.fn().mockReturnThis(),
+        limit: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        or: vi.fn().mockReturnThis(),
+      };
 
-      (supabase.from as any).mockReturnValue({ select: mockSelect });
+      (supabase.from as any).mockReturnValue({ select: vi.fn().mockReturnValue(mockChain) });
 
       const info = await getRelatedOrdersInfo(["os-999"], mockOrders);
       expect(info).toHaveLength(1);
@@ -297,9 +301,14 @@ describe("Primacor Kaban - Vinculação de O.S. Relacionadas", () => {
 
     it("não deve permitir auto-vínculo nem IDs duplicados", async () => {
       const mockUpdate = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) });
+      const mockSelectChain: any = {
+        eq: vi.fn().mockReturnValue({ maybeSingle: vi.fn().mockResolvedValue({ data: null }), limit: vi.fn().mockResolvedValue({ data: [] }) }),
+        ilike: vi.fn().mockReturnValue({ limit: vi.fn().mockResolvedValue({ data: [] }) }),
+        in: vi.fn().mockResolvedValue({ data: [], error: null }),
+      };
       (supabase.from as any).mockReturnValue({
         update: mockUpdate,
-        select: vi.fn().mockReturnValue({ eq: vi.fn().mockReturnValue({ maybeSingle: vi.fn().mockResolvedValue({ data: null }) }) }),
+        select: vi.fn().mockReturnValue(mockSelectChain),
         upsert: vi.fn().mockResolvedValue({ error: null }),
       });
 

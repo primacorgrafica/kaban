@@ -50,10 +50,10 @@ import { OrderAttachmentsSection } from "./sharepoint/OrderAttachmentsSection";
 import { OrderEmailEventsSection } from "./email/OrderEmailEventsSection";
 import { CreateOrderDialog } from "./CreateOrderDialog";
 import { RelatedOrdersPopover } from "./orders/RelatedOrdersPopover";
-import { cleanObservationRelatedOrders, cleanOsNumber } from "@/lib/orderRelationsService";
+import { cleanObservationRelatedOrders, cleanOsNumber, getEffectiveRelatedOrders } from "@/lib/orderRelationsService";
+import { cleanObservationProductionPriority } from "@/lib/productionPriority";
 import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
 import { fetchOperadoresList, OperadorProfile } from "@/lib/operadores";
-import { cleanOsNumber } from "./ProductionCard";
 import { useAuth } from "@/hooks/useAuth";
 import { usePermissions } from "@/hooks/usePermissions";
 
@@ -179,7 +179,7 @@ function getVisibleSections(departmentContext?: string): { general: boolean; pro
 
 function OrderCardImpl({ order, orderIndex, totalOrders, onUpdate, onMove, onArchive, onDelete, onDuplicate, onSendToProduction, onSendToMultipleProduction, onSendToExpedicao, onSendToCompras, dragHandleProps, updatedByName, createdByName, permissions, departmentContext, isSlowAlert }: OrderCardProps) {
   const currentRevision = getOrderRevision(order);
-  const cleanObs = cleanObservationRevision(cleanObservationRelatedOrders(order.observacao));
+  const cleanObs = cleanObservationProductionPriority(cleanObservationRevision(cleanObservationRelatedOrders(order.observacao)));
   const { hasUnread, hasVerified, getUnreadEvents } = useUnreadEmailReplies();
   const isEmailUnread = hasUnread(order.id);
   const unreadEmailEvents = getUnreadEvents(order.id);
@@ -527,14 +527,21 @@ function OrderCardImpl({ order, orderIndex, totalOrders, onUpdate, onMove, onArc
               </span>
             ) : null}
 
-            {/* Ícone de O.S. Relacionadas com menu e navegação */}
-            {order.related_order_ids && order.related_order_ids.length > 0 && (
-              <RelatedOrdersPopover
-                currentOrderId={order.id}
-                currentOrderTitle={order.titulo}
-                relatedOrderIds={order.related_order_ids}
-              />
-            )}
+            {/* Ícone de O.S. Relacionadas com menu e navegação (resiliente com fallback para observação) */}
+            {(() => {
+              const effectiveRelatedIds =
+                order.related_order_ids && order.related_order_ids.length > 0
+                  ? order.related_order_ids
+                  : getEffectiveRelatedOrders(order);
+              if (!effectiveRelatedIds || effectiveRelatedIds.length === 0) return null;
+              return (
+                <RelatedOrdersPopover
+                  currentOrderId={order.id}
+                  currentOrderTitle={order.titulo}
+                  relatedOrderIds={effectiveRelatedIds}
+                />
+              );
+            })()}
           </div>
 
           {/* Centro / Direita: FLAGS DE STATUS */}

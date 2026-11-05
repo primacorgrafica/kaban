@@ -1,6 +1,7 @@
 import { Order } from "@/types/order";
 import { toast } from "sonner";
 import { DepartmentConfig, Department } from "@/types/production";
+import { hasProductionPriority } from "@/lib/productionPriority";
 import { ProductionColumn } from "./ProductionColumn";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { useRef, useCallback, useState, useEffect } from "react";
@@ -71,6 +72,12 @@ export function ProductionKanbanBoard({
 
   department.statuses.forEach(s => {
     ordersByStatus[s.id].sort((a, b) => {
+      // Prioridades da Produção vêm sempre primeiro no topo da coluna
+      const isPriorityA = hasProductionPriority(a);
+      const isPriorityB = hasProductionPriority(b);
+      if (isPriorityA !== isPriorityB) {
+        return isPriorityA ? -1 : 1;
+      }
       const posA = typeof a.posicao === "number" ? a.posicao : 9999;
       const posB = typeof b.posicao === "number" ? b.posicao : 9999;
       if (posA !== posB) return posA - posB;

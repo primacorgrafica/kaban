@@ -203,9 +203,10 @@ export async function searchOrdersForRelation(
 }
 
 /**
- * Obtém as informações resumidas de uma lista de IDs ou números de O.S. relacionadas
+ * Obtém as informações resumidas de uma lista de IDs ou números de O.S. relacionadas.
+ * Com proteção contra UUID inválido (22P02) e timeout de segurança para nunca travar a UI em loop.
  */
-export async function getRelatedOrdersInfo(
+async function getRelatedOrdersInfoInternal(
   relatedIds: string[],
   inMemoryOrders: Order[] = []
 ): Promise<RelatedOrderSummary[]> {
@@ -241,60 +242,76 @@ export async function getRelatedOrdersInfo(
   // 2. Busca identificadores ausentes no banco Supabase
   if (missingIds.length > 0) {
     try {
-      // 1. Tenta buscar por ID exato
-      const { data: idRows, error: idErr } = await supabase
-        .from("orders")
-        .select("id, titulo, cliente, descricao, setor, status, setor_status, arquivado, observacao")
-        .in("id", missingIds);
+      // 1. Tenta buscar por ID para identificadores que não são puramente números de O.S. (UUIDs ou IDs de teste)
+      const idCandidates = missingIds.filter((id) => !/^\d+$/.test(id.trim().replace(/^#+/, "")));
+      const pureNumIds = missingIds.filter((id) => /^\d+$/.test(id.trim().replace(/^#+/, "")));
 
-      if (!idErr && Array.isArray(idRows)) {
-        idRows.forEach((row: any) => {
-          if (!foundKeys.has(row.id)) {
-            found.push(toRelatedOrderSummary(row));
-            foundKeys.add(row.id);
-            knownOrdersCache.set(row.id, row);
-            const num = cleanOsNumber(row.titulo);
-            if (num) knownOrdersCache.set(num, row);
+      if (idCandidates.length > 0) {
+        try {
+          const { data: idRows, error: idErr } = await supabase
+            .from("orders")
+            .select("id, titulo, cliente, descricao, setor, status, setor_status, arquivado, observacao")
+            .in("id", idCandidates);
+
+          if (!idErr && Array.isArray(idRows)) {
+            idRows.forEach((row: any) => {
+              if (!foundKeys.has(row.id)) {
+                found.push(toRelatedOrderSummary(row));
+                foundKeys.add(row.id);
+                knownOrdersCache.set(row.id, row);
+                const num = cleanOsNumber(row.titulo);
+                if (num) knownOrdersCache.set(num, row);
+              }
+            });
           }
-        });
+        } catch {
+          // Continua para a busca por título
+        }
       }
 
       // 2. Para os identificadores que não foram encontrados por ID (ex: número da O.S.)
-      const stillMissing = missingIds.filter((id) => !foundKeys.has(id));
+      const stillMissing = [...pureNumIds, ...idCandidates.filter((id) => !foundKeys.has(id))];
       for (const rawNum of stillMissing) {
         const cleanNum = cleanOsNumber(rawNum) || rawNum;
-        const { data: numRows, error: nErr } = await supabase
-          .from("orders")
-          .select("id, titulo, cliente, descricao, setor, status, setor_status, arquivado, observacao")
-          .ilike("titulo", `%${cleanNum}%`)
-          .limit(1);
+        if (!cleanNum) continue;
 
-        if (!nErr && Array.isArray(numRows) && numRows.length > 0) {
-          const row = numRows[0];
-          if (!foundKeys.has(row.id)) {
-            found.push(toRelatedOrderSummary(row));
-            foundKeys.add(row.id);
-            knownOrdersCache.set(row.id, row);
-            const num = cleanOsNumber(row.titulo);
-            if (num) knownOrdersCache.set(num, row);
+        try {
+          const { data: numRows, error: nErr } = await supabase
+            .from("orders")
+            .select("id, titulo, cliente, descricao, setor, status, setor_status, arquivado, observacao")
+            .ilike("titulo", `%${cleanNum}%`)
+            .limit(1);
+
+          if (!nErr && Array.isArray(numRows) && numRows.length > 0) {
+            const row = numRows[0];
+            if (!foundKeys.has(row.id)) {
+              found.push(toRelatedOrderSummary(row));
+              foundKeys.add(row.id);
+              knownOrdersCache.set(row.id, row);
+              const num = cleanOsNumber(row.titulo);
+              if (num) knownOrdersCache.set(num, row);
+            }
+            continue;
           }
-        } else {
-          // Fallback resiliente: se a O.S. não foi achada no banco, monta um resumo mínimo com o número
-          // para que a interface NUNCA fique em loading infinito
-          const placeholderId = `os-${cleanNum}`;
-          if (!foundKeys.has(placeholderId)) {
-            found.push({
-              id: placeholderId,
-              titulo: cleanNum,
-              cliente: "O.S. Vinculada",
-              descricao: `O.S. #${cleanNum}`,
-              setor: null,
-              status: null,
-              setor_status: null,
-              arquivado: false,
-            });
-            foundKeys.add(placeholderId);
-          }
+        } catch {
+          // Continua para o fallback
+        }
+
+        // Fallback resiliente: se a O.S. não foi achada no banco, monta um resumo mínimo com o número
+        // para que a interface NUNCA fique em loading infinito
+        const placeholderId = `os-${cleanNum}`;
+        if (!foundKeys.has(placeholderId)) {
+          found.push({
+            id: placeholderId,
+            titulo: cleanNum,
+            cliente: "O.S. Vinculada",
+            descricao: `O.S. #${cleanNum}`,
+            setor: null,
+            status: null,
+            setor_status: null,
+            arquivado: false,
+          });
+          foundKeys.add(placeholderId);
         }
       }
     } catch (err) {
@@ -306,6 +323,39 @@ export async function getRelatedOrdersInfo(
   return found.sort((a, b) =>
     (a.titulo || "").localeCompare(b.titulo || "", undefined, { numeric: true })
   );
+}
+
+/**
+ * Obtém as informações resumidas de uma lista de IDs ou números de O.S. relacionadas.
+ * Envolve a busca em um timeout de segurança de 3,5 segundos para NUNCA travar a UI em loop.
+ */
+export async function getRelatedOrdersInfo(
+  relatedIds: string[],
+  inMemoryOrders: Order[] = []
+): Promise<RelatedOrderSummary[]> {
+  const fetchPromise = getRelatedOrdersInfoInternal(relatedIds, inMemoryOrders);
+
+  const timeoutPromise = new Promise<RelatedOrderSummary[]>((resolve) => {
+    setTimeout(() => {
+      resolve(
+        relatedIds.map((id) => {
+          const clean = cleanOsNumber(id) || id;
+          return {
+            id,
+            titulo: clean,
+            cliente: "O.S. Vinculada",
+            descricao: `O.S. #${clean}`,
+            setor: null,
+            status: null,
+            setor_status: null,
+            arquivado: false,
+          };
+        })
+      );
+    }, 3500);
+  });
+
+  return Promise.race([fetchPromise, timeoutPromise]);
 }
 
 /**
@@ -383,15 +433,24 @@ export async function syncOrderRelations(
   for (const targetId of addedIds) {
     try {
       // Busca dados atuais da ordem B sem quebrar com coluna inexistente
-      let targetOrderQuery = supabase.from("orders").select("id, titulo, observacao");
+      let targetRows: any[] | null = null;
       if (isUuid(targetId)) {
-        targetOrderQuery = targetOrderQuery.eq("id", targetId);
+        const res = await supabase
+          .from("orders")
+          .select("id, titulo, observacao")
+          .eq("id", targetId)
+          .limit(1);
+        targetRows = res.data;
       } else {
         const cleanNum = cleanOsNumber(targetId) || targetId;
-        targetOrderQuery = targetOrderQuery.ilike("titulo", `%${cleanNum}%`).limit(1);
+        const res = await supabase
+          .from("orders")
+          .select("id, titulo, observacao")
+          .ilike("titulo", `%${cleanNum}%`)
+          .limit(1);
+        targetRows = res.data;
       }
 
-      const { data: targetRows } = await targetOrderQuery;
       const targetOrder = Array.isArray(targetRows) && targetRows.length > 0 ? targetRows[0] : null;
 
       if (targetOrder) {
@@ -447,15 +506,24 @@ export async function syncOrderRelations(
   // 3. Processa remoções (BIDIRECIONAL: O.S. desvinculada B remove A de suas relacionadas)
   for (const targetId of removedIds) {
     try {
-      let targetOrderQuery = supabase.from("orders").select("id, titulo, observacao");
+      let targetRows: any[] | null = null;
       if (isUuid(targetId)) {
-        targetOrderQuery = targetOrderQuery.eq("id", targetId);
+        const res = await supabase
+          .from("orders")
+          .select("id, titulo, observacao")
+          .eq("id", targetId)
+          .limit(1);
+        targetRows = res.data;
       } else {
         const cleanNum = cleanOsNumber(targetId) || targetId;
-        targetOrderQuery = targetOrderQuery.ilike("titulo", `%${cleanNum}%`).limit(1);
+        const res = await supabase
+          .from("orders")
+          .select("id, titulo, observacao")
+          .ilike("titulo", `%${cleanNum}%`)
+          .limit(1);
+        targetRows = res.data;
       }
 
-      const { data: targetRows } = await targetOrderQuery;
       const targetOrder = Array.isArray(targetRows) && targetRows.length > 0 ? targetRows[0] : null;
 
       if (targetOrder) {

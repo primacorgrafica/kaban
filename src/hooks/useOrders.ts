@@ -6,6 +6,11 @@ import {
   setObservationRelatedOrders,
   syncOrderRelations,
 } from "@/lib/orderRelationsService";
+import {
+  hasProductionPriority,
+  setObservationProductionPriority,
+  cleanObservationProductionPriority,
+} from "@/lib/productionPriority";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -70,12 +75,14 @@ export function useOrders() {
         all.push(...rows.map((r) => {
           const effectiveOsAnt = getEffectiveOsAnterior(r);
           const effectiveRelated = getEffectiveRelatedOrders(r);
+          const hasPrio = hasProductionPriority(r);
           return {
             ...r,
             os_anterior: effectiveOsAnt || r.os_anterior || null,
             tipo_trabalho: effectiveOsAnt && (!r.tipo_trabalho || r.tipo_trabalho === "novo") ? "repeticao" : (r.tipo_trabalho || "novo"),
             revisao: getOrderRevision(r),
             related_order_ids: (r.related_order_ids && r.related_order_ids.length > 0) ? r.related_order_ids : effectiveRelated,
+            prioridade_producao: hasPrio,
           };
         }));
         if (rows.length < PAGE_SIZE) break;
@@ -108,12 +115,14 @@ export function useOrders() {
     if (!newRow?.id) return;
     const effectiveOsAnt = getEffectiveOsAnterior(newRow);
     const effectiveRelated = getEffectiveRelatedOrders(newRow);
+    const hasPrio = hasProductionPriority(newRow);
     const normalizedRow: Order = {
       ...newRow,
       os_anterior: effectiveOsAnt || newRow.os_anterior || null,
       tipo_trabalho: effectiveOsAnt && (!newRow.tipo_trabalho || newRow.tipo_trabalho === "novo") ? "repeticao" : (newRow.tipo_trabalho || "novo"),
       revisao: getOrderRevision(newRow),
       related_order_ids: (newRow.related_order_ids && newRow.related_order_ids.length > 0) ? newRow.related_order_ids : effectiveRelated,
+      prioridade_producao: hasPrio,
     };
 
     if (oldRow?.status !== newRow.status) {
@@ -531,6 +540,11 @@ export function useOrders() {
         updatePayload.observacao = setObservationRelatedOrders(targetObs, data.related_order_ids);
       }
 
+      if (data.prioridade_producao !== undefined) {
+        const targetObs = updatePayload.observacao !== undefined ? updatePayload.observacao : (currentOrder?.observacao || "");
+        updatePayload.observacao = setObservationProductionPriority(targetObs, Boolean(data.prioridade_producao));
+      }
+
       setOrders(prev => prev.map(o => {
         const isTarget = o.id === id || (currentOrder?.parent_order_id && o.parent_order_id === currentOrder.parent_order_id) || o.parent_order_id === id;
         if (isTarget) {
@@ -573,6 +587,11 @@ export function useOrders() {
       }
       if (error && (error.message?.includes("related_order_ids") || error.details?.includes("related_order_ids") || (error as any).code === "PGRST204" || (error as any).code === "42703")) {
         delete updatePayload.related_order_ids;
+        const retry = await supabase.from("orders").update(updatePayload as any).eq("id", id);
+        error = retry.error;
+      }
+      if (error && (error.message?.includes("prioridade_producao") || error.details?.includes("prioridade_producao") || (error as any).code === "PGRST204" || (error as any).code === "42703")) {
+        delete updatePayload.prioridade_producao;
         const retry = await supabase.from("orders").update(updatePayload as any).eq("id", id);
         error = retry.error;
       }
@@ -861,16 +880,24 @@ export function useOrders() {
   const sendToProduction = useCallback(async (orderId: string, department: Department, machine?: string) => {
     const order = orders.find(o => o.id === orderId);
     const isUrgent = order && (order.urgente_prova || order.urgente_impressao || order.urgente_acabamento || order.urgente_expedicao);
-    const { error } = await supabase
-      .from("orders")
-      .update({
-        setor: department,
-        setor_status: "entrada",
-        maquina: machine || null,
-        posicao: isUrgent ? 0 : 9999,
-        atualizado_por: user?.id || null,
-      })
-      .eq("id", orderId);
+    const cleanedObs = cleanObservationProductionPriority(order?.observacao);
+
+    const payload: any = {
+      setor: department,
+      setor_status: "entrada",
+      maquina: machine || null,
+      posicao: isUrgent ? 0 : 9999,
+      atualizado_por: user?.id || null,
+      prioridade_producao: false,
+      observacao: cleanedObs,
+    };
+
+    let { error } = await supabase.from("orders").update(payload).eq("id", orderId);
+    if (error && (error.message?.includes("prioridade_producao") || (error as any).code === "42703" || (error as any).code === "PGRST204")) {
+      delete payload.prioridade_producao;
+      const retry = await supabase.from("orders").update(payload).eq("id", orderId);
+      error = retry.error;
+    }
 
     if (error) {
       if ((error as any).code === "23505") {
@@ -890,9 +917,12 @@ export function useOrders() {
     const originalOrder = orders.find(o => o.id === orderId);
     if (!originalOrder) return;
     const isUrgent = originalOrder.urgente_prova || originalOrder.urgente_impressao || originalOrder.urgente_acabamento || originalOrder.urgente_expedicao;
+    const cleanedObs = cleanObservationProductionPriority(originalOrder.observacao);
 
-    const { error } = await supabase.from("orders").insert({
+    const payload: any = {
       ...copyOrderFields(originalOrder),
+      observacao: cleanedObs,
+      prioridade_producao: false,
       criado_por: originalOrder.criado_por,
       atualizado_por: user?.id || null,
       setor: "expedicao",
@@ -900,7 +930,14 @@ export function useOrders() {
       maquina: "Moto",
       posicao: isUrgent ? 0 : 9999,
       parent_order_id: orderId,
-    } as any);
+    };
+
+    let { error } = await supabase.from("orders").insert(payload as any);
+    if (error && (error.message?.includes("prioridade_producao") || (error as any).code === "42703" || (error as any).code === "PGRST204")) {
+      delete payload.prioridade_producao;
+      const retry = await supabase.from("orders").insert(payload as any);
+      error = retry.error;
+    }
 
     if (error) {
       if ((error as any).code === "23505") {

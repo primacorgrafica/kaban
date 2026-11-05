@@ -40,11 +40,19 @@ import { RotateCcw, Clock,
   Sparkles,
   ChevronRight,
   Filter,
-  Repeat, } from "lucide-react";
+  Repeat,
+  Star,
+  StarOff,
+} from "lucide-react";
 import { toast } from "sonner";
 import { OrderDetailDialog } from "./OrderDetailDialog";
 import { getProcessoCor, sortAndFilterProcessos } from "@/lib/processos";
 import { cleanOsNumber } from "./ProductionCard";
+import {
+  hasProductionPriority,
+  toggleProductionPriority,
+  isOrderInProduction,
+} from "@/lib/productionPriority";
 
 interface Permissions {
   canEditCard: boolean;
@@ -132,6 +140,13 @@ export function ProductionTable({
 
   const sortedOrders = useMemo(() => {
     return [...orders].sort((a, b) => {
+      // Prioridade na Produção sempre vem em destaque no topo
+      const prioA = hasProductionPriority(a);
+      const prioB = hasProductionPriority(b);
+      if (prioA !== prioB) {
+        return prioA ? -1 : 1;
+      }
+
       let comparison = 0;
       if (sortField === "titulo") {
         comparison = (a.titulo || "").localeCompare(b.titulo || "", undefined, { numeric: true });
@@ -373,6 +388,15 @@ export function ProductionTable({
                         <span className="px-1.5 py-0.5 rounded bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/60 text-[11px]">
                           {cleanOsNumber(order.titulo) || order.titulo?.replace(/^#+/, "")}
                         </span>
+                        {hasProductionPriority(order) && (
+                          <span
+                            className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-500 border border-amber-500/40 text-[10px] font-bold flex items-center gap-1 shadow-xs"
+                            title="O.S. com Prioridade na Produção"
+                          >
+                            <Star className="h-2.5 w-2.5 fill-amber-500 text-amber-500 shrink-0" />
+                            <span>PRIORIDADE</span>
+                          </span>
+                        )}
                         {(() => {
                           const effectiveOsAnt = getEffectiveOsAnterior(order);
                           const isRep = order.tipo_trabalho === "repeticao" || !!effectiveOsAnt;
@@ -516,6 +540,15 @@ export function ProductionTable({
                           >
                             <ExternalLink className="h-3.5 w-3.5 mr-2 text-[#9BA8AB]" /> Inspecionar O.S.
                           </DropdownMenuItem>
+                          {!permissions.isViewOnly && isOrderInProduction(order) && (
+                            <DropdownMenuItem
+                              onClick={() => void toggleProductionPriority(order, (id, data) => onUpdate(id, data))}
+                              className="text-xs hover:bg-accent cursor-pointer text-amber-500"
+                            >
+                              <Star className={`h-3.5 w-3.5 mr-2 ${hasProductionPriority(order) ? "fill-amber-500" : ""}`} />
+                              {hasProductionPriority(order) ? "Remover prioridade" : "Marcar como prioridade"}
+                            </DropdownMenuItem>
+                          )}
                           {permissions.canArchive && (
                             <DropdownMenuItem
                               onClick={() => onArchive(order.id)}

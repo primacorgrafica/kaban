@@ -9,7 +9,7 @@ import { ptBR } from "date-fns/locale";
 import { businessHoursMs } from "@/lib/businessHours";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeApprovalEntry } from "@/lib/approvalEntryCache";
-import { RotateCcw, Calendar, User, FileText, Archive, Trash2, ChevronRight, ChevronLeft, GripVertical, UserCheck, Clock, AlertTriangle, Send, Undo2, Briefcase, Truck, Edit2, Check, Mail, HardHat, CheckCircle, ArrowUp, ArrowDown, Repeat } from "lucide-react";
+import { RotateCcw, Calendar, User, FileText, Archive, Trash2, ChevronRight, ChevronLeft, GripVertical, UserCheck, Clock, AlertTriangle, Send, Undo2, Briefcase, Truck, Edit2, Check, Mail, HardHat, CheckCircle, ArrowUp, ArrowDown, Repeat, Star, StarOff } from "lucide-react";
 import { toast } from "sonner";
 import { OrderEmailEventsSection } from "@/components/email/OrderEmailEventsSection";
 import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
@@ -34,7 +34,14 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup as RadioGroupBase, RadioGroupItem } from "@/components/ui/radio-group";
 import { RelatedOrdersPopover } from "./orders/RelatedOrdersPopover";
-import { cleanObservationRelatedOrders, cleanOsNumber } from "@/lib/orderRelationsService";
+import { cleanObservationRelatedOrders, getEffectiveRelatedOrders } from "@/lib/orderRelationsService";
+export { cleanOsNumber } from "@/lib/orderRelationsService";
+import {
+  hasProductionPriority,
+  toggleProductionPriority,
+  isOrderInProduction,
+  cleanObservationProductionPriority,
+} from "@/lib/productionPriority";
 
 interface ProductionCardProps {
   order: Order;
@@ -81,11 +88,6 @@ export function isOrderFromOS(order: {
   if (order.parent_order_id) return true;
   const t = (order.titulo || "").trim().toUpperCase();
   return !!t && t !== "OC" && !t.startsWith("OC.") && !t.startsWith("OC-") && !t.startsWith("OC ");
-}
-
-export function cleanOsNumber(titulo: string | null | undefined): string {
-  if (!titulo) return "";
-  return titulo.replace(/^O\.?S\.?[\s._-]*/i, "").replace(/^#+/, "").trim();
 }
 
 function ProductionCardImpl({
@@ -200,6 +202,8 @@ function ProductionCardImpl({
   const isNC = !!(order as any).nc_numero;
   const isSpecialOrder = isOM || isOC || isNC;
   const cleanOsTitulo = cleanOsNumber(order.titulo);
+  const isProdPriority = hasProductionPriority(order);
+  const canTogglePriority = !readOnly && isOrderInProduction(order);
   const isExpedicaoCopy = department.id === "expedicao" && !!order.parent_order_id;
   // Sector-specific urgency
   const isUrgentProva = order.urgente_prova;
@@ -317,6 +321,8 @@ function ProductionCardImpl({
             ? "bg-rose-500/10 border-rose-500/40 text-card-foreground"
             : isNearDeadline
             ? "bg-card/85 dark:bg-[#11212D]/85 border-amber-500/50 text-card-foreground"
+            : isProdPriority
+            ? "bg-card/90 dark:bg-[#11212D]/90 border-amber-500/60 dark:border-amber-500/50 border-l-4 border-l-amber-500 shadow-amber-500/10 shadow-md text-card-foreground hover:border-amber-400"
             : "bg-card/85 dark:bg-[#11212D]/85 border-border/80 dark:border-[#4A5C6A]/35 text-card-foreground hover:border-[#9BA8AB]/60 hover:shadow-lg dark:hover:shadow-[0_12px_36px_rgba(6,20,27,0.65)]"
         } ${isNearDeadline && !sectorUrgent ? "animate-pulse" : ""}`}
       >
@@ -532,8 +538,25 @@ function ProductionCardImpl({
               </div>
             )}
 
-            {/* Indicador de Posição na Fila */}
-            <div className="min-w-[28px] flex justify-end">
+            {/* Indicador de Posição na Fila e Prioridade na Produção */}
+            <div className="flex items-center gap-1.5 min-w-[28px] justify-end">
+              {canTogglePriority && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    void toggleProductionPriority(order, (id, data) => onUpdate(id, data));
+                  }}
+                  className={`p-1 rounded transition-colors cursor-pointer flex items-center justify-center ${
+                    isProdPriority
+                      ? "text-amber-500 bg-amber-500/20 hover:bg-amber-500/30"
+                      : "text-muted-foreground/60 hover:text-amber-500 hover:bg-amber-500/10"
+                  }`}
+                  title={isProdPriority ? "Remover prioridade da Produção" : "Marcar como prioridade na Produção"}
+                >
+                  <Star className={`h-3.5 w-3.5 ${isProdPriority ? "fill-amber-500 text-amber-500" : ""}`} />
+                </button>
+              )}
               {typeof orderIndex === "number" && typeof totalOrders === "number" && totalOrders > 1 && (
                 <span className="text-[10px] font-mono-tech font-bold text-muted-foreground/70 px-1 py-0.2 rounded bg-background/50 border border-border/40">
                   {orderIndex + 1}º
@@ -654,21 +677,38 @@ function ProductionCardImpl({
           </div>
 
           {/* Linha 2: OS + Badges */}
-          <div className="flex items-center gap-2 mt-1.5 min-w-0">
+          <div className="flex items-center gap-2 mt-1.5 min-w-0 flex-wrap">
             <h4
               className={`font-semibold text-[15px] shrink-0 ${isUrgent ? "text-red-700 dark:text-red-400" : "text-card-foreground"}`}
               title={(order as any).oc_numero ? `OC #${String((order as any).oc_numero).padStart(4, "0")}` : undefined}
             >
               OS. {cleanOsTitulo || order.titulo}
             </h4>
-            {/* Ícone de O.S. Relacionadas com menu e navegação */}
-            {order.related_order_ids && order.related_order_ids.length > 0 && (
-              <RelatedOrdersPopover
-                currentOrderId={order.id}
-                currentOrderTitle={order.titulo}
-                relatedOrderIds={order.related_order_ids}
-              />
+            {/* Indicador de Prioridade na Produção */}
+            {isProdPriority && (
+              <span
+                className="font-mono-tech text-[11px] font-extrabold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 shrink-0 flex items-center gap-1 shadow-xs tracking-wide"
+                title="O.S. com Prioridade na Produção"
+              >
+                <Star className="h-3 w-3 fill-amber-500 text-amber-500" />
+                <span>PRIORIDADE</span>
+              </span>
             )}
+            {/* Ícone de O.S. Relacionadas com menu e navegação (resiliente com fallback para observação) */}
+            {(() => {
+              const effectiveRelatedIds =
+                order.related_order_ids && order.related_order_ids.length > 0
+                  ? order.related_order_ids
+                  : getEffectiveRelatedOrders(order);
+              if (!effectiveRelatedIds || effectiveRelatedIds.length === 0) return null;
+              return (
+                <RelatedOrdersPopover
+                  currentOrderId={order.id}
+                  currentOrderTitle={order.titulo}
+                  relatedOrderIds={effectiveRelatedIds}
+                />
+              );
+            })()}
             {getOrderRevision(order) >= 1 && (
               <span
                 className="font-mono-tech text-[13px] font-extrabold px-2 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 shrink-0 flex items-center gap-1 shadow-xs tracking-wide"
@@ -788,7 +828,7 @@ function ProductionCardImpl({
                   </span>
                 </div>
                 <p className="text-xs font-bold text-foreground break-words leading-snug">
-                  {order.observacao}
+                  {cleanObservationProductionPriority(cleanObservationRelatedOrders(order.observacao))}
                 </p>
               </div>
             ) : (
@@ -814,8 +854,8 @@ function ProductionCardImpl({
               </div>
             )
           ) : (
-            department.id !== "faturamento" && cleanObservationRelatedOrders(order.observacao) && (
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-2 italic">{cleanObservationRelatedOrders(order.observacao)}</p>
+            department.id !== "faturamento" && cleanObservationProductionPriority(cleanObservationRelatedOrders(order.observacao)) && (
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2 italic">{cleanObservationProductionPriority(cleanObservationRelatedOrders(order.observacao))}</p>
             )
           )}
             </>
@@ -833,9 +873,9 @@ function ProductionCardImpl({
            )}
 
           {/* Faturamento: OBS Gerais read-only on card (only if has content) */}
-          {department.id === "faturamento" && cleanObservationRelatedOrders(order.observacao) && (
+          {department.id === "faturamento" && cleanObservationProductionPriority(cleanObservationRelatedOrders(order.observacao)) && (
             <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2 italic border-t border-dashed pt-1">
-              <span className="font-semibold not-italic">OBS:</span> {cleanObservationRelatedOrders(order.observacao)}
+              <span className="font-semibold not-italic">OBS:</span> {cleanObservationProductionPriority(cleanObservationRelatedOrders(order.observacao))}
             </p>
           )}
           {/* Faturamento: show pending checklist items when in Pendência column */}
@@ -1124,16 +1164,34 @@ function ProductionCardImpl({
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="max-w-2xl md:max-w-3xl max-h-[90vh] overflow-y-auto scrollbar-none border border-border bg-card text-card-foreground shadow-2xl backdrop-blur-2xl rounded-2xl">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
-              {isOM
-                ? `OM. ${String((order as any).om_numero).padStart(4, "0")}`
-                : isOC
-                ? `OC. ${String((order as any).oc_numero).padStart(4, "0")}`
-                : isNC
-                ? `NC. ${String((order as any).nc_numero).padStart(4, "0")}`
-                : editing ? `Editar OS. ${cleanOsTitulo || order.titulo}` : `Detalhes da OS. ${cleanOsTitulo || order.titulo}`}
-            </DialogTitle>
+            <div className="flex items-center justify-between gap-2 pr-6 flex-wrap">
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5 text-primary" />
+                {isOM
+                  ? `OM. ${String((order as any).om_numero).padStart(4, "0")}`
+                  : isOC
+                  ? `OC. ${String((order as any).oc_numero).padStart(4, "0")}`
+                  : isNC
+                  ? `NC. ${String((order as any).nc_numero).padStart(4, "0")}`
+                  : editing ? `Editar OS. ${cleanOsTitulo || order.titulo}` : `Detalhes da OS. ${cleanOsTitulo || order.titulo}`}
+              </DialogTitle>
+              {canTogglePriority && (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={isProdPriority ? "default" : "outline"}
+                  onClick={() => void toggleProductionPriority(order, (id, data) => onUpdate(id, data))}
+                  className={`h-7 px-2.5 text-xs font-semibold gap-1.5 transition-all cursor-pointer ${
+                    isProdPriority
+                      ? "bg-amber-500 hover:bg-amber-600 text-white shadow-xs"
+                      : "border-amber-500/40 text-amber-600 dark:text-amber-400 hover:bg-amber-500/10"
+                  }`}
+                >
+                  <Star className={`h-3.5 w-3.5 ${isProdPriority ? "fill-white text-white" : "text-amber-500"}`} />
+                  <span>{isProdPriority ? "Remover prioridade" : "Marcar como prioridade"}</span>
+                </Button>
+              )}
+            </div>
           </DialogHeader>
 
           {editing && !isSpecialOrder ? (
@@ -1370,8 +1428,8 @@ function ProductionCardImpl({
                       </span>
                     </div>
                   )}
-                  {order.observacao && (
-                    <div className="text-xs italic text-muted-foreground mt-0.5">OBS: {order.observacao}</div>
+                  {order.observacao && cleanObservationProductionPriority(cleanObservationRelatedOrders(order.observacao)) && (
+                    <div className="text-xs italic text-muted-foreground mt-0.5">OBS: {cleanObservationProductionPriority(cleanObservationRelatedOrders(order.observacao))}</div>
                   )}
                 </div>
               ) : (
@@ -1399,8 +1457,8 @@ function ProductionCardImpl({
                   {order.descricao && order.descricao !== "-" && (
                     <div><p className="text-sm text-muted-foreground">Descrição</p><p className="text-sm">{order.descricao}</p></div>
                   )}
-                  {order.observacao && (
-                    <div><p className="text-sm text-muted-foreground">Observação</p><p className="text-sm">{order.observacao}</p></div>
+                  {order.observacao && cleanObservationProductionPriority(cleanObservationRelatedOrders(order.observacao)) && (
+                    <div><p className="text-sm text-muted-foreground">Observação</p><p className="text-sm">{cleanObservationProductionPriority(cleanObservationRelatedOrders(order.observacao))}</p></div>
                   )}
                   {order.maquina && (
                     <div><p className="text-sm text-muted-foreground">Máquina</p><p className="text-sm font-bold">{order.maquina}</p></div>
