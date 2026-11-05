@@ -23,6 +23,8 @@ const Index = () => {
     orders,
     activeOrders,
     archivedOrders,
+    archivedCount,
+    loadArchivedOrders,
     loading,
     searchQuery,
     setSearchQuery,
@@ -47,6 +49,12 @@ const Index = () => {
   const location = useLocation();
   const isDashboard = location.pathname === "/dashboard";
   const isArchived = location.pathname === "/arquivados";
+
+  useEffect(() => {
+    if (isArchived && loadArchivedOrders) {
+      void loadArchivedOrders();
+    }
+  }, [isArchived, loadArchivedOrders]);
 
   // Se for entregador, redireciona imediatamente para o painel exclusivo dele (não enxerga o kanban)
   if (role === "entregador") {
@@ -139,7 +147,7 @@ const Index = () => {
       onSearchChange={setSearchQuery}
       onAddOrder={addOrder}
       activeCount={activeOrders.length}
-      archivedCount={archivedOrders.length}
+      archivedCount={archivedCount || archivedOrders.length}
       sectorName={isDashboard ? "Dashboard" : isArchived ? "O.S. Concluídas" : "Pré-Impressão"}
       countsLoading={loading}
       permissions={perms}

@@ -43,6 +43,8 @@ let beaconTimer: ReturnType<typeof setInterval> | null = null;
 // Fila em memória para envio em lote não intrusivo
 let pendingTelemetryQueue: TelemetryPayload[] = [];
 let flushTimeout: ReturnType<typeof setTimeout> | null = null;
+let lastFlushTimestamp = 0;
+const MIN_FLUSH_INTERVAL_MS = 8000; // Protege o banco contra rajadas de I/O
 
 /**
  * Envia métricas enfileiradas para o Supabase sem bloquear a UI
@@ -50,6 +52,15 @@ let flushTimeout: ReturnType<typeof setTimeout> | null = null;
 async function flushTelemetryQueue(): Promise<void> {
   flushTimeout = null;
   if (pendingTelemetryQueue.length === 0) return;
+
+  const now = Date.now();
+  if (now - lastFlushTimestamp < MIN_FLUSH_INTERVAL_MS) {
+    if (!flushTimeout) {
+      flushTimeout = setTimeout(flushTelemetryQueue, MIN_FLUSH_INTERVAL_MS - (now - lastFlushTimestamp));
+    }
+    return;
+  }
+  lastFlushTimestamp = now;
 
   const itemsToSend = [...pendingTelemetryQueue];
   pendingTelemetryQueue = [];

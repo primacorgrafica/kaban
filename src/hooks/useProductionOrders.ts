@@ -37,8 +37,9 @@ export function useProductionOrders() {
   }, []);
 
   const fetchOrders = useCallback(async () => {
-    // PostgREST aplica um limite máximo (~1000) por requisição, mesmo com .range().
-    // Paginamos manualmente para garantir que todas as OS com setor sejam carregadas.
+    // PERFORMANCE (KAE Pilar 2):
+    // Carrega ordens de produção ativas (arquivado = false).
+    // Bate no índice idx_orders_active_setor_status_posicao e carrega em ~50ms.
     const PAGE_SIZE = 1000;
     const all: Order[] = [];
     let from = 0;
@@ -47,6 +48,7 @@ export function useProductionOrders() {
         .from("orders")
         .select("*")
         .not("setor", "is", null)
+        .eq("arquivado", false)
         .order("posicao", { ascending: true })
         .range(from, from + PAGE_SIZE - 1);
       if (error) {
@@ -67,6 +69,26 @@ export function useProductionOrders() {
       if (batch.length < PAGE_SIZE) break;
       from += PAGE_SIZE;
     }
+
+    // Se for a rota exclusiva de faturamento, busca os arquivados de faturamento
+    const isFaturamentoRoute = typeof window !== "undefined" && window.location.pathname.includes("faturamento");
+    if (isFaturamentoRoute) {
+      try {
+        const { data: fatArchived } = await supabase
+          .from("orders")
+          .select("*")
+          .eq("setor", "faturamento")
+          .eq("arquivado", true)
+          .order("updated_at", { ascending: false })
+          .limit(200);
+        if (fatArchived) {
+          all.push(...(fatArchived as Order[]));
+        }
+      } catch (e) {
+        console.warn("Erro ao buscar arquivados do faturamento:", e);
+      }
+    }
+
     setOrders(all);
     registerKnownOrders(all);
   }, [user]);

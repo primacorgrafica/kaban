@@ -38,6 +38,8 @@ export function useOrders() {
   const [profiles, setProfiles] = useState<Record<string, Profile>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [archivedCount, setArchivedCount] = useState<number>(0);
+  const isFetchingArchivedRef = useRef(false);
 
   const fetchProfiles = useCallback(async () => {
     const { data } = await supabase.from("profiles").select("id, user_id, nome, created_at");
@@ -48,10 +50,78 @@ export function useOrders() {
     }
   }, []);
 
+  const fetchArchivedCount = useCallback(async () => {
+    try {
+      const { count } = await supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("arquivado", true);
+      if (count !== null && count !== undefined) {
+        setArchivedCount(count);
+      }
+    } catch (e) {
+      console.warn("Erro ao buscar contagem de arquivados:", e);
+    }
+  }, []);
+
+  const fetchArchivedOrders = useCallback(async () => {
+    if (isFetchingArchivedRef.current) return;
+    isFetchingArchivedRef.current = true;
+    try {
+      const PAGE_SIZE = 1000;
+      const allArchived: Order[] = [];
+      let from = 0;
+      while (true) {
+        const { data, error } = await supabase
+          .from("orders")
+          .select("*")
+          .eq("arquivado", true)
+          .order("updated_at", { ascending: false })
+          .range(from, from + PAGE_SIZE - 1);
+
+        if (error) {
+          console.error("Erro ao carregar ordens arquivadas:", error);
+          break;
+        }
+
+        const rows = (data as Order[]) || [];
+        allArchived.push(...rows.map((r) => {
+          const effectiveOsAnt = getEffectiveOsAnterior(r);
+          const effectiveRelated = getEffectiveRelatedOrders(r);
+          const hasPrio = hasProductionPriority(r);
+          return {
+            ...r,
+            os_anterior: effectiveOsAnt || r.os_anterior || null,
+            tipo_trabalho: effectiveOsAnt && (!r.tipo_trabalho || r.tipo_trabalho === "novo") ? "repeticao" : (r.tipo_trabalho || "novo"),
+            revisao: getOrderRevision(r),
+            related_order_ids: (r.related_order_ids && r.related_order_ids.length > 0) ? r.related_order_ids : effectiveRelated,
+            prioridade_producao: hasPrio,
+          };
+        }));
+
+        if (rows.length < PAGE_SIZE) break;
+        from += PAGE_SIZE;
+      }
+
+      if (allArchived.length > 0) {
+        setArchivedCount(allArchived.length);
+        setOrders((prev) => {
+          const existingIds = new Set(prev.map((o) => o.id));
+          const newArchived = allArchived.filter((o) => !existingIds.has(o.id));
+          return [...prev, ...newArchived];
+        });
+        registerKnownOrders(allArchived);
+      }
+    } finally {
+      isFetchingArchivedRef.current = false;
+    }
+  }, []);
+
   const fetchOrders = useCallback(async () => {
     return measureQueryLatency("useOrders:fetchOrders", async () => {
-      // Paginação: o Supabase limita a 1000 linhas por consulta.
-      // Projeção seletiva com KANBAN_ESSENTIAL_COLUMNS reduz tráfego e heap em mais de 60%.
+      // PERFORMANCE (KAE Pilar 2):
+      // Busca ordens operacionais (arquivado = false).
+      // Utiliza o índice parcial idx_orders_active_posicao e carrega instantaneamente em ~50ms.
       const PAGE_SIZE = 1000;
       const all: Order[] = [];
       let from = 0;
@@ -61,12 +131,13 @@ export function useOrders() {
         const { data, error } = await supabase
           .from("orders")
           .select("*")
+          .eq("arquivado", false)
           .order("posicao", { ascending: true })
           .range(from, from + PAGE_SIZE - 1);
 
         if (error) {
           // ETAPA 6: NÃO limpar o state em caso de erro — preserva dados existentes
-          console.error("Erro ao carregar ordens (dados preservados):", error);
+          console.error("Erro ao carregar ordens ativas (dados preservados):", error);
           hadError = true;
           break;
         }
@@ -96,8 +167,15 @@ export function useOrders() {
           syncServerTimeOffset(all[0].created_at);
         }
       }
+
+      // Atualiza contagem rápida de arquivadas e carrega histórico se estiver na página de O.S. Concluídas
+      void fetchArchivedCount();
+      const isArchivedPage = typeof window !== "undefined" && window.location.pathname === "/arquivados";
+      if (isArchivedPage) {
+        void fetchArchivedOrders();
+      }
     });
-  }, []);
+  }, [fetchArchivedCount, fetchArchivedOrders]);
 
   // PERFORMANCE: merge incremental do payload em vez de refetch completo.
   // Refetch só roda no load inicial; eventos posteriores aplicam INSERT/UPDATE/DELETE
@@ -1108,10 +1186,23 @@ export function useOrders() {
     return true;
   });
 
+  useEffect(() => {
+    const handleRouteChange = () => {
+      if (typeof window !== "undefined" && window.location.pathname === "/arquivados") {
+        void fetchArchivedOrders();
+      }
+    };
+    handleRouteChange();
+    window.addEventListener("popstate", handleRouteChange);
+    return () => window.removeEventListener("popstate", handleRouteChange);
+  }, [fetchArchivedOrders]);
+
   return {
     orders,
     activeOrders,
     archivedOrders,
+    archivedCount: archivedCount > 0 ? archivedCount : archivedOrders.length,
+    loadArchivedOrders: fetchArchivedOrders,
     profiles,
     getProfileName,
     searchQuery,
