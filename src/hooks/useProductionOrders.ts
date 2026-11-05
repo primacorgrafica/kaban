@@ -13,6 +13,7 @@ import { Order, Profile } from "@/types/order";
 import { Department } from "@/types/production";
 import { hasSpecialSuppliesForCompras, setComprasStatusInProcessos } from "@/lib/processos";
 import { syncOrderToCompras, syncComprasStatusToParent } from "@/lib/comprasSync";
+import { getEffectiveRelatedOrders, registerKnownOrders } from "@/lib/orderRelationsService";
 
 export function useProductionOrders() {
   const { user, authReady } = useAuth();
@@ -49,11 +50,18 @@ export function useProductionOrders() {
         return;
       }
       const batch = (data as Order[]) || [];
-      all.push(...batch);
+      all.push(...batch.map((r) => {
+        const effectiveRelated = getEffectiveRelatedOrders(r);
+        return {
+          ...r,
+          related_order_ids: (r.related_order_ids && r.related_order_ids.length > 0) ? r.related_order_ids : effectiveRelated,
+        };
+      }));
       if (batch.length < PAGE_SIZE) break;
       from += PAGE_SIZE;
     }
     setOrders(all);
+    registerKnownOrders(all);
   }, [user]);
 
 
@@ -69,6 +77,11 @@ export function useProductionOrders() {
       return;
     }
     if (!newRow?.id) return;
+    const effectiveRelated = getEffectiveRelatedOrders(newRow);
+    const normalizedRow: Order = {
+      ...newRow,
+      related_order_ids: (newRow.related_order_ids && newRow.related_order_ids.length > 0) ? newRow.related_order_ids : effectiveRelated,
+    };
 
     if (oldRow?.status !== newRow.status) {
       invalidateApprovalEntry(newRow.id);
@@ -79,9 +92,9 @@ export function useProductionOrders() {
       if (newRow.setor == null) {
         return idx === -1 ? prev : prev.filter((o) => o.id !== newRow.id);
       }
-      if (idx === -1) return [...prev, newRow];
+      if (idx === -1) return [...prev, normalizedRow];
       const copy = [...prev];
-      copy[idx] = { ...copy[idx], ...newRow };
+      copy[idx] = { ...copy[idx], ...normalizedRow };
       return copy;
     });
   }, []);
@@ -109,8 +122,25 @@ export function useProductionOrders() {
       void fetchProfiles();
     });
 
+    const handleRelationsUpdated = (e: Event) => {
+      const custom = e as CustomEvent<{ orderId: string; relatedOrderIds: string[] }>;
+      if (custom.detail?.orderId) {
+        setOrders((prev) =>
+          prev.map((o) => {
+            if (o.id === custom.detail.orderId) {
+              return { ...o, related_order_ids: custom.detail.relatedOrderIds };
+            }
+            return o;
+          })
+        );
+      }
+    };
+
+    window.addEventListener("orders-relations-updated", handleRelationsUpdated);
+
     return () => {
       isMounted = false;
+      window.removeEventListener("orders-relations-updated", handleRelationsUpdated);
       unsubOrders();
       unsubProfiles();
       unsubReconcile();

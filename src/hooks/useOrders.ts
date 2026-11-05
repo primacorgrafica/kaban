@@ -1,5 +1,6 @@
 import { getOrderRevision, setObservationRevision, isReturnToPreparation } from "@/lib/orderRevision";
 import { getEffectiveOsAnterior, cleanObservationOsAnterior, setObservationOsAnterior } from "@/lib/orderAnterior";
+import { getEffectiveRelatedOrders, registerKnownOrders } from "@/lib/orderRelationsService";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -63,11 +64,13 @@ export function useOrders() {
         const rows = (data as Order[]) || [];
         all.push(...rows.map((r) => {
           const effectiveOsAnt = getEffectiveOsAnterior(r);
+          const effectiveRelated = getEffectiveRelatedOrders(r);
           return {
             ...r,
             os_anterior: effectiveOsAnt || r.os_anterior || null,
             tipo_trabalho: effectiveOsAnt && (!r.tipo_trabalho || r.tipo_trabalho === "novo") ? "repeticao" : (r.tipo_trabalho || "novo"),
             revisao: getOrderRevision(r),
+            related_order_ids: (r.related_order_ids && r.related_order_ids.length > 0) ? r.related_order_ids : effectiveRelated,
           };
         }));
         if (rows.length < PAGE_SIZE) break;
@@ -76,6 +79,7 @@ export function useOrders() {
 
       if (!hadError) {
         setOrders(all);
+        registerKnownOrders(all);
         if (all.length > 0 && all[0].created_at) {
           syncServerTimeOffset(all[0].created_at);
         }
@@ -98,11 +102,13 @@ export function useOrders() {
     }
     if (!newRow?.id) return;
     const effectiveOsAnt = getEffectiveOsAnterior(newRow);
+    const effectiveRelated = getEffectiveRelatedOrders(newRow);
     const normalizedRow: Order = {
       ...newRow,
       os_anterior: effectiveOsAnt || newRow.os_anterior || null,
       tipo_trabalho: effectiveOsAnt && (!newRow.tipo_trabalho || newRow.tipo_trabalho === "novo") ? "repeticao" : (newRow.tipo_trabalho || "novo"),
       revisao: getOrderRevision(newRow),
+      related_order_ids: (newRow.related_order_ids && newRow.related_order_ids.length > 0) ? newRow.related_order_ids : effectiveRelated,
     };
 
     if (oldRow?.status !== newRow.status) {

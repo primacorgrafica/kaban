@@ -50,6 +50,7 @@ import { OrderAttachmentsSection } from "./sharepoint/OrderAttachmentsSection";
 import { OrderEmailEventsSection } from "./email/OrderEmailEventsSection";
 import { CreateOrderDialog } from "./CreateOrderDialog";
 import { RelatedOrdersPopover } from "./orders/RelatedOrdersPopover";
+import { cleanObservationRelatedOrders } from "@/lib/orderRelationsService";
 import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
 import { fetchOperadoresList, OperadorProfile } from "@/lib/operadores";
 import { cleanOsNumber } from "./ProductionCard";
@@ -178,7 +179,7 @@ function getVisibleSections(departmentContext?: string): { general: boolean; pro
 
 function OrderCardImpl({ order, orderIndex, totalOrders, onUpdate, onMove, onArchive, onDelete, onDuplicate, onSendToProduction, onSendToMultipleProduction, onSendToExpedicao, onSendToCompras, dragHandleProps, updatedByName, createdByName, permissions, departmentContext, isSlowAlert }: OrderCardProps) {
   const currentRevision = getOrderRevision(order);
-  const cleanObs = cleanObservationRevision(order.observacao);
+  const cleanObs = cleanObservationRevision(cleanObservationRelatedOrders(order.observacao));
   const { hasUnread, hasVerified, getUnreadEvents } = useUnreadEmailReplies();
   const isEmailUnread = hasUnread(order.id);
   const unreadEmailEvents = getUnreadEvents(order.id);

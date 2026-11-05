@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/select";
 import { RadioGroup as RadioGroupBase, RadioGroupItem } from "@/components/ui/radio-group";
 import { RelatedOrdersPopover } from "./orders/RelatedOrdersPopover";
+import { cleanObservationRelatedOrders } from "@/lib/orderRelationsService";
 
 interface ProductionCardProps {
   order: Order;
@@ -812,8 +813,8 @@ function ProductionCardImpl({
               </div>
             )
           ) : (
-            department.id !== "faturamento" && order.observacao && (
-              <p className="text-xs text-muted-foreground mt-1 line-clamp-2 italic">{order.observacao}</p>
+            department.id !== "faturamento" && cleanObservationRelatedOrders(order.observacao) && (
+              <p className="text-xs text-muted-foreground mt-1 line-clamp-2 italic">{cleanObservationRelatedOrders(order.observacao)}</p>
             )
           )}
             </>
@@ -831,9 +832,9 @@ function ProductionCardImpl({
            )}
 
           {/* Faturamento: OBS Gerais read-only on card (only if has content) */}
-          {department.id === "faturamento" && order.observacao && (
+          {department.id === "faturamento" && cleanObservationRelatedOrders(order.observacao) && (
             <p className="text-[10px] text-muted-foreground mt-1 line-clamp-2 italic border-t border-dashed pt-1">
-              <span className="font-semibold not-italic">OBS:</span> {order.observacao}
+              <span className="font-semibold not-italic">OBS:</span> {cleanObservationRelatedOrders(order.observacao)}
             </p>
           )}
           {/* Faturamento: show pending checklist items when in Pendência column */}

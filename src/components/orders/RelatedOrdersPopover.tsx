@@ -39,24 +39,38 @@ export function RelatedOrdersPopover({
   const location = useLocation();
 
   const count = (relatedOrderIds || []).length;
+  const idsKey = (relatedOrderIds || []).filter(Boolean).sort().join(",");
 
   useEffect(() => {
-    if (!open || count === 0) return;
+    if (!open || !idsKey) {
+      setLoading(false);
+      return;
+    }
 
     let isMounted = true;
     setLoading(true);
 
-    void getRelatedOrdersInfo(relatedOrderIds || [], inMemoryOrders).then((res) => {
-      if (isMounted) {
-        setDetails(res);
-        setLoading(false);
-      }
-    });
+    const ids = idsKey.split(",");
+
+    void getRelatedOrdersInfo(ids, inMemoryOrders)
+      .then((res) => {
+        if (isMounted) {
+          setDetails(res);
+        }
+      })
+      .catch((err) => {
+        console.warn("[RelatedOrdersPopover] Erro ao carregar ordens vinculadas:", err);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setLoading(false);
+        }
+      });
 
     return () => {
       isMounted = false;
     };
-  }, [open, relatedOrderIds, inMemoryOrders, count]);
+  }, [open, idsKey]);
 
   if (!relatedOrderIds || count === 0) return null;
 
@@ -151,8 +165,37 @@ export function RelatedOrdersPopover({
                 <span>Carregando ordens vinculadas...</span>
               </div>
             ) : details.length === 0 ? (
-              <div className="py-3 text-center text-xs text-muted-foreground">
-                Nenhum detalhe disponível para as ordens vinculadas.
+              <div className="space-y-1.5">
+                {(relatedOrderIds || []).map((id) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={(e) =>
+                      handleNavigateToRelated(
+                        {
+                          id,
+                          titulo: cleanOsNumber(id) || id,
+                          cliente: "O.S. Vinculada",
+                          descricao: "",
+                          setor: null,
+                          status: null,
+                          setor_status: null,
+                          arquivado: false,
+                        },
+                        e
+                      )
+                    }
+                    className="w-full text-left p-2 rounded-lg bg-background/80 hover:bg-accent border border-border/60 hover:border-amber-500/40 flex items-center justify-between gap-2 transition-all cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono-tech font-bold text-xs text-amber-600 dark:text-amber-400 group-hover:underline">
+                        #{cleanOsNumber(id) || id}
+                      </span>
+                      <span className="text-xs text-muted-foreground">O.S. Vinculada</span>
+                    </div>
+                    <ArrowRight className="h-3 w-3 text-muted-foreground group-hover:text-amber-500 group-hover:translate-x-0.5 transition-all" />
+                  </button>
+                ))}
               </div>
             ) : (
               details.map((item) => (

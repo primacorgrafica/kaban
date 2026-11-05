@@ -10,6 +10,11 @@ import {
   getSectorRoute,
   getSectorFriendlyLabel,
   highlightOrderCard,
+  extractRelatedOrdersFromObservation,
+  cleanObservationRelatedOrders,
+  setObservationRelatedOrders,
+  getEffectiveRelatedOrders,
+  registerKnownOrders,
 } from "@/lib/orderRelationsService";
 import { INVALID_NOTIFICATION_EMAILS, isValidEmail } from "@/lib/sellerNotificationService";
 import { Order } from "@/types/order";
@@ -33,6 +38,7 @@ describe("Primacor Kaban - Vinculação de O.S. Relacionadas", () => {
       or: vi.fn().mockReturnThis(),
       limit: vi.fn().mockReturnThis(),
       neq: vi.fn().mockReturnThis(),
+      ilike: vi.fn().mockReturnThis(),
       in: vi.fn().mockResolvedValue({ data: [], error: null }),
       eq: vi.fn().mockReturnThis(),
       maybeSingle: vi.fn().mockResolvedValue({ data: null }),
@@ -210,6 +216,9 @@ describe("Primacor Kaban - Vinculação de O.S. Relacionadas", () => {
             data: { related_order_ids: [] },
           }),
         }),
+        ilike: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue({ data: [] }),
+        }),
       });
 
       (supabase.from as any).mockImplementation((table: string) => {
@@ -254,6 +263,9 @@ describe("Primacor Kaban - Vinculação de O.S. Relacionadas", () => {
           maybeSingle: vi.fn().mockResolvedValue({
             data: { related_order_ids: ["os-100", "os-200"] },
           }),
+        }),
+        ilike: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue({ data: [] }),
         }),
       });
 
@@ -369,6 +381,32 @@ describe("Primacor Kaban - Vinculação de O.S. Relacionadas", () => {
       );
       expect(popoverFile).toContain("cleanOsNumber");
       expect(popoverFile).toMatch(/import\s*\{[^}]*cleanOsNumber[^}]*\}\s*from/);
+    });
+  });
+
+  describe("9. Persistência Resiliente via Observação (Fallback Cross-Operator)", () => {
+    it("setObservationRelatedOrders deve adicionar tag [VINCULO_OS: ...] na observação", () => {
+      const obs = setObservationRelatedOrders("Verificar texto", ["73527", "73500"]);
+      expect(obs).toBe("[VINCULO_OS: 73527, 73500] Verificar texto");
+    });
+
+    it("cleanObservationRelatedOrders deve remover a tag para manter a visualização limpa", () => {
+      const cleaned = cleanObservationRelatedOrders("[VINCULO_OS: 73527, 73500] Verificar texto");
+      expect(cleaned).toBe("Verificar texto");
+    });
+
+    it("extractRelatedOrdersFromObservation deve extrair a lista de O.S. relacionadas", () => {
+      const list = extractRelatedOrdersFromObservation("[VINCULO_OS: 73527, 73500] Outro texto");
+      expect(list).toEqual(["73527", "73500"]);
+    });
+
+    it("getEffectiveRelatedOrders deve mesclar coluna nativa com tag em observação", () => {
+      const res = getEffectiveRelatedOrders({
+        related_order_ids: ["os-1"],
+        observacao: "[VINCULO_OS: 73527] Obs teste",
+      });
+      expect(res).toContain("os-1");
+      expect(res).toContain("73527");
     });
   });
 });

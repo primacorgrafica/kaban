@@ -69,7 +69,11 @@ import {
 } from "@/lib/msalClient";
 import { getEffectiveOsAnterior } from "@/lib/orderAnterior";
 import { RelatedOrdersField } from "./orders/RelatedOrdersField";
-import { syncOrderRelations } from "@/lib/orderRelationsService";
+import {
+  syncOrderRelations,
+  cleanObservationRelatedOrders,
+  getEffectiveRelatedOrders,
+} from "@/lib/orderRelationsService";
 import { useAuth } from "@/hooks/useAuth";
 
 function toLocalDatetimeString(date: Date): string {
@@ -266,7 +270,7 @@ export function CreateOrderDialog({
       tipo_trabalho: order.tipo_trabalho || (effectiveOsAnt ? "repeticao" : "novo"),
       os_anterior: effectiveOsAnt || order.os_anterior || "",
       revisao: typeof order.revisao === "number" ? order.revisao : getOrderRevision(order),
-      observacao: order.observacao || "",
+      observacao: cleanObservationRelatedOrders(order.observacao || ""),
       obs_prova,
       saida_direta: order.saida_direta || false,
       prova_digital: order.prova_digital || false,
@@ -297,7 +301,7 @@ export function CreateOrderDialog({
       entrega_data_limite: order.entrega_data_limite ? toLocalDatetimeString(new Date(order.entrega_data_limite)) : "",
       status_destino: order.status || "",
       setor_destino: order.setor || "",
-      related_order_ids: Array.isArray(order.related_order_ids) ? [...order.related_order_ids] : [],
+      related_order_ids: getEffectiveRelatedOrders(order),
     };
   };
 
