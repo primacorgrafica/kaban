@@ -25,12 +25,15 @@ export function registerKnownOrders(orders: Order[]): void {
 }
 
 /**
- * Limpa o número da O.S. extraindo os dígitos principais
+ * Limpa o número da O.S. extraindo os dígitos principais.
+ * Preserva UUIDs intactos para evitar truncamento indevido de identificadores.
  */
 export function cleanOsNumber(titulo: string | null | undefined): string {
   if (!titulo) return "";
-  const match = titulo.match(/\d+/);
-  return match ? match[0] : titulo.replace(/^#+/, "").trim();
+  const trimmed = titulo.trim();
+  if (isUuid(trimmed)) return trimmed;
+  const match = trimmed.match(/\d+/);
+  return match ? match[0] : trimmed.replace(/^#+/, "").trim();
 }
 
 /**
@@ -69,7 +72,23 @@ export function setObservationRelatedOrders(
   const current = obs || "";
   const cleaned = cleanObservationRelatedOrders(current);
   const cleanList = Array.from(
-    new Set(relatedIdentifiers.map((id) => cleanOsNumber(id) || id.trim()).filter(Boolean))
+    new Set(
+      relatedIdentifiers
+        .map((id) => {
+          if (!id) return "";
+          const trimmed = id.trim();
+          if (!isUuid(trimmed)) {
+            return cleanOsNumber(trimmed) || trimmed;
+          }
+          const cached = knownOrdersCache.get(trimmed);
+          if (cached?.titulo) {
+            const num = cleanOsNumber(cached.titulo);
+            if (num) return num;
+          }
+          return trimmed;
+        })
+        .filter(Boolean)
+    )
   );
 
   if (cleanList.length === 0) return cleaned;
@@ -314,7 +333,7 @@ export async function syncOrderRelations(
   try {
     const { data: dbOrder } = await supabase
       .from("orders")
-      .select("id, titulo, observacao, related_order_ids")
+      .select("id, titulo, observacao")
       .eq("id", orderId)
       .maybeSingle();
 
@@ -333,21 +352,19 @@ export async function syncOrderRelations(
 
   const mainOrderCleanTitle = cleanOsNumber(currentOrder?.titulo) || currentOrder?.titulo || orderId;
 
-  // 1. Atualiza a ordem principal com a nova lista de relacionados
+  // 1. Atualiza a ordem principal com a nova lista de relacionados em observacao
   const updatedMainObs = setObservationRelatedOrders(currentOrder?.observacao, cleanNextIds);
 
   const mainUpdatePayload: any = {
     observacao: updatedMainObs,
-    related_order_ids: cleanNextIds,
-    updated_at: new Date().toISOString(),
+    atualizado_por: userId || null,
   };
 
   let { error: mainUpErr } = await (supabase.from("orders") as any)
-    .update(mainUpdatePayload)
+    .update({ ...mainUpdatePayload, related_order_ids: cleanNextIds })
     .eq("id", orderId);
 
   if (mainUpErr && (mainUpErr.message?.includes("related_order_ids") || (mainUpErr as any).code === "42703" || (mainUpErr as any).code === "PGRST204")) {
-    delete mainUpdatePayload.related_order_ids;
     await (supabase.from("orders") as any).update(mainUpdatePayload).eq("id", orderId);
   }
 
@@ -365,12 +382,13 @@ export async function syncOrderRelations(
   // 2. Processa adições (BIDIRECIONAL: O.S. vinculada B passa a ter A em suas relacionadas)
   for (const targetId of addedIds) {
     try {
-      // Busca dados atuais da ordem B
-      let targetOrderQuery = supabase.from("orders").select("id, titulo, observacao, related_order_ids");
+      // Busca dados atuais da ordem B sem quebrar com coluna inexistente
+      let targetOrderQuery = supabase.from("orders").select("id, titulo, observacao");
       if (isUuid(targetId)) {
         targetOrderQuery = targetOrderQuery.eq("id", targetId);
       } else {
-        targetOrderQuery = targetOrderQuery.ilike("titulo", `%${cleanOsNumber(targetId)}%`).limit(1);
+        const cleanNum = cleanOsNumber(targetId) || targetId;
+        targetOrderQuery = targetOrderQuery.ilike("titulo", `%${cleanNum}%`).limit(1);
       }
 
       const { data: targetRows } = await targetOrderQuery;
@@ -386,16 +404,14 @@ export async function syncOrderRelations(
 
           const targetPayload: any = {
             observacao: updatedTargetObs,
-            related_order_ids: nextTargetIds,
-            updated_at: new Date().toISOString(),
+            atualizado_por: userId || null,
           };
 
           let { error: targetUpErr } = await (supabase.from("orders") as any)
-            .update(targetPayload)
+            .update({ ...targetPayload, related_order_ids: nextTargetIds })
             .eq("id", targetOrder.id);
 
           if (targetUpErr && (targetUpErr.message?.includes("related_order_ids") || (targetUpErr as any).code === "42703" || (targetUpErr as any).code === "PGRST204")) {
-            delete targetPayload.related_order_ids;
             await (supabase.from("orders") as any).update(targetPayload).eq("id", targetOrder.id);
           }
 
@@ -431,11 +447,12 @@ export async function syncOrderRelations(
   // 3. Processa remoções (BIDIRECIONAL: O.S. desvinculada B remove A de suas relacionadas)
   for (const targetId of removedIds) {
     try {
-      let targetOrderQuery = supabase.from("orders").select("id, titulo, observacao, related_order_ids");
+      let targetOrderQuery = supabase.from("orders").select("id, titulo, observacao");
       if (isUuid(targetId)) {
         targetOrderQuery = targetOrderQuery.eq("id", targetId);
       } else {
-        targetOrderQuery = targetOrderQuery.ilike("titulo", `%${cleanOsNumber(targetId)}%`).limit(1);
+        const cleanNum = cleanOsNumber(targetId) || targetId;
+        targetOrderQuery = targetOrderQuery.ilike("titulo", `%${cleanNum}%`).limit(1);
       }
 
       const { data: targetRows } = await targetOrderQuery;
@@ -448,21 +465,21 @@ export async function syncOrderRelations(
         const nextTargetIds = existingTargetIds.filter(
           (id) => id !== orderId && id !== myIdentifier && cleanOsNumber(id) !== mainOrderCleanTitle
         );
-        const updatedTargetObs = setObservationRelatedOrders(targetOrder.observacao, nextTargetIds);
 
-        const targetPayload: any = {
-          observacao: updatedTargetObs,
-          related_order_ids: nextTargetIds,
-          updated_at: new Date().toISOString(),
-        };
+        if (nextTargetIds.length !== existingTargetIds.length) {
+          const updatedTargetObs = setObservationRelatedOrders(targetOrder.observacao, nextTargetIds);
+          const targetPayload: any = {
+            observacao: updatedTargetObs,
+            atualizado_por: userId || null,
+          };
 
-        let { error: targetUpErr } = await (supabase.from("orders") as any)
-          .update(targetPayload)
-          .eq("id", targetOrder.id);
+          let { error: targetUpErr } = await (supabase.from("orders") as any)
+            .update({ ...targetPayload, related_order_ids: nextTargetIds })
+            .eq("id", targetOrder.id);
 
-        if (targetUpErr && (targetUpErr.message?.includes("related_order_ids") || (targetUpErr as any).code === "42703" || (targetUpErr as any).code === "PGRST204")) {
-          delete targetPayload.related_order_ids;
-          await (supabase.from("orders") as any).update(targetPayload).eq("id", targetOrder.id);
+          if (targetUpErr && (targetUpErr.message?.includes("related_order_ids") || (targetUpErr as any).code === "42703" || (targetUpErr as any).code === "PGRST204")) {
+            await (supabase.from("orders") as any).update(targetPayload).eq("id", targetOrder.id);
+          }
         }
       }
     } catch (err) {
@@ -555,9 +572,11 @@ export function getSectorFriendlyLabel(setor: string | null | undefined, arquiva
 export function highlightOrderCard(orderId: string): boolean {
   if (typeof document === "undefined" || !orderId) return false;
 
+  const cleanNum = cleanOsNumber(orderId);
   const cardElement =
     document.getElementById(`order-card-${orderId}`) ||
-    document.querySelector(`[data-order-id="${orderId}"]`) as HTMLElement;
+    (cleanNum ? (document.querySelector(`[data-order-os="${cleanNum}"]`) as HTMLElement) : null) ||
+    (document.querySelector(`[data-order-id="${orderId}"]`) as HTMLElement);
 
   if (cardElement) {
     cardElement.scrollIntoView({ behavior: "smooth", block: "center" });

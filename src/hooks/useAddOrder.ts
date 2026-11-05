@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { hasSpecialSuppliesForCompras } from "@/lib/processos";
 import { syncOrderToCompras } from "@/lib/comprasSync";
 import { setObservationOsAnterior } from "@/lib/orderAnterior";
+import { setObservationRelatedOrders, syncOrderRelations } from "@/lib/orderRelationsService";
 
 export function useAddOrder() {
   const { user } = useAuth();
@@ -81,9 +82,13 @@ export function useAddOrder() {
         ? data.os_anterior.replace(/\D/g, "")
         : null;
 
-      const initialObs = cleanOsAnt
+      let initialObs = cleanOsAnt
         ? setObservationOsAnterior(data.observacao || null, cleanOsAnt)
         : (data.observacao || null);
+
+      if (data.related_order_ids && data.related_order_ids.length > 0) {
+        initialObs = setObservationRelatedOrders(initialObs, data.related_order_ids);
+      }
 
       const insertPayload: any = {
         titulo: data.titulo,
@@ -156,6 +161,11 @@ export function useAddOrder() {
         toast.error("Erro ao criar OS.");
         console.error(error);
         return null;
+      }
+
+      // Sincroniza vínculos de O.S. relacionadas bidirecionalmente
+      if (created?.id && data.related_order_ids && data.related_order_ids.length > 0) {
+        void syncOrderRelations(created.id, data.related_order_ids, user?.id);
       }
 
       // Se a OS criada possui PANTONE ou OUTROS habilitados, envia IMEDIATAMENTE para o setor de compras

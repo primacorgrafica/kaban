@@ -72,6 +72,7 @@ import { RelatedOrdersField } from "./orders/RelatedOrdersField";
 import {
   syncOrderRelations,
   cleanObservationRelatedOrders,
+  setObservationRelatedOrders,
   getEffectiveRelatedOrders,
 } from "@/lib/orderRelationsService";
 import { useAuth } from "@/hooks/useAuth";
@@ -474,13 +475,16 @@ export function CreateOrderDialog({
           }
         }
 
+        const rawObs = form.observacao.trim() || null;
+        const obsWithRelated = setObservationRelatedOrders(rawObs, form.related_order_ids);
+
         const updatePayload: Partial<Order> = {
           titulo: osTitulo,
           descricao: effectiveDescricao,
           cliente: form.cliente.trim().toUpperCase(),
           tipo_trabalho: form.tipo_trabalho,
           os_anterior: form.tipo_trabalho === "repeticao" ? form.os_anterior.replace(/\D/g, "") || null : null,
-          observacao: form.observacao.trim() || null,
+          observacao: obsWithRelated,
           saida_direta: form.saida_direta,
           prova_digital: form.prova_digital,
           prova_email: form.prova_email,
@@ -558,7 +562,7 @@ export function CreateOrderDialog({
             orderToEdit.id,
             form.related_order_ids,
             user?.id,
-            orderToEdit.related_order_ids || []
+            orderToEdit.related_order_ids || getEffectiveRelatedOrders(orderToEdit)
           );
         } catch (relErr) {
           console.warn("[CreateOrderDialog] Aviso ao sincronizar relações:", relErr);
@@ -675,6 +679,9 @@ export function CreateOrderDialog({
 
       // 2. Criação do registro da Ordem de Serviço no banco de dados
       setSubmitStatusText("Salvando Ordem de Serviço...");
+      const rawCreationObs = form.observacao.trim() || undefined;
+      const obsWithRelatedOnCreate = setObservationRelatedOrders(rawCreationObs, form.related_order_ids);
+
       const result = await Promise.resolve(
         onAdd({
           titulo: osTitulo,
@@ -682,7 +689,7 @@ export function CreateOrderDialog({
           cliente: form.cliente.trim().toUpperCase(),
           tipo_trabalho: form.tipo_trabalho,
           os_anterior: form.tipo_trabalho === "repeticao" ? form.os_anterior.replace(/\D/g, "") || undefined : undefined,
-          observacao: form.observacao.trim() || undefined,
+          observacao: obsWithRelatedOnCreate,
           saida_direta: form.saida_direta,
           prova_digital: form.prova_digital,
           prova_email: form.prova_email,

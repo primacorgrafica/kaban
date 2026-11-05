@@ -50,7 +50,7 @@ import { OrderAttachmentsSection } from "./sharepoint/OrderAttachmentsSection";
 import { OrderEmailEventsSection } from "./email/OrderEmailEventsSection";
 import { CreateOrderDialog } from "./CreateOrderDialog";
 import { RelatedOrdersPopover } from "./orders/RelatedOrdersPopover";
-import { cleanObservationRelatedOrders } from "@/lib/orderRelationsService";
+import { cleanObservationRelatedOrders, cleanOsNumber } from "@/lib/orderRelationsService";
 import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
 import { fetchOperadoresList, OperadorProfile } from "@/lib/operadores";
 import { cleanOsNumber } from "./ProductionCard";
@@ -427,6 +427,7 @@ function OrderCardImpl({ order, orderIndex, totalOrders, onUpdate, onMove, onArc
       <div
         id={`order-card-${order.id}`}
         data-order-id={order.id}
+        data-order-os={cleanOsNumber(order.titulo)}
         className={`group rounded-2xl border shadow-xs hover:shadow-lg transition-all duration-200 overflow-hidden relative backdrop-blur-xl ${
           shouldBlinkCard ? "animate-pulse" : ""
         } ${

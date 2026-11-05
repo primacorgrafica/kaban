@@ -1,6 +1,11 @@
 import { getOrderRevision, setObservationRevision, isReturnToPreparation } from "@/lib/orderRevision";
 import { getEffectiveOsAnterior, cleanObservationOsAnterior, setObservationOsAnterior } from "@/lib/orderAnterior";
-import { getEffectiveRelatedOrders, registerKnownOrders } from "@/lib/orderRelationsService";
+import {
+  getEffectiveRelatedOrders,
+  registerKnownOrders,
+  setObservationRelatedOrders,
+  syncOrderRelations,
+} from "@/lib/orderRelationsService";
 import { useState, useCallback, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -122,7 +127,14 @@ export function useOrders() {
         return prev;
       }
       const copy = [...prev];
-      copy[idx] = { ...copy[idx], ...normalizedRow };
+      const prevRelated = copy[idx]?.related_order_ids;
+      const finalRelated =
+        normalizedRow.related_order_ids && normalizedRow.related_order_ids.length > 0
+          ? normalizedRow.related_order_ids
+          : prevRelated && prevRelated.length > 0 && newRow.observacao === undefined
+          ? prevRelated
+          : normalizedRow.related_order_ids;
+      copy[idx] = { ...copy[idx], ...normalizedRow, related_order_ids: finalRelated };
       return copy;
     });
   }, []);
@@ -322,9 +334,13 @@ export function useOrders() {
         ? data.os_anterior.replace(/\D/g, "")
         : null;
 
-      const initialObs = cleanOsAnt
+      let initialObs = cleanOsAnt
         ? setObservationOsAnterior(data.observacao || null, cleanOsAnt)
         : (data.observacao || null);
+
+      if (data.related_order_ids && data.related_order_ids.length > 0) {
+        initialObs = setObservationRelatedOrders(initialObs, data.related_order_ids);
+      }
 
       const insertPayload: any = {
         titulo: data.titulo,
@@ -396,6 +412,11 @@ export function useOrders() {
         toast.error("Erro ao criar OS.");
         console.error(error);
         return null;
+      }
+
+      // Sincroniza vínculos de O.S. relacionadas bidirecionalmente
+      if (created?.id && data.related_order_ids && data.related_order_ids.length > 0) {
+        void syncOrderRelations(created.id, data.related_order_ids, user?.id);
       }
 
       // Se a OS criada possui PANTONE ou OUTROS habilitados, envia IMEDIATAMENTE para o setor de compras
@@ -505,6 +526,11 @@ export function useOrders() {
         updatePayload.observacao = setObservationRevision(targetObs, data.revisao ?? 0);
       }
 
+      if (data.related_order_ids !== undefined) {
+        const targetObs = updatePayload.observacao !== undefined ? updatePayload.observacao : (currentOrder?.observacao || "");
+        updatePayload.observacao = setObservationRelatedOrders(targetObs, data.related_order_ids);
+      }
+
       setOrders(prev => prev.map(o => {
         const isTarget = o.id === id || (currentOrder?.parent_order_id && o.parent_order_id === currentOrder.parent_order_id) || o.parent_order_id === id;
         if (isTarget) {
@@ -514,6 +540,7 @@ export function useOrders() {
             ...(updatePayload.os_anterior !== undefined ? { os_anterior: updatePayload.os_anterior } : {}),
             ...(updatePayload.tipo_trabalho !== undefined ? { tipo_trabalho: updatePayload.tipo_trabalho } : {}),
             ...(updatePayload.observacao !== undefined ? { observacao: updatePayload.observacao } : {}),
+            ...(data.related_order_ids !== undefined ? { related_order_ids: data.related_order_ids } : {}),
           };
         }
         return o;
@@ -553,6 +580,16 @@ export function useOrders() {
         toast.error("Erro ao atualizar OS.");
         console.error(error);
       } else {
+        // Sincroniza vínculos de O.S. relacionadas bidirecionalmente
+        if (data.related_order_ids !== undefined) {
+          void syncOrderRelations(
+            id,
+            data.related_order_ids,
+            user?.id,
+            currentOrder?.related_order_ids || getEffectiveRelatedOrders(currentOrder)
+          );
+        }
+
         // Se os processos foram atualizados e possuem PANTONE ou OUTROS, garante envio/sincronização com Compras
         if (data.processos && hasSpecialSuppliesForCompras(data.processos)) {
           void sendToCompras(id, data.processos);

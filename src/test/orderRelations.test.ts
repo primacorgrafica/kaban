@@ -408,5 +408,78 @@ describe("Primacor Kaban - Vinculação de O.S. Relacionadas", () => {
       expect(res).toContain("os-1");
       expect(res).toContain("73527");
     });
+
+    it("cleanOsNumber deve preservar UUIDs intactos sem mutilar seus dígitos", () => {
+      const uuid = "e8293751-419b-46ae-8869-236b3df3e487";
+      expect(cleanOsNumber(uuid)).toBe(uuid);
+      expect(cleanOsNumber("#73527")).toBe("73527");
+      expect(cleanOsNumber("O.S. 73400 / Prova")).toBe("73400");
+    });
+
+    it("setObservationRelatedOrders deve converter UUIDs de ordens conhecidas para o número de O.S. amigável", () => {
+      const testUuid = "11111111-2222-3333-4444-555555555555";
+      registerKnownOrders([
+        {
+          id: testUuid,
+          titulo: "73999",
+          cliente: "TESTE",
+          descricao: "Desc",
+          setor: "ctp",
+          status: "ctp",
+          arquivado: false,
+          posicao: 0,
+          prioridade: "normal",
+          urgente: false,
+          saida_direta: false,
+          prova_digital: false,
+          prova_email: false,
+          urgente_prova: false,
+          urgente_impressao: false,
+          urgente_acabamento: false,
+          urgente_expedicao: false,
+          digital_color: false,
+          digital_pb: false,
+          equipamentos: [],
+          acabamentos: [],
+          processos: [],
+          tipo_entrega: [],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        },
+      ]);
+
+      const obs = setObservationRelatedOrders("Minha obs", [testUuid]);
+      expect(obs).toBe("[VINCULO_OS: 73999] Minha obs");
+    });
+
+    it("CreateOrderDialog e useOrders devem injetar setObservationRelatedOrders ao salvar e atualizar", () => {
+      const dialogContent = fs.readFileSync(
+        path.join(process.cwd(), "src", "components", "CreateOrderDialog.tsx"),
+        "utf-8"
+      );
+      const useOrdersContent = fs.readFileSync(
+        path.join(process.cwd(), "src", "hooks", "useOrders.ts"),
+        "utf-8"
+      );
+
+      expect(dialogContent).toContain("setObservationRelatedOrders(rawObs, form.related_order_ids)");
+      expect(dialogContent).toContain("setObservationRelatedOrders(rawCreationObs, form.related_order_ids)");
+      expect(useOrdersContent).toContain("setObservationRelatedOrders(targetObs, data.related_order_ids)");
+      expect(useOrdersContent).toContain("setObservationRelatedOrders(initialObs, data.related_order_ids)");
+    });
+
+    it("OrderCard e ProductionCard devem incluir atributo data-order-os para highlight imediato", () => {
+      const orderCardContent = fs.readFileSync(
+        path.join(process.cwd(), "src", "components", "OrderCard.tsx"),
+        "utf-8"
+      );
+      const prodCardContent = fs.readFileSync(
+        path.join(process.cwd(), "src", "components", "ProductionCard.tsx"),
+        "utf-8"
+      );
+
+      expect(orderCardContent).toContain("data-order-os={cleanOsNumber(order.titulo)}");
+      expect(prodCardContent).toContain("data-order-os={cleanOsNumber(order.titulo)}");
+    });
   });
 });
