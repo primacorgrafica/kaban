@@ -52,6 +52,7 @@ import {
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
+import { sortAndFilterProcessos } from "@/lib/processos";
 import { exportSingleOrderPDF } from "@/lib/pdfExport";
 import { OrderAttachmentsSection } from "@/components/sharepoint/OrderAttachmentsSection";
 import { CreateOrderDialog } from "./CreateOrderDialog";
@@ -514,9 +515,9 @@ export function OrderSlideOver({
             <TabsContent value="processos" className="space-y-4">
               <div className="p-3.5 rounded-xl bg-muted/20 border border-border/50 space-y-3">
                 <span className="text-xs font-semibold text-foreground block">Roteiro de Processos Gráficos</span>
-                {order.processos && order.processos.length > 0 ? (
+                {order.processos && sortAndFilterProcessos(order.processos).length > 0 ? (
                   <div className="flex flex-wrap gap-1.5">
-                    {order.processos.map((p, idx) => (
+                    {sortAndFilterProcessos(order.processos).map((p, idx) => (
                       <div
                         key={idx}
                         className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-background border border-border/70 text-xs font-mono-tech"

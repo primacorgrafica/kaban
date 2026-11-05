@@ -46,7 +46,13 @@ import { RotateCcw, Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { OrderDetailDialog } from "./OrderDetailDialog";
-import { getProcessoCor, sortAndFilterProcessos } from "@/lib/processos";
+import {
+  getProcessoCor,
+  sortAndFilterProcessos,
+  SPECIAL_SUPPLIES,
+  isSpecialSupplyActive,
+  getSpecialSupplyDetails,
+} from "@/lib/processos";
 import { cleanOsNumber } from "./ProductionCard";
 import {
   hasProductionPriority,
@@ -532,27 +538,81 @@ export function ProductionTable({
                       </span>
                     </TableCell>
 
-                    {/* Processos */}
+                    {/* Processos e Suprimentos */}
                     <TableCell>
-                      <div className="flex flex-wrap gap-1 max-w-[160px]">
-                        {order.processos && order.processos.length > 0 ? (
-                          order.processos.slice(0, 3).map((p) => (
-                            <span
-                              key={p}
-                              className={`text-[9px] font-bold px-1 py-0.2 rounded border ${getProcessoCor(p)}`}
-                            >
-                              {p}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-muted-foreground/50">—</span>
-                        )}
-                        {order.processos && order.processos.length > 3 && (
-                          <span className="text-[9px] text-muted-foreground font-mono-tech">
-                            +{order.processos.length - 3}
-                          </span>
-                        )}
-                      </div>
+                      {(() => {
+                        const cleanProcs = sortAndFilterProcessos(order.processos);
+                        const activeSupplies = SPECIAL_SUPPLIES.filter((s) =>
+                          isSpecialSupplyActive(order.processos, s.id)
+                        );
+                        const hasItems = cleanProcs.length > 0 || activeSupplies.length > 0;
+
+                        if (!hasItems) {
+                          return <span className="text-muted-foreground/40 text-xs">—</span>;
+                        }
+
+                        return (
+                          <div className="flex flex-wrap gap-1 max-w-[220px] items-center">
+                            {/* Suprimentos Especiais (Clichê, Faca, Filme, Pantone, Outros) */}
+                            {activeSupplies.map((s) => {
+                              const details = getSpecialSupplyDetails(order.processos, s.id);
+                              const isReceived = details.operationalState === "recebido" || details.sent;
+                              let decodedInfo = "";
+                              if (details.customText) {
+                                try {
+                                  decodedInfo = decodeURIComponent(details.customText);
+                                } catch (_) {
+                                  decodedInfo = details.customText;
+                                }
+                              }
+                              const tooltip = decodedInfo ? `${s.label}: ${decodedInfo}` : s.label;
+
+                              return (
+                                <span
+                                  key={s.id}
+                                  className={`text-[9.5px] font-bold px-1.5 py-0.5 rounded border inline-flex items-center gap-1 shadow-2xs ${
+                                    isReceived
+                                      ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/35"
+                                      : "bg-pink-500/15 text-pink-300 border-pink-500/35"
+                                  }`}
+                                  title={tooltip}
+                                >
+                                  <span
+                                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                                      isReceived ? "bg-emerald-400" : "bg-pink-400"
+                                    }`}
+                                  />
+                                  <span>{s.label}</span>
+                                  {decodedInfo && (
+                                    <span className="text-[8.5px] opacity-80 max-w-[90px] truncate hidden xl:inline">
+                                      ({decodedInfo})
+                                    </span>
+                                  )}
+                                </span>
+                              );
+                            })}
+
+                            {/* Processos Tradicionais Limpos (Offset, Verniz, Refilo, etc.) */}
+                            {cleanProcs.slice(0, 3).map((p) => (
+                              <span
+                                key={p}
+                                className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${getProcessoCor(p)}`}
+                              >
+                                {p}
+                              </span>
+                            ))}
+
+                            {cleanProcs.length > 3 && (
+                              <span
+                                className="text-[9px] text-muted-foreground font-mono-tech px-1"
+                                title={cleanProcs.slice(3).join(", ")}
+                              >
+                                +{cleanProcs.length - 3}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </TableCell>
 
                     {/* Ações */}

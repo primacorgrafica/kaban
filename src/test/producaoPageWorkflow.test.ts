@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { Order } from "@/types/order";
 import { isOrderBlocked, hasSpecialSupply } from "@/pages/ProducaoPage";
 import { hasProductionPriority, isOrderInProduction } from "@/lib/productionPriority";
+import { sortAndFilterProcessos, SPECIAL_SUPPLIES, isSpecialSupplyActive, getSpecialSupplyDetails } from "@/lib/processos";
 
 describe("ProducaoPage — Regras operacionais e blocos por setor", () => {
   const baseOrder = (overrides: Partial<Order> = {}): Order =>
@@ -121,6 +122,43 @@ describe("ProducaoPage — Regras operacionais e blocos por setor", () => {
       expect(isOrderInProduction(baseOrder({ setor: "pre_impressao" }))).toBe(false);
       expect(isOrderInProduction(baseOrder({ setor: "compras" }))).toBe(false);
       expect(isOrderInProduction(baseOrder({ setor: "expedicao" }))).toBe(false);
+    });
+  });
+
+  describe("Limpeza de Processos e Suprimentos na Tabela de Produção", () => {
+    it("deve filtrar tags internas ruidosas como COMPRAS:status:entrada e OUTROS:info:...", () => {
+      const rawProcessos = [
+        "OFFSET",
+        "OUTROS:info:wire-o%20branco%20%20%20-%20%20capa%20dura%20-%20Hot-Stamping%20ouro",
+        "CLICHE:recebido:1793877286465:Alexandre",
+        "COMPRAS:status:entrada",
+        "DOBRA",
+      ];
+
+      const clean = sortAndFilterProcessos(rawProcessos);
+
+      expect(clean).toContain("OFFSET");
+      expect(clean).toContain("DOBRA");
+      expect(clean).not.toContain("COMPRAS:status:entrada");
+      expect(clean).not.toContain("CLICHE:recebido:1793877286465:Alexandre");
+      expect(clean).not.toContain("OUTROS:info:wire-o%20branco%20%20%20-%20%20capa%20dura%20-%20Hot-Stamping%20ouro");
+    });
+
+    it("deve extrair suprimentos especiais com dados limpos e decodificados", () => {
+      const rawProcessos = [
+        "OUTROS:info:wire-o%20branco%20capa%20dura",
+        "CLICHE:recebido:1793877286465:Alexandre",
+      ];
+
+      const activeSupplies = SPECIAL_SUPPLIES.filter((s) => isSpecialSupplyActive(rawProcessos, s.id));
+      expect(activeSupplies.map((s) => s.id)).toContain("OUTROS");
+      expect(activeSupplies.map((s) => s.id)).toContain("CLICHE");
+
+      const outrosDetails = getSpecialSupplyDetails(rawProcessos, "OUTROS");
+      expect(decodeURIComponent(outrosDetails.customText || "")).toBe("wire-o branco capa dura");
+
+      const clicheDetails = getSpecialSupplyDetails(rawProcessos, "CLICHE");
+      expect(clicheDetails.operationalState).toBe("recebido");
     });
   });
 
