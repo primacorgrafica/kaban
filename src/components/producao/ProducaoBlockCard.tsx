@@ -189,25 +189,6 @@ export function ProducaoBlockCard({
             </span>
           )}
 
-          {/* Badge de Revisão */}
-          {revision >= 1 && (
-            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono-tech font-bold bg-amber-500/20 text-amber-500 border border-amber-500/30">
-              <RotateCcw className="h-2.5 w-2.5" />
-              <span>REV{revision}</span>
-            </span>
-          )}
-
-          {/* Badge de Repetição */}
-          {isRepeat && (
-            <span
-              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-mono-tech font-bold bg-sky-500/20 text-sky-400 border border-sky-500/30"
-              title={osAnterior ? `Repetição da O.S. Anterior #${osAnterior}` : "Trabalho de Repetição"}
-            >
-              <Repeat className="h-2.5 w-2.5" />
-              <span>REP {osAnterior ? `#${osAnterior}` : ""}</span>
-            </span>
-          )}
-
           {/* Ícone e Menu de O.S. Relacionadas */}
           {effectiveRelatedIds.length > 0 && (
             <div onClick={(e) => e.stopPropagation()}>
