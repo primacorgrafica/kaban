@@ -911,7 +911,37 @@ export function useOrders() {
     }
   }, [user, orders]);
 
-  
+  const sendBackToPrePress = useCallback(async (id: string) => {
+    const order = orders.find((o) => o.id === id);
+    const isUrgent = order && (order.urgente_prova || order.urgente_impressao || order.urgente_acabamento || order.urgente_expedicao);
+    const cleanedObs = cleanObservationProductionPriority(order?.observacao);
+
+    const payload: any = {
+      setor: null,
+      setor_status: null,
+      maquina: null,
+      status: "fila_de_entrada",
+      posicao: isUrgent ? 0 : 9999,
+      atualizado_por: user?.id || null,
+      prioridade_producao: false,
+      observacao: cleanedObs,
+    };
+
+    let { error } = await (supabase.from("orders") as any).update(payload).eq("id", id);
+    if (error && (error.message?.includes("prioridade_producao") || (error as any).code === "42703" || (error as any).code === "PGRST204")) {
+      delete payload.prioridade_producao;
+      const retry = await (supabase.from("orders") as any).update(payload).eq("id", id);
+      error = retry.error;
+    }
+
+    if (error) {
+      toast.error("Erro ao devolver para Pré-Impressão");
+      console.error(error);
+    } else {
+      setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, ...payload } : o)));
+      toast.success("OS. devolvida para Pré-Impressão!");
+    }
+  }, [user, orders]);
 
   const sendToExpedicao = useCallback(async (orderId: string) => {
     const originalOrder = orders.find(o => o.id === orderId);
@@ -1077,6 +1107,7 @@ export function useOrders() {
     deleteOrder,
     sendToProduction,
     sendToMultipleProduction,
+    sendBackToPrePress,
     sendToExpedicao,
     sendToCompras,
     loading,
