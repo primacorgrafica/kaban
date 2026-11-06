@@ -11,7 +11,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { X, CalendarIcon, FileDown, Bike, Radio, UserPlus, CloudUpload, Activity, Plus, PackagePlus, Truck, AlertTriangle, Trash2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
+import { X, CalendarIcon, FileDown, Bike, Radio, UserPlus, CloudUpload, Activity, Plus, PackagePlus, Truck, AlertTriangle, Trash2, Users, Layers, Star } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,10 +45,12 @@ import { DeliveryMonitoringTab } from "@/components/delivery/monitoring/Delivery
 import { DeliveryCompletedDetailsModal } from "@/components/delivery/DeliveryCompletedDetailsModal";
 import { SharePointDiagnosticsModal } from "@/components/sharepoint/SharePointDiagnosticsModal";
 import { CreateDeliveryDemandModal } from "@/components/delivery/CreateDeliveryDemandModal";
-import { getEntregadoresList } from "@/lib/deliveryService";
+import { DeliveryRoutesBoard } from "@/components/delivery/routes/DeliveryRoutesBoard";
+import { DriverManagementModal } from "@/components/delivery/routes/DriverManagementModal";
+import { getEntregadoresList, assignOrderToRoute, toggleDeliveryPriority } from "@/lib/deliveryService";
 import { syncPendingProtocolsToSharePoint } from "@/lib/sharepointService";
 import type { Entregador, DeliveryStatus } from "@/types/delivery";
-import { DELIVERY_STATUS_CONFIG } from "@/types/delivery";
+import { DELIVERY_STATUS_CONFIG, ROTAS_DISPONIVEIS } from "@/types/delivery";
 import { cleanOsNumber } from "@/components/ProductionCard";
 
 export default function EntregasPage() {
@@ -56,16 +66,21 @@ export default function EntregasPage() {
   const [selectedOrderForDriver, setSelectedOrderForDriver] = useState<Order | null>(null);
   const [selectedDeliveredOrder, setSelectedDeliveredOrder] = useState<Order | null>(null);
   const [showMonitoring, setShowMonitoring] = useState(false);
-  const [viewMode, setViewMode] = useState<"tabela" | "monitoramento">("tabela");
+  const [viewMode, setViewMode] = useState<"tabela" | "rotas" | "monitoramento">("rotas");
   const [createDemandOpen, setCreateDemandOpen] = useState(false);
+  const [driverManagementOpen, setDriverManagementOpen] = useState(false);
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [entregadores, setEntregadores] = useState<Entregador[]>([]);
 
-  useEffect(() => {
+  const reloadEntregadores = () => {
     void getEntregadoresList().then((res) => {
       if (res.data) setEntregadores(res.data);
     });
+  };
+
+  useEffect(() => {
+    reloadEntregadores();
   }, []);
 
   const driverMap = useMemo(() => {
@@ -344,6 +359,15 @@ export default function EntregasPage() {
             <h1 className="text-xl font-bold text-foreground">Programação de Entregas</h1>
             <div className="flex items-center rounded-lg bg-muted/60 border border-border p-0.5">
               <Button
+                variant={viewMode === "rotas" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 text-xs px-2.5 font-medium gap-1.5 cursor-pointer"
+                onClick={() => setViewMode("rotas")}
+              >
+                <Layers className="h-3.5 w-3.5 text-primary" />
+                Quadro de Rotas
+              </Button>
+              <Button
                 variant={viewMode === "tabela" ? "secondary" : "ghost"}
                 size="sm"
                 className="h-7 text-xs px-2.5 font-medium gap-1.5 cursor-pointer"
@@ -405,6 +429,17 @@ export default function EntregasPage() {
           </div>
 
           <KanbanFiltersBar filters={kanbanFilters} onChange={setKanbanFilters} showOnly={["vendedores", "setores"]} />
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-1.5 h-8 border-primary/30 text-primary hover:bg-primary/10 font-medium"
+            onClick={() => setDriverManagementOpen(true)}
+            title="Cadastrar e gerenciar motoristas da frota (Carro/Moto, CNH e status)"
+          >
+            <Users className="h-3.5 w-3.5" />
+            Entregadores
+          </Button>
 
           <Button
             variant="outline"
@@ -493,14 +528,24 @@ export default function EntregasPage() {
           <div className="flex-1 min-h-[600px] h-[calc(100vh-175px)]">
             <DeliveryMonitoringTab initialOrders={allOrders} />
           </div>
+        ) : viewMode === "rotas" ? (
+          <div className="flex-1 min-h-[600px] h-[calc(100vh-175px)]">
+            <DeliveryRoutesBoard
+              orders={allOrders}
+              entregadores={entregadores}
+              driverMap={driverMap}
+              onRefresh={fetchOrders}
+              onOpenDriverManagement={() => setDriverManagementOpen(true)}
+            />
+          </div>
         ) : loading ? (
           <div className="flex items-center justify-center h-full text-muted-foreground">Carregando dados...</div>
         ) : (
           <div className="border rounded-lg overflow-x-auto overflow-y-auto flex-1 scrollbar-light">
-            <Table className="table-fixed min-w-[1290px]">
+            <Table className="table-fixed min-w-[1360px]">
               <TableHeader>
                  <TableRow className="bg-muted/50 [&>th]:px-2 [&>th]:py-2 [&>th]:h-9">
-                  <TableHead className="whitespace-nowrap w-[85px]">Flags</TableHead>
+                  <TableHead className="whitespace-nowrap w-[95px]">Flags</TableHead>
                   <TableHead className="whitespace-nowrap w-[70px]">OS</TableHead>
                   <TableHead className="whitespace-nowrap w-[120px]">Cliente</TableHead>
                   <TableHead className="whitespace-nowrap w-[160px]">Descrição</TableHead>
@@ -508,6 +553,7 @@ export default function EntregasPage() {
                   <TableHead className="whitespace-nowrap w-[90px] bg-blue-100 dark:bg-blue-900/40">Etapa</TableHead>
                   <TableHead className="whitespace-nowrap w-[100px] bg-blue-100 dark:bg-blue-900/40">Atualização</TableHead>
                   <TableHead className="whitespace-nowrap w-[160px]">Data de Entrega</TableHead>
+                  <TableHead className="whitespace-nowrap w-[110px]">Rota</TableHead>
                   <TableHead className="whitespace-nowrap w-[90px]">Vendedor</TableHead>
                   <TableHead className="whitespace-nowrap w-[150px]">Entregador</TableHead>
                   <TableHead className="whitespace-nowrap w-[200px]">Endereço de Entrega</TableHead>
@@ -517,7 +563,7 @@ export default function EntregasPage() {
               <TableBody>
                 {rowsWithSeparators.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={12} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={13} className="text-center text-muted-foreground py-8">
                       Nenhuma OS encontrada
                     </TableCell>
                   </TableRow>
@@ -526,7 +572,7 @@ export default function EntregasPage() {
                     if (row.type === "separator") {
                       return (
                         <TableRow key={`sep-${idx}`} className="hover:bg-transparent">
-                          <TableCell colSpan={12} className="h-6 bg-muted/30 border-t border-b text-xs text-muted-foreground font-medium px-3">
+                          <TableCell colSpan={13} className="h-6 bg-muted/30 border-t border-b text-xs text-muted-foreground font-medium px-3">
                             {row.dateLabel}
                           </TableCell>
                         </TableRow>
@@ -541,6 +587,20 @@ export default function EntregasPage() {
                       <TableRow key={order.id} className="[&>td]:px-2 [&>td]:py-1.5">
                         <TableCell className="whitespace-nowrap">
                           <div className="flex items-center gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-5 w-5 p-0 text-muted-foreground hover:text-amber-500"
+                              onClick={async () => {
+                                const nextPriority = !(order.rota_prioridade || order.urgente);
+                                await toggleDeliveryPriority(order.id, nextPriority);
+                                toast.info(nextPriority ? "Prioridade marcada!" : "Prioridade removida.");
+                                void fetchOrders();
+                              }}
+                              title={order.rota_prioridade || order.urgente ? "Entrega prioritária" : "Marcar como prioritária"}
+                            >
+                              <Star className={cn("h-3.5 w-3.5", (order.rota_prioridade || order.urgente) && "fill-amber-500 text-amber-500")} />
+                            </Button>
                             {order.tipo_entrega?.includes("coleta") ? (
                               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-500 dark:text-amber-400 border border-amber-500/30" title="Demanda de Coleta / Buscar">
                                 <PackagePlus className="h-3 w-3" /> Coleta
@@ -586,6 +646,75 @@ export default function EntregasPage() {
                               }
                             }}
                           />
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap text-xs">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                type="button"
+                                className="flex items-center gap-1 px-2 py-0.5 rounded border border-border bg-card hover:bg-muted text-xs font-medium cursor-pointer"
+                                title="Alterar rota desta entrega"
+                              >
+                                {order.rota_numero ? (
+                                  <>
+                                    <span
+                                      className={
+                                        order.rota_numero === "RETIRA"
+                                          ? "text-purple-400 font-bold"
+                                          : "text-primary font-bold"
+                                      }
+                                    >
+                                      {order.rota_numero === "RETIRA"
+                                        ? "RETIRA"
+                                        : `Rota ${order.rota_numero}`}
+                                    </span>
+                                    {order.rota_sequencia && (
+                                      <span className="text-[10px] text-muted-foreground font-mono">
+                                        #{order.rota_sequencia}
+                                      </span>
+                                    )}
+                                  </>
+                                ) : (
+                                  <span className="text-muted-foreground text-[11px]">+ Rota</span>
+                                )}
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" className="text-xs w-36">
+                              <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground">
+                                Definir Rota:
+                              </DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              {ROTAS_DISPONIVEIS.map((r) => (
+                                <DropdownMenuItem
+                                  key={r.id}
+                                  onClick={async () => {
+                                    await assignOrderToRoute(order.id, r.id);
+                                    toast.success(`O.S. alocada na ${r.label}`);
+                                    void fetchOrders();
+                                  }}
+                                  className="text-xs cursor-pointer"
+                                >
+                                  {r.isRetira ? "🏬 " : "🚚 "}
+                                  {r.label}
+                                </DropdownMenuItem>
+                              ))}
+                              {order.rota_numero && (
+                                <>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={async () => {
+                                      await assignOrderToRoute(order.id, null);
+                                      toast.info("O.S. removida da rota.");
+                                      void fetchOrders();
+                                    }}
+                                    className="text-xs text-red-500 cursor-pointer"
+                                  >
+                                    Remover da Rota
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                         <TableCell className="whitespace-nowrap text-xs truncate">{order.vendedor || "—"}</TableCell>
                         <TableCell className="whitespace-nowrap text-xs">
@@ -691,6 +820,12 @@ export default function EntregasPage() {
         onOpenChange={setCreateDemandOpen}
         onSuccess={fetchOrders}
         entregadores={entregadores}
+      />
+
+      <DriverManagementModal
+        open={driverManagementOpen}
+        onOpenChange={setDriverManagementOpen}
+        onDriversUpdated={reloadEntregadores}
       />
 
       {/* DIÁLOGO DE CONFIRMAÇÃO DE EXCLUSÃO */}

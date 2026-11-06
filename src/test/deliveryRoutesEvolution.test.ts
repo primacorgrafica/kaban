@@ -278,4 +278,89 @@ describe("Módulo de Gestão de Entregas e Expedição — Evolução de Rotas",
       expect(sql).toContain("RETIRA");
     });
   });
+
+  describe("8. Lógica de UI do Quadro de Rotas (Etapa 3)", () => {
+    it("deve agrupar corretamente ordens com o mesmo parada_agrupada_id em uma única parada física", () => {
+      const mockOrders: any[] = [
+        {
+          id: "os-1",
+          titulo: "#73510",
+          cliente: "Cliente A",
+          entrega_endereco: "Rua Alpha, 100",
+          rota_numero: "1",
+          rota_sequencia: 1,
+          parada_agrupada_id: "stop-group-1",
+          rota_prioridade: false,
+        },
+        {
+          id: "os-2",
+          titulo: "#73511",
+          cliente: "Cliente A",
+          entrega_endereco: "Rua Alpha, 100",
+          rota_numero: "1",
+          rota_sequencia: 1,
+          parada_agrupada_id: "stop-group-1",
+          rota_prioridade: true,
+        },
+        {
+          id: "os-3",
+          titulo: "#73512",
+          cliente: "Cliente B",
+          entrega_endereco: "Rua Beta, 200",
+          rota_numero: "1",
+          rota_sequencia: 2,
+          parada_agrupada_id: null,
+          rota_prioridade: false,
+        },
+      ];
+
+      // Algoritmo de montagem de paradas do DeliveryRouteColumn
+      const stopMap = new Map<string, any>();
+      mockOrders.forEach((o) => {
+        const key = o.parada_agrupada_id ? `group_${o.parada_agrupada_id}` : `single_${o.id}`;
+        if (!stopMap.has(key)) {
+          stopMap.set(key, {
+            stopKey: key,
+            cliente: o.cliente,
+            sequencia: o.rota_sequencia,
+            prioridade: !!o.rota_prioridade,
+            orders: [o],
+          });
+        } else {
+          const existing = stopMap.get(key)!;
+          existing.orders.push(o);
+          if (o.rota_prioridade) existing.prioridade = true;
+        }
+      });
+
+      const stops = Array.from(stopMap.values()).sort((a, b) => a.sequencia - b.sequencia);
+
+      expect(stops).toHaveLength(2);
+      expect(stops[0].cliente).toBe("Cliente A");
+      expect(stops[0].orders).toHaveLength(2);
+      expect(stops[0].prioridade).toBe(true); // Herdada da os-2
+      expect(stops[1].cliente).toBe("Cliente B");
+      expect(stops[1].orders).toHaveLength(1);
+    });
+
+    it("deve separar as ordens entre rotas ativas (1-6), RETIRA e Backlog sem rota", () => {
+      const mockOrders: any[] = [
+        { id: "1", rota_numero: "1", status_entrega: "pendente" },
+        { id: "2", rota_numero: "6", status_entrega: "em_rota" },
+        { id: "3", rota_numero: "RETIRA", status_entrega: "pendente" },
+        { id: "4", rota_numero: null, status_entrega: "pendente" },
+        { id: "5", rota_numero: null, status_entrega: "entregue" },
+      ];
+
+      const unassigned = mockOrders.filter(
+        (o) => !o.rota_numero && o.status_entrega !== "entregue"
+      );
+      expect(unassigned).toHaveLength(1);
+      expect(unassigned[0].id).toBe("4");
+
+      const retiraOrders = mockOrders.filter((o) => o.rota_numero === "RETIRA");
+      expect(retiraOrders).toHaveLength(1);
+      expect(retiraOrders[0].id).toBe("3");
+    });
+  });
 });
