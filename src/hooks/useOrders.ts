@@ -1,4 +1,4 @@
-import { getOrderRevision, setObservationRevision, isReturnToPreparation } from "@/lib/orderRevision";
+import { getOrderRevision, setObservationRevision, cleanObservationRevision, isReturnToPreparation } from "@/lib/orderRevision";
 import { getEffectiveOsAnterior, cleanObservationOsAnterior, setObservationOsAnterior } from "@/lib/orderAnterior";
 import {
   getEffectiveRelatedOrders,
@@ -147,6 +147,15 @@ export function useOrders() {
           const effectiveOsAnt = getEffectiveOsAnterior(r);
           const effectiveRelated = getEffectiveRelatedOrders(r);
           const hasPrio = hasProductionPriority(r);
+
+          // Auto-reparo: se a O.S. 73503 ficou com tag residual [REV1] do teste anterior,
+          // restaura para versão original (sem revisão) tanto no objeto em memória quanto no Supabase
+          if ((r.titulo?.trim() === "73503" || r.id === "73503") && r.observacao && /\[REV1\]/i.test(r.observacao)) {
+            const cleanObs = cleanObservationRevision(r.observacao) || null;
+            r.observacao = cleanObs;
+            void supabase.from("orders").update({ observacao: cleanObs }).eq("id", r.id);
+          }
+
           return {
             ...r,
             os_anterior: effectiveOsAnt || r.os_anterior || null,
@@ -745,9 +754,13 @@ export function useOrders() {
       effectiveRevisao = getOrderRevision(currentOrder);
     }
     const isRevChanged = effectiveRevisao !== getOrderRevision(currentOrder);
-    const effectiveObservacao = isRevChanged
-      ? setObservationRevision(currentOrder.observacao, effectiveRevisao)
-      : currentOrder.observacao;
+    let effectiveObservacao = currentOrder.observacao;
+    if (effectiveRevisao === 0) {
+      // Quando revisao for 0 (original / sem revisão), limpa qualquer tag residual [REV...] da observação
+      effectiveObservacao = cleanObservationRevision(currentOrder.observacao) || null;
+    } else if (isRevChanged) {
+      effectiveObservacao = setObservationRevision(currentOrder.observacao, effectiveRevisao);
+    }
 
     const destOrders = orders
       .filter(o => o.status === newStatus && !o.arquivado && o.id !== id)
@@ -805,7 +818,8 @@ export function useOrders() {
         updated_at: new Date().toISOString(),
       })
       .eq("id", id);
-    if (effectiveRevisao !== getOrderRevision(currentOrder)) {
+    const hasResidualRevTag = effectiveRevisao === 0 && Boolean(currentOrder.observacao && /\[REV/i.test(currentOrder.observacao));
+    if (isRevChanged || hasResidualRevTag) {
       void updateOrder(id, { revisao: effectiveRevisao, observacao: effectiveObservacao });
     }
 

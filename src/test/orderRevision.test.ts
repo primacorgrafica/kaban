@@ -86,4 +86,18 @@ describe("orderRevision logic", () => {
       : currentOrder.observacao;
     expect(obsChecked).toBe("[REV1]");
   });
+
+  it("should cleanly strip residual revision tags when an order is reset or moved with revisao 0", () => {
+    // Cenário onde o card tinha ficado com [REV1] no banco
+    const orderWithRev = { id: "73503", titulo: "73503", observacao: "[REV1] .", revisao: 1 };
+    expect(getOrderRevision(orderWithRev)).toBe(1);
+
+    // Quando resetado para revisao 0
+    const effectiveRevisao = 0;
+    const cleanObs = cleanObservationRevision(orderWithRev.observacao) || null;
+    expect(cleanObs).toBe(".");
+
+    const orderReset = { ...orderWithRev, observacao: cleanObs, revisao: effectiveRevisao };
+    expect(getOrderRevision(orderReset)).toBe(0);
+  });
 });

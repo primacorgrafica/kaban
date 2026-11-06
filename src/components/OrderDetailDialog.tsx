@@ -409,10 +409,27 @@ export function OrderDetailDialog({
                     O.S. {cleanOsNumber(order.titulo) || order.titulo?.replace(/^#+/, "")}
                   </span>
                   {currentRevision >= 1 && (
-                    <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/40 text-[11px] font-bold font-mono-tech flex items-center gap-1">
-                      <RotateCcw className="h-3 w-3" />
-                      <span>REV{currentRevision}</span>
-                    </Badge>
+                    <div className="flex items-center gap-1.5">
+                      <Badge className="bg-amber-500/20 text-amber-700 dark:text-amber-400 border-amber-500/40 text-[11px] font-bold font-mono-tech flex items-center gap-1">
+                        <RotateCcw className="h-3 w-3" />
+                        <span>REV{currentRevision}</span>
+                      </Badge>
+                      {permissions.canEditCard && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 px-2 text-[10.5px] font-semibold text-amber-700 dark:text-amber-400 hover:bg-amber-500/20 border border-amber-500/40 rounded-lg gap-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onUpdate(order.id, { revisao: 0 });
+                            toast.success(`Flag REV${currentRevision} removido. O.S. retornou para Original!`);
+                          }}
+                          title="Remover flag de revisão e voltar O.S. para original"
+                        >
+                          <RotateCcw className="h-2.5 w-2.5" /> Remover Revisão
+                        </Button>
+                      )}
+                    </div>
                   )}
                   {(() => {
                     const effectiveOsAnt = getEffectiveOsAnterior(order);

@@ -240,7 +240,7 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
       const currentRev = getOrderRevision(currentOrder);
       const nextRev = currentRev + 1;
       const targetRev = isReturn
-        ? (applyRevision ? nextRev : currentRev)
+        ? (applyRevision ? nextRev : (currentRev === 0 ? 0 : currentRev))
         : undefined;
 
       const isTargetSaida = pendingMove.toStatus === "arquivo_liberado" || (pendingMove.toStatus as string) === "saida";
@@ -396,11 +396,25 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
                             </Label>
                           </div>
                           <p className="text-xs text-foreground font-medium leading-relaxed">
-                            Esta O.S. está retornando para Preparação. Ela será sinalizada com o flag{" "}
-                            <span className="font-mono-tech font-extrabold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40">
-                              REV{nextRev}
-                            </span>{" "}
-                            (Revisão {nextRev}).
+                            {applyRevision ? (
+                              <>
+                                Esta O.S. está retornando para Preparação. Ela será sinalizada com o flag{" "}
+                                <span className="font-mono-tech font-extrabold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40">
+                                  REV{nextRev}
+                                </span>{" "}
+                                (Revisão {nextRev}).
+                              </>
+                            ) : (
+                              <>
+                                Esta O.S. retornará para Preparação{" "}
+                                <strong className="text-emerald-700 dark:text-emerald-300">
+                                  sem criar/atualizar revisão
+                                </strong>
+                                {currentRev === 0
+                                  ? " (permanece como versão original sem flag de revisão)"
+                                  : ` (mantendo REV${currentRev})`}.
+                              </>
+                            )}
                           </p>
                           <div className="flex items-center gap-2 pt-1">
                             <Checkbox
