@@ -741,13 +741,11 @@ export function useOrders() {
     const previousSnapshot = [...orders];
 
     let effectiveRevisao = newRevisao;
-    if (effectiveRevisao === undefined && isReturnToPreparation(oldStatus, newStatus)) {
-      effectiveRevisao = getOrderRevision(currentOrder) + 1;
-    }
     if (effectiveRevisao === undefined) {
       effectiveRevisao = getOrderRevision(currentOrder);
     }
-    const effectiveObservacao = effectiveRevisao !== getOrderRevision(currentOrder)
+    const isRevChanged = effectiveRevisao !== getOrderRevision(currentOrder);
+    const effectiveObservacao = isRevChanged
       ? setObservationRevision(currentOrder.observacao, effectiveRevisao)
       : currentOrder.observacao;
 
@@ -838,7 +836,7 @@ export function useOrders() {
     }
 
     // Feedback com ação rápida de Desfazer (Undo)
-    if (effectiveRevisao && effectiveRevisao >= 1 && isReturnToPreparation(oldStatus, newStatus)) {
+    if (isRevChanged && effectiveRevisao && effectiveRevisao >= 1 && isReturnToPreparation(oldStatus, newStatus)) {
       toast.success(`OS retornou para Preparação (REV${effectiveRevisao})!`);
     } else if (oldStatus && oldStatus !== newStatus) {
       const targetLabel = STATUS_CONFIG[newStatus]?.label || newStatus;

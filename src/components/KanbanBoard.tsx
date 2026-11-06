@@ -239,7 +239,9 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
       const currentOrder = orders.find(o => o.id === pendingMove.id);
       const currentRev = getOrderRevision(currentOrder);
       const nextRev = currentRev + 1;
-      const targetRev = isReturn && applyRevision ? nextRev : undefined;
+      const targetRev = isReturn
+        ? (applyRevision ? nextRev : currentRev)
+        : undefined;
 
       const isTargetSaida = pendingMove.toStatus === "arquivo_liberado" || (pendingMove.toStatus as string) === "saida";
       const hasMarkedSupplies = Object.values(markedSuppliesSent).some(Boolean);

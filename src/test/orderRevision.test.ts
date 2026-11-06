@@ -54,4 +54,36 @@ describe("orderRevision logic", () => {
     expect(isReturnToPreparation("preparando_arquivo", "preparando_arquivo")).toBe(false);
     expect(isReturnToPreparation("preparando_arquivo", "aguardando_aprovacao")).toBe(false);
   });
+
+  it("should preserve revision when user unchecks 'applyRevision' during return to preparation", () => {
+    // Cenário relatado pelo usuário: O.S. sem revisão (0) em Paralisado voltando para Preparação
+    const currentOrder = { id: "73503", status: "paralisado" as const, revisao: 0, observacao: null };
+    const currentRev = getOrderRevision(currentOrder);
+    const nextRev = currentRev + 1;
+
+    // Caso 1: Usuário DESMARCA a opção de virar REV (applyRevision = false)
+    const applyRevisionFalse = false;
+    const targetRevUnchecked = isReturnToPreparation(currentOrder.status, "preparando_arquivo")
+      ? (applyRevisionFalse ? nextRev : currentRev)
+      : undefined;
+
+    expect(targetRevUnchecked).toBe(0);
+    // Não altera observação
+    const obsUnchecked = targetRevUnchecked !== currentRev
+      ? setObservationRevision(currentOrder.observacao, targetRevUnchecked)
+      : currentOrder.observacao;
+    expect(obsUnchecked).toBe(null);
+
+    // Caso 2: Usuário MANTÉM marcado a opção de virar REV (applyRevision = true)
+    const applyRevisionTrue = true;
+    const targetRevChecked = isReturnToPreparation(currentOrder.status, "preparando_arquivo")
+      ? (applyRevisionTrue ? nextRev : currentRev)
+      : undefined;
+
+    expect(targetRevChecked).toBe(1);
+    const obsChecked = targetRevChecked !== currentRev
+      ? setObservationRevision(currentOrder.observacao, targetRevChecked)
+      : currentOrder.observacao;
+    expect(obsChecked).toBe("[REV1]");
+  });
 });
