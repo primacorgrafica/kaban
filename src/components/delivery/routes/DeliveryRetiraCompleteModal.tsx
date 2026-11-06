@@ -21,9 +21,16 @@ import {
   X,
   Store,
   UserCheck,
+  Cloud,
 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import { uploadDeliveryProofFile, updateDriverDeliveryStatus } from "@/lib/deliveryService";
+import {
+  uploadDeliveryProtocolToSharePoint,
+  SHAREPOINT_PROTOCOLOS_FOLDER,
+} from "@/lib/sharepointService";
+import { getActiveMicrosoftAccount } from "@/lib/msalClient";
 import type { Order } from "@/types/order";
 import { cleanOsNumber } from "@/components/ProductionCard";
 
@@ -88,12 +95,62 @@ export function DeliveryRetiraCompleteModal({
 
     setSubmitting(true);
     try {
-      // 1. Upload do comprovante
-      const uploadRes = await uploadDeliveryProofFile(order.id, selectedFile);
-      if (!uploadRes.success) {
-        toast.error(`Falha no upload do protocolo: ${uploadRes.error}`);
-        setSubmitting(false);
-        return;
+      let comprovanteSynced = false;
+
+      // 1. Tenta upload direto no SharePoint se houver conta Microsoft conectada via MSAL
+      const activeMs = await getActiveMicrosoftAccount();
+      if (activeMs) {
+        try {
+          const spRes = await uploadDeliveryProtocolToSharePoint(
+            selectedFile,
+            order.titulo || order.id,
+            entreguePara.trim(),
+            undefined,
+            false
+          );
+
+          if (spRes.success && spRes.driveItem && spRes.folderInfo) {
+            comprovanteSynced = true;
+            try {
+              await supabase.from("order_attachments" as any).insert({
+                order_id: order.id,
+                nome_arquivo: spRes.driveItem.name || selectedFile.name,
+                tamanho_bytes: spRes.driveItem.size || selectedFile.size,
+                content_type: selectedFile.type || "image/jpeg",
+                sharepoint_item_id: spRes.driveItem.id,
+                sharepoint_folder_id: spRes.folderInfo.folderId,
+                sharepoint_folder_name: spRes.folderInfo.folderName,
+                sharepoint_drive_id: spRes.folderInfo.driveId,
+                sharepoint_site_id: spRes.folderInfo.siteId,
+                sharepoint_web_url: spRes.driveItem.webUrl,
+                sharepoint_path: `${SHAREPOINT_PROTOCOLOS_FOLDER}/${spRes.driveItem.name}`,
+                status: "sincronizado",
+              });
+            } catch (attErr) {
+              console.warn("[DeliveryRetiraCompleteModal] Erro ao gravar order_attachments:", attErr);
+            }
+          }
+        } catch (spErr) {
+          console.warn("[DeliveryRetiraCompleteModal] Upload direto ao SharePoint falhou silenciosamente, usando fila:", spErr);
+        }
+      }
+
+      // Se não sincronizou direto via MSAL, faz upload no bucket Supabase e despacha para Edge Function em background
+      if (!comprovanteSynced) {
+        const uploadRes = await uploadDeliveryProofFile(order.id, selectedFile);
+        if (!uploadRes.success) {
+          toast.error(`Falha no upload do protocolo: ${uploadRes.error}`);
+          setSubmitting(false);
+          return;
+        }
+
+        void supabase.functions
+          .invoke("sync-delivery-proof-to-sharepoint", {
+            body: { orderId: order.id },
+          })
+          .catch((e) => {
+            console.warn("[DeliveryRetiraCompleteModal] Sincronização via Edge Function na fila:", e);
+          });
       }
 
       // 2. Conclusão no banco de dados
@@ -112,8 +169,15 @@ export function DeliveryRetiraCompleteModal({
         return;
       }
 
+      await supabase
+        .from("orders")
+        .update({
+          status_comprovante_sync: comprovanteSynced ? "sincronizado" : "pendente_sharepoint",
+        } as any)
+        .eq("id", order.id);
+
       toast.success(
-        `Retirada da O.S. #${cleanOsNumber(order.titulo)} confirmada com protocolo anexado!`
+        `Retirada da O.S. #${cleanOsNumber(order.titulo)} confirmada com protocolo arquivado!`
       );
       handleClearFile();
       setEntreguePara("");
@@ -149,7 +213,18 @@ export function DeliveryRetiraCompleteModal({
           </div>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-2">
+        {/* Destino corporativo no SharePoint */}
+        <div className="rounded-lg bg-sky-500/10 border border-sky-500/30 p-2.5 flex items-center justify-between text-xs text-sky-700 dark:text-sky-300">
+          <div className="flex items-center gap-2">
+            <Cloud className="h-4 w-4 text-sky-500 shrink-0" />
+            <span>Destino: <strong>SharePoint · PROTOCOLOS ENTREGAS</strong></span>
+          </div>
+          <Badge variant="outline" className="text-[10px] bg-sky-500/15 border-sky-500/40 text-sky-600 dark:text-sky-300">
+            Auto-Sync
+          </Badge>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 mt-1">
           {/* Nome de quem retirou */}
           <div className="flex flex-col gap-1.5">
             <Label className="text-xs font-semibold flex items-center gap-1.5">
