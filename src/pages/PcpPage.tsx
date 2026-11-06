@@ -1075,11 +1075,6 @@ export default function PcpPage() {
                                 🚨
                               </span>
                             )}
-                            {isRecent && (
-                              <span className="ml-1 text-[9px] text-emerald-600 dark:text-emerald-300 font-bold" title="Liberada recentemente">
-                                ✨
-                              </span>
-                            )}
                           </td>
                           <td className="py-2 font-semibold text-foreground truncate" title={e.cliente}>
                             {e.cliente}
