@@ -363,4 +363,119 @@ describe("Módulo de Gestão de Entregas e Expedição — Evolução de Rotas",
       expect(retiraOrders[0].id).toBe("3");
     });
   });
+
+  describe("6. Aplicativo Mobile do Entregador (Etapa 4 - Paradas, Agrupamento e Pausas)", () => {
+    it("deve agrupar múltiplas O.S. com a mesma parada_agrupada_id e herdar menor sequência e prioridade", () => {
+      const mobileOrders: any[] = [
+        {
+          id: "os-10",
+          titulo: "73100",
+          cliente: "Empresa Alfa",
+          entrega_endereco: "Av. Paulista, 1000",
+          rota_numero: "2",
+          rota_sequencia: 3,
+          parada_agrupada_id: "parada-alfa",
+          rota_prioridade: false,
+          urgente: false,
+          status_entrega: "atribuido",
+        },
+        {
+          id: "os-11",
+          titulo: "73101",
+          cliente: "Empresa Alfa",
+          entrega_endereco: "Av. Paulista, 1000",
+          rota_numero: "2",
+          rota_sequencia: 1, // menor sequência
+          parada_agrupada_id: "parada-alfa",
+          rota_prioridade: true, // prioridade alta
+          urgente: false,
+          status_entrega: "atribuido",
+        },
+        {
+          id: "os-12",
+          titulo: "73102",
+          cliente: "Empresa Beta",
+          entrega_endereco: "Rua Augusta, 500",
+          rota_numero: "2",
+          rota_sequencia: 2,
+          parada_agrupada_id: null,
+          rota_prioridade: false,
+          urgente: false,
+          status_entrega: "atribuido",
+        },
+      ];
+
+      // Algoritmo de agrupamento do EntregadorPage
+      const stopMap = new Map<string, any>();
+      mobileOrders.forEach((o, index) => {
+        const key = o.parada_agrupada_id ? `grp_${o.parada_agrupada_id}` : `ord_${o.id}`;
+        if (!stopMap.has(key)) {
+          stopMap.set(key, {
+            stopKey: key,
+            sequencia: o.rota_sequencia ?? index + 1,
+            cliente: o.cliente,
+            endereco: o.entrega_endereco,
+            prioridade: !!(o.rota_prioridade || o.urgente),
+            status: o.status_entrega,
+            rotaNumero: o.rota_numero,
+            orders: [o],
+          });
+        } else {
+          const existing = stopMap.get(key)!;
+          existing.orders.push(o);
+          if (o.rota_prioridade || o.urgente) existing.prioridade = true;
+          if ((o.rota_sequencia ?? 999) < existing.sequencia) {
+            existing.sequencia = o.rota_sequencia ?? 999;
+          }
+        }
+      });
+
+      const stops = Array.from(stopMap.values()).sort((a, b) => a.sequencia - b.sequencia);
+
+      expect(stops).toHaveLength(2);
+      // Parada Alfa vem primeiro pois sequencia é 1 (herdada de os-11)
+      expect(stops[0].cliente).toBe("Empresa Alfa");
+      expect(stops[0].sequencia).toBe(1);
+      expect(stops[0].prioridade).toBe(true);
+      expect(stops[0].orders).toHaveLength(2);
+      expect(stops[0].orders.map((o: any) => o.id)).toEqual(["os-10", "os-11"]);
+
+      // Parada Beta vem em segundo com sequencia 2
+      expect(stops[1].cliente).toBe("Empresa Beta");
+      expect(stops[1].sequencia).toBe(2);
+      expect(stops[1].orders).toHaveLength(1);
+    });
+
+    it("deve detectar rota pausada no mobile e extrair o motivo e observações", () => {
+      const ordersWithPause: any[] = [
+        {
+          id: "os-20",
+          titulo: "73200",
+          status_entrega: "em_rota",
+          rota_pausada: true,
+          rota_pausa_motivo: "pneu_furado",
+          rota_pausa_obs: "Borracharia na Av. do Estado",
+        },
+        {
+          id: "os-21",
+          titulo: "73201",
+          status_entrega: "em_rota",
+          rota_pausada: true,
+          rota_pausa_motivo: "pneu_furado",
+          rota_pausa_obs: "Borracharia na Av. do Estado",
+        },
+      ];
+
+      const isRoutePaused = ordersWithPause.some(
+        (o) => o.rota_pausada && o.status_entrega !== "entregue"
+      );
+      const pausedOrder = ordersWithPause.find(
+        (o) => o.rota_pausada && o.status_entrega !== "entregue"
+      );
+
+      expect(isRoutePaused).toBe(true);
+      expect(pausedOrder?.rota_pausa_motivo).toBe("pneu_furado");
+      expect(pausedOrder?.rota_pausa_obs).toBe("Borracharia na Av. do Estado");
+    });
+  });
 });

@@ -49,6 +49,7 @@ describe("Sincronização de Perfis Reais de Vendedores (Primacor Kaban)", () =>
   });
 
   it("4. Deve carregar vendedores dinamicamente cruzando user_roles (role = 'vendedor') com profiles", async () => {
+    vi.spyOn(supabase, "rpc").mockRejectedValue(new Error("RPC not found"));
     vi.spyOn(supabase, "from").mockImplementation((table: string) => {
       if (table === "user_roles") {
         return {

@@ -26,12 +26,13 @@ import {
   getStoredMicrosoftUser,
   type StoredMicrosoftUser,
 } from "@/lib/msalClient";
-import type { DeliveryStatus, Entregador } from "@/types/delivery";
-import { DELIVERY_STATUS_CONFIG } from "@/types/delivery";
+import type { DeliveryStatus, Entregador, RotaId, MotivoPausaRota } from "@/types/delivery";
+import { DELIVERY_STATUS_CONFIG, MOTIVOS_PAUSA_CONFIG } from "@/types/delivery";
 import type { Order } from "@/types/order";
 import { cleanOsNumber } from "@/components/ProductionCard";
 import { Link } from "react-router-dom";
 import { useRealGpsTracker } from "@/hooks/useRealGpsTracker";
+import { DeliveryPauseRouteModal } from "@/components/delivery/routes/DeliveryPauseRouteModal";
 import {
   Bike,
   Navigation,
@@ -55,6 +56,11 @@ import {
   Cloud,
   ExternalLink,
   Radio,
+  Pause,
+  Play,
+  Layers,
+  Star,
+  Truck,
 } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -145,21 +151,40 @@ export default function EntregadorPage() {
     placa_veiculo: string | null;
   } | null>(null);
 
-  // Modais de ação
-  const [completionOrder, setCompletionOrder] = useState<Order | null>(null);
+  // Modais de ação (suportam parada individual ou agrupada com múltiplas O.S.)
+  const [completionOrders, setCompletionOrders] = useState<Order[]>([]);
+  const completionOrder = completionOrders[0] || null;
   const [recipientName, setRecipientName] = useState("");
   const [deliveryNotes, setDeliveryNotes] = useState("");
   const [proofFile, setProofFile] = useState<File | null>(null);
   const [proofPreviewUrl, setProofPreviewUrl] = useState<string | null>(null);
   const [submittingCompletion, setSubmittingCompletion] = useState(false);
 
-  const [failureOrder, setFailureOrder] = useState<Order | null>(null);
+  const [failureOrders, setFailureOrders] = useState<Order[]>([]);
+  const failureOrder = failureOrders[0] || null;
   const [failureReason, setFailureReason] = useState<string>(INSUCESSO_MOTIVOS[0]);
   const [failureNotes, setFailureNotes] = useState("");
   const [submittingFailure, setSubmittingFailure] = useState(false);
 
+  const [pauseModalOpen, setPauseModalOpen] = useState(false);
   const [activeTabFilter, setActiveTabFilter] = useState<"pendentes" | "concluidas">("pendentes");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Detecção de status de pausa da rota no app mobile
+  const isRoutePaused = useMemo(() => {
+    return orders.some((o) => o.rota_pausada && o.status_entrega !== "entregue");
+  }, [orders]);
+
+  const pausedOrder = useMemo(() => {
+    return orders.find((o) => o.rota_pausada && o.status_entrega !== "entregue") || null;
+  }, [orders]);
+
+  const activeRouteId = useMemo<RotaId>(() => {
+    const ordWithRoute = orders.find((o) => o.rota_numero);
+    if (ordWithRoute?.rota_numero) return ordWithRoute.rota_numero as RotaId;
+    if ((driverProfile as any)?.rota_atribuida) return (driverProfile as any).rota_atribuida as RotaId;
+    return "1" as RotaId;
+  }, [orders, driverProfile]);
 
   // Microsoft / SharePoint corporativo
   const [msUser, setMsUser] = useState<StoredMicrosoftUser | null>(() => getStoredMicrosoftUser());
@@ -395,7 +420,7 @@ export default function EntregadorPage() {
       // 1. Perfil do entregador
       const { data: driverData } = await supabase
         .from("entregadores" as any)
-        .select("nome_completo, placa_veiculo")
+        .select("nome_completo, placa_veiculo, categoria_veiculo, rota_atribuida")
         .eq("user_id", targetUserId)
         .maybeSingle();
 
@@ -403,15 +428,21 @@ export default function EntregadorPage() {
         setDriverProfile(driverData as any);
       } else {
         const found = availableDrivers.find(d => d.user_id === targetUserId);
-        setDriverProfile(found ? { nome_completo: found.nome_completo, placa_veiculo: null } : null);
+        setDriverProfile(found ? { nome_completo: found.nome_completo, placa_veiculo: found.placa_veiculo, rota_atribuida: found.rota_atribuida } as any : null);
       }
 
-      // 2. Ordens atribuídas ao entregador
-      const { data: ordersData, error: ordersError } = await supabase
-        .from("orders")
-        .select("*")
-        .eq("entregador_id", targetUserId)
-        .order("ordem_parada", { ascending: true, nullsFirst: false });
+      // 2. Ordens atribuídas ao entregador (diretamente ou via rota atribuída)
+      let query = supabase.from("orders").select("*");
+      if ((driverData as any)?.rota_atribuida) {
+        query = query.or(`entregador_id.eq.${targetUserId},rota_numero.eq.${(driverData as any).rota_atribuida}`);
+      } else {
+        query = query.eq("entregador_id", targetUserId);
+      }
+
+      const { data: ordersData, error: ordersError } = await query
+        .order("rota_sequencia", { ascending: true, nullsFirst: false })
+        .order("ordem_parada", { ascending: true, nullsFirst: false })
+        .order("created_at", { ascending: true });
 
       if (ordersError) {
         console.warn("[EntregadorPage] Erro ao carregar ordens:", ordersError.message);
@@ -496,50 +527,130 @@ export default function EntregadorPage() {
     });
   }, [orders, activeTabFilter]);
 
-  // Transição: Iniciar Rota
-  const handleStartRoute = async (order: Order) => {
-    const res = await updateDriverDeliveryStatus({
-      orderId: order.id,
-      newStatus: "em_rota",
+  // Agrupa ordens em paradas físicas sequenciadas
+  const displayedStops = useMemo(() => {
+    if (activeTabFilter === "concluidas") {
+      // Para concluídas, exibe as entregas individualmente
+      return displayedOrders.map((ord, idx) => ({
+        stopKey: `done_${ord.id}`,
+        sequencia: idx + 1,
+        cliente: ord.cliente,
+        endereco: ord.entrega_endereco || ord.endereco_entrega || "",
+        prioridade: !!(ord.rota_prioridade || ord.urgente),
+        status: (ord.status_entrega || "pendente") as DeliveryStatus,
+        rotaNumero: ord.rota_numero || null,
+        rotaPausada: !!ord.rota_pausada,
+        orders: [ord],
+      }));
+    }
+
+    // Para pendentes, agrupa por parada_agrupada_id se existir
+    const stopMap = new Map<
+      string,
+      {
+        stopKey: string;
+        sequencia: number;
+        cliente: string;
+        endereco: string;
+        prioridade: boolean;
+        status: DeliveryStatus;
+        rotaNumero: string | null;
+        rotaPausada: boolean;
+        orders: Order[];
+      }
+    >();
+
+    displayedOrders.forEach((o, index) => {
+      const key = o.parada_agrupada_id ? `grp_${o.parada_agrupada_id}` : `ord_${o.id}`;
+      if (!stopMap.has(key)) {
+        stopMap.set(key, {
+          stopKey: key,
+          sequencia: o.rota_sequencia ?? index + 1,
+          cliente: o.cliente,
+          endereco: o.entrega_endereco || o.endereco_entrega || "",
+          prioridade: !!(o.rota_prioridade || o.urgente),
+          status: (o.status_entrega || "pendente") as DeliveryStatus,
+          rotaNumero: o.rota_numero || null,
+          rotaPausada: !!o.rota_pausada,
+          orders: [o],
+        });
+      } else {
+        const existing = stopMap.get(key)!;
+        existing.orders.push(o);
+        if (o.rota_prioridade || o.urgente) existing.prioridade = true;
+        if (o.rota_pausada) existing.rotaPausada = true;
+        if ((o.rota_sequencia ?? 999) < existing.sequencia) {
+          existing.sequencia = o.rota_sequencia ?? 999;
+        }
+      }
     });
 
-    if (res.success) {
-      toast.success(`Rota iniciada para a O.S. ${cleanOsNumber(order.titulo) || order.titulo?.replace(/^#+/, "")}!`);
-      void sendGpsTelemetry(order.id);
+    return Array.from(stopMap.values()).sort((a, b) => a.sequencia - b.sequencia);
+  }, [displayedOrders, activeTabFilter]);
+
+  // Transição: Iniciar Rota (suporta uma O.S. ou parada agrupada)
+  const handleStartRoute = async (target: Order | Order[]) => {
+    const list = Array.isArray(target) ? target : [target];
+    let anyError = false;
+
+    for (const o of list) {
+      const res = await updateDriverDeliveryStatus({
+        orderId: o.id,
+        newStatus: "em_rota",
+      });
+      if (!res.success) {
+        anyError = true;
+        toast.error(res.error || `Erro ao iniciar rota para O.S. #${o.titulo}`);
+      }
+    }
+
+    if (!anyError) {
+      toast.success(
+        list.length > 1
+          ? `Rota iniciada para a parada (${list.length} O.S.)!`
+          : `Rota iniciada para a O.S. #${cleanOsNumber(list[0].titulo)}!`
+      );
+      void sendGpsTelemetry(list[0].id);
       void fetchDriverData();
-    } else {
-      toast.error(res.error || "Erro ao iniciar rota.");
     }
   };
 
   // Transição: Cheguei no Local
-  const handleArrivedAtDestination = async (order: Order) => {
-    const res = await updateDriverDeliveryStatus({
-      orderId: order.id,
-      newStatus: "no_local",
-    });
+  const handleArrivedAtDestination = async (target: Order | Order[]) => {
+    const list = Array.isArray(target) ? target : [target];
+    let anyError = false;
 
-    if (res.success) {
+    for (const o of list) {
+      const res = await updateDriverDeliveryStatus({
+        orderId: o.id,
+        newStatus: "no_local",
+      });
+      if (!res.success) {
+        anyError = true;
+        toast.error(res.error || `Erro ao registrar chegada para O.S. #${o.titulo}`);
+      }
+    }
+
+    if (!anyError) {
       toast.success("Chegada ao destino confirmada!");
-      void sendGpsTelemetry(order.id);
+      void sendGpsTelemetry(list[0].id);
       void fetchDriverData();
-    } else {
-      toast.error(res.error || "Erro ao registrar chegada.");
     }
   };
 
   // Modal: Abrir conclusão de entrega
-  const handleOpenCompletion = (order: Order) => {
-    setCompletionOrder(order);
+  const handleOpenCompletion = (target: Order | Order[]) => {
+    const list = Array.isArray(target) ? target : [target];
+    setCompletionOrders(list);
     setRecipientName("");
     setDeliveryNotes("");
     setProofFile(null);
     setProofPreviewUrl(null);
   };
 
-  // Upload e Finalização da Entrega (Zero-Friction: entregador não precisa logar no MS 365)
+  // Upload e Finalização da Entrega
   const handleConfirmDelivery = async () => {
-    if (!completionOrder) return;
+    if (completionOrders.length === 0) return;
 
     if (!recipientName.trim()) {
       toast.error("Por favor, informe o nome de quem recebeu a mercadoria.");
@@ -549,27 +660,27 @@ export default function EntregadorPage() {
     setSubmittingCompletion(true);
 
     try {
+      const primaryOrder = completionOrders[0];
       let comprovanteSynced = false;
 
       // Se houver arquivo de comprovante fotografado
       if (proofFile) {
-        // Tentativa rápida e silenciosa: se o dispositivo já possuir sessão MS 365 conectada, tenta direto
         const activeMs = msUser || (await getActiveMicrosoftAccount());
         if (activeMs) {
           try {
             const spRes = await uploadDeliveryProtocolToSharePoint(
               proofFile,
-              completionOrder.titulo || completionOrder.id,
+              primaryOrder.titulo || primaryOrder.id,
               recipientName.trim(),
               undefined,
-              false // NUNCA abre popup interativo no celular do motoboy
+              false
             );
 
             if (spRes.success && spRes.driveItem && spRes.folderInfo) {
               comprovanteSynced = true;
               try {
                 await supabase.from("order_attachments" as any).insert({
-                  order_id: completionOrder.id,
+                  order_id: primaryOrder.id,
                   nome_arquivo: spRes.driveItem.name || proofFile.name,
                   tamanho_bytes: spRes.driveItem.size || proofFile.size,
                   content_type: proofFile.type || "image/jpeg",
@@ -591,53 +702,52 @@ export default function EntregadorPage() {
           }
         }
 
-        // Se o motoboy está na rua sem conta corporativa MS 365 (caso padrão):
-        // Salva instantaneamente na fila segura e não bloqueia a entrega!
         if (!comprovanteSynced) {
-          const uploadRes = await uploadDeliveryProofFile(completionOrder.id, proofFile);
+          const uploadRes = await uploadDeliveryProofFile(primaryOrder.id, proofFile);
           if (!uploadRes.success) {
             toast.error(uploadRes.error || "Erro ao salvar foto do comprovante.");
+            setSubmittingCompletion(false);
             return;
           }
 
-          // Disparo em segundo plano da Edge Function de sincronização App-Only com Microsoft Graph
           void supabase.functions
             .invoke("sync-delivery-proof-to-sharepoint", {
-              body: { orderId: completionOrder.id },
+              body: { orderId: primaryOrder.id },
             })
             .catch((e) => {
               console.warn("[EntregadorPage] Sincronização via Edge Function em espera na fila:", e);
             });
         }
-
-        // Atualiza status do comprovante na ordem (pendente_sharepoint ou sincronizado)
-        await supabase
-          .from("orders")
-          .update({
-            status_comprovante_sync: comprovanteSynced ? "sincronizado" : "pendente_sharepoint",
-          } as any)
-          .eq("id", completionOrder.id);
       }
 
-      const res = await updateDriverDeliveryStatus({
-        orderId: completionOrder.id,
-        newStatus: "entregue",
-        entreguePara: recipientName.trim(),
-        obsEntrega: deliveryNotes.trim() || undefined,
-      });
+      // Conclui cada O.S. da parada
+      for (const ord of completionOrders) {
+        await updateDriverDeliveryStatus({
+          orderId: ord.id,
+          newStatus: "entregue",
+          entreguePara: recipientName.trim(),
+          obsEntrega: deliveryNotes.trim() || undefined,
+        });
 
-      if (res.success) {
-        toast.success(
-          proofFile && !comprovanteSynced
-            ? `Entrega da O.S. #${completionOrder.titulo} concluída! Foto enfileirada para o SharePoint.`
-            : `Entrega da O.S. #${completionOrder.titulo} concluída com sucesso!`
-        );
-        void sendGpsTelemetry(completionOrder.id);
-        setCompletionOrder(null);
-        void fetchDriverData();
-      } else {
-        toast.error(res.error || "Erro ao concluir entrega.");
+        if (proofFile) {
+          await supabase
+            .from("orders")
+            .update({
+              status_comprovante_sync: comprovanteSynced ? "sincronizado" : "pendente_sharepoint",
+            } as any)
+            .eq("id", ord.id);
+        }
       }
+
+      toast.success(
+        completionOrders.length > 1
+          ? `Parada finalizada com ${completionOrders.length} O.S. entregues com sucesso!`
+          : `Entrega da O.S. #${cleanOsNumber(primaryOrder.titulo)} concluída com sucesso!`
+      );
+
+      void sendGpsTelemetry(primaryOrder.id);
+      setCompletionOrders([]);
+      void fetchDriverData();
     } catch (err: any) {
       console.error("[EntregadorPage] Erro inesperado ao confirmar entrega:", err);
       toast.error(err?.message || "Erro ao registrar entrega.");
@@ -647,36 +757,35 @@ export default function EntregadorPage() {
   };
 
   // Modal: Abrir registro de insucesso
-  const handleOpenFailure = (order: Order) => {
-    setFailureOrder(order);
+  const handleOpenFailure = (target: Order | Order[]) => {
+    const list = Array.isArray(target) ? target : [target];
+    setFailureOrders(list);
     setFailureReason(INSUCESSO_MOTIVOS[0]);
     setFailureNotes("");
   };
 
   // Grava Insucesso
   const handleConfirmFailure = async () => {
-    if (!failureOrder) return;
+    if (failureOrders.length === 0) return;
 
     const fullReason = failureNotes.trim()
       ? `${failureReason} — ${failureNotes.trim()}`
       : failureReason;
 
     setSubmittingFailure(true);
-    const res = await updateDriverDeliveryStatus({
-      orderId: failureOrder.id,
-      newStatus: "insucesso",
-      motivoInsucesso: fullReason,
-    });
+    for (const ord of failureOrders) {
+      await updateDriverDeliveryStatus({
+        orderId: ord.id,
+        newStatus: "insucesso",
+        motivoInsucesso: fullReason,
+      });
+    }
     setSubmittingFailure(false);
 
-    if (res.success) {
-      toast.error(`Ocorrência de insucesso registrada para O.S. #${failureOrder.titulo}.`);
-      void sendGpsTelemetry(failureOrder.id);
-      setFailureOrder(null);
-      void fetchDriverData();
-    } else {
-      toast.error(res.error || "Erro ao registrar insucesso.");
-    }
+    toast.error(`Ocorrência de insucesso registrada para ${failureOrders.length} O.S.`);
+    void sendGpsTelemetry(failureOrders[0].id);
+    setFailureOrders([]);
+    void fetchDriverData();
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -768,6 +877,32 @@ export default function EntregadorPage() {
               <Bell className="h-4 w-4" />
             )}
           </Button>
+          {orders.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                "h-8 text-xs font-semibold gap-1 px-2.5",
+                isRoutePaused
+                  ? "bg-amber-500/20 text-amber-300 border-amber-500/50 hover:bg-amber-500/30"
+                  : "text-zinc-300 hover:text-white border-zinc-700 bg-zinc-800/80"
+              )}
+              onClick={() => setPauseModalOpen(true)}
+              title={isRoutePaused ? "Rota Pausada (Clique para ver/retomar)" : "Informar imprevisto na rua"}
+            >
+              {isRoutePaused ? (
+                <>
+                  <Pause className="h-3.5 w-3.5 text-amber-400 animate-pulse" />
+                  <span className="text-[11px]">Pausada</span>
+                </>
+              ) : (
+                <>
+                  <Pause className="h-3.5 w-3.5" />
+                  <span className="hidden xs:inline text-[11px]">Pausar Rota</span>
+                </>
+              )}
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="icon"
@@ -956,6 +1091,36 @@ export default function EntregadorPage() {
           )}
         </div>
 
+        {/* Banner de Rota Pausada pelo Entregador ou Expedição */}
+        {isRoutePaused && (
+          <div className="bg-amber-950/70 border border-amber-500/60 rounded-xl p-3.5 flex flex-col gap-2 shadow-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-amber-400 font-bold text-xs sm:text-sm">
+                <Pause className="h-4 w-4 shrink-0" />
+                <span>
+                  ROTA PAUSADA:{" "}
+                  {pausedOrder?.rota_pausa_motivo
+                    ? MOTIVOS_PAUSA_CONFIG[pausedOrder.rota_pausa_motivo as MotivoPausaRota]?.label || pausedOrder.rota_pausa_motivo
+                    : "Imprevisto na via"}
+                </span>
+              </div>
+              <Button
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs h-7 px-2.5 gap-1 shadow-sm cursor-pointer"
+                onClick={() => setPauseModalOpen(true)}
+              >
+                <Play className="h-3 w-3" />
+                Retomar
+              </Button>
+            </div>
+            {pausedOrder?.rota_pausa_obs && (
+              <p className="text-xs text-zinc-300 bg-black/40 p-2 rounded border border-amber-500/20">
+                {pausedOrder.rota_pausa_obs}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Cards de Contagem */}
         <div className="grid grid-cols-3 gap-2">
           <div className="bg-zinc-900/70 border border-zinc-800 rounded-lg p-2.5 text-center">
@@ -995,7 +1160,7 @@ export default function EntregadorPage() {
               <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2 text-zinc-400" />
               Carregando suas entregas...
             </div>
-          ) : displayedOrders.length === 0 ? (
+          ) : displayedStops.length === 0 ? (
             <div className="text-center py-12 px-4 text-zinc-400 text-sm bg-zinc-900/40 rounded-xl border border-zinc-800/80 flex flex-col items-center gap-3">
               <Package className="h-10 w-10 text-zinc-600 mb-1" />
               <div>
@@ -1021,47 +1186,55 @@ export default function EntregadorPage() {
               )}
             </div>
           ) : (
-            displayedOrders.map((order) => {
-              const status = (order.status_entrega || "pendente") as DeliveryStatus;
+            displayedStops.map((stop, stopIdx) => {
+              const primaryOrder = stop.orders[0];
+              const isGrouped = stop.orders.length > 1;
+              const status = stop.status;
               const statusCfg = DELIVERY_STATUS_CONFIG[status] || DELIVERY_STATUS_CONFIG.pendente;
-              const address = order.entrega_endereco || order.endereco_entrega || "";
+              const address = stop.endereco || primaryOrder?.entrega_endereco || primaryOrder?.endereco_entrega || "";
+              const isPriority = stop.prioridade;
 
               return (
                 <div
-                  key={order.id}
+                  key={stop.stopKey}
                   className={cn(
                     "rounded-xl border bg-zinc-900/90 p-4 flex flex-col gap-3 shadow-md transition-all",
+                    isPriority && "border-amber-500/80 ring-1 ring-amber-500/40 bg-amber-950/10",
                     status === "em_rota" && "border-amber-500/80 ring-1 ring-amber-500/40",
                     status === "no_local" && "border-purple-500/80 ring-1 ring-purple-500/40",
                     status === "entregue" && "border-emerald-900/60 opacity-85",
                     status === "insucesso" && "border-red-900/70",
-                    status === "pendente" || status === "atribuido" ? "border-zinc-800" : ""
+                    (status === "pendente" || status === "atribuido") && !isPriority ? "border-zinc-800" : ""
                   )}
                 >
-                  {/* Cabeçalho do Card */}
+                  {/* Cabeçalho da Parada */}
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      {order.ordem_parada && (
-                        <div className="h-6 w-6 rounded-md bg-primary/20 text-primary border border-primary/40 font-bold text-xs flex items-center justify-center shrink-0">
-                          #{order.ordem_parada}
+                    <div className="flex items-center gap-2 overflow-hidden">
+                      {/* Número da Parada na Rota */}
+                      <div className="h-7 w-7 rounded-lg bg-primary/20 text-primary border border-primary/40 font-black text-xs flex items-center justify-center shrink-0">
+                        #{stopIdx + 1}
+                      </div>
+
+                      <div className="flex flex-col overflow-hidden">
+                        <div className="font-bold text-sm text-zinc-100 truncate flex items-center gap-1.5">
+                          <span>{stop.cliente}</span>
                         </div>
-                      )}
-                      <div>
-                        <div className="font-bold text-base text-zinc-100 flex items-center gap-1.5 flex-wrap">
-                          <span>{order.tipo_entrega?.includes("coleta") ? "COLETA" : "O.S."} {order.titulo}</span>
-                          {order.tipo_entrega?.includes("coleta") && (
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-bold bg-amber-500/20 text-amber-400 border-amber-500/40">
-                              COLETA
+                        <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                          {stop.rotaNumero && (
+                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 font-bold bg-zinc-800 text-zinc-300 border-zinc-700">
+                              {stop.rotaNumero === "RETIRA" ? "RETIRA" : `Rota ${stop.rotaNumero}`}
                             </Badge>
                           )}
-                          {order.urgente && (
-                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 font-bold bg-red-500/20 text-red-400 border-red-500/40">
+                          {isGrouped && (
+                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 font-bold bg-blue-500/20 text-blue-300 border-blue-500/40">
+                              {stop.orders.length} O.S. Agrupadas
+                            </Badge>
+                          )}
+                          {isPriority && (
+                            <Badge variant="outline" className="text-[9px] px-1.5 py-0 font-bold bg-red-500/20 text-red-400 border-red-500/40">
                               URGENTE
                             </Badge>
                           )}
-                        </div>
-                        <div className="text-xs font-semibold text-zinc-300 line-clamp-1">
-                          {order.cliente}
                         </div>
                       </div>
                     </div>
@@ -1074,7 +1247,28 @@ export default function EntregadorPage() {
                     </Badge>
                   </div>
 
-                  {/* Endereço de Entrega Clicável */}
+                  {/* Lista de O.S. incluídas na Parada */}
+                  <div className="flex flex-col gap-1.5 bg-zinc-950/70 border border-zinc-800/80 rounded-lg p-2.5 text-xs">
+                    {stop.orders.map((ord) => (
+                      <div key={ord.id} className="flex items-center justify-between gap-2 overflow-hidden">
+                        <div className="flex items-center gap-1.5 overflow-hidden">
+                          <span className="font-mono font-bold text-primary shrink-0 text-[11px]">
+                            OS #{cleanOsNumber(ord.titulo)}
+                          </span>
+                          <span className="text-[11px] text-zinc-300 truncate" title={ord.descricao}>
+                            — {ord.descricao}
+                          </span>
+                        </div>
+                        {ord.tipo_entrega?.includes("coleta") && (
+                          <Badge variant="outline" className="text-[9px] px-1 py-0 bg-amber-500/20 text-amber-400 border-amber-500/40 shrink-0">
+                            COLETA
+                          </Badge>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Endereço de Entrega Clicável e Navegação */}
                   {address ? (
                     <div className="bg-zinc-950/70 border border-zinc-800/80 rounded-lg p-3 flex flex-col gap-2">
                       <div className="flex items-start gap-2 text-xs text-zinc-300">
@@ -1085,8 +1279,8 @@ export default function EntregadorPage() {
                       <div className="flex items-center gap-2 pt-1 border-t border-zinc-800/50">
                         <a
                           href={
-                            order.destino_latitude && order.destino_longitude
-                              ? `https://www.google.com/maps/dir/?api=1&destination=${order.destino_latitude},${order.destino_longitude}`
+                            primaryOrder.destino_latitude && primaryOrder.destino_longitude
+                              ? `https://www.google.com/maps/dir/?api=1&destination=${primaryOrder.destino_latitude},${primaryOrder.destino_longitude}`
                               : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`
                           }
                           target="_blank"
@@ -1098,8 +1292,8 @@ export default function EntregadorPage() {
                         </a>
                         <a
                           href={
-                            order.destino_latitude && order.destino_longitude
-                              ? `https://waze.com/ul?ll=${order.destino_latitude},${order.destino_longitude}&navigate=yes`
+                            primaryOrder.destino_latitude && primaryOrder.destino_longitude
+                              ? `https://waze.com/ul?ll=${primaryOrder.destino_latitude},${primaryOrder.destino_longitude}&navigate=yes`
                               : `https://waze.com/ul?q=${encodeURIComponent(address)}&navigate=yes`
                           }
                           target="_blank"
@@ -1117,25 +1311,17 @@ export default function EntregadorPage() {
                     </div>
                   )}
 
-                  {/* Descrição do Material */}
-                  {order.descricao && (
-                    <p className="text-xs text-zinc-400 line-clamp-2 bg-zinc-950/40 p-2 rounded border border-zinc-800/40">
-                      <span className="text-zinc-500 font-medium">Item: </span>
-                      {order.descricao}
-                    </p>
-                  )}
-
                   {/* Detalhes de Conclusão ou Falha */}
                   {status === "entregue" && (
                     <div className="text-xs text-emerald-400 bg-emerald-950/30 border border-emerald-900/50 p-2 rounded flex flex-col gap-1">
                       <div className="flex items-center gap-1 font-medium">
                         <CheckCircle2 className="h-3.5 w-3.5" />
-                        Recebido por: {order.entregue_para || "Comprovante anexado"}
+                        Recebido por: {primaryOrder.entregue_para || "Comprovante anexado"}
                       </div>
-                      {order.data_chegada_entrega && (
+                      {primaryOrder.data_chegada_entrega && (
                         <div className="text-[11px] text-zinc-400 flex items-center gap-1">
                           <Clock className="h-3 w-3" />
-                          {format(parseISO(order.data_chegada_entrega), "dd/MM/yyyy HH:mm", {
+                          {format(parseISO(primaryOrder.data_chegada_entrega), "dd/MM/yyyy HH:mm", {
                             locale: ptBR,
                           })}
                         </div>
@@ -1149,60 +1335,63 @@ export default function EntregadorPage() {
                         <AlertTriangle className="h-3.5 w-3.5" />
                         Insucesso na entrega:
                       </div>
-                      <p className="text-[11px] text-zinc-300">{order.motivo_insucesso}</p>
+                      <p className="text-[11px] text-zinc-300">{primaryOrder.motivo_insucesso}</p>
                     </div>
                   )}
 
                   {/* Botões de Ação da Máquina de Estados */}
-                  <div className="flex flex-col gap-2 pt-1 border-t border-zinc-800/80">
-                    {/* Status: atribuido / pendente -> Iniciar Rota */}
-                    {(status === "atribuido" || status === "pendente") && (
-                      <Button
-                        size="sm"
-                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs h-10 gap-2"
-                        onClick={() => handleStartRoute(order)}
-                      >
-                        <Bike className="h-4 w-4" />
-                        {order.tipo_entrega?.includes("coleta") ? "Iniciar Rota para Coleta" : "Iniciar Rota para esta O.S."}
-                      </Button>
-                    )}
-
-                    {/* Status: em_rota -> Cheguei no Local */}
-                    {status === "em_rota" && (
-                      <Button
-                        size="sm"
-                        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs h-10 gap-2"
-                        onClick={() => handleArrivedAtDestination(order)}
-                      >
-                        <MapPin className="h-4 w-4" />
-                        {order.tipo_entrega?.includes("coleta") ? "Cheguei no Local de Coleta" : "Cheguei no Local de Entrega"}
-                      </Button>
-                    )}
-
-                    {/* Status: no_local -> Concluir ou Registrar Insucesso */}
-                    {status === "no_local" && (
-                      <div className="grid grid-cols-2 gap-2">
+                  {activeTabFilter === "pendentes" && (
+                    <div className="flex flex-col gap-2 pt-1 border-t border-zinc-800/80">
+                      {(status === "atribuido" || status === "pendente") && (
                         <Button
                           size="sm"
-                          variant="destructive"
-                          className="font-medium text-xs h-10 gap-1.5"
-                          onClick={() => handleOpenFailure(order)}
+                          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs h-10 gap-2"
+                          onClick={() => handleStartRoute(stop.orders)}
                         >
-                          <AlertTriangle className="h-3.5 w-3.5" />
-                          {order.tipo_entrega?.includes("coleta") ? "Não Coletado" : "Não Entregue"}
+                          <Bike className="h-4 w-4" />
+                          {isGrouped
+                            ? `Iniciar Rota para Parada (${stop.orders.length} O.S.)`
+                            : primaryOrder.tipo_entrega?.includes("coleta")
+                            ? "Iniciar Rota para Coleta"
+                            : "Iniciar Rota para esta O.S."}
                         </Button>
+                      )}
 
+                      {status === "em_rota" && (
                         <Button
                           size="sm"
-                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-10 gap-1.5"
-                          onClick={() => handleOpenCompletion(order)}
+                          className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold text-xs h-10 gap-2"
+                          onClick={() => handleArrivedAtDestination(stop.orders)}
                         >
-                          <FileCheck className="h-4 w-4" />
-                          {order.tipo_entrega?.includes("coleta") ? "Concluir Coleta" : "Concluir Entrega"}
+                          <MapPin className="h-4 w-4" />
+                          Cheguei no Local
                         </Button>
-                      </div>
-                    )}
-                  </div>
+                      )}
+
+                      {status === "no_local" && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="font-medium text-xs h-10 gap-1.5"
+                            onClick={() => handleOpenFailure(stop.orders)}
+                          >
+                            <AlertTriangle className="h-3.5 w-3.5" />
+                            Não Entregue
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-10 gap-1.5"
+                            onClick={() => handleOpenCompletion(stop.orders)}
+                          >
+                            <FileCheck className="h-4 w-4" />
+                            {isGrouped ? `Concluir (${stop.orders.length} O.S.)` : "Concluir Entrega"}
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               );
             })
@@ -1212,18 +1401,39 @@ export default function EntregadorPage() {
 
       {/* Modal: Concluir Entrega com Foto e Recebedor */}
       <Dialog
-        open={!!completionOrder}
-        onOpenChange={(open) => !open && setCompletionOrder(null)}
+        open={completionOrders.length > 0}
+        onOpenChange={(open) => !open && setCompletionOrders([])}
       >
         <DialogContent className="max-w-md bg-zinc-900 border-zinc-800 text-zinc-100 p-5">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-emerald-400 font-bold text-base">
               <CheckCircle2 className="h-5 w-5" />
-              Finalizar Entrega — O.S. {completionOrder?.titulo}
+              Finalizar Entrega — {completionOrders.length > 1 ? `${completionOrders.length} O.S. Agrupadas` : `O.S. #${cleanOsNumber(completionOrders[0]?.titulo)}`}
             </DialogTitle>
           </DialogHeader>
 
           <div className="flex flex-col gap-4 py-2 text-xs">
+            {/* Informações da Parada / O.S. incluídas */}
+            <div className="rounded-lg bg-zinc-950/70 border border-zinc-800 p-2.5 flex flex-col gap-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-semibold text-zinc-200">
+                  Cliente: <strong>{completionOrders[0]?.cliente}</strong>
+                </span>
+                {completionOrders.length > 1 && (
+                  <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-300 border-blue-500/30">
+                    {completionOrders.length} O.S.
+                  </Badge>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-1 mt-0.5">
+                {completionOrders.map((ord) => (
+                  <Badge key={ord.id} variant="outline" className="text-[10px] font-mono bg-zinc-900 text-zinc-300 border-zinc-700">
+                    OS #{cleanOsNumber(ord.titulo)}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+
             {/* Destino corporativo no SharePoint */}
             <div className="rounded-lg bg-sky-950/40 border border-sky-800/40 p-2.5 flex items-center justify-between text-xs">
               <div className="flex items-center gap-2 text-sky-200">
@@ -1319,7 +1529,7 @@ export default function EntregadorPage() {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setCompletionOrder(null)}
+              onClick={() => setCompletionOrders([])}
               disabled={submittingCompletion}
               className="border-zinc-800 text-zinc-300"
             >
@@ -1340,14 +1550,14 @@ export default function EntregadorPage() {
 
       {/* Modal: Registrar Insucesso */}
       <Dialog
-        open={!!failureOrder}
-        onOpenChange={(open) => !open && setFailureOrder(null)}
+        open={failureOrders.length > 0}
+        onOpenChange={(open) => !open && setFailureOrders([])}
       >
         <DialogContent className="max-w-md bg-zinc-900 border-zinc-800 text-zinc-100 p-5">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-400 font-bold text-base">
               <AlertTriangle className="h-5 w-5" />
-              Ocorrência de Insucesso — O.S. {failureOrder?.titulo}
+              Ocorrência de Insucesso — {failureOrders.length > 1 ? `${failureOrders.length} O.S.` : `O.S. #${cleanOsNumber(failureOrders[0]?.titulo)}`}
             </DialogTitle>
           </DialogHeader>
 
@@ -1389,7 +1599,7 @@ export default function EntregadorPage() {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => setFailureOrder(null)}
+              onClick={() => setFailureOrders([])}
               disabled={submittingFailure}
               className="border-zinc-800 text-zinc-300"
             >
@@ -1500,6 +1710,24 @@ export default function EntregadorPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal de Pausa e Imprevistos da Rota */}
+      {pauseModalOpen && (
+        <DeliveryPauseRouteModal
+          open={pauseModalOpen}
+          onOpenChange={setPauseModalOpen}
+          rotaId={activeRouteId}
+          orders={orders}
+          isPaused={isRoutePaused}
+          currentMotivo={pausedOrder?.rota_pausa_motivo as MotivoPausaRota | undefined}
+          currentObs={pausedOrder?.rota_pausa_obs}
+          pausedAt={pausedOrder?.rota_pausa_em}
+          onSuccess={() => {
+            setPauseModalOpen(false);
+            void fetchDriverData();
+          }}
+        />
+      )}
     </div>
   );
 }
