@@ -42,6 +42,12 @@ export const UTILITIES_CONFIG: UtilitySubMenu[] = [
         label: "CALCULAR LOMBADA",
         url: "https://calcularlombada.vercel.app/",
       },
+      {
+        id: "flipbook",
+        label: "FLIPBOOK",
+        url: "https://primacorpdf.base44.app/",
+        badge: "PDF",
+      },
     ],
   },
 ];
