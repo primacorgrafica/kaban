@@ -1,5 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { DeliveryStatus, Entregador, EntregadorPosicao } from "@/types/delivery";
+import type {
+  DeliveryStatus,
+  Entregador,
+  EntregadorPosicao,
+  RotaId,
+  MotivoPausaRota,
+} from "@/types/delivery";
 
 export interface DeliveryRpcResponse {
   success: boolean;
@@ -187,5 +193,245 @@ export async function recordGpsCheckpoint(params: {
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message || "Erro ao registrar coordenadas GPS." };
+  }
+}
+
+/**
+ * Atribui uma ou mais O.S. a uma Rota (1 a 6 ou RETIRA) e opcionalmente a um entregador
+ */
+export async function assignOrderToRoute(
+  orderIds: string | string[],
+  rotaNumero: RotaId | null,
+  entregadorId?: string | null
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const ids = Array.isArray(orderIds) ? orderIds : [orderIds];
+    if (ids.length === 0) return { success: true };
+
+    const updatePayload: Record<string, any> = {
+      rota_numero: rotaNumero,
+    };
+
+    if (entregadorId !== undefined) {
+      updatePayload.entregador_id = entregadorId;
+      if (entregadorId) {
+        updatePayload.status_entrega = "atribuido";
+      }
+    }
+
+    const { error } = await supabase
+      .from("orders")
+      .update(updatePayload)
+      .in("id", ids);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Erro ao atribuir rota." };
+  }
+}
+
+/**
+ * Reordena sequencialmente as paradas de uma rota (1ª parada, 2ª parada, 3ª parada...)
+ */
+export async function reorderRouteStops(
+  rotaNumero: RotaId,
+  orderedOrderIds: string[]
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (orderedOrderIds.length === 0) return { success: true };
+
+    const updates = orderedOrderIds.map((id, index) =>
+      supabase
+        .from("orders")
+        .update({
+          rota_numero: rotaNumero,
+          rota_sequencia: index + 1,
+          ordem_parada: index + 1,
+        })
+        .eq("id", id)
+    );
+
+    const results = await Promise.all(updates);
+    const firstError = results.find((r) => r.error);
+    if (firstError?.error) {
+      return { success: false, error: firstError.error.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Erro ao reordenar paradas." };
+  }
+}
+
+/**
+ * Pausa ou retoma uma rota ou parada com registro de motivo padronizado
+ */
+export async function toggleRoutePause(params: {
+  orderIds: string | string[];
+  paused: boolean;
+  motivo?: MotivoPausaRota | null;
+  obs?: string | null;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const ids = Array.isArray(params.orderIds) ? params.orderIds : [params.orderIds];
+    if (ids.length === 0) return { success: true };
+
+    const updatePayload: Record<string, any> = {
+      rota_pausada: params.paused,
+      rota_pausa_motivo: params.paused ? params.motivo || "outro" : null,
+      rota_pausa_obs: params.paused ? params.obs?.trim() || null : null,
+      rota_pausa_em: params.paused ? new Date().toISOString() : null,
+    };
+
+    const { error } = await supabase
+      .from("orders")
+      .update(updatePayload)
+      .in("id", ids);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Erro ao atualizar pausa da rota." };
+  }
+}
+
+/**
+ * Alterna prioridade/urgência de entrega de uma O.S.
+ */
+export async function toggleDeliveryPriority(
+  orderId: string,
+  priority: boolean
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await supabase
+      .from("orders")
+      .update({ rota_prioridade: priority })
+      .eq("id", orderId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Erro ao alternar prioridade da entrega." };
+  }
+}
+
+/**
+ * Agrupa múltiplas O.S. do mesmo cliente numa única parada física
+ */
+export async function groupOrdersInStop(
+  orderIds: string[]
+): Promise<{ success: boolean; paradaId?: string; error?: string }> {
+  try {
+    if (orderIds.length <= 1) return { success: true };
+    const paradaId = crypto.randomUUID();
+
+    const { error } = await supabase
+      .from("orders")
+      .update({ parada_agrupada_id: paradaId })
+      .in("id", orderIds);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, paradaId };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Erro ao agrupar entregas." };
+  }
+}
+
+/**
+ * Desvincula uma O.S. de uma parada agrupada
+ */
+export async function ungroupOrderFromStop(
+  orderId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await supabase
+      .from("orders")
+      .update({ parada_agrupada_id: null })
+      .eq("id", orderId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Erro ao desagrupar entrega." };
+  }
+}
+
+/**
+ * Salva ou atualiza cadastro completo de um entregador (Carro/Moto, CNH/Doc, etc.)
+ */
+export async function saveEntregador(
+  entregador: Partial<Entregador> & { user_id: string; nome_completo: string }
+): Promise<{ success: boolean; data?: Entregador; error?: string }> {
+  try {
+    const payload: Record<string, any> = {
+      user_id: entregador.user_id,
+      nome_completo: entregador.nome_completo.trim(),
+      sobrenome: entregador.sobrenome?.trim() || null,
+      telefone: entregador.telefone?.trim() || null,
+      placa_veiculo: entregador.placa_veiculo?.trim()?.toUpperCase() || null,
+      modelo_veiculo: entregador.modelo_veiculo?.trim() || null,
+      documento_identificacao: entregador.documento_identificacao?.trim() || null,
+      categoria_veiculo: entregador.categoria_veiculo || "moto",
+      observacoes: entregador.observacoes?.trim() || null,
+      ativo: entregador.ativo ?? true,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (entregador.rota_atribuida !== undefined) {
+      payload.rota_atribuida = entregador.rota_atribuida;
+    }
+
+    const { data, error } = await supabase
+      .from("entregadores" as any)
+      .upsert(payload, { onConflict: "user_id" })
+      .select()
+      .single();
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true, data: data as unknown as Entregador };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Erro ao salvar cadastro do entregador." };
+  }
+}
+
+/**
+ * Ativa ou desativa um entregador preservando todo o histórico de entregas
+ */
+export async function toggleEntregadorAtivo(
+  entregadorId: string,
+  ativo: boolean
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await supabase
+      .from("entregadores" as any)
+      .update({ ativo, updated_at: new Date().toISOString() })
+      .eq("id", entregadorId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Erro ao alterar status do entregador." };
   }
 }

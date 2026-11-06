@@ -82,6 +82,15 @@ export interface Order {
   destino_longitude?: number | null;
   geocoding_status?: "pendente" | "geocodificado" | "falha" | "manual" | null;
   geocoding_address_cached?: string | null;
+  // Evolução da Expedição: Rotas 1 a 6 + RETIRA, Pausas e Agrupamento
+  rota_numero?: string | null; // "1" | "2" | "3" | "4" | "5" | "6" | "RETIRA"
+  rota_sequencia?: number | null; // Ordem da parada: 1, 2, 3...
+  rota_prioridade?: boolean | null; // Entrega urgente marcada na expedição
+  rota_pausada?: boolean | null; // Rota temporariamente pausada
+  rota_pausa_motivo?: string | null; // Motivo padronizado
+  rota_pausa_obs?: string | null; // Observação complementar
+  rota_pausa_em?: string | null; // Timestamp da pausa
+  parada_agrupada_id?: string | null; // Agrupamento de O.S. do mesmo cliente numa única parada
   // Faturamento fields
   fat_cnpj_ok: boolean;
   fat_cnpj_obs: string | null;

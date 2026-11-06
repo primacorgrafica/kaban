@@ -8,13 +8,88 @@ export type DeliveryStatus =
 
 export type EntregadorStatus = "disponivel" | "em_entrega" | "offline";
 
+export type RotaId = "1" | "2" | "3" | "4" | "5" | "6" | "RETIRA";
+
+export type VeiculoCategoria = "moto" | "carro";
+
+export type MotivoPausaRota =
+  | "sinistro"
+  | "pneu_furado"
+  | "defeito_mecanico"
+  | "saude"
+  | "excedeu_jornada"
+  | "problema_via"
+  | "mau_tempo"
+  | "outro";
+
+export const MOTIVOS_PAUSA_CONFIG: Record<
+  MotivoPausaRota,
+  { label: string; icon: string; descricao: string }
+> = {
+  sinistro: {
+    label: "Sinistro / Acidente",
+    icon: "ShieldAlert",
+    descricao: "Acidente de trânsito ou ocorrência na via",
+  },
+  pneu_furado: {
+    label: "Pneu Furado",
+    icon: "Disc",
+    descricao: "Manutenção de pneu furado ou calibragem",
+  },
+  defeito_mecanico: {
+    label: "Defeito Mecânico",
+    icon: "Wrench",
+    descricao: "Pane no veículo ou parte elétrica",
+  },
+  saude: {
+    label: "Problema de Saúde",
+    icon: "HeartPulse",
+    descricao: "Indisposição física ou atendimento de saúde",
+  },
+  excedeu_jornada: {
+    label: "Excedeu Jornada",
+    icon: "Clock",
+    descricao: "Limite de tempo de trabalho ou intervalo obrigatório",
+  },
+  problema_via: {
+    label: "Problema na Via",
+    icon: "AlertTriangle",
+    descricao: "Obras, alagamento, manifestação ou interdição",
+  },
+  mau_tempo: {
+    label: "Mau Tempo",
+    icon: "CloudRain",
+    descricao: "Chuva torrencial, temporal ou risco climático",
+  },
+  outro: {
+    label: "Outro Motivo",
+    icon: "HelpCircle",
+    descricao: "Outro imprevisto (especificar na observação)",
+  },
+};
+
+export const ROTAS_DISPONIVEIS: { id: RotaId; label: string; isRetira?: boolean }[] = [
+  { id: "1", label: "Rota 1" },
+  { id: "2", label: "Rota 2" },
+  { id: "3", label: "Rota 3" },
+  { id: "4", label: "Rota 4" },
+  { id: "5", label: "Rota 5" },
+  { id: "6", label: "Rota 6" },
+  { id: "RETIRA", label: "RETIRA", isRetira: true },
+];
+
 export interface Entregador {
   id: string;
   user_id: string;
   nome_completo: string;
+  sobrenome?: string | null;
   telefone: string | null;
   placa_veiculo: string | null;
   modelo_veiculo: string | null;
+  documento_identificacao?: string | null;
+  categoria_veiculo?: VeiculoCategoria;
+  observacoes?: string | null;
+  rota_atribuida?: RotaId | null;
   ativo: boolean;
   status?: EntregadorStatus;
   latitude?: number | null;
