@@ -52,15 +52,20 @@ export function useAvisos() {
       if (isMounted) setLoading(false);
     });
 
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
     const channel = supabase
       .channel("avisos-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "avisos" }, () => {
-        void fetchAvisos();
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+          if (isMounted) void fetchAvisos();
+        }, 2000);
       })
       .subscribe();
 
     return () => {
       isMounted = false;
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(channel);
     };
   }, [authReady, user]);

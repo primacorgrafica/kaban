@@ -232,7 +232,7 @@ export function trackGraphApiTelemetry(
 /**
  * Inicia o Beacon Autônomo de Batimentos Cardíacos (Heartbeat) no cliente
  */
-export function startAutonomousClientBeacon(intervalMs = 60000): () => void {
+export function startAutonomousClientBeacon(intervalMs = 300000): () => void {
   if (beaconTimer) clearInterval(beaconTimer);
 
   const sendHeartbeat = () => {

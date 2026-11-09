@@ -139,32 +139,44 @@ export function GlobalChatNotifier({ children }: { children?: ReactNode }) {
         });
       }
 
-      // 3. Conta mensagens não lidas em paralelo para máxima velocidade
+      // 3. Conta mensagens não lidas em lote (1 única consulta em vez de dezenas)
+      const localHidden = getLocalHiddenConversations(currentUserId);
+      const validConvIds = convIds.filter((cid: string) => !localHidden.has(cid) && !settingsMap[cid]?.is_hidden);
+
+      if (validConvIds.length === 0) {
+        setUnreadByConversation({});
+        setUnreadChatCount(0);
+        return;
+      }
+
+      // Janela de corte dos últimos 30 dias para evitar escanear histórico antigo
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+      const oldestCutoff = validConvIds.reduce((oldest: string, cid: string) => {
+        const lr = settingsMap[cid]?.last_read_at;
+        if (!lr) return oldest;
+        return lr < oldest ? lr : oldest;
+      }, thirtyDaysAgo);
+
+      const { data: unreadMsgs } = await supabase
+        .from("chat_messages" as any)
+        .select("conversation_id, created_at")
+        .in("conversation_id", validConvIds)
+        .neq("sender_id", currentUserId)
+        .gt("created_at", oldestCutoff);
+
       const byConv: Record<string, number> = {};
       let total = 0;
-      const localHidden = getLocalHiddenConversations(currentUserId);
 
-      await Promise.all(
-        convIds.map(async (convId: string) => {
-          if (localHidden.has(convId)) return;
-          const s = settingsMap[convId];
-          if (s?.is_hidden) return;
-          const lastRead = s?.last_read_at || "1970-01-01T00:00:00Z";
-
-          const { count } = await supabase
-            .from("chat_messages" as any)
-            .select("id", { count: "exact", head: true })
-            .eq("conversation_id", convId)
-            .neq("sender_id", currentUserId)
-            .gt("created_at", lastRead);
-
-          const unread = count || 0;
-          if (unread > 0) {
-            byConv[convId] = unread;
-            total += unread;
+      if (unreadMsgs && Array.isArray(unreadMsgs)) {
+        unreadMsgs.forEach((msg: any) => {
+          const cid = msg.conversation_id;
+          const lastRead = settingsMap[cid]?.last_read_at || "1970-01-01T00:00:00Z";
+          if (msg.created_at > lastRead) {
+            byConv[cid] = (byConv[cid] || 0) + 1;
+            total += 1;
           }
-        })
-      );
+        });
+      }
 
       setUnreadByConversation(byConv);
       setUnreadChatCount(total);
@@ -219,8 +231,14 @@ export function GlobalChatNotifier({ children }: { children?: ReactNode }) {
 
   // Ao focar a janela ou voltar a visibilidade, se estiver em uma conversa ativa, marca como lida
   useEffect(() => {
+    let lastFocusRefresh = 0;
     const handleVisibilityOrFocus = () => {
       if (document.visibilityState === "visible") {
+        const now = Date.now();
+        // Throttle de 15 segundos para evitar rajadas ao alternar janelas rapidamente
+        if (now - lastFocusRefresh < 15000) return;
+        lastFocusRefresh = now;
+
         const activeId = getActiveChatConversationId();
         const isViewing = location.pathname === "/chat" || isChatModalOpen();
         if (activeId && isViewing) {

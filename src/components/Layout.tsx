@@ -109,6 +109,11 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
   };
 
   const fetchDeptCounts = useCallback(async () => {
+    // Se a aba estiver oculta/minimizada, não sobrecarrega o banco de dados
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+      return;
+    }
+
     const NON_PRODUCTION_SECTORS = ["faturamento", "compras", "manutencao"];
     const [prodResult, preResult] = await Promise.all([
       supabase
@@ -175,9 +180,21 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
 
     void fetchDeptCounts();
 
-    const unsub = subscribeOrders(() => { void fetchDeptCounts(); });
-    return () => { unsub(); };
-  }, [authReady, user]);
+    // Debounce inteligente de 3 segundos: agrupa múltiplos eventos de Realtime em 1 única chamada
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const debouncedFetch = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        void fetchDeptCounts();
+      }, 3000);
+    };
+
+    const unsub = subscribeOrders(debouncedFetch);
+    return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      unsub();
+    };
+  }, [authReady, user, fetchDeptCounts]);
 
   const { avisos, naoLidos, lidos, loading: avisosLoading, marcarComoLido, marcarTodosComoLidos, limparAvisos, enviarAviso } = useAvisos();
 

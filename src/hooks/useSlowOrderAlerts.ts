@@ -60,6 +60,11 @@ export function useSlowOrderAlerts(orders: Order[]): Set<string> {
     }
 
     const check = async () => {
+      // Se a aba estiver minimizada ou em segundo plano, não faz consulta para poupar o banco
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return;
+      }
+
       const ids = candidateOrders.map((o) => o.id);
 
       const { data: history } = await supabase
@@ -128,7 +133,7 @@ export function useSlowOrderAlerts(orders: Order[]): Set<string> {
     };
 
     check();
-    const interval = setInterval(check, 60000);
+    const interval = setInterval(check, 120000); // 2 minutos é suficiente para alertas de lentidão e poupa conexões
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [candidatesKey]);
