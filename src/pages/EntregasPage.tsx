@@ -62,7 +62,7 @@ export default function EntregasPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDates, setSelectedDates] = useState<Set<string>>(new Set());
-  const [kanbanFilters, setKanbanFilters] = useState<KanbanFilters>({ statuses: [], vendedores: [], setores: [], dateFrom: undefined, dateTo: undefined });
+  const [kanbanFilters, setKanbanFilters] = useState<KanbanFilters>({ statuses: [], vendedores: [], operadores: [], setores: [], dateFrom: undefined, dateTo: undefined });
   const [selectedOrderForDriver, setSelectedOrderForDriver] = useState<Order | null>(null);
   const [selectedDeliveredOrder, setSelectedDeliveredOrder] = useState<Order | null>(null);
   const [showMonitoring, setShowMonitoring] = useState(false);
@@ -216,6 +216,11 @@ export default function EntregasPage() {
     // Filter by vendedor
     if (kanbanFilters.vendedores.length > 0) {
       list = list.filter(o => o.vendedor && kanbanFilters.vendedores.includes(o.vendedor));
+    }
+
+    // Filter by operador
+    if (kanbanFilters.operadores && kanbanFilters.operadores.length > 0) {
+      list = list.filter(o => o.operador && kanbanFilters.operadores!.includes(o.operador));
     }
 
     // Filter by setor
@@ -428,7 +433,7 @@ export default function EntregasPage() {
             )}
           </div>
 
-          <KanbanFiltersBar filters={kanbanFilters} onChange={setKanbanFilters} showOnly={["vendedores", "setores"]} />
+          <KanbanFiltersBar filters={kanbanFilters} onChange={setKanbanFilters} showOnly={["vendedores", "operadores", "setores"]} orders={allOrders} />
 
           <Button
             variant="outline"

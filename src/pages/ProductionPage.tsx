@@ -71,6 +71,7 @@ export default function ProductionPage() {
   const [fatFilters, setFatFilters] = useState<KanbanFilters>({
     statuses: [],
     vendedores: [],
+    operadores: [],
     setores: [],
     dateFrom: undefined,
     dateTo: undefined,
@@ -81,6 +82,7 @@ export default function ProductionPage() {
   const [deptFilters, setDeptFilters] = useState<KanbanFilters>({
     statuses: [],
     vendedores: [],
+    operadores: [],
     setores: [],
     dateFrom: undefined,
     dateTo: undefined,
@@ -162,6 +164,7 @@ export default function ProductionPage() {
   const applyFatFilters = (list: Order[]) => {
     return list.filter((o) => {
       if (fatFilters.vendedores.length > 0 && (!o.vendedor || !fatFilters.vendedores.includes(o.vendedor))) return false;
+      if (fatFilters.operadores && fatFilters.operadores.length > 0 && (!o.operador || !fatFilters.operadores.includes(o.operador))) return false;
       if (fatFilters.dateFrom && new Date(o.created_at) < startOfDay(fatFilters.dateFrom)) return false;
       if (fatFilters.dateTo && new Date(o.created_at) > endOfDay(fatFilters.dateTo)) return false;
       return true;
@@ -195,6 +198,7 @@ export default function ProductionPage() {
         if (!deptFilters.statuses.includes(orderStatus as any) && !deptFilters.statuses.includes(o.status as any)) return false;
       }
       if (deptFilters.vendedores.length > 0 && (!o.vendedor || !deptFilters.vendedores.includes(o.vendedor))) return false;
+      if (deptFilters.operadores && deptFilters.operadores.length > 0 && (!o.operador || !deptFilters.operadores.includes(o.operador))) return false;
       if (deptFilters.dateFrom && new Date(o.created_at) < startOfDay(deptFilters.dateFrom)) return false;
       if (deptFilters.dateTo && new Date(o.created_at) > endOfDay(deptFilters.dateTo)) return false;
 
@@ -231,7 +235,7 @@ export default function ProductionPage() {
       ) : isFaturamento ? (
         <div className="flex flex-col min-h-full">
           <div className="px-4 pt-2 flex items-center gap-4">
-            <KanbanFiltersBar filters={fatFilters} onChange={setFatFilters} showOnly={["vendedores"]} />
+            <KanbanFiltersBar filters={fatFilters} onChange={setFatFilters} showOnly={["vendedores", "operadores"]} orders={filteredOrders} />
           </div>
           <div className="flex-1 min-h-0">
             <ProductionKanbanBoard
@@ -276,7 +280,8 @@ export default function ProductionPage() {
               filters={deptFilters}
               onChange={setDeptFilters}
               department={currentDept}
-              showOnly={["statuses", "vendedores", "emails", "date"]}
+              showOnly={["statuses", "vendedores", "operadores", "emails", "date"]}
+              orders={filteredOrders}
             />
             <div className="flex items-center bg-card/85 dark:bg-[#11212D]/85 backdrop-blur-xl p-1 rounded-xl border border-border/80 dark:border-[#4A5C6A]/35 shrink-0 shadow-xs">
               <Button

@@ -5,15 +5,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { CalendarIcon, Filter, X, Mail } from "lucide-react";
+import { CalendarIcon, Filter, X, Mail, User } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
 import { fetchVendedores } from "@/lib/vendedores";
+import { fetchOperadoresList } from "@/lib/operadores";
 
 export interface KanbanFilters {
   statuses: (OrderStatus | string)[];
   vendedores: string[];
+  operadores?: string[];
   setores: string[];
   dateFrom: Date | undefined;
   dateTo: Date | undefined;
@@ -47,17 +49,20 @@ const ALL_SECTORS: { id: string; label: string; group: string }[] = [
 interface KanbanFiltersBarProps {
   filters: KanbanFilters;
   onChange: (filters: KanbanFilters) => void;
-  showOnly?: ("statuses" | "vendedores" | "setores" | "date" | "setoresManut" | "categoriasManut" | "emails")[];
+  showOnly?: ("statuses" | "vendedores" | "operadores" | "setores" | "date" | "setoresManut" | "categoriasManut" | "emails")[];
   department?: DepartmentConfig;
+  orders?: { operador?: string | null }[];
 }
 
-export function KanbanFiltersBar({ filters, onChange, showOnly, department }: KanbanFiltersBarProps) {
+export function KanbanFiltersBar({ filters, onChange, showOnly, department, orders }: KanbanFiltersBarProps) {
   const [open, setOpen] = useState(false);
   const [vendedoresList, setVendedoresList] = useState<string[]>([]);
-  const show = (section: "statuses" | "vendedores" | "setores" | "date" | "setoresManut" | "categoriasManut" | "emails") => !showOnly || showOnly.includes(section as any);
+  const [operadoresList, setOperadoresList] = useState<string[]>([]);
+  const show = (section: "statuses" | "vendedores" | "operadores" | "setores" | "date" | "setoresManut" | "categoriasManut" | "emails") => !showOnly || showOnly.includes(section as any);
   const hasFilters =
     filters.statuses.length > 0 ||
     filters.vendedores.length > 0 ||
+    (filters.operadores?.length || 0) > 0 ||
     filters.setores.length > 0 ||
     Boolean(filters.dateFrom) ||
     Boolean(filters.dateTo) ||
@@ -70,7 +75,24 @@ export function KanbanFiltersBar({ filters, onChange, showOnly, department }: Ka
     fetchVendedores().then((data) => {
       if (data) setVendedoresList(data.map((v) => v.nome));
     });
+    fetchOperadoresList().then((data) => {
+      if (data) {
+        const names = data.map((o) => o.nome);
+        setOperadoresList((prev) => Array.from(new Set([...prev, ...names])).sort());
+      }
+    });
   }, []);
+
+  useEffect(() => {
+    if (orders && orders.length > 0) {
+      const fromOrders = orders
+        .map((o) => o.operador?.trim())
+        .filter((op): op is string => Boolean(op));
+      if (fromOrders.length > 0) {
+        setOperadoresList((prev) => Array.from(new Set([...prev, ...fromOrders])).sort());
+      }
+    }
+  }, [orders]);
 
   const toggleStatus = (status: OrderStatus | string) => {
     const next = filters.statuses.includes(status)
@@ -84,6 +106,14 @@ export function KanbanFiltersBar({ filters, onChange, showOnly, department }: Ka
       ? filters.vendedores.filter(x => x !== v)
       : [...filters.vendedores, v];
     onChange({ ...filters, vendedores: next });
+  };
+
+  const toggleOperador = (op: string) => {
+    const current = filters.operadores || [];
+    const next = current.includes(op)
+      ? current.filter(x => x !== op)
+      : [...current, op];
+    onChange({ ...filters, operadores: next });
   };
 
   const toggleSetor = (s: string) => {
@@ -109,6 +139,7 @@ export function KanbanFiltersBar({ filters, onChange, showOnly, department }: Ka
     onChange({
       statuses: [],
       vendedores: [],
+      operadores: [],
       setores: [],
       dateFrom: undefined,
       dateTo: undefined,
@@ -122,6 +153,7 @@ export function KanbanFiltersBar({ filters, onChange, showOnly, department }: Ka
   const activeFiltersCount =
     (filters.statuses.length > 0 ? 1 : 0) +
     (filters.vendedores.length > 0 ? 1 : 0) +
+    ((filters.operadores?.length || 0) > 0 ? 1 : 0) +
     (filters.setores.length > 0 ? 1 : 0) +
     (filters.dateFrom || filters.dateTo ? 1 : 0) +
     ((filters.setoresManut?.length || 0) > 0 ? 1 : 0) +
@@ -248,6 +280,36 @@ export function KanbanFiltersBar({ filters, onChange, showOnly, department }: Ka
                       )}
                     >
                       {v}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            )}
+
+            {/* Operador filter */}
+            {show("operadores") && operadoresList.length > 0 && (
+            <div>
+              <p className="text-sm font-medium mb-2 flex items-center gap-1.5 text-foreground">
+                <User className="h-3.5 w-3.5 text-primary" />
+                Operador
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {operadoresList.map((op) => {
+                  const active = (filters.operadores || []).includes(op);
+                  return (
+                    <button
+                      key={op}
+                      type="button"
+                      onClick={() => toggleOperador(op)}
+                      className={cn(
+                        "text-xs px-2.5 py-1 rounded-full border transition-colors",
+                        active
+                          ? "bg-primary text-primary-foreground border-primary font-medium shadow-xs"
+                          : "border-border text-muted-foreground hover:text-foreground hover:border-border/80"
+                      )}
+                    >
+                      {op}
                     </button>
                   );
                 })}
@@ -408,6 +470,18 @@ export function KanbanFiltersBar({ filters, onChange, showOnly, department }: Ka
           onClick={() => toggleVendedor(v)}
         >
           {v}
+          <X className="h-2.5 w-2.5" />
+        </span>
+      ))}
+      {(filters.operadores || []).map((op) => (
+        <span
+          key={`op-${op}`}
+          className="text-[10px] px-2 py-0.5 rounded-full bg-primary/15 text-primary flex items-center gap-1 cursor-pointer font-medium border border-primary/20"
+          onClick={() => toggleOperador(op)}
+          title={`Remover filtro do operador: ${op}`}
+        >
+          <User className="h-2.5 w-2.5" />
+          {op}
           <X className="h-2.5 w-2.5" />
         </span>
       ))}

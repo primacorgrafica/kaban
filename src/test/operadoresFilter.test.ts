@@ -176,4 +176,73 @@ describe("fetchOperadoresList - Filtro exclusivo de perfis com papel de Operador
     expect(names).toContain("Carlos Coelho");
     expect(names).not.toContain("Outro Admin");
   });
+
+  describe("Filtro de Ordens por Operador (Kanban e Produção)", () => {
+    const mockOrders = [
+      { id: "1", titulo: "OS 1001", operador: "Alexandre", status: "entrada" },
+      { id: "2", titulo: "OS 1002", operador: "Leonardo", status: "preparacao" },
+      { id: "3", titulo: "OS 1003", operador: "Carlos Coelho", status: "saida" },
+      { id: "4", titulo: "OS 1004", operador: null, status: "entrada" },
+      { id: "5", titulo: "OS 1005", operador: undefined, status: "preparacao" },
+    ];
+
+    const filterOrders = (orders: typeof mockOrders, operadores?: string[]) => {
+      return orders.filter((o) => {
+        if (operadores && operadores.length > 0 && (!o.operador || !operadores.includes(o.operador))) {
+          return false;
+        }
+        return true;
+      });
+    };
+
+    it("deve retornar todas as ordens quando nenhum operador estiver selecionado no filtro", () => {
+      expect(filterOrders(mockOrders, [])).toHaveLength(5);
+      expect(filterOrders(mockOrders, undefined)).toHaveLength(5);
+    });
+
+    it("deve filtrar ordens pelo operador selecionado", () => {
+      const alexandreOrders = filterOrders(mockOrders, ["Alexandre"]);
+      expect(alexandreOrders).toHaveLength(1);
+      expect(alexandreOrders[0].id).toBe("1");
+
+      const leonardoOrders = filterOrders(mockOrders, ["Leonardo"]);
+      expect(leonardoOrders).toHaveLength(1);
+      expect(leonardoOrders[0].id).toBe("2");
+    });
+
+    it("deve suportar filtro com múltiplos operadores selecionados simultaneamente", () => {
+      const multi = filterOrders(mockOrders, ["Alexandre", "Carlos Coelho"]);
+      expect(multi).toHaveLength(2);
+      expect(multi.map((o) => o.operador)).toEqual(["Alexandre", "Carlos Coelho"]);
+    });
+
+    it("deve excluir ordens sem operador quando qualquer operador estiver filtrado", () => {
+      const filtered = filterOrders(mockOrders, ["Leonardo"]);
+      expect(filtered.some((o) => !o.operador)).toBe(false);
+    });
+
+    it("KanbanFiltersBar, Index, ProductionPage, ComercialPage e EntregasPage devem conter suporte ao filtro de operador", async () => {
+      const fs = await import("fs");
+      const path = await import("path");
+      const projectRoot = path.resolve(__dirname, "..");
+
+      const filterBarCode = fs.readFileSync(path.join(projectRoot, "components", "KanbanFiltersBar.tsx"), "utf8");
+      expect(filterBarCode).toContain("operadores?: string[]");
+      expect(filterBarCode).toContain("Operador");
+      expect(filterBarCode).toContain("fetchOperadoresList");
+
+      const indexCode = fs.readFileSync(path.join(projectRoot, "pages", "Index.tsx"), "utf8");
+      expect(indexCode).toContain("filters.operadores");
+
+      const prodCode = fs.readFileSync(path.join(projectRoot, "pages", "ProductionPage.tsx"), "utf8");
+      expect(prodCode).toContain("deptFilters.operadores");
+      expect(prodCode).toContain("showOnly={[\"statuses\", \"vendedores\", \"operadores\"");
+
+      const comCode = fs.readFileSync(path.join(projectRoot, "pages", "ComercialPage.tsx"), "utf8");
+      expect(comCode).toContain("filters.operadores");
+
+      const entCode = fs.readFileSync(path.join(projectRoot, "pages", "EntregasPage.tsx"), "utf8");
+      expect(entCode).toContain("kanbanFilters.operadores");
+    });
+  });
 });

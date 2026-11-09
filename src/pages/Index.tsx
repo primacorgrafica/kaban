@@ -105,6 +105,7 @@ const Index = () => {
   const [filters, setFilters] = useState<KanbanFilters>({
     statuses: [],
     vendedores: [],
+    operadores: [],
     setores: [],
     dateFrom: undefined,
     dateTo: undefined,
@@ -116,6 +117,7 @@ const Index = () => {
     return list.filter((o) => {
       if (filters.statuses.length > 0 && !filters.statuses.includes(o.status)) return false;
       if (filters.vendedores.length > 0 && (!o.vendedor || !filters.vendedores.includes(o.vendedor))) return false;
+      if (filters.operadores && filters.operadores.length > 0 && (!o.operador || !filters.operadores.includes(o.operador))) return false;
       if (filters.setores.length > 0) {
         const orderSetor = o.setor || "__pre_impressao__";
         if (!filters.setores.includes(orderSetor)) return false;
@@ -174,7 +176,7 @@ const Index = () => {
       ) : (
         <div className="flex flex-col min-h-full gap-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <KanbanFiltersBar filters={filters} onChange={setFilters} />
+            <KanbanFiltersBar filters={filters} onChange={setFilters} orders={activeOrders} />
             <div className="flex items-center bg-card/85 dark:bg-[#11212D]/85 backdrop-blur-xl p-1 rounded-xl border border-border/80 dark:border-[#4A5C6A]/35 shrink-0 shadow-xs">
               <Button
                 variant={viewMode === "kanban" ? "secondary" : "ghost"}

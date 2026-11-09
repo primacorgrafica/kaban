@@ -91,6 +91,7 @@ export default function ComercialPage() {
   const [filters, setFilters] = useState<KanbanFilters>({
     statuses: [],
     vendedores: [],
+    operadores: [],
     setores: [],
     dateFrom: undefined,
     dateTo: undefined,
@@ -99,6 +100,7 @@ export default function ComercialPage() {
   const applyFiltersOnly = (list: Order[]) => {
     return list.filter(o => {
       if (filters.vendedores.length > 0 && (!o.vendedor || !filters.vendedores.includes(o.vendedor))) return false;
+      if (filters.operadores && filters.operadores.length > 0 && (!o.operador || !filters.operadores.includes(o.operador))) return false;
       if (filters.statuses.length > 0) {
         const orderStatus = o.setor ? (o.setor_status || "entrada") : o.status;
         if (!(filters.statuses as string[]).includes(orderStatus)) return false;
@@ -397,7 +399,7 @@ export default function ComercialPage() {
           <div className="flex-1 overflow-auto space-y-6">
             {/* Filtros */}
             <div className="flex items-center gap-4">
-              <KanbanFiltersBar filters={filters} onChange={setFilters} showOnly={["vendedores", "statuses"]} />
+              <KanbanFiltersBar filters={filters} onChange={setFilters} showOnly={["vendedores", "operadores", "statuses"]} orders={allOrders} />
             </div>
 
             {/* KPIs Operacionais */}
