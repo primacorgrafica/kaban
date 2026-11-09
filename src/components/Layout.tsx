@@ -23,8 +23,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { subscribeOrders } from "@/lib/realtimeManager";
 import { ThemeToggle } from "./ThemeToggle";
 import { CommandPalette } from "./CommandPalette";
-import { ChatDialog } from "./chat/ChatDialog";
-import { useChatNotification } from "./chat/GlobalChatNotifier";
 import { SharePointStatusIndicator } from "./sharepoint/SharePointStatusIndicator";
 import { OutlookStatusIndicator } from "./email/OutlookStatusIndicator";
 import { Command, MessageSquare, ExternalLink, Compass } from "lucide-react";
@@ -72,7 +70,6 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
       return next;
     });
   };
-  const { unreadChatCount } = useChatNotification();
   const userRoleLabel = role ? (ROLE_LABELS[role as AppRole] || role) : (isAdmin ? "Administrador" : "Usuário");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
@@ -83,7 +80,6 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
   const [cadastrosOpen, setCadastrosOpen] = useState(false);
   const [utilidadesOpen, setUtilidadesOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-  const [chatDialogOpen, setChatDialogOpen] = useState(false);
   const [inspectOrder, setInspectOrder] = useState<Order | null>(null);
   const avisoSessionStartedAt = useRef(Date.now());
   const { activeAlerts } = useMuralAlertas();
@@ -263,9 +259,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
   // 11. QUALIDADE
   // 12. MANUTENÇÃO
   const navItemsPrimary = [
-    // 1. CHAT
-    { to: "/chat", label: "Chat", icon: MessageSquare, count: unreadChatCount > 0 ? unreadChatCount : undefined },
-    // 2. COMERCIAL
+    // 1. COMERCIAL
     ...(hasModule("comercial") ? [{ to: "/comercial", label: "Comercial", icon: Briefcase }] : []),
     // 3. Painel
     ...(hasModule("pcp") ? [{ to: "/pcp", label: "Painel", icon: ClipboardList }] : []),
@@ -684,20 +678,6 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
           <div className="flex items-center gap-2 ml-auto order-2">
             {(isAdmin || role === "coordenador") && <SharePointStatusIndicator />}
             {(isAdmin || role === "coordenador" || Boolean(typeof window !== "undefined" && localStorage.getItem("kaban_msal_user_info"))) && <OutlookStatusIndicator />}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setChatDialogOpen(true)}
-              className="h-9 w-9 text-muted-foreground hover:text-primary hover:bg-primary/10 border border-border rounded-xl relative transition-all"
-              title="Abrir Chat Privado"
-            >
-              <MessageSquare className="h-4 w-4" />
-              {unreadChatCount > 0 && (
-                <span className="absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-[#CCD0CF] text-[10px] font-bold text-[#06141B] shadow-xs animate-pulse">
-                  {unreadChatCount > 9 ? "9+" : unreadChatCount}
-                </span>
-              )}
-            </Button>
             <ThemeToggle />
             <NotificationBell
               avisos={avisos}
@@ -811,12 +791,6 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
           toast.success("O.S. enviada para expedição!");
           setInspectOrder(null);
         }}
-      />
-
-      {/* Chat Privado Modal */}
-      <ChatDialog
-        open={chatDialogOpen}
-        onOpenChange={setChatDialogOpen}
       />
     </div>
   );

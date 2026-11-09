@@ -151,10 +151,6 @@ export function CommandPalette({
 
         {/* Navegação entre Módulos */}
         <CommandGroup heading="Navegação / Módulos">
-          <CommandItem onSelect={() => handleSelectNav("/chat")} className="cursor-pointer py-2">
-            <MessageSquare className="mr-2 h-4 w-4 text-[#CCD0CF]" />
-            <span className="text-xs">Chat Privado entre Colaboradores</span>
-          </CommandItem>
           <CommandItem onSelect={() => handleSelectNav("/")} className="cursor-pointer py-2">
             <Monitor className="mr-2 h-4 w-4 text-[#CCD0CF]" />
             <span className="text-xs">Pré-Impressão (Quadro Principal)</span>

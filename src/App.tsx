@@ -22,11 +22,9 @@ const EntregadorPage = lazy(() => import("./pages/EntregadorPage"));
 const ComercialPage = lazy(() => import("./pages/ComercialPage"));
 const PcpPage = lazy(() => import("./pages/PcpPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
-const ChatPage = lazy(() => import("./pages/ChatPage"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const MuralAlertasPage = lazy(() => import("./pages/MuralAlertasPage"));
 
-import { GlobalChatNotifier } from "@/components/chat/GlobalChatNotifier";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AutonomousEngineMonitor } from "@/components/AutonomousEngineMonitor";
 import { securityLogger, checkDomainIntegrity } from "@/lib/securityGuardian";
@@ -137,37 +135,35 @@ const App = () => (
         <BrowserRouter>
           <AuthProvider>
             <AutonomousEngineMonitor />
-            <GlobalChatNotifier>
-              <Suspense fallback={<PageLoadingFallback />}>
-                <Routes>
-                  <Route path="/login" element={<PublicRoute><AuthPage /></PublicRoute>} />
-                  <Route path="/apresentacao" element={<ApresentacaoPage />} />
-                  <Route path="/institucional" element={<InstitucionalPage />} />
-                  <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-                  <Route path="/dashboard" element={<ProtectedRoute module="dashboard"><DashboardPage /></ProtectedRoute>} />
-                  <Route path="/arquivados" element={<ProtectedRoute module="trabalhos_concluidos"><Index /></ProtectedRoute>} />
-                  <Route path="/ctp" element={<ProtectedRoute module="ctp"><ProductionPage /></ProtectedRoute>} />
-                  <Route path="/digital" element={<ProtectedRoute module="digital"><ProductionPage /></ProtectedRoute>} />
-                  <Route path="/qualidade" element={<ProtectedRoute module="qualidade"><ProductionPage /></ProtectedRoute>} />
-                  <Route path="/producao/:departamento" element={<ProtectedRoute module="producao"><ProductionPage /></ProtectedRoute>} />
-                  <Route path="/producao" element={<ProtectedRoute module="producao"><ProducaoPage /></ProtectedRoute>} />
-                  <Route path="/expedicao" element={<ProtectedRoute module="expedicao"><ExpedicaoPage /></ProtectedRoute>} />
-                  <Route path="/usuarios" element={<ProtectedRoute requireCoordinatorOrAdmin><UserManagementPage /></ProtectedRoute>} />
-                  <Route path="/equipamentos" element={<ProtectedRoute module="cadastros"><EquipamentosPage /></ProtectedRoute>} />
-                  <Route path="/comercial" element={<ProtectedRoute module="comercial"><ComercialPage /></ProtectedRoute>} />
-                  <Route path="/pcp" element={<ProtectedRoute module="pcp"><PcpPage /></ProtectedRoute>} />
-                  
-                  <Route path="/compras" element={<ProtectedRoute module="compras"><ProductionPage /></ProtectedRoute>} />
-                  <Route path="/manutencao" element={<ProtectedRoute module="manutencao"><ProductionPage /></ProtectedRoute>} />
-                  <Route path="/entregas" element={<ProtectedRoute module="entregas"><EntregasPage /></ProtectedRoute>} />
-                  <Route path="/entregador" element={<ProtectedRoute module="entregador"><EntregadorPage /></ProtectedRoute>} />
-                  <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
-                  <Route path="/mural" element={<ProtectedRoute module="mural"><MuralAlertasPage /></ProtectedRoute>} />
+            <Suspense fallback={<PageLoadingFallback />}>
+              <Routes>
+                <Route path="/login" element={<PublicRoute><AuthPage /></PublicRoute>} />
+                <Route path="/apresentacao" element={<ApresentacaoPage />} />
+                <Route path="/institucional" element={<InstitucionalPage />} />
+                <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+                <Route path="/dashboard" element={<ProtectedRoute module="dashboard"><DashboardPage /></ProtectedRoute>} />
+                <Route path="/arquivados" element={<ProtectedRoute module="trabalhos_concluidos"><Index /></ProtectedRoute>} />
+                <Route path="/ctp" element={<ProtectedRoute module="ctp"><ProductionPage /></ProtectedRoute>} />
+                <Route path="/digital" element={<ProtectedRoute module="digital"><ProductionPage /></ProtectedRoute>} />
+                <Route path="/qualidade" element={<ProtectedRoute module="qualidade"><ProductionPage /></ProtectedRoute>} />
+                <Route path="/producao/:departamento" element={<ProtectedRoute module="producao"><ProductionPage /></ProtectedRoute>} />
+                <Route path="/producao" element={<ProtectedRoute module="producao"><ProducaoPage /></ProtectedRoute>} />
+                <Route path="/expedicao" element={<ProtectedRoute module="expedicao"><ExpedicaoPage /></ProtectedRoute>} />
+                <Route path="/usuarios" element={<ProtectedRoute requireCoordinatorOrAdmin><UserManagementPage /></ProtectedRoute>} />
+                <Route path="/equipamentos" element={<ProtectedRoute module="cadastros"><EquipamentosPage /></ProtectedRoute>} />
+                <Route path="/comercial" element={<ProtectedRoute module="comercial"><ComercialPage /></ProtectedRoute>} />
+                <Route path="/pcp" element={<ProtectedRoute module="pcp"><PcpPage /></ProtectedRoute>} />
+                
+                <Route path="/compras" element={<ProtectedRoute module="compras"><ProductionPage /></ProtectedRoute>} />
+                <Route path="/manutencao" element={<ProtectedRoute module="manutencao"><ProductionPage /></ProtectedRoute>} />
+                <Route path="/entregas" element={<ProtectedRoute module="entregas"><EntregasPage /></ProtectedRoute>} />
+                <Route path="/entregador" element={<ProtectedRoute module="entregador"><EntregadorPage /></ProtectedRoute>} />
+                <Route path="/chat" element={<Navigate to="/" replace />} />
+                <Route path="/mural" element={<ProtectedRoute module="mural"><MuralAlertasPage /></ProtectedRoute>} />
 
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
-            </GlobalChatNotifier>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
