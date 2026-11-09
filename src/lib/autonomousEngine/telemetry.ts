@@ -39,6 +39,7 @@ let consecutiveGraphFailures = 0;
 let consecutiveWsFailures = 0;
 let lastHeartbeatTimestamp = 0;
 let beaconTimer: ReturnType<typeof setInterval> | null = null;
+let isTelemetryTableAvailable = true;
 
 // Fila em memória para envio em lote não intrusivo
 let pendingTelemetryQueue: TelemetryPayload[] = [];
@@ -51,7 +52,10 @@ const MIN_FLUSH_INTERVAL_MS = 8000; // Protege o banco contra rajadas de I/O
  */
 async function flushTelemetryQueue(): Promise<void> {
   flushTimeout = null;
-  if (pendingTelemetryQueue.length === 0) return;
+  if (!isTelemetryTableAvailable || pendingTelemetryQueue.length === 0) {
+    if (!isTelemetryTableAvailable) pendingTelemetryQueue = [];
+    return;
+  }
 
   const now = Date.now();
   if (now - lastFlushTimestamp < MIN_FLUSH_INTERVAL_MS) {
@@ -79,8 +83,13 @@ async function flushTelemetryQueue(): Promise<void> {
       .insert(formatted as any);
 
     if (error) {
-      // Falha silenciosa para isolar e nunca afetar a experiência do usuário
-      console.warn("[AutonomousEngine:Telemetry] Falha transitória ao gravar telemetria:", error.message);
+      if ((error as any).code === "PGRST205" || error.message?.includes("system_health_telemetry")) {
+        isTelemetryTableAvailable = false;
+        console.info("[AutonomousEngine:Telemetry] Tabela 'system_health_telemetry' ausente no banco. Desativando telemetria remota para proteger conexões.");
+      } else {
+        // Falha silenciosa para isolar e nunca afetar a experiência do usuário
+        console.warn("[AutonomousEngine:Telemetry] Falha transitória ao gravar telemetria:", error.message);
+      }
     }
   } catch (err) {
     console.warn("[AutonomousEngine:Telemetry] Erro de rede ao gravar telemetria:", err);
@@ -91,17 +100,11 @@ async function flushTelemetryQueue(): Promise<void> {
  * Registra um evento de telemetria com debounce de envio
  */
 export function recordTelemetry(payload: TelemetryPayload): void {
+  if (!isTelemetryTableAvailable) return;
   pendingTelemetryQueue.push(payload);
 
-  // Se for CRITICAL ou SYSTEM_ALERT, despacha imediatamente
-  if (payload.status === "CRITICAL" || payload.metric_type === "SYSTEM_ALERT") {
-    if (flushTimeout) clearTimeout(flushTimeout);
-    void flushTelemetryQueue();
-    return;
-  }
-
-  // Se atingir 10 métricas no buffer ou após 4 segundos, realiza o flush
-  if (pendingTelemetryQueue.length >= 10) {
+  // Protege o banco contra thundering herd: mesmo em CRITICAL, respeita o debounce do buffer
+  if (pendingTelemetryQueue.length >= 10 || payload.status === "CRITICAL" || payload.metric_type === "SYSTEM_ALERT") {
     if (flushTimeout) clearTimeout(flushTimeout);
     void flushTelemetryQueue();
   } else if (!flushTimeout) {
@@ -233,6 +236,8 @@ export function startAutonomousClientBeacon(intervalMs = 60000): () => void {
   if (beaconTimer) clearInterval(beaconTimer);
 
   const sendHeartbeat = () => {
+    if (!isTelemetryTableAvailable) return;
+
     // Não executa se a aba estiver oculta por mais de 5 minutos para economizar recursos
     if (typeof document !== "undefined" && document.visibilityState === "hidden") {
       const timeSinceLast = Date.now() - lastHeartbeatTimestamp;
@@ -269,6 +274,7 @@ export function startAutonomousClientBeacon(intervalMs = 60000): () => void {
  * Consulta as métricas recentes de telemetria
  */
 export async function fetchRecentSystemHealth(limit = 20): Promise<TelemetryRecord[]> {
+  if (!isTelemetryTableAvailable) return [];
   try {
     const { data, error } = await supabase
       .from("system_health_telemetry" as any)
@@ -276,7 +282,12 @@ export async function fetchRecentSystemHealth(limit = 20): Promise<TelemetryReco
       .order("created_at", { ascending: false })
       .limit(limit);
 
-    if (error) throw error;
+    if (error) {
+      if ((error as any).code === "PGRST205") {
+        isTelemetryTableAvailable = false;
+      }
+      throw error;
+    }
     return (data as TelemetryRecord[]) || [];
   } catch (err) {
     console.warn("[AutonomousEngine:Telemetry] Erro ao buscar métricas recentes:", err);

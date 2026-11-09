@@ -181,6 +181,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
 
     const updateHeartbeat = async () => {
+      // Se a aba estiver oculta/minimizada, não sobrecarrega o banco de dados
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return;
+      }
       try {
         const now = new Date().toISOString();
         const { error } = await supabase

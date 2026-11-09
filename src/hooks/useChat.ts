@@ -599,8 +599,12 @@ export function useChat() {
     };
     window.addEventListener("primacor:chat_conversations_updated", handleConvUpdated);
 
-    // Polling de presença do banco a cada 15 segundos (fallback)
+    // Polling de presença do banco a cada 30 segundos (fallback inteligente)
     const checkDbPresence = async () => {
+      // Se a aba estiver oculta/minimizada, pula a consulta para economizar conexões do pool
+      if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+        return;
+      }
       try {
         const { data } = await supabase
           .from("user_presence")
@@ -648,7 +652,7 @@ export function useChat() {
     };
 
     void checkDbPresence();
-    const presencePollInterval = setInterval(checkDbPresence, 15000);
+    const presencePollInterval = setInterval(checkDbPresence, 30000);
 
     return () => {
       clearInterval(presencePollInterval);

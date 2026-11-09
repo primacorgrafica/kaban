@@ -244,8 +244,20 @@ export function useOrders() {
     let isMounted = true;
 
     const loadInitialData = async () => {
-      await Promise.all([fetchOrders(), fetchProfiles()]);
-      if (isMounted) setLoading(false);
+      try {
+        // Timeout defensivo de 10s: impede que a UI trave indefinidamente se a API do Supabase oscilar
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Timeout de conexão com o banco (10s)")), 10000)
+        );
+        await Promise.race([
+          Promise.all([fetchOrders(), fetchProfiles()]),
+          timeoutPromise,
+        ]);
+      } catch (err) {
+        console.warn("[useOrders] Carregamento inicial demorou ou falhou (dados preservados):", err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
     };
 
     setLoading(true);
