@@ -27,7 +27,23 @@ export function useAvisos() {
       .or(`destinatario_id.is.null,destinatario_id.eq.${user.id}`)
       .order("created_at", { ascending: false });
 
-    if (data) setAvisos(data as Aviso[]);
+    if (data) {
+      // Ignora avisos legados de 'PODE SEGUIR'
+      const valid = (data as Aviso[]).filter(
+        (a) => a.mensagem !== "PODE SEGUIR" && !a.mensagem?.toUpperCase().includes("PODE SEGUIR")
+      );
+      setAvisos(valid);
+
+      // Limpeza em segundo plano de avisos residuais de 'PODE SEGUIR'
+      const residual = (data as Aviso[]).filter(
+        (a) => a.mensagem === "PODE SEGUIR" || a.mensagem?.toUpperCase().includes("PODE SEGUIR")
+      );
+      if (residual.length > 0) {
+        for (const av of residual) {
+          void supabase.from("avisos").delete().eq("id", av.id);
+        }
+      }
+    }
   }, [user]);
 
   const fetchLidos = useCallback(async () => {

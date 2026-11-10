@@ -2181,3 +2181,13 @@ ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS os_anterior TEXT;
 -- ------------------------------------------------------------------
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS revisao INTEGER DEFAULT 1;
 
+-- ------------------------------------------------------------------
+-- Migration: 20261110_remover_logica_pode_seguir.sql
+-- ------------------------------------------------------------------
+-- Remoção da lógica de aviso 'PODE SEGUIR' disparada ao mover para Saída
+DROP TRIGGER IF EXISTS trg_notify_marcelo_on_preimpressao_saida ON public.orders;
+DROP FUNCTION IF EXISTS public.notify_marcelo_on_preimpressao_saida();
+DELETE FROM public.avisos_lidos WHERE aviso_id IN (SELECT id FROM public.avisos WHERE mensagem = 'PODE SEGUIR' OR mensagem ILIKE '%PODE SEGUIR%');
+DELETE FROM public.avisos WHERE mensagem = 'PODE SEGUIR' OR mensagem ILIKE '%PODE SEGUIR%';
+
+

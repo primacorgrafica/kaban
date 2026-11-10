@@ -98,7 +98,9 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
         .from("avisos")
         .select("*")
         .order("created_at", { ascending: false });
-      if (data) setAvisos(data);
+      if (data) {
+        setAvisos(data.filter((a: any) => a.mensagem !== "PODE SEGUIR" && !a.mensagem?.toUpperCase().includes("PODE SEGUIR")));
+      }
       setAvisosLoading(false);
     };
     const fetchProfiles = async () => {
