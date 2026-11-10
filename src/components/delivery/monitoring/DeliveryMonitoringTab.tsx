@@ -36,7 +36,7 @@ export function DeliveryMonitoringTab({
     try {
       const res = await getEntregadoresList();
       if (res.data) {
-        setDrivers(res.data);
+        setDrivers(res.data.filter((d) => d.ativo !== false));
       }
     } catch (err) {
       console.error("[DeliveryMonitoringTab] Erro ao carregar motoristas:", err);

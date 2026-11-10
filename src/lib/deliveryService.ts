@@ -34,7 +34,30 @@ export async function getEntregadoresList(): Promise<{ data: Entregador[]; error
       return { data: [], error: error.message };
     }
 
-    return { data: (data as unknown as Entregador[]) || [], error: null };
+    const drivers = (data as unknown as Entregador[]) || [];
+
+    // Purga automática de registros residuais de teste (ex.: 'FULANO')
+    const fulanos = drivers.filter(
+      (d) => d.nome_completo?.trim().toUpperCase() === "FULANO"
+    );
+    if (fulanos.length > 0) {
+      for (const f of fulanos) {
+        supabase
+          .from("entregadores" as any)
+          .delete()
+          .eq("id", f.id)
+          .then(() => {
+            console.log(`[deliveryService] Registro residual de teste '${f.nome_completo}' purgado com sucesso.`);
+          })
+          .catch(() => {});
+      }
+      return {
+        data: drivers.filter((d) => d.nome_completo?.trim().toUpperCase() !== "FULANO"),
+        error: null,
+      };
+    }
+
+    return { data: drivers, error: null };
   } catch (err: any) {
     return { data: [], error: err.message || "Erro inesperado ao buscar entregadores." };
   }
@@ -433,5 +456,34 @@ export async function toggleEntregadorAtivo(
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message || "Erro ao alterar status do entregador." };
+  }
+}
+
+/**
+ * Exclui permanentemente o cadastro de um entregador (apenas admin e coordenadores)
+ */
+export async function deleteEntregador(
+  entregadorId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    // 1. Desvincula o entregador de quaisquer ordens em andamento para não quebrar integridade
+    await supabase
+      .from("orders")
+      .update({ entregador_id: null })
+      .eq("entregador_id", entregadorId);
+
+    // 2. Remove o registro da tabela entregadores
+    const { error } = await supabase
+      .from("entregadores" as any)
+      .delete()
+      .eq("id", entregadorId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Erro ao excluir entregador." };
   }
 }

@@ -20,10 +20,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Bike,
   Car,
   UserPlus,
   Edit2,
+  Trash2,
+  AlertTriangle,
   Phone,
   CreditCard,
   CheckCircle2,
@@ -39,6 +51,7 @@ import {
   getEntregadoresList,
   saveEntregador,
   toggleEntregadorAtivo,
+  deleteEntregador,
 } from "@/lib/deliveryService";
 import type { Entregador, VeiculoCategoria } from "@/types/delivery";
 
@@ -63,6 +76,8 @@ export function DriverManagementModal({
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
+  const [driverToDelete, setDriverToDelete] = useState<Entregador | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Form State
   const [isEditing, setIsEditing] = useState(false);
@@ -214,6 +229,49 @@ export function DriverManagementModal({
     onDriversUpdated?.();
   };
 
+  const handleConfirmDelete = async () => {
+    if (!driverToDelete) return;
+    setDeleting(true);
+    try {
+      const res = await deleteEntregador(driverToDelete.id);
+      if (!res.success) {
+        toast.error(`Falha ao excluir entregador: ${res.error}`);
+        return;
+      }
+      toast.success(`Entregador ${driverToDelete.nome_completo} excluído com sucesso!`);
+      setDriverToDelete(null);
+      await loadData();
+      onDriversUpdated?.();
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao excluir entregador.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const orphanedDrivers = drivers.filter(
+    (d) => !profiles.some((p) => p.user_id === d.user_id)
+  );
+
+  const handlePurgeOrphans = async () => {
+    if (orphanedDrivers.length === 0) return;
+    setDeleting(true);
+    try {
+      let count = 0;
+      for (const d of orphanedDrivers) {
+        const res = await deleteEntregador(d.id);
+        if (res.success) count++;
+      }
+      toast.success(`${count} entregador(es) sem perfil ativo removidos com sucesso!`);
+      await loadData();
+      onDriversUpdated?.();
+    } catch (err: any) {
+      toast.error("Erro ao limpar registros sem perfil.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const filteredDrivers = drivers.filter((d) => {
     const q = search.toLowerCase();
     return (
@@ -277,6 +335,24 @@ export function DriverManagementModal({
               />
             </div>
 
+            {orphanedDrivers.length > 0 && (
+              <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-between gap-2 text-xs text-amber-500">
+                <span className="flex items-center gap-1.5">
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+                  {orphanedDrivers.length} entregador(es) sem perfil de acesso ativo.
+                </span>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  className="h-6 text-[10px] px-2"
+                  onClick={handlePurgeOrphans}
+                  disabled={deleting}
+                >
+                  {deleting ? "Limpando..." : "Excluir Órfãos"}
+                </Button>
+              </div>
+            )}
+
             <div className="flex flex-col gap-2 max-h-[460px] overflow-y-auto pr-1">
               {loading ? (
                 <div className="text-center py-8 text-xs text-muted-foreground">
@@ -290,6 +366,8 @@ export function DriverManagementModal({
                 filteredDrivers.map((driver) => {
                   const isSelected = editingId === driver.id;
                   const isCar = driver.categoria_veiculo === "carro";
+
+                  const hasProfile = profiles.some((p) => p.user_id === driver.user_id);
 
                   return (
                     <div
@@ -314,7 +392,7 @@ export function DriverManagementModal({
                             {isCar ? <Car className="h-4 w-4" /> : <Bike className="h-4 w-4" />}
                           </div>
                           <div>
-                            <div className="font-semibold text-foreground flex items-center gap-1.5">
+                            <div className="font-semibold text-foreground flex items-center gap-1.5 flex-wrap">
                               {driver.nome_completo} {driver.sobrenome || ""}
                               <Badge
                                 variant={driver.ativo ? "default" : "secondary"}
@@ -326,6 +404,15 @@ export function DriverManagementModal({
                               >
                                 {driver.ativo ? "Ativo" : "Inativo"}
                               </Badge>
+                              {!hasProfile && (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[9px] px-1 py-0 bg-amber-500/10 text-amber-500 border-amber-500/30"
+                                  title="Este motoboy não possui usuário ativo cadastrado no sistema"
+                                >
+                                  Sem usuário vinculado
+                                </Badge>
+                              )}
                             </div>
                             <div className="text-[11px] text-muted-foreground flex items-center gap-2 mt-0.5">
                               <span>
@@ -349,6 +436,15 @@ export function DriverManagementModal({
                             title="Editar cadastro"
                           >
                             <Edit2 className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                            onClick={() => setDriverToDelete(driver)}
+                            title="Excluir entregador da frota"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                       </div>
@@ -567,6 +663,35 @@ export function DriverManagementModal({
             </form>
           </div>
         </div>
+
+        {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO */}
+        <AlertDialog open={!!driverToDelete} onOpenChange={(open) => !open && setDriverToDelete(null)}>
+          <AlertDialogContent className="bg-card border-border shadow-2xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
+                <Trash2 className="h-4 w-4 text-destructive" />
+                Excluir Entregador?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-xs text-muted-foreground">
+                Tem certeza que deseja excluir permanentemente o cadastro de{" "}
+                <strong className="text-foreground">
+                  {driverToDelete?.nome_completo} {driverToDelete?.sobrenome || ""}
+                </strong>
+                ? Esta ação removerá o entregador da frota e do monitoramento.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleConfirmDelete}
+                disabled={deleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90 text-xs"
+              >
+                {deleting ? "Excluindo..." : "Sim, Excluir"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );

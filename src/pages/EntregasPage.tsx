@@ -803,6 +803,7 @@ export default function EntregasPage() {
         open={showMonitoring}
         onOpenChange={setShowMonitoring}
         orders={allOrders}
+        onOpenDriverManagement={() => setDriverManagementOpen(true)}
       />
 
       <DeliveryCompletedDetailsModal

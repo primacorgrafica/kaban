@@ -515,6 +515,11 @@ export default function UserManagementPage() {
             { onConflict: "user_id" }
           );
         } catch { /* tabela entregadores ainda não implantada */ }
+      } else {
+        // Se o usuário não tem papel de entregador, remove da tabela satélite de entregadores
+        try {
+          await supabase.from("entregadores" as any).delete().eq("user_id", u.user_id);
+        } catch { /* ignore */ }
       }
 
     }
@@ -702,6 +707,8 @@ export default function UserManagementPage() {
       // 3. Fallback para deleção direta das tabelas se tiver permissão
       if (!deleted && !errorMsg) {
         try {
+          await supabase.from("vendedores").delete().eq("user_id", deleteTarget.user_id);
+          await supabase.from("entregadores" as any).delete().eq("user_id", deleteTarget.user_id);
           await supabase.from("user_roles").delete().eq("user_id", deleteTarget.user_id);
           const { error: pErr } = await supabase.from("profiles").delete().eq("user_id", deleteTarget.user_id);
           if (!pErr) {
@@ -713,6 +720,10 @@ export default function UserManagementPage() {
       }
 
       if (deleted) {
+        try {
+          await supabase.from("vendedores").delete().eq("user_id", deleteTarget.user_id);
+          await supabase.from("entregadores" as any).delete().eq("user_id", deleteTarget.user_id);
+        } catch { /* ignore */ }
         toast.success(`Usuário "${deleteTarget.nome}" removido com sucesso`);
         setUsers((prev) => prev.filter((u) => u.user_id !== deleteTarget.user_id));
       } else {

@@ -38,16 +38,18 @@ export function DeliveryDriverSidebar({
 }: DeliveryDriverSidebarProps) {
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredDrivers = drivers.filter((d) => {
+  const activeDrivers = drivers.filter((d) => d.ativo !== false);
+
+  const filteredDrivers = activeDrivers.filter((d) => {
     const term = searchTerm.toLowerCase();
     const matchName = d.nome_completo.toLowerCase().includes(term);
     const matchPlate = (d.placa_veiculo || "").toLowerCase().includes(term);
     return matchName || matchPlate;
   });
 
-  const countEmEntrega = drivers.filter((d) => d.status === "em_entrega").length;
-  const countDisponivel = drivers.filter((d) => d.status === "disponivel").length;
-  const countOffline = drivers.filter((d) => !d.status || d.status === "offline").length;
+  const countEmEntrega = activeDrivers.filter((d) => d.status === "em_entrega").length;
+  const countDisponivel = activeDrivers.filter((d) => d.status === "disponivel").length;
+  const countOffline = activeDrivers.filter((d) => !d.status || d.status === "offline").length;
 
   return (
     <aside className="w-full lg:w-96 flex flex-col h-full bg-slate-900/90 border border-border rounded-2xl overflow-hidden backdrop-blur-md shadow-xl shrink-0">

@@ -5,6 +5,7 @@ import {
   updateDriverDeliveryStatus,
   uploadDeliveryProofFile,
   recordGpsCheckpoint,
+  deleteEntregador,
 } from "@/lib/deliveryService";
 import { DELIVERY_STATUS_CONFIG } from "@/types/delivery";
 import { supabase } from "@/integrations/supabase/client";
@@ -81,6 +82,61 @@ describe("Delivery Module — Client Service Workflow Tests", () => {
       const res = await getEntregadoresList();
       expect(res.data).toEqual([]);
       expect(res.error).toContain("Tabela 'entregadores' não implantada.");
+    });
+
+    it("deve purgar e filtrar automaticamente registros residuais de teste como 'FULANO'", async () => {
+      const mockDrivers = [
+        { id: "1", user_id: "u1", nome_completo: "Carlos Motoboy", ativo: true },
+        { id: "2", user_id: "u2", nome_completo: "FULANO", ativo: true },
+      ];
+
+      const deleteMock = vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue(Promise.resolve({ error: null })),
+      });
+
+      (supabase.from as any).mockImplementation((table: string) => {
+        if (table === "entregadores") {
+          return {
+            select: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({ data: mockDrivers, error: null }),
+            }),
+            delete: deleteMock,
+          };
+        }
+        return {};
+      });
+
+      const res = await getEntregadoresList();
+      expect(res.error).toBeNull();
+      expect(res.data).toHaveLength(1);
+      expect(res.data[0].nome_completo).toBe("Carlos Motoboy");
+      expect(deleteMock).toHaveBeenCalled();
+    });
+  });
+
+  describe("deleteEntregador", () => {
+    it("deve desvincular ordens ativas e remover o entregador da tabela", async () => {
+      const ordersUpdateMock = vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      });
+      const entregadoresDeleteMock = vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      });
+
+      (supabase.from as any).mockImplementation((table: string) => {
+        if (table === "orders") {
+          return { update: ordersUpdateMock };
+        }
+        if (table === "entregadores") {
+          return { delete: entregadoresDeleteMock };
+        }
+        return {};
+      });
+
+      const res = await deleteEntregador("driver-uuid-1");
+      expect(res.success).toBe(true);
+      expect(ordersUpdateMock).toHaveBeenCalledWith({ entregador_id: null });
+      expect(entregadoresDeleteMock).toHaveBeenCalled();
     });
   });
 

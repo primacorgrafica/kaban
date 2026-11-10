@@ -32,12 +32,14 @@ interface DeliveryMonitoringModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   orders: Order[];
+  onOpenDriverManagement?: () => void;
 }
 
 export function DeliveryMonitoringModal({
   open,
   onOpenChange,
   orders,
+  onOpenDriverManagement,
 }: DeliveryMonitoringModalProps) {
   const [entregadores, setEntregadores] = useState<Entregador[]>([]);
   const [posicoes, setPosicoes] = useState<EntregadorPosicao[]>([]);
@@ -47,10 +49,10 @@ export function DeliveryMonitoringModal({
   const loadData = async () => {
     setLoading(true);
     try {
-      // 1. Carrega motoboys cadastrados
+      // 1. Carrega motoboys cadastrados ativos
       const driversRes = await getEntregadoresList();
       if (driversRes.data) {
-        setEntregadores(driversRes.data);
+        setEntregadores(driversRes.data.filter((d) => d.ativo !== false));
       }
 
       // 2. Carrega as últimas 50 posições de telemetria
@@ -170,16 +172,29 @@ export function DeliveryMonitoringModal({
               Monitoramento & Telemetria de Entregas
             </DialogTitle>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={loadData}
-            disabled={loading}
-            className="gap-1.5 h-8 text-xs mr-6"
-          >
-            <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
-            Atualizar
-          </Button>
+          <div className="flex items-center gap-2 mr-6">
+            {onOpenDriverManagement && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onOpenDriverManagement}
+                className="gap-1.5 h-8 text-xs text-primary border-primary/30 hover:bg-primary/10"
+              >
+                <Bike className="h-3.5 w-3.5" />
+                Gerenciar Frota
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadData}
+              disabled={loading}
+              className="gap-1.5 h-8 text-xs"
+            >
+              <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+              Atualizar
+            </Button>
+          </div>
         </DialogHeader>
 
         <div className="flex-1 overflow-hidden flex flex-col p-4 gap-4">
