@@ -25,6 +25,9 @@ export interface UseEmailMonitorReturn {
 const ACTIVE_POLL_INTERVAL_MS = 25 * 1000; // 25 segundos enquanto o operador estiver ativo na aba
 const BACKGROUND_POLL_INTERVAL_MS = 60 * 1000; // 60 segundos com a aba em segundo plano
 const MIN_AUTO_SYNC_INTERVAL_MS = 10 * 1000; // 10 segundos de intervalo mínimo entre syncs automáticos para evitar chamadas redundantes
+// Timeout global de segurança: se runEmailSync() não completar em 90s, aborta e libera o estado.
+// Isso evita que "Sincronizando..." fique preso para sempre caso o fetch do Graph API trave.
+const SYNC_GLOBAL_TIMEOUT_MS = 90 * 1000;
 
 // Chime sintetizado via Web Audio API para notificação de e-mail respondido
 function playEmailChime() {
@@ -114,7 +117,15 @@ export function useEmailMonitor(enabled = true): UseEmailMonitorReturn {
         if (interactive) {
           await getEmailAccessToken(true);
         }
-        const result: SyncResult = await runEmailSync();
+        const result: SyncResult = await Promise.race([
+          runEmailSync(),
+          new Promise<never>((_, reject) =>
+            setTimeout(
+              () => reject(new Error("Timeout: sincronização de e-mails excedeu 90 segundos. O servidor Microsoft Graph não respondeu.")),
+              SYNC_GLOBAL_TIMEOUT_MS
+            )
+          ),
+        ]);
         lastSyncTimestampRef.current = Date.now();
 
         setProcessedCount((prev) => prev + result.processed);

@@ -210,14 +210,24 @@ export async function fetchMailboxMessages(
     Prefer: 'outlook.body-content-type="text"',
   };
 
+  // Timeout de 30s por chamada para evitar que o fetch fique pendurado indefinidamente
+  // e deixe o indicador "Sincronizando..." travado no header do Kaban.
+  const GRAPH_FETCH_TIMEOUT_MS = 30_000;
+
+  const fetchWithTimeout = (input: string, init?: RequestInit): Promise<Response> => {
+    const controller = new AbortController();
+    const timerId = setTimeout(() => controller.abort(), GRAPH_FETCH_TIMEOUT_MS);
+    return fetch(input, { ...init, signal: controller.signal }).finally(() => clearTimeout(timerId));
+  };
+
   // 1. Tenta consulta filtrada padrão
-  let response = await fetch(url, { headers });
+  let response = await fetchWithTimeout(url, { headers });
 
   // Se der erro 400 (Bad Request devido a incompatibilidade de filtro de data/index no Exchange) ou similar
   if (!response.ok && response.status !== 401 && response.status !== 403 && response.status !== 404) {
     // Tenta sem $filter e $orderby (recupera os top 50 mais recentes da pasta de forma direta e sem erro)
     const directUrl = `${baseUrl}?$select=${selectParam}&$top=${top}`;
-    const retryRes = await fetch(directUrl, { headers });
+    const retryRes = await fetchWithTimeout(directUrl, { headers });
     if (retryRes.ok) {
       response = retryRes;
     }
@@ -240,7 +250,7 @@ export async function fetchMailboxMessages(
       const foldersUrl = isMe
         ? `https://graph.microsoft.com/v1.0/me/mailFolders?$top=50`
         : `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/mailFolders?$top=50`;
-      const foldersRes = await fetch(foldersUrl, { headers });
+      const foldersRes = await fetchWithTimeout(foldersUrl, { headers });
 
       if (foldersRes.ok) {
         const foldersData = await foldersRes.json();
@@ -262,7 +272,7 @@ export async function fetchMailboxMessages(
             ? `https://graph.microsoft.com/v1.0/me/mailFolders/${encodeURIComponent(targetFolder.id)}/messages`
             : `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/mailFolders/${encodeURIComponent(targetFolder.id)}/messages`;
           const customFolderUrl = `${customFolderBase}?$select=${selectParam}&$top=${top}`;
-          const customFolderRes = await fetch(customFolderUrl, { headers });
+          const customFolderRes = await fetchWithTimeout(customFolderUrl, { headers });
           if (customFolderRes.ok) {
             const data: GraphMessagesResponse = await customFolderRes.json();
             const list = data.value || [];
@@ -279,7 +289,7 @@ export async function fetchMailboxMessages(
       const directMessagesUrl = isMe
         ? `https://graph.microsoft.com/v1.0/me/messages?$select=${selectParam}&$top=${top}`
         : `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/messages?$select=${selectParam}&$top=${top}`;
-      const directRes = await fetch(directMessagesUrl, { headers });
+      const directRes = await fetchWithTimeout(directMessagesUrl, { headers });
       if (directRes.ok) {
         const data: GraphMessagesResponse = await directRes.json();
         const allMessages: GraphMessage[] = data.value || [];
@@ -340,12 +350,15 @@ export async function fetchConversationMessages(
     ? `https://graph.microsoft.com/v1.0/me/messages?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$top=20&$orderby=${encodeURIComponent("receivedDateTime asc")}`
     : `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/messages?$filter=${encodeURIComponent(filterParam)}&$select=${selectParam}&$top=20&$orderby=${encodeURIComponent("receivedDateTime asc")}`;
 
+  const controller = new AbortController();
+  const timerId = setTimeout(() => controller.abort(), 30_000);
   const response = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,
       Accept: "application/json",
     },
-  });
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timerId));
 
   if (!response.ok) {
     console.warn(`[OutlookService] Falha ao buscar conversa ${conversationId} em ${mailbox}:`, response.status);
