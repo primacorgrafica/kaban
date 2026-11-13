@@ -59,17 +59,7 @@ export function OutlookStatusIndicator() {
         lastError.includes("interaction_required") ||
         lastError.includes("interaction_in_progress") ||
         lastError.includes("Acesso negado (401)") ||
-        (lastError.includes("401") && !lastError.includes("embalagens@primacorgrafica.com.br")) ||
         (lastError.includes("preimpressao@primacorgrafica.com.br") && lastError.includes("401")))
-  );
-
-  const isSecondaryMailboxWarning = Boolean(
-    lastError &&
-      !isAuthError &&
-      (lastError.includes("embalagens") ||
-        lastError.includes("404") ||
-        lastError.includes("not found in the store") ||
-        lastError.includes("Default folder"))
   );
 
   if (!hasMicrosoftAccount) {
@@ -108,8 +98,6 @@ export function OutlookStatusIndicator() {
                     ? "bg-amber-400 animate-spin"
                     : isAuthError
                     ? "bg-rose-500"
-                    : isSecondaryMailboxWarning
-                    ? "bg-emerald-400"
                     : "bg-emerald-400 animate-pulse"
                 }`}
               />
@@ -133,10 +121,6 @@ export function OutlookStatusIndicator() {
               {isAuthError ? (
                 <>
                   <AlertCircle className="h-3 w-3 text-rose-500" /> Erro de Autenticação
-                </>
-              ) : isSecondaryMailboxWarning ? (
-                <>
-                  <CheckCircle2 className="h-3 w-3 text-emerald-400" /> Ativo (preimpressao)
                 </>
               ) : (
                 <>
@@ -188,25 +172,6 @@ export function OutlookStatusIndicator() {
                   </>
                 )}
               </Button>
-            </div>
-          )}
-
-          {/* Card informativo de caixa secundária */}
-          {isSecondaryMailboxWarning && (
-            <div className="mt-2 p-2.5 rounded-xl bg-sky-500/10 border border-sky-500/20 text-foreground space-y-1">
-              <div className="flex items-center gap-1.5 text-xs font-bold text-sky-400">
-                <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
-                <span>Sincronização Ativa em Pré-Impressão</span>
-              </div>
-              <p className="text-[10.5px] text-muted-foreground leading-snug">
-                A conta principal <strong className="text-foreground">preimpressao@primacorgrafica.com.br</strong> está conectada e sincronizando normalmente.
-              </p>
-              <div className="text-[10px] text-amber-300/90 bg-amber-500/10 p-1.5 rounded-lg border border-amber-500/20 mt-1 flex items-start gap-1">
-                <AlertTriangle className="h-3 w-3 shrink-0 mt-0.5" />
-                <span>
-                  <strong>embalagens@</strong> não possui caixa Exchange ativa ou precisa de permissão de Caixa Compartilhada no admin.microsoft.com.
-                </span>
-              </div>
             </div>
           )}
 

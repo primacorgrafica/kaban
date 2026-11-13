@@ -329,6 +329,7 @@ export function buildApprovalNotificationEmail(params: {
 
 /**
  * Envia e-mail utilizando a integração Microsoft Graph API (Microsoft 365 / Outlook).
+ * Possui mecanismo de retentativa automática (Retry com backoff) para erros transitórios (502, 503, 504, 429).
  */
 export async function sendEmailViaGraph(params: {
   to: string;
@@ -367,56 +368,126 @@ export async function sendEmailViaGraph(params: {
       saveToSentItems: true,
     };
 
-    // Tenta primeiro /me/sendMail se a conta ativa for um usuário direto
-    const primaryUrl = "https://graph.microsoft.com/v1.0/me/sendMail";
-    let res = await fetch(primaryUrl, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(messagePayload),
-    });
+    const isTransientStatus = (status: number) => [502, 503, 504, 429].includes(status);
 
-    if (res.ok) {
-      return { ok: true, sender: senderMailbox };
-    }
-
-    // Se /me retornar 403 ou 404 (comum em caixas compartilhadas), tenta via /users/{senderMailbox}/sendMail
-    if (!res.ok && senderMailbox) {
-      const fallbackUrl = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(senderMailbox)}/sendMail`;
-      const fallbackRes = await fetch(fallbackUrl, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(messagePayload),
-      });
-
-      if (fallbackRes.ok) {
-        return { ok: true, sender: senderMailbox };
+    const formatGraphError = (status: number, errData: any, statusText?: string) => {
+      const serverMsg = errData?.error?.message;
+      if (serverMsg) return `Falha no envio via Graph API (${status}): ${serverMsg}`;
+      if (status === 502) {
+        return `Falha no envio via Graph API (502 Bad Gateway): O servidor Microsoft Exchange demorou ou não respondeu a tempo à requisição.`;
       }
+      if (status === 503) {
+        return `Falha no envio via Graph API (503 Service Unavailable): O serviço Microsoft 365 está temporariamente sobrecarregado.`;
+      }
+      if (status === 504) {
+        return `Falha no envio via Graph API (504 Gateway Timeout): Tempo limite de resposta da Microsoft excedido.`;
+      }
+      if (status === 429) {
+        return `Falha no envio via Graph API (429 Too Many Requests): Limite temporário de requisições por minuto da Microsoft atingido.`;
+      }
+      return `Falha no envio via Graph API (${status}): ${statusText || "Erro no servidor da Microsoft"}`;
+    };
 
-      const errData = await fallbackRes.json().catch(() => ({}));
-      const is403 = fallbackRes.status === 403;
-      return {
-        ok: false,
-        sender: senderMailbox,
-        error: is403
-          ? "Acesso negado no Microsoft 365 (403): Falta conceder a permissão 'Mail.Send' no Azure para enviar e-mails aos vendedores."
-          : `Falha no envio via Graph API (${fallbackRes.status}): ${errData?.error?.message || fallbackRes.statusText}`,
-      };
+    const maxAttempts = 3;
+    let lastError = "Erro desconhecido ao enviar e-mail via Graph API";
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        // Timeout de 25s por requisição
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 25_000);
+
+        // 1. Tenta via /me/sendMail
+        const primaryUrl = "https://graph.microsoft.com/v1.0/me/sendMail";
+        let res = await fetch(primaryUrl, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(messagePayload),
+          signal: controller.signal,
+        }).finally(() => clearTimeout(timeoutId));
+
+        if (res.ok) {
+          return { ok: true, sender: senderMailbox };
+        }
+
+        // 2. Se /me não estiver disponível ou falhar, tenta via /users/{senderMailbox}/sendMail
+        if (senderMailbox) {
+          const fallbackController = new AbortController();
+          const fallbackTimeoutId = setTimeout(() => fallbackController.abort(), 25_000);
+
+          const fallbackUrl = `https://graph.microsoft.com/v1.0/users/${encodeURIComponent(senderMailbox)}/sendMail`;
+          const fallbackRes = await fetch(fallbackUrl, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(messagePayload),
+            signal: fallbackController.signal,
+          }).finally(() => clearTimeout(fallbackTimeoutId));
+
+          if (fallbackRes.ok) {
+            return { ok: true, sender: senderMailbox };
+          }
+
+          if (fallbackRes.status === 403) {
+            return {
+              ok: false,
+              sender: senderMailbox,
+              error: "Acesso negado no Microsoft 365 (403): Falta conceder a permissão 'Mail.Send' no Azure para enviar e-mails aos vendedores.",
+            };
+          }
+
+          const errData = await fallbackRes.json().catch(() => ({}));
+          lastError = formatGraphError(fallbackRes.status, errData, fallbackRes.statusText);
+
+          if (isTransientStatus(fallbackRes.status) && attempt < maxAttempts) {
+            const backoffMs = attempt * 2000;
+            console.warn(`[SellerNotification:sendEmailViaGraph] Erro transitório (${fallbackRes.status}). Retentando envio em ${backoffMs}ms (Tentativa ${attempt}/${maxAttempts})...`);
+            await new Promise((r) => setTimeout(r, backoffMs));
+            continue;
+          }
+
+          return { ok: false, sender: senderMailbox, error: lastError };
+        }
+
+        if (res.status === 403) {
+          return {
+            ok: false,
+            sender: senderMailbox,
+            error: "Acesso negado no Microsoft 365 (403): Falta conceder a permissão 'Mail.Send' no Azure para enviar e-mails aos vendedores.",
+          };
+        }
+
+        const primaryErr = await res.json().catch(() => ({}));
+        lastError = formatGraphError(res.status, primaryErr, res.statusText);
+
+        if (isTransientStatus(res.status) && attempt < maxAttempts) {
+          const backoffMs = attempt * 2000;
+          console.warn(`[SellerNotification:sendEmailViaGraph] Erro transitório (${res.status}). Retentando envio em ${backoffMs}ms (Tentativa ${attempt}/${maxAttempts})...`);
+          await new Promise((r) => setTimeout(r, backoffMs));
+          continue;
+        }
+
+        return { ok: false, sender: senderMailbox, error: lastError };
+      } catch (fetchErr: any) {
+        lastError = fetchErr?.message || "Erro de conexão ao enviar e-mail via Graph API";
+        if (attempt < maxAttempts) {
+          const backoffMs = attempt * 2000;
+          console.warn(`[SellerNotification:sendEmailViaGraph] Falha de conexão: ${lastError}. Retentando em ${backoffMs}ms...`);
+          await new Promise((r) => setTimeout(r, backoffMs));
+          continue;
+        }
+      }
     }
 
-    const primaryErr = await res.json().catch(() => ({}));
-    const isPrimary403 = res.status === 403;
     return {
       ok: false,
       sender: senderMailbox,
-      error: isPrimary403
-        ? "Acesso negado no Microsoft 365 (403): Falta conceder a permissão 'Mail.Send' no Azure para enviar e-mails aos vendedores."
-        : `Falha no envio via Graph API (${res.status}): ${primaryErr?.error?.message || res.statusText}`,
+      error: lastError,
     };
   } catch (err: any) {
     return {

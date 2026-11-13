@@ -15,33 +15,16 @@ import { InteractionRequiredAuthError } from "@azure/msal-browser";
 import { MONITORED_MAILBOXES, type GraphMessage, type GraphMessagesResponse, type MonitoredMailbox } from "@/types/email";
 
 /**
- * Retorna as caixas monitoradas combinadas com a conta Microsoft 365 atualmente autenticada.
- * Garante que e-mails enviados a partir da conta pessoal do operador (/me/sentitems)
- * sejam verificados em conjunto com a caixa compartilhada preimpressao@primacorgrafica.com.br.
+ * Retorna as caixas monitoradas pela integração de e-mails corporativos.
+ * A integração é configurada exclusivamente para a caixa oficial preimpressao@primacorgrafica.com.br.
  */
 export async function getActiveMailboxAddresses(): Promise<string[]> {
   const mailboxes = new Set<string>();
 
-  // 1. Sempre inclui a conta conectada atual (/me)
-  mailboxes.add("me");
-
-  // 2. Sempre inclui as caixas corporativas padrão
+  // Sempre inclui as caixas corporativas padrão oficiais
   for (const box of MONITORED_MAILBOXES) {
     if (box) mailboxes.add(box.toLowerCase().trim());
   }
-
-  // 3. Inclui a conta do usuário se disponível no localStorage ou cache MSAL
-  try {
-    const stored = getStoredMicrosoftUser();
-    if (stored?.username && stored.username.includes("@")) {
-      mailboxes.add(stored.username.toLowerCase().trim());
-    }
-    const pca = await getMsalInstance();
-    const account = pca.getActiveAccount() || pca.getAllAccounts()[0];
-    if (account?.username && account.username.includes("@")) {
-      mailboxes.add(account.username.toLowerCase().trim());
-    }
-  } catch {}
 
   return Array.from(mailboxes);
 }
