@@ -433,6 +433,7 @@ export function CreateOrderDialog({
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    if (isSubmitting || isChecking) return;
     if (!validateStep1() || !validateStep2()) return;
 
     const osTitulo = form.titulo.replace(/\D/g, "");
@@ -644,6 +645,8 @@ export function CreateOrderDialog({
 
     // MODO CRIAÇÃO
     setIsChecking(true);
+    setIsSubmitting(true);
+    setSubmitStatusText("Verificando se a O.S. já existe...");
     const { data: existing } = await supabase
       .from("orders")
       .select("id")
@@ -652,6 +655,8 @@ export function CreateOrderDialog({
     setIsChecking(false);
 
     if (existing && existing.length > 0) {
+      setIsSubmitting(false);
+      setSubmitStatusText("");
       toast.error("Número de O.S. já existente: " + osTitulo);
       setStep(1);
       return;
@@ -661,7 +666,6 @@ export function CreateOrderDialog({
     const effectiveDescricao = form.descricao.trim() || form.titulo.trim() || "Serviço";
     const filesToUpload = [...stagedFiles];
 
-    setIsSubmitting(true);
     setSubmitStatusText("Iniciando criação da O.S....");
 
     try {

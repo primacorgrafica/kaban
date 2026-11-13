@@ -1188,7 +1188,6 @@ export function useOrders() {
     if (o.arquivado) return false;
     if (!isPreImpressao(o)) return false;
     if (searchQuery) {
-      if (o.parent_order_id) return false;
       return matchesSearch(o, searchQuery.toLowerCase());
     }
     return true;

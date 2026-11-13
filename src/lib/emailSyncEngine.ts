@@ -85,7 +85,7 @@ export async function runEmailSync(): Promise<SyncResult> {
     supabase.auth.getUser().catch(() => ({ data: { user: null }, error: null })),
     supabase
       .from("orders")
-      .select("id, titulo, criado_por, status, setor, setor_status, updated_at, created_at, observacao")
+      .select("id, titulo, criado_por, status, setor, setor_status, updated_at, created_at, observacao, parent_order_id")
       .neq("status", "arquivado"),
     supabase
       .from("order_email_events")
@@ -133,38 +133,51 @@ export async function runEmailSync(): Promise<SyncResult> {
   >();
   const activeOsNumbers = new Set<string>();
 
+  // Prioriza o mapeamento para ordens-mãe de Pré-Impressão:
+  // Ordens com parent_order_id = null e setor = null têm precedência sobre sub-ordens e compras.
+  const registerOsKey = (key: string, ord: any) => {
+    if (!key) return;
+    activeOsNumbers.add(key);
+    const existingId = osToOrderId.get(key);
+    if (!existingId) {
+      osToOrderId.set(key, ord.id);
+    } else {
+      const existingOrd = activeOrders.find((o) => o.id === existingId);
+      const existingIsRoot = !existingOrd?.parent_order_id && !existingOrd?.setor;
+      const currentIsRoot = !ord.parent_order_id && !ord.setor;
+      // Se a ordem existente não for raiz de pré-impressão mas a atual for, substitui
+      if (!existingIsRoot && currentIsRoot) {
+        osToOrderId.set(key, ord.id);
+      }
+    }
+  };
+
   for (const ord of activeOrders) {
     if (ord.titulo) {
       const trimmed = ord.titulo.trim();
       const clean = trimmed.replace(/^[#\s]+/, "");
-      osToOrderId.set(trimmed, ord.id);
-      osToOrderId.set(clean, ord.id);
-      activeOsNumbers.add(trimmed);
-      activeOsNumbers.add(clean);
+      registerOsKey(trimmed, ord);
+      registerOsKey(clean, ord);
 
       // 1. Extrai todas as sequências numéricas de 4 a 6 dígitos do título (ex: "99999" de "O.S. 99999", "99999 - Cartucho", etc.)
       const rawNumbers = ord.titulo.match(/\b\d{4,6}\b/g) || [];
       for (const num of rawNumbers) {
-        osToOrderId.set(num, ord.id);
-        activeOsNumbers.add(num);
+        registerOsKey(num, ord);
       }
 
       // 2. Extrai sequência contínua de dígitos (ex: "99999" de "99999/26", "99.999", "#99999")
       const onlyDigits = ord.titulo.replace(/\D/g, "");
       if (onlyDigits.length >= 4 && onlyDigits.length <= 6) {
-        osToOrderId.set(onlyDigits, ord.id);
-        activeOsNumbers.add(onlyDigits);
+        registerOsKey(onlyDigits, ord);
       } else if (onlyDigits.length > 6) {
         const first5 = onlyDigits.slice(0, 5);
-        osToOrderId.set(first5, ord.id);
-        activeOsNumbers.add(first5);
+        registerOsKey(first5, ord);
       }
 
       // 3. Normaliza prefixos comuns de O.S. (ex: "OS 99999" -> "99999")
       const strippedPrefix = trimmed.replace(/^(?:O\.?S\.?|OP|O\.?P\.?|ORDEM(?:\s+DE\s+SERVI[CÇ]O)?)\s*[#:-]?\s*/i, "").trim();
       if (strippedPrefix) {
-        osToOrderId.set(strippedPrefix, ord.id);
-        activeOsNumbers.add(strippedPrefix);
+        registerOsKey(strippedPrefix, ord);
       }
 
       orderStatusMap.set(ord.id, {
@@ -217,7 +230,10 @@ export async function runEmailSync(): Promise<SyncResult> {
   // mas já possui um evento de e-mail 'enviado' registrado após a última atualização/retorno para preparação,
   // move imediatamente para 'aguardando_aprovacao' para que o card nunca fique preso na Preparação.
   for (const [ordId, statusInfo] of orderStatusMap.entries()) {
-    if (statusInfo.status === "preparando_arquivo" || statusInfo.status === "fila_de_entrada") {
+    if (
+      (!statusInfo.setor || statusInfo.setor === "pre_impressao") &&
+      (statusInfo.status === "preparando_arquivo" || statusInfo.status === "fila_de_entrada")
+    ) {
       const orderUpTime = statusInfo.updated_at ? new Date(statusInfo.updated_at).getTime() : 0;
       const hasSentEvent = (existingEvents || []).some((evt) => {
         if (evt.order_id !== ordId || evt.direction !== "enviado") return false;
@@ -374,6 +390,7 @@ export async function runEmailSync(): Promise<SyncResult> {
             const currentOrd = orderStatusMap.get(matchedOrderId);
             const currentStatus = currentOrd?.status;
             if (
+              (!currentOrd?.setor || currentOrd?.setor === "pre_impressao") &&
               (currentStatus === "fila_de_entrada" || currentStatus === "preparando_arquivo" || currentStatus === "aguardando_novo_arquivo") &&
               currentStatus !== "arquivo_liberado" &&
               currentStatus !== "arquivado"
@@ -464,6 +481,7 @@ export async function runEmailSync(): Promise<SyncResult> {
             // SEJA na versão inicial (REV 0) OU em qualquer revisão (REV 1, REV 2, REV 3...)!
             // Deve mover automaticamente o card para AGUARDANDO APROVAÇÃO.
             const canMoveToApproval =
+              (!currentOrd?.setor || currentOrd?.setor === "pre_impressao") &&
               (currentStatus === "fila_de_entrada" ||
                currentStatus === "preparando_arquivo" ||
                currentStatus === "aguardando_novo_arquivo") &&
