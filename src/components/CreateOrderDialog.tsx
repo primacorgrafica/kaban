@@ -440,17 +440,21 @@ export function CreateOrderDialog({
 
     // MODO EDIÇÃO
     if (isEdit && orderToEdit) {
-      if (osTitulo !== orderToEdit.titulo.trim()) {
+      if (osTitulo !== orderToEdit.titulo.trim().replace(/\D/g, "")) {
         setIsChecking(true);
-        const { data: existing } = await supabase
+        const { data: existingCandidates } = await supabase
           .from("orders")
-          .select("id")
-          .eq("titulo", osTitulo)
+          .select("id, titulo")
+          .ilike("titulo", `%${osTitulo}%`)
           .neq("id", orderToEdit.id)
-          .limit(1);
+          .eq("arquivado", false);
         setIsChecking(false);
 
-        if (existing && existing.length > 0) {
+        const isDuplicate = (existingCandidates || []).some(
+          (cand) => cand.titulo && cand.titulo.replace(/\D/g, "") === osTitulo
+        );
+
+        if (isDuplicate) {
           toast.error("Número de O.S. já existente em outra ordem: " + osTitulo);
           setStep(1);
           return;
@@ -647,14 +651,18 @@ export function CreateOrderDialog({
     setIsChecking(true);
     setIsSubmitting(true);
     setSubmitStatusText("Verificando se a O.S. já existe...");
-    const { data: existing } = await supabase
+    const { data: existingCandidates } = await supabase
       .from("orders")
-      .select("id")
-      .eq("titulo", osTitulo)
-      .limit(1);
+      .select("id, titulo")
+      .ilike("titulo", `%${osTitulo}%`)
+      .eq("arquivado", false);
     setIsChecking(false);
 
-    if (existing && existing.length > 0) {
+    const isDuplicate = (existingCandidates || []).some(
+      (cand) => cand.titulo && cand.titulo.replace(/\D/g, "") === osTitulo
+    );
+
+    if (isDuplicate) {
       setIsSubmitting(false);
       setSubmitStatusText("");
       toast.error("Número de O.S. já existente: " + osTitulo);

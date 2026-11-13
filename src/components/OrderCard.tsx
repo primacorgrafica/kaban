@@ -459,8 +459,13 @@ function OrderCardImpl({ order, orderIndex, totalOrders, onUpdate, onMove, onArc
         <div className="flex items-center justify-between gap-1 px-3 pt-2 pb-0.5 min-w-0">
           {/* Esquerda: NÚMERO DA O.S. + REV / REP + RESPOSTA E-MAIL */}
           <div className="flex items-center gap-1 shrink-0">
-            <span className="font-mono-tech text-[11.5px] font-bold px-1.5 py-0.5 rounded bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/60 shrink-0 tracking-wide">
-              {cleanOsNumber(order.titulo) || order.titulo?.replace(/^#+/, "")}
+            <span className="font-mono-tech text-[11.5px] font-bold px-1.5 py-0.5 rounded bg-[#253745] text-[#CCD0CF] border border-[#4A5C6A]/60 shrink-0 tracking-wide flex items-center gap-1">
+              <span>{cleanOsNumber(order.titulo) || order.titulo?.replace(/^#+/, "")}</span>
+              {/c[oó]pia/i.test(order.titulo || "") && (
+                <span className="px-1 py-0.2 rounded text-[8.5px] font-bold bg-amber-500/30 text-amber-300 border border-amber-500/40">
+                  CÓPIA
+                </span>
+              )}
             </span>
             {currentRevision >= 1 && (
               <span

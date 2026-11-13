@@ -30,6 +30,7 @@ import { Order, OrderStatus } from "@/types/order";
 import { UTILITIES_CONFIG } from "@/config/utilities";
 import { OrderDetailDialog } from "./OrderDetailDialog";
 import { toast } from "sonner";
+import { cleanOsNumber } from "@/lib/orderRelationsService";
 import { MuralHeaderBanner } from "./mural/MuralHeaderBanner";
 import { useMuralAlertas } from "@/hooks/useMuralAlertas";
 
@@ -731,16 +732,44 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
         onOpenChange={(open) => !open && setInspectOrder(null)}
         onUpdate={handleUpdateInspectOrder}
         onDuplicate={async (order) => {
+          const osRef = cleanOsNumber(order.titulo) || order.titulo?.replace(/\D/g, "") || "";
+          const input = window.prompt(
+            `Duplicar serviço de: ${order.cliente || "Cliente"}\n` +
+            `O.S. de referência: #${osRef}\n\n` +
+            `Informe o NOVO NÚMERO DA O.S. (somente dígitos):`
+          );
+          if (!input) return; // cancelou
+          const cleanNewOs = input.replace(/\D/g, "");
+          if (!cleanNewOs) {
+            toast.error("Informe um número de O.S. válido para a duplicata.");
+            return;
+          }
+
+          const { data: existingCandidates } = await supabase
+            .from("orders")
+            .select("id, titulo")
+            .ilike("titulo", `%${cleanNewOs}%`)
+            .eq("arquivado", false);
+
+          const isDuplicate = (existingCandidates || []).some(
+            (cand) => cand.titulo && cand.titulo.replace(/\D/g, "") === cleanNewOs
+          );
+
+          if (isDuplicate) {
+            toast.error(`A O.S. #${cleanNewOs} já existe no sistema!`);
+            return;
+          }
+
           const { id, created_at, updated_at, ...rest } = order;
           const { data, error } = await supabase.from("orders").insert({
             ...rest,
-            titulo: `${order.titulo}-COPIA`,
+            titulo: cleanNewOs,
             criado_por: user?.id || null,
           }).select().single();
           if (error) {
-            toast.error("Erro ao duplicar O.S.");
+            toast.error("Erro ao duplicar O.S.: " + error.message);
           } else {
-            toast.success("O.S. duplicada com sucesso!");
+            toast.success(`O.S. #${cleanNewOs} criada com sucesso!`);
             if (data) setInspectOrder(data as Order);
           }
         }}

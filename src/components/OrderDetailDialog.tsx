@@ -405,8 +405,13 @@ export function OrderDetailDialog({
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="font-mono-tech text-base font-bold text-foreground tracking-wide">
-                    O.S. {cleanOsNumber(order.titulo) || order.titulo?.replace(/^#+/, "")}
+                  <span className="font-mono-tech text-base font-bold text-foreground tracking-wide flex items-center gap-1.5">
+                    <span>O.S. {cleanOsNumber(order.titulo) || order.titulo?.replace(/^#+/, "")}</span>
+                    {/c[oó]pia/i.test(order.titulo || "") && (
+                      <Badge className="bg-amber-500/30 text-amber-300 border-amber-500/40 text-[10px] font-bold">
+                        CÓPIA
+                      </Badge>
+                    )}
                   </span>
                   {currentRevision >= 1 && (
                     <div className="flex items-center gap-1.5">

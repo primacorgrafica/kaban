@@ -5,6 +5,7 @@ import {
   registerKnownOrders,
   setObservationRelatedOrders,
   syncOrderRelations,
+  cleanOsNumber,
 } from "@/lib/orderRelationsService";
 import {
   hasProductionPriority,
@@ -539,7 +540,42 @@ export function useOrders() {
 
 
   const duplicateOrder = useCallback(
-    async (order: Order) => {
+    async (order: Order, customNewOs?: string) => {
+      let cleanNewOs = "";
+      if (customNewOs && typeof customNewOs === "string") {
+        cleanNewOs = customNewOs.replace(/\D/g, "");
+      } else {
+        const osRef = cleanOsNumber(order.titulo) || order.titulo?.replace(/\D/g, "") || "";
+        const input = window.prompt(
+          `Duplicar serviço de: ${order.cliente || "Cliente"}\n` +
+          `O.S. de referência: #${osRef}\n\n` +
+          `Informe o NOVO NÚMERO DA O.S. (somente dígitos):`
+        );
+        if (!input) return; // Operação cancelada pelo usuário
+        cleanNewOs = input.replace(/\D/g, "");
+      }
+
+      if (!cleanNewOs) {
+        toast.error("Informe um número de O.S. válido para a duplicata.");
+        return;
+      }
+
+      // Validação de duplicidade: não permite duplicar com o mesmo número ou número já existente
+      const { data: existingCandidates } = await supabase
+        .from("orders")
+        .select("id, titulo")
+        .ilike("titulo", `%${cleanNewOs}%`)
+        .eq("arquivado", false);
+
+      const isDuplicate = (existingCandidates || []).some(
+        (cand) => cand.titulo && cand.titulo.replace(/\D/g, "") === cleanNewOs
+      );
+
+      if (isDuplicate) {
+        toast.error(`A O.S. #${cleanNewOs} já existe no sistema!`);
+        return;
+      }
+
       const { data: maxData } = await supabase
         .from("orders")
         .select("posicao")
@@ -550,7 +586,7 @@ export function useOrders() {
       const newPos = maxData && maxData.length > 0 ? (maxData[0] as any).posicao + 1 : 0;
 
       const { error } = await supabase.from("orders").insert({
-        titulo: order.titulo + " (cópia)",
+        titulo: cleanNewOs,
         descricao: order.descricao,
         cliente: order.cliente,
         observacao: order.observacao || null,
@@ -589,10 +625,10 @@ export function useOrders() {
         entrega_data_limite: order.entrega_data_limite || null,
       } as any);
       if (error) {
-        toast.error("Erro ao duplicar OS.");
+        toast.error("Erro ao duplicar O.S.: " + error.message);
         console.error(error);
       } else {
-        toast.success("OS. duplicada com sucesso!");
+        toast.success(`O.S. #${cleanNewOs} duplicada com sucesso!`);
       }
     },
     [user]
