@@ -1,4 +1,5 @@
 import { getOrderRevision } from "@/lib/orderRevision";
+import { formatVendedorNome } from "@/lib/vendedores";
 import { getEffectiveOsAnterior } from "@/lib/orderAnterior";
 import { useState, useEffect, memo } from "react";
 import { getProcessoCor, sortAndFilterProcessos, SPECIAL_SUPPLIES, isSpecialSupplyActive, isSpecialSupplySent, toggleSpecialSupplySent, getSpecialSupplyDetails, getSpecialSupplyBadgeClasses, formatSafeDate } from "@/lib/processos";
@@ -794,7 +795,7 @@ function ProductionCardImpl({
           {order.vendedor && (
             <div className="flex items-center gap-1 mt-1 text-xs text-muted-foreground min-w-0">
               <User className="h-3 w-3 text-muted-foreground/80 shrink-0" />
-              <span className="truncate">{order.vendedor}</span>
+              <span className="truncate">{formatVendedorNome(order.vendedor)}</span>
             </div>
           )}
 
@@ -1378,7 +1379,7 @@ function ProductionCardImpl({
                   <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
                     <div><span className="text-muted-foreground">OS:</span> <span className="font-medium">{order.titulo}</span></div>
                     <div><span className="text-muted-foreground">Cliente:</span> <span className="font-medium">{order.cliente}</span></div>
-                    {order.vendedor && <div><span className="text-muted-foreground">Vendedor:</span> {order.vendedor}</div>}
+                    {order.vendedor && <div><span className="text-muted-foreground">Vendedor:</span> {formatVendedorNome(order.vendedor)}</div>}
                     {order.prazo && (
                       <div className={isNearDeadline ? "text-red-600 dark:text-red-400 font-semibold" : ""}>
                         <span className="text-muted-foreground">Prazo:</span> {format(new Date(order.prazo), "dd/MM/yyyy'-'HH:mm", { locale: ptBR })}
@@ -1422,7 +1423,7 @@ function ProductionCardImpl({
                     <div className="text-xs leading-tight mt-0.5">{order.descricao}</div>
                   )}
                   <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
-                    {order.vendedor && <span>Vendedor: <span className="text-foreground">{order.vendedor}</span></span>}
+                    {order.vendedor && <span>Vendedor: <span className="text-foreground">{formatVendedorNome(order.vendedor)}</span></span>}
                   </div>
                   {order.prazo && (
                     <div className="flex items-center gap-1 text-xs mt-0.5">
@@ -1468,7 +1469,7 @@ function ProductionCardImpl({
                     <div><p className="text-sm text-muted-foreground">Máquina</p><p className="text-sm font-bold">{order.maquina}</p></div>
                   )}
                   {order.vendedor && (
-                    <div><p className="text-sm text-muted-foreground">Vendedor</p><p className="text-sm">{order.vendedor}</p></div>
+                    <div><p className="text-sm text-muted-foreground">Vendedor</p><p className="text-sm">{formatVendedorNome(order.vendedor)}</p></div>
                   )}
                 </>
                )}

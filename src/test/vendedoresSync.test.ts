@@ -22,18 +22,19 @@ describe("Sincronização de Perfis Reais de Vendedores (Primacor Kaban)", () =>
     expect(names).toContain("deborah");
     expect(names).toContain("ozeas");
     expect(names).toContain("ronaldo");
-    expect(names).toContain("well");
+    expect(names).toContain("wellington");
     expect(names).toContain("primacor");
 
-    // NÃO deve conter Wellington (o perfil real é 'well')
-    expect(names).not.toContain("wellington");
+    // NÃO deve conter 'well' (o perfil oficial é 'Wellington')
+    expect(names).not.toContain("well");
   });
 
-  it("2. Deve sanitizar 'Wellington' para 'well'", () => {
-    expect(sanitizeVendedorNome("Wellington")).toBe("well");
-    expect(sanitizeVendedorNome("wellington")).toBe("well");
-    expect(sanitizeVendedorNome("WELLINGTON")).toBe("well");
-    expect(sanitizeVendedorNome("well")).toBe("well");
+  it("2. Deve sanitizar 'well' para 'Wellington'", () => {
+    expect(sanitizeVendedorNome("well")).toBe("Wellington");
+    expect(sanitizeVendedorNome("WELL")).toBe("Wellington");
+    expect(sanitizeVendedorNome("Well")).toBe("Wellington");
+    expect(sanitizeVendedorNome("Wellington")).toBe("Wellington");
+    expect(sanitizeVendedorNome("wellington")).toBe("Wellington");
     expect(sanitizeVendedorNome("Bianca")).toBe("Bianca");
     expect(sanitizeVendedorNome("Ozeas")).toBe("Ozeas");
     expect(sanitizeVendedorNome("Primacor")).toBe("Primacor");
@@ -42,7 +43,7 @@ describe("Sincronização de Perfis Reais de Vendedores (Primacor Kaban)", () =>
   it("3. isRealVendedor deve aceitar nomes reais e rejeitar strings vazias", () => {
     expect(isRealVendedor("Primacor")).toBe(true);
     expect(isRealVendedor("primacor")).toBe(true);
-    expect(isRealVendedor("well")).toBe(true);
+    expect(isRealVendedor("Wellington")).toBe(true);
     expect(isRealVendedor("Bianca")).toBe(true);
     expect(isRealVendedor("")).toBe(false);
     expect(isRealVendedor("   ")).toBe(false);
@@ -93,9 +94,9 @@ describe("Sincronização de Perfis Reais de Vendedores (Primacor Kaban)", () =>
     expect(list.length).toBe(6);
 
     const names = list.map((v) => v.nome);
-    expect(names).toContain("well");
+    expect(names).toContain("Wellington");
     expect(names).toContain("Primacor");
-    expect(names).not.toContain("Wellington");
+    expect(names).not.toContain("well");
   });
 
   it("5. Deve utilizar o fallback seguro de DEFAULT_VENDEDORES se as consultas falharem", async () => {
@@ -108,8 +109,8 @@ describe("Sincronização de Perfis Reais de Vendedores (Primacor Kaban)", () =>
 
     const list = await fetchVendedores(true);
     expect(list.length).toBe(6);
-    expect(list.some((v) => v.nome === "well")).toBe(true);
+    expect(list.some((v) => v.nome === "Wellington")).toBe(true);
     expect(list.some((v) => v.nome === "Primacor")).toBe(true);
-    expect(list.some((v) => v.nome === "Wellington")).toBe(false);
+    expect(list.some((v) => v.nome === "well")).toBe(false);
   });
 });

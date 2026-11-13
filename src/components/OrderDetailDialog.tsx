@@ -2,7 +2,7 @@ import { getOrderRevision, cleanObservationRevision } from "@/lib/orderRevision"
 import { getEffectiveOsAnterior } from "@/lib/orderAnterior";
 import { cleanObservationRelatedOrders } from "@/lib/orderRelationsService";
 import { cleanObservationProductionPriority } from "@/lib/productionPriority";
-import { fetchVendedores } from "@/lib/vendedores";
+import { fetchVendedores, formatVendedorNome } from "@/lib/vendedores";
 import { useState, useEffect, useMemo } from "react";
 import { Order, OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
 import { DEPARTMENTS, Department } from "@/types/production";
@@ -520,7 +520,7 @@ export function OrderDetailDialog({
                         <p className="text-[10px] text-muted-foreground uppercase font-medium">Vendedor</p>
                         <p className="text-xs text-foreground flex items-center gap-1.5 font-medium">
                           <User className="h-3 w-3 text-primary" />
-                          {order.vendedor}
+                          {formatVendedorNome(order.vendedor)}
                         </p>
                       </div>
                     )}

@@ -31,6 +31,7 @@ import { measureQueryLatency } from "@/lib/autonomousEngine/telemetry";
 import { triggerSellerApprovalNotification } from "@/lib/sellerNotificationService";
 import { hasSpecialSuppliesForCompras } from "@/lib/processos";
 import { syncOrderToCompras } from "@/lib/comprasSync";
+import { sanitizeVendedorNome } from "@/lib/vendedores";
 
 
 export function useOrders() {
@@ -476,7 +477,7 @@ export function useOrders() {
         posicao: newPos,
         setor: sendToSetor,
         setor_status: sendToSetor ? "entrada" : null,
-        vendedor: data.vendedor || null,
+        vendedor: sanitizeVendedorNome(data.vendedor) || null,
         tipo_trabalho: data.tipo_trabalho || (cleanOsAnt ? "repeticao" : null),
         os_anterior: cleanOsAnt || null,
         equipamentos: data.equipamentos || [],
@@ -608,7 +609,7 @@ export function useOrders() {
         criado_por: user?.id || null,
         atualizado_por: user?.id || null,
         posicao: newPos,
-        vendedor: order.vendedor || null,
+        vendedor: sanitizeVendedorNome(order.vendedor) || null,
         tipo_trabalho: order.tipo_trabalho || null,
         os_anterior: order.os_anterior || null,
         equipamentos: order.equipamentos || [],
@@ -639,6 +640,9 @@ export function useOrders() {
       let updatePayload: any = { ...data, atualizado_por: user?.id || null };
       if (updatePayload.cliente && typeof updatePayload.cliente === "string") {
         updatePayload.cliente = updatePayload.cliente.trim().toUpperCase();
+      }
+      if (updatePayload.vendedor && typeof updatePayload.vendedor === "string") {
+        updatePayload.vendedor = sanitizeVendedorNome(updatePayload.vendedor);
       }
 
       const currentOrder = orders.find(o => o.id === id);

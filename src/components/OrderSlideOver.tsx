@@ -62,6 +62,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { DELIVERY_STATUS_CONFIG, DeliveryStatus } from "@/types/delivery";
 import { cn } from "@/lib/utils";
 import { cleanOsNumber } from "./ProductionCard";
+import { formatVendedorNome } from "@/lib/vendedores";
 
 interface OrderSlideOverProps {
   order: Order | null;
@@ -437,7 +438,7 @@ export function OrderSlideOver({
                       <span className="text-[10px] text-muted-foreground uppercase font-mono-tech block">Vendedor</span>
                       <span className="text-xs font-semibold text-foreground flex items-center gap-1.5 mt-0.5">
                         <Briefcase className="w-3.5 h-3.5 text-primary" />
-                        {order.vendedor || "Não informado"}
+                        {formatVendedorNome(order.vendedor) || "Não informado"}
                       </span>
                     </div>
 

@@ -1,6 +1,6 @@
 import { getOrderRevision, cleanObservationRevision } from "@/lib/orderRevision";
 import { getEffectiveOsAnterior } from "@/lib/orderAnterior";
-import { fetchVendedores } from "@/lib/vendedores";
+import { fetchVendedores, formatVendedorNome } from "@/lib/vendedores";
 import { useState, useEffect, useMemo, memo } from "react";
 import { Order, OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
 import { DEPARTMENTS, Department } from "@/types/production";
@@ -671,10 +671,10 @@ function OrderCardImpl({ order, orderIndex, totalOrders, onUpdate, onMove, onArc
               {order.vendedor ? (
                 <span
                   className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#CCD0CF] bg-[#253745]/70 border border-[#4A5C6A]/50 px-1.5 py-0.5 rounded shadow-2xs w-[84px] truncate"
-                  title={`Vendedor: ${order.vendedor}`}
+                  title={`Vendedor: ${formatVendedorNome(order.vendedor)}`}
                 >
                   <User className="h-2.5 w-2.5 text-[#9BA8AB] shrink-0" />
-                  <span className="truncate">{order.vendedor}</span>
+                  <span className="truncate">{formatVendedorNome(order.vendedor)}</span>
                 </span>
               ) : (
                 order.operador ? <div className="w-[84px]" /> : null
@@ -1085,7 +1085,7 @@ function OrderCardImpl({ order, orderIndex, totalOrders, onUpdate, onMove, onArc
                         <p className="text-[10px] text-muted-foreground uppercase font-medium">Vendedor</p>
                         <p className="text-xs text-foreground flex items-center gap-1.5 font-medium">
                           <User className="h-3 w-3 text-primary" />
-                          {order.vendedor}
+                          {formatVendedorNome(order.vendedor)}
                         </p>
                       </div>
                     )}

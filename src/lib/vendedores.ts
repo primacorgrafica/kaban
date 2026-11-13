@@ -38,7 +38,7 @@ export const DEFAULT_VENDEDORES: VendedorProfile[] = [
   {
     id: "cac0c4fa-f98f-47fa-b16d-61a3e23e4408",
     user_id: "cac0c4fa-f98f-47fa-b16d-61a3e23e4408",
-    nome: "well",
+    nome: "Wellington",
     email: "well@primacorgrafica.com.br",
   },
   {
@@ -62,12 +62,24 @@ export function clearVendedoresCache(): void {
 
 /**
  * Sanitiza e normaliza nomes de vendedores para garantir que:
- * - "Wellington" seja corrigido para "well" (perfil real)
+ * - "well" seja padronizado para "Wellington" (perfil real)
  */
 export function sanitizeVendedorNome(rawName: string): string {
   const clean = (rawName || "").trim();
-  if (clean.toLowerCase() === "wellington") {
-    return "well";
+  if (clean.toLowerCase() === "well" || clean.toLowerCase() === "wellington") {
+    return "Wellington";
+  }
+  return clean;
+}
+
+/**
+ * Formata o nome do vendedor para exibição visual nos cards e diálogos
+ */
+export function formatVendedorNome(vendedor: string | null | undefined): string {
+  if (!vendedor) return "";
+  const clean = vendedor.trim();
+  if (clean.toLowerCase() === "well" || clean.toLowerCase() === "wellington") {
+    return "Wellington";
   }
   return clean;
 }

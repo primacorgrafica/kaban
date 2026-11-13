@@ -92,11 +92,15 @@ describe("Resiliência e Sincronização de Anexos do SharePoint", () => {
     expect(isValidEmail("well@primacorgrafica.com.br")).toBe(true);
   });
 
-  it("7. resolveSellerEmail deve mapear 'Wellington' para o vendedor real 'well'", async () => {
+  it("7. resolveSellerEmail deve mapear 'Wellington' e 'well' para o vendedor real 'Wellington'", async () => {
     const res = await resolveSellerEmail("Wellington");
-    expect(res.name).toBe("well");
+    expect(res.name).toBe("Wellington");
     expect(res.email).toBe("well@primacorgrafica.com.br");
     expect(res.source).toBe("vendedores");
+
+    const resWell = await resolveSellerEmail("well");
+    expect(resWell.name).toBe("Wellington");
+    expect(resWell.email).toBe("well@primacorgrafica.com.br");
   });
 
   it("8. resolveSellerEmail não deve disparar e-mail para criador se e-mail for coordenadorpre", async () => {

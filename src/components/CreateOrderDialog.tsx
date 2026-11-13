@@ -55,7 +55,7 @@ import {
   getSpecialSupplyCustomText,
   setSpecialSupplyCustomText,
 } from "@/lib/processos";
-import { fetchVendedores } from "@/lib/vendedores";
+import { fetchVendedores, sanitizeVendedorNome, formatVendedorNome } from "@/lib/vendedores";
 import {
   getOrCreateOsFolder,
   uploadFileToSharePoint,
@@ -291,7 +291,7 @@ export function CreateOrderDialog({
       digital_color: order.digital_color || false,
       digital_pb: order.digital_pb || false,
       prazo: order.prazo ? toLocalDatetimeString(new Date(order.prazo)) : "",
-      vendedor: order.vendedor || "",
+      vendedor: formatVendedorNome(order.vendedor) || "",
       processos: order.processos ? [...order.processos] : [],
       tem_nf: order.nf === "SIM" || !!order.nf,
       tem_protocolo: order.protocolo === "SIM" || !!order.protocolo,
@@ -542,7 +542,7 @@ export function CreateOrderDialog({
           digital_color: form.digital_color,
           digital_pb: form.digital_pb,
           prazo: form.prazo ? new Date(form.prazo).toISOString() : null,
-          vendedor: form.vendedor || null,
+          vendedor: sanitizeVendedorNome(form.vendedor) || null,
           processos: allProcessos.length > 0 ? allProcessos : [],
           nf: form.tem_nf ? (orderToEdit.nf || "SIM") : null,
           protocolo: form.tem_protocolo ? (orderToEdit.protocolo || "SIM") : null,
@@ -754,7 +754,7 @@ export function CreateOrderDialog({
           digital_color: form.digital_color,
           digital_pb: form.digital_pb,
           prazo: form.prazo ? new Date(form.prazo).toISOString() : undefined,
-          vendedor: form.vendedor || undefined,
+          vendedor: sanitizeVendedorNome(form.vendedor) || undefined,
           processos: allProcessos.length > 0 ? allProcessos : undefined,
           nf: form.tem_nf ? "SIM" : undefined,
           protocolo: form.tem_protocolo ? "SIM" : undefined,

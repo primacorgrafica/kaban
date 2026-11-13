@@ -1,4 +1,5 @@
 import { getOrderRevision } from "@/lib/orderRevision";
+import { formatVendedorNome } from "@/lib/vendedores";
 import { getEffectiveOsAnterior } from "@/lib/orderAnterior";
 import { useState, useMemo } from "react";
 import { Order, OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
@@ -534,7 +535,7 @@ export function ProductionTable({
                     {/* Vendedor */}
                     <TableCell>
                       <span className="text-foreground truncate max-w-[100px] block">
-                        {order.vendedor || "—"}
+                        {formatVendedorNome(order.vendedor) || "—"}
                       </span>
                     </TableCell>
 
