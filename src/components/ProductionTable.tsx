@@ -18,6 +18,20 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -85,6 +99,7 @@ interface ProductionTableProps {
   onDelete: (id: string) => void;
   onDuplicate?: (order: Order) => void;
   onSendToProduction?: (id: string, department: Department, machine?: string) => void;
+  onSendToMultipleProduction?: (id: string, depts: { department: Department; machine?: string }[]) => void;
   onSendToExpedicao?: (id: string) => void;
   getProfileName: (userId: string | null) => string | null;
   permissions: Permissions;
@@ -106,6 +121,7 @@ export function ProductionTable({
   onDelete,
   onDuplicate,
   onSendToProduction,
+  onSendToMultipleProduction,
   onSendToExpedicao,
   getProfileName,
   permissions,
@@ -118,6 +134,11 @@ export function ProductionTable({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [inspectOrder, setInspectOrder] = useState<Order | null>(null);
   const [slideOverOpen, setSlideOverOpen] = useState(false);
+  const [sendOrder, setSendOrder] = useState<Order | null>(null);
+  const [sendDialogOpen, setSendDialogOpen] = useState(false);
+  const [selectedDepts, setSelectedDepts] = useState<{ department: Department; machine?: string }[]>([]);
+  const [currentDept, setCurrentDept] = useState<Department | "">("");
+  const [currentMachine, setCurrentMachine] = useState<string>("");
   const [sortField, setSortField] = useState<SortField>("created_at");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
@@ -389,7 +410,7 @@ export function ProductionTable({
               </TableHead>
               <TableHead className="w-28 text-foreground font-bold">Vendedor</TableHead>
               <TableHead className="min-w-[150px] text-foreground font-bold">MATERIAIS</TableHead>
-              <TableHead className="w-16 text-right pr-4 text-foreground font-bold">Ações</TableHead>
+              <TableHead className="min-w-[210px] text-right pr-4 text-foreground font-bold">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -694,50 +715,78 @@ export function ProductionTable({
 
                     {/* Ações */}
                     <TableCell className="text-right pr-4" onClick={(e) => e.stopPropagation()}>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg"
+                      <div className="flex items-center justify-end gap-1.5">
+                        {permissions.canSendToProduction && onSendToProduction && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSendOrder(order);
+                              setSendDialogOpen(true);
+                            }}
+                            className="px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all rounded-lg bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] shadow-sm font-mono-tech whitespace-nowrap cursor-pointer hover:scale-[1.02] active:scale-95"
+                            title="Enviar esta O.S. para Produção"
                           >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="bg-popover border-border text-popover-foreground">
-                          <DropdownMenuItem
-                            onClick={() => handleOpenSlideOver(order)}
-                            className="text-xs hover:bg-accent cursor-pointer"
-                          >
-                            <ExternalLink className="h-3.5 w-3.5 mr-2 text-[#9BA8AB]" /> Inspecionar O.S.
-                          </DropdownMenuItem>
-                          {!permissions.isViewOnly && (
-                            <DropdownMenuItem
-                              onClick={() => void toggleProductionPriority(order, (id, data) => onUpdate(id, data))}
-                              className="text-xs hover:bg-accent cursor-pointer text-amber-500"
+                            <Send className="h-3 w-3 stroke-[2.5]" />
+                            <span>ENVIAR PARA PRODUÇÃO</span>
+                          </button>
+                        )}
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg shrink-0"
                             >
-                              <Star className={`h-3.5 w-3.5 mr-2 ${hasProductionPriority(order) ? "fill-amber-500 text-amber-500" : ""}`} />
-                              {hasProductionPriority(order) ? "Remover prioridade" : "Marcar como prioridade"}
-                            </DropdownMenuItem>
-                          )}
-                          {permissions.canArchive && (
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="bg-popover border-border text-popover-foreground">
+                            {permissions.canSendToProduction && onSendToProduction && (
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  setSendOrder(order);
+                                  setSendDialogOpen(true);
+                                }}
+                                className="text-xs hover:bg-accent cursor-pointer font-semibold"
+                              >
+                                <Send className="h-3.5 w-3.5 mr-2 text-sky-400" /> Enviar para Produção
+                              </DropdownMenuItem>
+                            )}
                             <DropdownMenuItem
-                              onClick={() => onArchive(order.id)}
-                              className="text-xs hover:bg-accent cursor-pointer text-amber-500"
+                              onClick={() => handleOpenSlideOver(order)}
+                              className="text-xs hover:bg-accent cursor-pointer"
                             >
-                              <Archive className="h-3.5 w-3.5 mr-2" /> Arquivar
+                              <ExternalLink className="h-3.5 w-3.5 mr-2 text-[#9BA8AB]" /> Inspecionar O.S.
                             </DropdownMenuItem>
-                          )}
-                          {permissions.canDelete && (
-                            <DropdownMenuItem
-                              onClick={() => onDelete(order.id)}
-                              className="text-xs hover:bg-accent cursor-pointer text-rose-500"
-                            >
-                              <Trash2 className="h-3.5 w-3.5 mr-2" /> Excluir
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                            {!permissions.isViewOnly && (
+                              <DropdownMenuItem
+                                onClick={() => void toggleProductionPriority(order, (id, data) => onUpdate(id, data))}
+                                className="text-xs hover:bg-accent cursor-pointer text-amber-500"
+                              >
+                                <Star className={`h-3.5 w-3.5 mr-2 ${hasProductionPriority(order) ? "fill-amber-500 text-amber-500" : ""}`} />
+                                {hasProductionPriority(order) ? "Remover prioridade" : "Marcar como prioridade"}
+                              </DropdownMenuItem>
+                            )}
+                            {permissions.canArchive && (
+                              <DropdownMenuItem
+                                onClick={() => onArchive(order.id)}
+                                className="text-xs hover:bg-accent cursor-pointer text-amber-500"
+                              >
+                                <Archive className="h-3.5 w-3.5 mr-2" /> Arquivar
+                              </DropdownMenuItem>
+                            )}
+                            {permissions.canDelete && (
+                              <DropdownMenuItem
+                                onClick={() => onDelete(order.id)}
+                                className="text-xs hover:bg-accent cursor-pointer text-rose-500"
+                              >
+                                <Trash2 className="h-3.5 w-3.5 mr-2" /> Excluir
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -762,6 +811,149 @@ export function ProductionTable({
         departmentContext={department}
         getProfileName={getProfileName}
       />
+
+      {/* Modal de Envio para Produção / Mover de Setor */}
+      <Dialog
+        open={sendDialogOpen}
+        onOpenChange={(open) => {
+          setSendDialogOpen(open);
+          if (!open) {
+            setSendOrder(null);
+            setSelectedDepts([]);
+            setCurrentDept("");
+            setCurrentMachine("");
+          }
+        }}
+      >
+        <DialogContent className="max-sm:w-[94vw] max-sm:max-w-full max-sm:p-4 max-sm:rounded-xl sm:max-w-md bg-card border-border text-card-foreground shadow-2xl rounded-2xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base font-bold">
+              <Send className="h-5 w-5 text-sky-400" />
+              <span>Enviar para qual(is) setor(es)?</span>
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-1">
+            {sendOrder && (
+              <p className="text-xs text-muted-foreground">
+                O.S. <strong>#{cleanOsNumber(sendOrder.titulo) || sendOrder.titulo}</strong> — {sendOrder.cliente}
+              </p>
+            )}
+
+            {selectedDepts.length > 0 && (
+              <div className="space-y-1.5">
+                <Label className="text-xs uppercase text-muted-foreground font-mono-tech">Setores selecionados</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedDepts.map((sd, idx) => (
+                    <Badge key={idx} variant="default" className="gap-1 pr-1 text-xs">
+                      {DEPARTMENTS.find((d) => d.id === sd.department)?.label}
+                      {sd.machine &&
+                        ` (${DEPARTMENTS.find((d) => d.id === sd.department)?.statuses.find((s) => s.id === sd.machine)?.label || sd.machine})`}
+                      <button
+                        type="button"
+                        className="ml-1 rounded-full hover:bg-white/20 p-0.5 cursor-pointer"
+                        onClick={() => setSelectedDepts((prev) => prev.filter((_, i) => i !== idx))}
+                      >
+                        ✕
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <Label className="text-xs font-semibold">Adicionar setor</Label>
+              <Select
+                value={currentDept}
+                onValueChange={(v) => {
+                  setCurrentDept(v as Department);
+                  setCurrentMachine("");
+                }}
+              >
+                <SelectTrigger className="mt-1 text-xs">
+                  <SelectValue placeholder="Selecione o setor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {DEPARTMENTS.filter((d) => !selectedDepts.some((sd) => sd.department === d.id)).map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {currentDept && DEPARTMENTS.find((d) => d.id === currentDept)?.machines && (
+              <div>
+                <Label className="text-xs font-semibold">Máquina</Label>
+                <Select value={currentMachine} onValueChange={setCurrentMachine}>
+                  <SelectTrigger className="mt-1 text-xs">
+                    <SelectValue placeholder="Selecione a máquina" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DEPARTMENTS.find((d) => d.id === currentDept)!.machines!.map((m) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {currentDept && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full text-xs font-semibold"
+                disabled={!!DEPARTMENTS.find((d) => d.id === currentDept)?.machines && !currentMachine}
+                onClick={() => {
+                  setSelectedDepts((prev) => [
+                    ...prev,
+                    { department: currentDept as Department, machine: currentMachine || undefined },
+                  ]);
+                  setCurrentDept("");
+                  setCurrentMachine("");
+                }}
+              >
+                + Adicionar Setor
+              </Button>
+            )}
+
+            <Button
+              type="button"
+              className="w-full font-bold gap-2"
+              disabled={selectedDepts.length === 0 && !currentDept}
+              onClick={() => {
+                if (!sendOrder) return;
+                const deptsToSend =
+                  selectedDepts.length > 0
+                    ? selectedDepts
+                    : currentDept
+                    ? [{ department: currentDept as Department, machine: currentMachine || undefined }]
+                    : [];
+
+                if (deptsToSend.length === 0) return;
+
+                if (onSendToMultipleProduction) {
+                  onSendToMultipleProduction(sendOrder.id, deptsToSend);
+                } else if (onSendToProduction && deptsToSend.length > 0) {
+                  onSendToProduction(sendOrder.id, deptsToSend[0].department, deptsToSend[0].machine);
+                }
+
+                setSendDialogOpen(false);
+                setSendOrder(null);
+                setSelectedDepts([]);
+                setCurrentDept("");
+                setCurrentMachine("");
+              }}
+            >
+              <Send className="h-4 w-4" /> Confirmar Envio{" "}
+              {selectedDepts.length > 1 && `(${selectedDepts.length} setores)`}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

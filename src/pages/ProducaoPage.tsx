@@ -63,6 +63,7 @@ export default function ProducaoPage() {
     archiveOrder,
     deleteOrder,
     sendToProduction,
+    sendToMultipleProduction,
     sendToInspecao,
     sendToExpedicao,
     sendBackToPrePress,
@@ -443,6 +444,7 @@ export default function ProducaoPage() {
             onDelete={deleteOrder}
             onDuplicate={duplicateOrder}
             onSendToProduction={sendToProduction}
+            onSendToMultipleProduction={sendToMultipleProduction}
             onSendToExpedicao={sendToExpedicao}
             getProfileName={getProfileName}
             permissions={perms}

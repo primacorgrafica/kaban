@@ -235,6 +235,7 @@ const Index = () => {
                 onDelete={deleteOrder}
                 onDuplicate={duplicateOrder}
                 onSendToProduction={sendToProduction}
+                onSendToMultipleProduction={sendToMultipleProduction}
                 onSendToExpedicao={sendToExpedicao}
                 getProfileName={getProfileName}
                 permissions={perms}
