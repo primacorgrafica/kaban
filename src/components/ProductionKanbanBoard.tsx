@@ -334,29 +334,31 @@ export function ProductionKanbanBoard({
                 className="text-xs bg-background min-h-[65px] text-foreground resize-none"
                 autoFocus
               />
-              <div className="space-y-1 pt-1">
-                <span className="text-[10px] text-muted-foreground font-medium block">Sugestões rápidas:</span>
-                <div className="flex flex-wrap gap-1.5">
-                  {[
-                    "Aguardando novo arquivo do cliente",
-                    "Aguardando aprovação de alteração",
-                    "Faca / clichê incorreto",
-                    "Arquivo corrompido ou sem sangria",
-                    "Cliente solicitou pausa no trabalho",
-                  ].map((sugestao) => (
-                    <Button
-                      key={sugestao}
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setMotivoParada(sugestao)}
-                      className="text-[10px] h-6 px-2 rounded-lg bg-muted/40 hover:bg-muted text-foreground cursor-pointer"
-                    >
-                      {sugestao}
-                    </Button>
-                  ))}
+              {department.id !== "inspecao" && (
+                <div className="space-y-1 pt-1">
+                  <span className="text-[10px] text-muted-foreground font-medium block">Sugestões rápidas:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      "Aguardando novo arquivo do cliente",
+                      "Aguardando aprovação de alteração",
+                      "Faca / clichê incorreto",
+                      "Arquivo corrompido ou sem sangria",
+                      "Cliente solicitou pausa no trabalho",
+                    ].map((sugestao) => (
+                      <Button
+                        key={sugestao}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setMotivoParada(sugestao)}
+                        className="text-[10px] h-6 px-2 rounded-lg bg-muted/40 hover:bg-muted text-foreground cursor-pointer"
+                      >
+                        {sugestao}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
               <p className="text-[11px] text-muted-foreground">
                 Este motivo ficará em destaque visual no card da O.S.
               </p>

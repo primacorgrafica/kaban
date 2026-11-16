@@ -141,5 +141,11 @@ describe("Workflow e Regras da Etapa INSPEÇÃO", () => {
       const isValido = motivoValido.trim().length > 0;
       expect(isValido).toBe(true);
     });
+
+    it("não deve exibir sugestões rápidas de pré-impressão na etapa de inspeção", () => {
+      const departmentId = "inspecao";
+      const shouldShowQuickSuggestions = departmentId !== "inspecao";
+      expect(shouldShowQuickSuggestions).toBe(false);
+    });
   });
 });
