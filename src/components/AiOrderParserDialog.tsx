@@ -51,7 +51,7 @@ export function AiOrderParserDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl rounded-2xl border-border/80 bg-card/95 backdrop-blur-2xl shadow-2xl">
+      <DialogContent className="max-sm:w-[94vw] max-sm:max-w-full max-sm:p-4 max-sm:rounded-xl max-w-xl rounded-2xl border-border/80 bg-card/95 backdrop-blur-2xl shadow-2xl">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-400">
@@ -77,7 +77,7 @@ export function AiOrderParserDialog({
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               placeholder={`Exemplo de briefing:\n"OS 73520 - 5.000 Cartuchos para SoftHair, prazo sexta-feira 17:00, urgente, vendedor Deborah, entregar via carro, processos: PANTONE, LAM, CVM"`}
-              className="min-h-[110px] text-xs font-mono-tech bg-muted/30 border-border/70 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/30 rounded-xl"
+              className="min-h-[110px] text-xs max-sm:text-base font-mono-tech bg-muted/30 border-border/70 focus:border-purple-500 focus:ring-1 focus:ring-purple-500/30 rounded-xl"
             />
           </div>
 

@@ -80,7 +80,7 @@ export function ProducaoBlockageDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md bg-card border-border text-card-foreground shadow-2xl rounded-2xl">
+      <DialogContent className="max-sm:w-[94vw] max-sm:max-w-full max-sm:p-4 max-sm:rounded-xl sm:max-w-md bg-card border-border text-card-foreground shadow-2xl rounded-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base font-bold">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
@@ -103,18 +103,18 @@ export function ProducaoBlockageDialog({
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
               placeholder="Ex: Aguardando aprovação de alteração de faca pelo cliente, falta de tinta pantone, papel com defeito..."
-              className="text-xs bg-background border-border resize-none rounded-xl"
+              className="text-xs max-sm:text-base bg-background border-border resize-none rounded-xl"
             />
           </div>
         </div>
 
-        <DialogFooter className="flex items-center justify-between gap-2 sm:justify-between">
+        <DialogFooter className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-2">
           {isCurrentlyBlocked ? (
             <Button
               type="button"
               variant="outline"
               onClick={handleClearBlockage}
-              className="text-xs text-emerald-500 border-emerald-500/40 hover:bg-emerald-500/10 cursor-pointer"
+              className="text-xs max-sm:min-h-[40px] text-emerald-500 border-emerald-500/40 hover:bg-emerald-500/10 cursor-pointer"
             >
               <CheckCircle2 className="h-4 w-4 mr-1.5" />
               Resolver Bloqueio (Liberar)
@@ -123,13 +123,13 @@ export function ProducaoBlockageDialog({
             <div />
           )}
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 justify-end">
             <Button
               type="button"
               variant="ghost"
               size="sm"
               onClick={() => onOpenChange(false)}
-              className="text-xs"
+              className="text-xs max-sm:min-h-[40px] max-sm:px-4"
             >
               Cancelar
             </Button>
@@ -137,7 +137,7 @@ export function ProducaoBlockageDialog({
               type="button"
               size="sm"
               onClick={handleSaveBlockage}
-              className="text-xs font-bold bg-amber-500 hover:bg-amber-600 text-slate-950 cursor-pointer"
+              className="text-xs max-sm:min-h-[40px] max-sm:px-4 font-bold bg-amber-500 hover:bg-amber-600 text-slate-950 cursor-pointer"
             >
               Salvar Parada
             </Button>

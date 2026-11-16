@@ -119,16 +119,16 @@ export function CreateOMDialog() {
           Nova OM
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-sm:w-[94vw] max-sm:max-w-full max-sm:p-4 max-sm:rounded-xl sm:max-w-md max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nova Ordem de Manutenção</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Equipamento + Setor */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label className="text-xs uppercase text-muted-foreground">Equipamento</Label>
-              <Input value={form.equipamento_manut} onChange={(e) => setForm(f => ({ ...f, equipamento_manut: e.target.value }))} placeholder="Nome do equipamento" className="h-9" list="equipamentos-list" />
+              <Input value={form.equipamento_manut} onChange={(e) => setForm(f => ({ ...f, equipamento_manut: e.target.value }))} placeholder="Nome do equipamento" className="h-9 max-sm:h-11 max-sm:text-base" list="equipamentos-list" />
               <datalist id="equipamentos-list">
                 {equipamentosList.map((nome) => (
                   <option key={nome} value={nome} />
@@ -138,7 +138,7 @@ export function CreateOMDialog() {
             <div>
               <Label className="text-xs uppercase text-muted-foreground">Setor</Label>
               <Select value={form.setor_manut} onValueChange={(v) => setForm(f => ({ ...f, setor_manut: v }))}>
-                <SelectTrigger className="h-9">
+                <SelectTrigger className="h-9 max-sm:h-11 max-sm:text-base">
                   <SelectValue placeholder="Selecione o setor" />
                 </SelectTrigger>
                 <SelectContent>
@@ -159,7 +159,7 @@ export function CreateOMDialog() {
                   key={cat.id}
                   type="button"
                   onClick={() => setForm(f => ({ ...f, categoria_manut: cat.id }))}
-                  className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
+                  className={`px-3 py-1.5 rounded text-xs font-bold transition-all max-sm:min-h-[38px] ${
                     form.categoria_manut === cat.id
                       ? `${cat.color} ring-2 ring-offset-1 ring-primary/40 scale-105`
                       : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -174,7 +174,7 @@ export function CreateOMDialog() {
           {/* Descrição */}
           <div>
             <Label className="text-xs uppercase text-muted-foreground">Descrição *</Label>
-            <Textarea value={form.descricao} onChange={(e) => setForm(f => ({ ...f, descricao: e.target.value }))} placeholder="Descreva o problema ou serviço..." className="min-h-[60px]" />
+            <Textarea value={form.descricao} onChange={(e) => setForm(f => ({ ...f, descricao: e.target.value }))} placeholder="Descreva o problema ou serviço..." className="min-h-[60px] max-sm:text-base" />
           </div>
 
           {/* Solução */}

@@ -396,7 +396,7 @@ export function OrderDetailDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-4xl p-0 overflow-hidden border border-border bg-card text-card-foreground shadow-2xl backdrop-blur-2xl rounded-2xl flex flex-col max-h-[92vh]">
+        <DialogContent className="max-sm:w-full max-sm:max-w-full max-sm:h-[100dvh] max-sm:max-h-[100dvh] max-sm:rounded-none max-w-4xl p-0 overflow-hidden border border-border bg-card text-card-foreground shadow-2xl backdrop-blur-2xl rounded-2xl flex flex-col max-h-[92vh]">
           {/* Header Fixo */}
           <div className="px-6 py-4 border-b border-border bg-muted/40 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-3">
@@ -1071,7 +1071,7 @@ export function OrderDetailDialog({
           }
         }}
       >
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-sm:w-[94vw] max-sm:max-w-full max-sm:p-4 max-sm:rounded-xl sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Enviar para qual(is) setor(es)?</DialogTitle>
           </DialogHeader>

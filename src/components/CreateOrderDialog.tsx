@@ -919,7 +919,7 @@ export function CreateOrderDialog({
 
       <DialogContent
         onPointerDownOutside={(e) => e.preventDefault()}
-        className="max-w-4xl p-0 overflow-hidden border border-border bg-card text-card-foreground shadow-2xl backdrop-blur-2xl rounded-2xl flex flex-col max-h-[92vh]"
+        className="max-sm:w-full max-sm:max-w-full max-sm:h-[100dvh] max-sm:max-h-[100dvh] max-sm:rounded-none max-w-4xl p-0 overflow-hidden border border-border bg-card text-card-foreground shadow-2xl backdrop-blur-2xl rounded-2xl flex flex-col max-h-[92vh]"
       >
 
         {/* Top Header & Modern Stepper */}

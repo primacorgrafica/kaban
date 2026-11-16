@@ -123,7 +123,7 @@ export function CreateOCDialog() {
           Nova OC
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-sm:w-[94vw] max-sm:max-w-full max-sm:p-4 max-sm:rounded-xl sm:max-w-md max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Nova Ordem de Compra</DialogTitle>
         </DialogHeader>
@@ -137,7 +137,7 @@ export function CreateOCDialog() {
                   key={cat.id}
                   type="button"
                   onClick={() => setForm(f => ({ ...f, categoria_compra: cat.id }))}
-                  className={`px-3 py-1.5 rounded text-xs font-bold transition-all ${
+                  className={`px-3 py-1.5 rounded text-xs font-bold transition-all max-sm:min-h-[38px] ${
                     form.categoria_compra === cat.id
                       ? `${cat.color} ring-2 ring-offset-1 ring-primary/40 scale-105`
                       : "bg-muted text-muted-foreground hover:bg-muted/80"
@@ -152,20 +152,20 @@ export function CreateOCDialog() {
           {/* Observação */}
           <div>
             <Label className="text-xs uppercase text-muted-foreground">Observação</Label>
-            <Textarea value={form.observacao} onChange={(e) => setForm(f => ({ ...f, observacao: e.target.value }))} placeholder="Observações..." className="min-h-[50px]" />
+            <Textarea value={form.observacao} onChange={(e) => setForm(f => ({ ...f, observacao: e.target.value }))} placeholder="Observações..." className="min-h-[50px] max-sm:text-base" />
           </div>
 
           {/* Descrição */}
           <div>
             <Label className="text-xs uppercase text-muted-foreground">Descrição *</Label>
-            <Textarea value={form.descricao} onChange={(e) => setForm(f => ({ ...f, descricao: e.target.value }))} placeholder="Descreva a compra..." className="min-h-[60px]" />
+            <Textarea value={form.descricao} onChange={(e) => setForm(f => ({ ...f, descricao: e.target.value }))} placeholder="Descreva a compra..." className="min-h-[60px] max-sm:text-base" />
           </div>
 
           {/* Responsável */}
           <div>
             <Label className="text-xs uppercase text-muted-foreground">Responsável</Label>
             <Select value={form.responsavel_compra} onValueChange={(v) => setForm(f => ({ ...f, responsavel_compra: v }))}>
-              <SelectTrigger className="h-9">
+              <SelectTrigger className="h-9 max-sm:h-11 max-sm:text-base">
                 <SelectValue placeholder="Selecione o responsável" />
               </SelectTrigger>
               <SelectContent>
