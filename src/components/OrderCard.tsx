@@ -428,7 +428,7 @@ function OrderCardImpl({ order, orderIndex, totalOrders, onUpdate, onMove, onArc
         id={`order-card-${order.id}`}
         data-order-id={order.id}
         data-order-os={cleanOsNumber(order.titulo)}
-        className={`group rounded-2xl border shadow-xs hover:shadow-lg transition-all duration-200 overflow-hidden relative backdrop-blur-xl max-w-full ${
+        className={`group rounded-2xl border shadow-xs hover:shadow-lg transition-all duration-200 overflow-hidden relative backdrop-blur-xl max-lg:max-w-full ${
           shouldBlinkCard ? "animate-pulse" : ""
         } ${
           isUrgent
@@ -627,7 +627,7 @@ function OrderCardImpl({ order, orderIndex, totalOrders, onUpdate, onMove, onArc
                   e.stopPropagation();
                   onMove(order.id, order.status, orderIndex - 1);
                 }}
-                className="p-1.5 sm:p-1 min-h-[28px] min-w-[28px] sm:min-h-0 sm:min-w-0 rounded hover:bg-muted text-muted-foreground/60 hover:text-foreground transition-colors cursor-pointer flex items-center justify-center"
+                className="p-1 max-sm:p-2 max-sm:min-h-[40px] max-sm:min-w-[40px] rounded hover:bg-muted text-muted-foreground/60 hover:text-foreground transition-colors cursor-pointer flex items-center justify-center"
                 title="Subir posição na fila da coluna"
               >
                 <ArrowUp className="h-3 w-3" />
@@ -640,7 +640,7 @@ function OrderCardImpl({ order, orderIndex, totalOrders, onUpdate, onMove, onArc
                   e.stopPropagation();
                   onMove(order.id, order.status, orderIndex + 1);
                 }}
-                className="p-1.5 sm:p-1 min-h-[28px] min-w-[28px] sm:min-h-0 sm:min-w-0 rounded hover:bg-muted text-muted-foreground/60 hover:text-foreground transition-colors cursor-pointer flex items-center justify-center"
+                className="p-1 max-sm:p-2 max-sm:min-h-[40px] max-sm:min-w-[40px] rounded hover:bg-muted text-muted-foreground/60 hover:text-foreground transition-colors cursor-pointer flex items-center justify-center"
                 title="Descer posição na fila da coluna"
               >
                 <ArrowDown className="h-3 w-3" />

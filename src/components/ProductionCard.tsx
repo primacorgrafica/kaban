@@ -325,7 +325,7 @@ function ProductionCardImpl({
         id={`order-card-${order.id}`}
         data-order-id={order.id}
         data-order-os={cleanOsNumber(order.titulo)}
-        className={`group rounded-2xl border shadow-xs hover:shadow-lg backdrop-blur-xl transition-all duration-200 overflow-hidden relative max-w-full ${
+        className={`group rounded-2xl border shadow-xs hover:shadow-lg backdrop-blur-xl transition-all duration-200 overflow-hidden relative max-lg:max-w-full ${
           sectorUrgent
             ? "bg-rose-500/10 border-rose-500/40 text-card-foreground"
             : isNearDeadline
@@ -515,7 +515,7 @@ function ProductionCardImpl({
                     e.stopPropagation();
                     onMove(order.id, currentStatus?.id || (order as any).setor_status || "entrada", orderIndex - 1);
                   }}
-                  className="p-1.5 sm:p-1 min-h-[30px] min-w-[30px] sm:min-h-0 sm:min-w-0 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors cursor-pointer flex items-center justify-center"
+                  className="p-1 max-sm:p-2 max-sm:min-h-[40px] max-sm:min-w-[40px] rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors cursor-pointer flex items-center justify-center"
                   title="Subir posição na fila da coluna"
                 >
                   <ArrowUp className="h-3.5 w-3.5" />
@@ -528,7 +528,7 @@ function ProductionCardImpl({
                     e.stopPropagation();
                     onMove(order.id, currentStatus?.id || (order as any).setor_status || "entrada", orderIndex + 1);
                   }}
-                  className="p-1.5 sm:p-1 min-h-[30px] min-w-[30px] sm:min-h-0 sm:min-w-0 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors cursor-pointer flex items-center justify-center"
+                  className="p-1 max-sm:p-2 max-sm:min-h-[40px] max-sm:min-w-[40px] rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors cursor-pointer flex items-center justify-center"
                   title="Descer posição na fila da coluna"
                 >
                   <ArrowDown className="h-3.5 w-3.5" />
