@@ -325,7 +325,6 @@ export function useOrders() {
     vendedor: o.vendedor,
     tipo_trabalho: o.tipo_trabalho,
     os_anterior: o.os_anterior || getEffectiveOsAnterior(o) || null,
-    revisao: o.revisao,
     equipamentos: o.equipamentos,
     acabamentos: o.acabamentos,
     processos: o.processos,
@@ -1068,6 +1067,7 @@ export function useOrders() {
       }
       console.error(error);
     } else {
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...payload } : o));
       toast.success("OS. enviada para produção!");
     }
   }, [user, orders]);
@@ -1111,21 +1111,24 @@ export function useOrders() {
     const cleanedObs = cleanObservationProductionPriority(originalOrder.observacao);
 
     const payload: any = {
-      ...copyOrderFields(originalOrder),
-      observacao: cleanedObs,
-      prioridade_producao: false,
-      criado_por: originalOrder.criado_por,
-      atualizado_por: user?.id || null,
       setor: "inspecao",
       setor_status: "entrada",
+      maquina: null,
       posicao: isUrgent ? 0 : 9999,
-      parent_order_id: originalOrder.parent_order_id || orderId,
+      atualizado_por: user?.id || null,
+      prioridade_producao: false,
+      urgente: false,
+      urgente_prova: false,
+      urgente_impressao: false,
+      urgente_acabamento: false,
+      urgente_expedicao: false,
+      observacao: cleanedObs,
     };
 
-    let { error } = await supabase.from("orders").insert(payload as any);
+    let { error } = await (supabase.from("orders") as any).update(payload).eq("id", orderId);
     if (error && (error.message?.includes("prioridade_producao") || (error as any).code === "42703" || (error as any).code === "PGRST204")) {
       delete payload.prioridade_producao;
-      const retry = await supabase.from("orders").insert(payload as any);
+      const retry = await (supabase.from("orders") as any).update(payload).eq("id", orderId);
       error = retry.error;
     }
 
@@ -1137,6 +1140,7 @@ export function useOrders() {
       }
       console.error(error);
     } else {
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...payload } : o));
       toast.success("O.S. enviada para Inspeção!");
     }
   }, [user, orders]);
@@ -1161,8 +1165,10 @@ export function useOrders() {
     };
 
     let { error } = await supabase.from("orders").insert(payload as any);
-    if (error && (error.message?.includes("prioridade_producao") || (error as any).code === "42703" || (error as any).code === "PGRST204")) {
+    if (error && (error.message?.includes("prioridade_producao") || error.message?.includes("revisao") || error.message?.includes("os_anterior") || (error as any).code === "42703" || (error as any).code === "PGRST204")) {
       delete payload.prioridade_producao;
+      delete payload.revisao;
+      delete payload.os_anterior;
       const retry = await supabase.from("orders").insert(payload as any);
       error = retry.error;
     }
@@ -1228,7 +1234,7 @@ export function useOrders() {
 
     let created = 1;
     for (const dept of rest) {
-      const { error: insertError } = await supabase.from("orders").insert({
+      const insertPayload: any = {
         ...copyOrderFields(originalOrder),
         criado_por: originalOrder.criado_por,
         atualizado_por: user?.id || null,
@@ -1244,7 +1250,16 @@ export function useOrders() {
         urgente_expedicao: false,
         observacao: cleanedObs,
         parent_order_id: orderId,
-      } as any);
+      };
+
+      let { error: insertError } = await supabase.from("orders").insert(insertPayload as any);
+      if (insertError && (insertError.message?.includes("prioridade_producao") || insertError.message?.includes("revisao") || insertError.message?.includes("os_anterior") || (insertError as any).code === "42703" || (insertError as any).code === "PGRST204")) {
+        delete insertPayload.prioridade_producao;
+        delete insertPayload.revisao;
+        delete insertPayload.os_anterior;
+        const retry = await supabase.from("orders").insert(insertPayload as any);
+        insertError = retry.error;
+      }
 
       if (insertError) {
         if ((insertError as any).code === "23505") {

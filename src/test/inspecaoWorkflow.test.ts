@@ -33,7 +33,8 @@ describe("Workflow e Regras da Etapa INSPEÇÃO", () => {
       expect(statusIds).toEqual(["entrada", "inspecao", "parado", "saida"]);
     });
 
-    it("deve estar registrado no DEPARTMENT_MAP", () => {
+    it("deve estar registrado no DEPARTMENTS e no DEPARTMENT_MAP para seleção nos modais de envio", () => {
+      expect(DEPARTMENTS.some((d) => d.id === "inspecao")).toBe(true);
       expect(DEPARTMENT_MAP["inspecao"]).toBeDefined();
       expect(DEPARTMENT_MAP["inspecao"].label).toBe("Inspeção");
     });

@@ -118,10 +118,11 @@ export const DEPARTMENTS: DepartmentConfig[] = [
   CTP_DEPARTMENT,
   DIGITAL_DEPARTMENT,
   PRODUCAO_DEPARTMENT,
+  INSPECAO_DEPARTMENT,
 ];
 
 export const DEPARTMENT_MAP: Record<Department, DepartmentConfig> = 
-  [...DEPARTMENTS, INSPECAO_DEPARTMENT, EXPEDICAO_DEPARTMENT, COMPRAS_DEPARTMENT, MANUTENCAO_DEPARTMENT].reduce((acc, dept) => {
+  [...DEPARTMENTS, EXPEDICAO_DEPARTMENT, COMPRAS_DEPARTMENT, MANUTENCAO_DEPARTMENT].reduce((acc, dept) => {
     acc[dept.id] = dept;
     return acc;
   }, {} as Record<Department, DepartmentConfig>);

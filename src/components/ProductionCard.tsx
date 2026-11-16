@@ -1942,12 +1942,9 @@ function ProductionCardImpl({
                 <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione o setor" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pre-impressao">Pré-Impressão</SelectItem>
-                  {DEPARTMENTS.filter(d => d.id !== department.id && d.id !== "inspecao").map(d => (
+                  {DEPARTMENTS.filter(d => d.id !== department.id).map(d => (
                     <SelectItem key={d.id} value={d.id}>{d.label}</SelectItem>
                   ))}
-                  {department.id !== "inspecao" && (
-                    <SelectItem value="inspecao">Inspeção</SelectItem>
-                  )}
                   {department.id === "inspecao" && (
                     <SelectItem value="expedicao">Expedição</SelectItem>
                   )}
