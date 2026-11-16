@@ -26,27 +26,27 @@ export const INSPECAO_CHECKLIST_ITEMS: InspecaoChecklistConfigItem[] = [
   {
     key: "etapas_executadas",
     label: "Todas as etapas executadas",
-    descricao: "Verificar se impressão, corte, laminação e todos os processos cadastrados foram concluídos.",
+    descricao: "",
   },
   {
     key: "qualidade_impressao",
     label: "Qualidade Impressão",
-    descricao: "Verificar fidelidade de cores, nitidez, registro, ausência de falhas ou sujeiras na impressão.",
+    descricao: "",
   },
   {
     key: "qualidade_acabamento",
     label: "Qualidade acabamento",
-    descricao: "Verificar dobra, vinco, corte, empacotamento, colagem e alinhamento do acabamento.",
+    descricao: "",
   },
   {
     key: "quantidade",
     label: "Quantidade",
-    descricao: "Conferir se a tiragem e contagem física correspondem exatamente ao pedido e O.S.",
+    descricao: "",
   },
   {
     key: "rotulagem",
     label: "Rotulagem",
-    descricao: "Conferir etiquetas de identificação, identificador da O.S., caixas e dados do cliente.",
+    descricao: "",
   },
 ];
 
