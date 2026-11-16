@@ -185,4 +185,61 @@ describe("Sincronização Imediata com Compras (syncOrderToCompras)", () => {
     };
     expect(isOrderFromOS(ocAvulsa as any)).toBe(false);
   });
+
+  it("deve encontrar card existente em Compras pelo título da O.S. mesmo se parent_order_id for nulo", async () => {
+    const orderWithoutParentLink = {
+      id: "ord-parent-nova-1",
+      titulo: "73408",
+      cliente: "AMM",
+      processos: ["OUTROS:info:Elastico"],
+    };
+
+    const updateMock = vi.fn().mockReturnValue({
+      eq: vi.fn().mockResolvedValue({ error: null }),
+    });
+    const selectMock = vi.fn();
+    
+    // 1ª query (por parent_order_id): retorna vazio
+    selectMock.mockReturnValueOnce({
+      eq: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({ data: [], error: null }),
+    });
+
+    // 2ª query (por titulo): encontra o card existente em compras
+    selectMock.mockReturnValueOnce({
+      eq: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockResolvedValue({
+        data: [{ id: "compra-card-73408", titulo: "73408", parent_order_id: null, processos: ["OUTROS"] }],
+        error: null,
+      }),
+    });
+
+    const insertMock = vi.fn();
+
+    (supabase.from as any).mockImplementation((table: string) => {
+      if (table === "orders") {
+        return {
+          select: selectMock,
+          update: updateMock,
+          insert: insertMock,
+        };
+      }
+      return {};
+    });
+
+    const res = await syncOrderToCompras(orderWithoutParentLink as any, {
+      customProcessos: ["OUTROS:info:Elastico%20Azul"],
+    });
+
+    expect(res).toBe("compra-card-73408");
+    // Não deve chamar insert
+    expect(insertMock).not.toHaveBeenCalled();
+    // Deve chamar update restaurando parent_order_id e processos
+    expect(updateMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        parent_order_id: "ord-parent-nova-1",
+        processos: ["OUTROS:info:Elastico%20Azul"],
+      })
+    );
+  });
 });

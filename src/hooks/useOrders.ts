@@ -773,18 +773,33 @@ export function useOrders() {
     [user, orders, sendToCompras]
   );
 
-  // Auto-sincronização de OSs ativas de pré-impressão que possuem PANTONE ou OUTROS
+  // Auto-sincronização de OSs ativas de pré-impressão que possuem PANTONE ou OUTROS com prevenção estrita de duplicatas
   const syncedComprasRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!orders || orders.length === 0) return;
-    const candidates = orders.filter(
-      (o) =>
-        !o.arquivado &&
-        (!o.setor || o.setor !== "compras") &&
-        hasSpecialSuppliesForCompras(o.processos) &&
-        !syncedComprasRef.current.has(o.id)
-    );
+    const candidates = orders.filter((o) => {
+      if (o.arquivado) return false;
+      if (o.setor === "compras") return false;
+      if (!hasSpecialSuppliesForCompras(o.processos)) return false;
+      if (syncedComprasRef.current.has(o.id)) return false;
+
+      // Se já existe um card ativo de Compras correspondente no state em memória, não dispara novo insert
+      const clean = cleanOsNumber(o.titulo);
+      const alreadyInCompras = orders.some(
+        (co) =>
+          co.setor === "compras" &&
+          !co.arquivado &&
+          (co.parent_order_id === o.id || (clean && cleanOsNumber(co.titulo) === clean))
+      );
+      if (alreadyInCompras) {
+        syncedComprasRef.current.add(o.id);
+        return false;
+      }
+
+      return true;
+    });
+
     if (candidates.length === 0) return;
 
     candidates.forEach((o) => {
