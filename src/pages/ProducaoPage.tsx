@@ -507,7 +507,7 @@ export default function ProducaoPage() {
               {selectedSector === "todos" ? (
                 /* Grid responsiva com os 3 blocos principais (CTP, Digital, Produção) e eventuais extras */
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 h-full min-h-0">
-                  <div className="h-full min-h-[500px]">
+                  <div className="h-full min-h-[380px] sm:min-h-[500px]">
                     <ProducaoSectorBlock
                       sectorKey="ctp"
                       sectorLabel="CTP"
@@ -523,7 +523,7 @@ export default function ProducaoPage() {
                     />
                   </div>
 
-                  <div className="h-full min-h-[500px]">
+                  <div className="h-full min-h-[380px] sm:min-h-[500px]">
                     <ProducaoSectorBlock
                       sectorKey="digital"
                       sectorLabel="Digital"
@@ -539,7 +539,7 @@ export default function ProducaoPage() {
                     />
                   </div>
 
-                  <div className="h-full min-h-[500px]">
+                  <div className="h-full min-h-[380px] sm:min-h-[500px]">
                     <ProducaoSectorBlock
                       sectorKey="producao"
                       sectorLabel="Produção"
@@ -556,7 +556,7 @@ export default function ProducaoPage() {
                   </div>
 
                   {extraSectors.map((sec) => (
-                    <div key={sec} className="h-full min-h-[500px]">
+                    <div key={sec} className="h-full min-h-[380px] sm:min-h-[500px]">
                       <ProducaoSectorBlock
                         sectorKey={sec}
                         sectorLabel={sec.toUpperCase()}

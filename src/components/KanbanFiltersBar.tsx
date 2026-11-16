@@ -165,7 +165,7 @@ export function KanbanFiltersBar({ filters, onChange, showOnly, department, orde
     <div className="flex items-center gap-2 flex-wrap">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" className={cn("gap-1.5 h-8", hasFilters && "border-primary text-primary font-medium")}>
+          <Button variant="outline" size="sm" className={cn("gap-1.5 h-8 max-sm:min-h-[40px] max-sm:px-3", hasFilters && "border-primary text-primary font-medium")}>
             <Filter className="h-3.5 w-3.5" />
             Filtros
             {hasFilters && (
@@ -175,7 +175,7 @@ export function KanbanFiltersBar({ filters, onChange, showOnly, department, orde
             )}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-96 p-4 max-h-[70vh] overflow-y-auto" align="start">
+        <PopoverContent className="w-96 max-sm:w-[92vw] max-sm:max-w-full p-4 max-h-[75dvh] overflow-y-auto" align="start">
           <div className="space-y-4">
             {/* Status filter */}
             {show("statuses") && (

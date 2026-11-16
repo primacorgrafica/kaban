@@ -305,9 +305,9 @@ export default function ComercialPage() {
           <Tabs
             value={activeTab}
             onValueChange={(val: any) => setActiveTab(val)}
-            className="w-auto"
+            className="w-full sm:w-auto"
           >
-            <TabsList className="bg-muted/50 p-1 rounded-xl border border-border/60">
+            <TabsList className="bg-muted/50 p-1 rounded-xl border border-border/60 flex-wrap h-auto gap-1">
               <TabsTrigger
                 value="funil"
                 className="gap-2 text-xs font-semibold rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm"
@@ -486,7 +486,7 @@ export default function ComercialPage() {
                 <CardTitle className="text-base font-semibold text-foreground">OS por Setor</CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
                   {displayDepts.map(({ dept, orders: deptOrders, statusField }) => {
                     const statusCounts: Record<string, number> = {};
                     deptOrders.forEach(o => {
@@ -542,7 +542,7 @@ export default function ComercialPage() {
               </CardHeader>
               <CardContent className="pt-4">
                 <div className="max-h-[420px] overflow-auto rounded-xl border border-border">
-                  <table className="w-full text-sm">
+                  <table className="w-full text-sm max-lg:min-w-[650px]">
                     <thead className="sticky top-0 bg-muted/90 backdrop-blur-md z-10">
                       <tr className="border-b border-border text-left">
                         <th className="py-2.5 px-3 font-semibold text-xs text-foreground uppercase tracking-wider">OS</th>
