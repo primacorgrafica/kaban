@@ -374,7 +374,7 @@ export function ProductionKanbanBoard({
                         variant="outline"
                         size="sm"
                         onClick={() => setMotivoParada(sugestao)}
-                        className="text-[10px] max-sm:text-xs h-6 max-sm:h-9 px-2 max-sm:px-3 rounded-lg bg-muted/40 hover:bg-muted text-foreground cursor-pointer"
+                        className="text-[10px] max-sm:text-xs h-6 max-sm:min-h-[40px] px-2 max-sm:px-3 rounded-lg bg-muted/40 hover:bg-muted text-foreground cursor-pointer flex items-center justify-center text-center"
                       >
                         {sugestao}
                       </Button>
@@ -395,11 +395,11 @@ export function ProductionKanbanBoard({
 
             return (
               <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => { setMotivoParada(""); setPendingMove(null); }} className="max-sm:h-10 max-sm:px-4">Cancelar</AlertDialogCancel>
+                <AlertDialogCancel onClick={() => { setMotivoParada(""); setPendingMove(null); }} className="max-sm:min-h-[40px] max-sm:px-4">Cancelar</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={confirmMove}
                   disabled={isParadoBlocked}
-                  className={`max-sm:h-10 max-sm:px-4 ${isParadoBlocked ? "opacity-50 cursor-not-allowed" : ""}`}
+                  className={`max-sm:min-h-[40px] max-sm:px-4 ${isParadoBlocked ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   Confirmar
                 </AlertDialogAction>

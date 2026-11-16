@@ -605,7 +605,7 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={cancelMove} className="max-sm:h-10 max-sm:px-4">Cancelar</AlertDialogCancel>
+            <AlertDialogCancel onClick={cancelMove} className="max-sm:min-h-[40px] max-sm:px-4">Cancelar</AlertDialogCancel>
             {(() => {
               const isTargetSaida = pendingMove?.toStatus === "arquivo_liberado" || (pendingMove?.toStatus as string) === "saida";
               const currentOrder = orders.find((o) => o.id === pendingMove?.id);
@@ -628,7 +628,7 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
                 <AlertDialogAction
                   onClick={confirmMove}
                   disabled={isDisabled}
-                  className={`max-sm:h-10 max-sm:px-4 ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                  className={`max-sm:min-h-[40px] max-sm:px-4 ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   Confirmar
                 </AlertDialogAction>

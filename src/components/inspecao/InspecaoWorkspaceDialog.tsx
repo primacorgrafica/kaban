@@ -781,7 +781,7 @@ export function InspecaoWorkspaceDialog({
                           variant={currentStatus === "aprovado" ? "default" : "outline"}
                           disabled={readOnly}
                           onClick={() => handleItemStatusChange(itemConfig.key, "aprovado")}
-                          className={`text-xs max-sm:text-sm h-7 max-sm:h-10 px-2.5 rounded-lg cursor-pointer max-sm:flex-1 ${
+                          className={`text-xs max-sm:text-sm h-7 max-sm:min-h-[40px] px-2.5 rounded-lg cursor-pointer max-sm:flex-1 ${
                             currentStatus === "aprovado"
                               ? "bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-xs"
                               : "text-muted-foreground hover:text-foreground"
@@ -797,7 +797,7 @@ export function InspecaoWorkspaceDialog({
                           variant={currentStatus === "aprovado_restricao" ? "default" : "outline"}
                           disabled={readOnly}
                           onClick={() => handleItemStatusChange(itemConfig.key, "aprovado_restricao")}
-                          className={`text-xs max-sm:text-sm h-7 max-sm:h-10 px-2.5 rounded-lg cursor-pointer max-sm:flex-1 ${
+                          className={`text-xs max-sm:text-sm h-7 max-sm:min-h-[40px] px-2.5 rounded-lg cursor-pointer max-sm:flex-1 ${
                             currentStatus === "aprovado_restricao"
                               ? "bg-amber-600 hover:bg-amber-500 text-white font-bold shadow-xs"
                               : "text-muted-foreground hover:text-foreground"
@@ -813,7 +813,7 @@ export function InspecaoWorkspaceDialog({
                           variant={currentStatus === "reprovado" ? "default" : "outline"}
                           disabled={readOnly}
                           onClick={() => handleItemStatusChange(itemConfig.key, "reprovado")}
-                          className={`text-xs max-sm:text-sm h-7 max-sm:h-10 px-2.5 rounded-lg cursor-pointer max-sm:flex-1 ${
+                          className={`text-xs max-sm:text-sm h-7 max-sm:min-h-[40px] px-2.5 rounded-lg cursor-pointer max-sm:flex-1 ${
                             currentStatus === "reprovado"
                               ? "bg-rose-600 hover:bg-rose-500 text-white font-bold shadow-xs"
                               : "text-muted-foreground hover:text-foreground"
@@ -932,7 +932,7 @@ export function InspecaoWorkspaceDialog({
               variant="outline"
               size="sm"
               onClick={() => onOpenChange(false)}
-              className="text-xs max-sm:h-10 max-sm:px-3"
+              className="text-xs max-sm:min-h-[40px] max-sm:px-3"
             >
               Fechar
             </Button>
@@ -943,7 +943,7 @@ export function InspecaoWorkspaceDialog({
               size="sm"
               disabled={saving || readOnly}
               onClick={handleSaveChecklist}
-              className="text-xs font-semibold max-sm:h-10 max-sm:px-3"
+              className="text-xs font-semibold max-sm:min-h-[40px] max-sm:px-3"
             >
               Salvar Checklist
             </Button>
@@ -954,7 +954,7 @@ export function InspecaoWorkspaceDialog({
                 size="sm"
                 disabled={saving || !validation.canMoveToSaida || readOnly}
                 onClick={handleConcludeAndMoveSaida}
-                className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer disabled:opacity-50 max-sm:h-10 max-sm:px-3"
+                className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer disabled:opacity-50 max-sm:min-h-[40px] max-sm:px-3"
               >
                 Liberar para Saída →
               </Button>

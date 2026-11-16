@@ -98,37 +98,37 @@ export function ProducaoSendDeptDialog({
                 <SelectValue placeholder="Selecione o setor..." />
               </SelectTrigger>
               <SelectContent className="bg-popover border-border text-popover-foreground">
-                <SelectItem value="ctp" className="text-xs">
+                <SelectItem value="ctp" className="text-xs max-sm:text-sm max-sm:min-h-[40px]">
                   <div className="flex items-center gap-2">
                     <Layers className="h-3.5 w-3.5 text-sky-400" />
                     <span>CTP (Gravação de Chapas)</span>
                   </div>
                 </SelectItem>
-                <SelectItem value="digital" className="text-xs">
+                <SelectItem value="digital" className="text-xs max-sm:text-sm max-sm:min-h-[40px]">
                   <div className="flex items-center gap-2">
                     <Printer className="h-3.5 w-3.5 text-emerald-400" />
                     <span>Digital (Plotter / Laser)</span>
                   </div>
                 </SelectItem>
-                <SelectItem value="producao" className="text-xs">
+                <SelectItem value="producao" className="text-xs max-sm:text-sm max-sm:min-h-[40px]">
                   <div className="flex items-center gap-2">
                     <Factory className="h-3.5 w-3.5 text-amber-400" />
                     <span>Produção Geral (Offset / Acabamento)</span>
                   </div>
                 </SelectItem>
-                <SelectItem value="qualidade" className="text-xs">
+                <SelectItem value="qualidade" className="text-xs max-sm:text-sm max-sm:min-h-[40px]">
                   <div className="flex items-center gap-2">
                     <Factory className="h-3.5 w-3.5 text-purple-400" />
                     <span>Qualidade</span>
                   </div>
                 </SelectItem>
-                <SelectItem value="inspecao" className="text-xs">
+                <SelectItem value="inspecao" className="text-xs max-sm:text-sm max-sm:min-h-[40px]">
                   <div className="flex items-center gap-2">
                     <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
                     <span>Inspeção</span>
                   </div>
                 </SelectItem>
-                <SelectItem value="pre_impressao" className="text-xs text-amber-500">
+                <SelectItem value="pre_impressao" className="text-xs max-sm:text-sm max-sm:min-h-[40px] text-amber-500">
                   <div className="flex items-center gap-2">
                     <RotateCcw className="h-3.5 w-3.5 text-amber-500" />
                     <span>Devolver para Pré-Impressão</span>
@@ -145,7 +145,7 @@ export function ProducaoSendDeptDialog({
             variant="ghost"
             size="sm"
             onClick={() => onOpenChange(false)}
-            className="text-xs max-sm:text-sm max-sm:h-10 max-sm:px-4"
+            className="text-xs max-sm:text-sm max-sm:min-h-[40px] max-sm:px-4"
           >
             Cancelar
           </Button>
@@ -154,7 +154,7 @@ export function ProducaoSendDeptDialog({
             size="sm"
             onClick={handleConfirmSend}
             disabled={!selectedDept}
-            className="text-xs max-sm:text-sm max-sm:h-10 max-sm:px-4 font-bold bg-sky-500 hover:bg-sky-400 text-slate-950 cursor-pointer"
+            className="text-xs max-sm:text-sm max-sm:min-h-[40px] max-sm:px-4 font-bold bg-sky-500 hover:bg-sky-400 text-slate-950 cursor-pointer"
           >
             Mover Agora
           </Button>
