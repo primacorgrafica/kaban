@@ -754,23 +754,18 @@ export function InspecaoWorkspaceDialog({
                     }`}
                   >
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                      <div className="space-y-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[10px] font-mono-tech font-bold text-muted-foreground">
-                            0{index + 1}.
-                          </span>
-                          <span className="text-xs font-bold text-foreground">
-                            {itemConfig.label}
-                          </span>
-                          {!currentStatus && (
-                            <Badge variant="outline" className="text-[9px] text-amber-500 border-amber-500/40 px-1 py-0">
-                              Pendente
-                            </Badge>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground pl-5">
-                          {itemConfig.descricao}
-                        </p>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono-tech font-bold text-muted-foreground">
+                          0{index + 1}.
+                        </span>
+                        <span className="text-xs font-bold text-foreground">
+                          {itemConfig.label}
+                        </span>
+                        {!currentStatus && (
+                          <Badge variant="outline" className="text-[9px] text-amber-500 border-amber-500/40 px-1 py-0">
+                            Pendente
+                          </Badge>
+                        )}
                       </div>
 
                       {/* 3 Opções Mutuamente Exclusivas */}
