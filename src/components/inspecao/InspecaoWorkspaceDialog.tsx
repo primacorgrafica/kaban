@@ -45,7 +45,11 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cleanOsNumber } from "@/lib/orderRelationsService";
-import { uploadInspecaoPhotoToSharePoint } from "@/lib/sharepointService";
+import {
+  uploadInspecaoPhotoToSharePoint,
+  uploadInspecaoPhotoTemporary,
+  syncPendingInspecaoPhotosToSharePoint,
+} from "@/lib/sharepointService";
 import {
   getStoredMicrosoftUser,
   getActiveMicrosoftAccount,
@@ -159,6 +163,9 @@ export function InspecaoWorkspaceDialog({
       setFotos((order.inspecao_fotos as InspecaoFoto[]) || []);
       setPendingUploads([]);
       void fetchHistory(order.id);
+      if (open) {
+        void syncPendingInspecaoPhotosToSharePoint(false).catch(() => {});
+      }
     }
   }, [order?.id, open]);
 
@@ -291,14 +298,10 @@ export function InspecaoWorkspaceDialog({
       return;
     }
 
-    // Se a conta Microsoft ainda não estiver autenticada neste navegador/aparelho
+    // Se a conta Microsoft ainda não estiver identificada, tenta restaurar silenciosamente
     if (!msUser) {
       const active = await getActiveMicrosoftAccount();
-      if (!active) {
-        toast.info("Conecte sua conta Microsoft corporativa para permitir o envio das fotos ao SharePoint.");
-        await handleConnectMicrosoft();
-        return;
-      } else {
+      if (active) {
         setMsUser({ name: active.name || active.username, username: active.username });
       }
     }
@@ -312,65 +315,100 @@ export function InspecaoWorkspaceDialog({
         prev.map((p) => (p.id === pending.id ? { ...p, progress: 30 } : p))
       );
 
-      const result = await uploadInspecaoPhotoToSharePoint(
+      // 1. Tenta upload direto no SharePoint (apenas se houver sessão Microsoft silenciosa ativa)
+      try {
+        const result = await uploadInspecaoPhotoToSharePoint(
+          pending.file,
+          cleanNum,
+          photoIndex,
+          (progressPercent) => {
+            setPendingUploads((prev) =>
+              prev.map((p) => (p.id === pending.id ? { ...p, progress: progressPercent } : p))
+            );
+          },
+          pending.abortController?.signal,
+          false // NÃO abre pop-up! Silencioso
+        );
+
+        if (result?.driveItem) {
+          const newFoto: InspecaoFoto = {
+            id: result.driveItem.id,
+            nome_arquivo: result.driveItem.name,
+            web_url: result.driveItem.webUrl,
+            sharepoint_item_id: result.driveItem.id,
+            sharepoint_folder_id: result.folderInfo.folderId,
+            tamanho_bytes: result.driveItem.size,
+            created_at: new Date().toISOString(),
+            criado_por: currentUserName || "Operador",
+            thumbnail_url: pending.previewUrl,
+            status: "sincronizado",
+          };
+
+          const updatedFotos = [...fotos, newFoto];
+          setFotos(updatedFotos);
+          setPendingUploads((prev) => prev.filter((p) => p.id !== pending.id));
+          await onUpdate(order.id, { inspecao_fotos: updatedFotos });
+          await recordHistory(
+            "foto_anexada",
+            `Foto "${newFoto.nome_arquivo}" anexada com sucesso à inspeção no SharePoint`,
+            { foto_id: newFoto.id, sharepoint_url: newFoto.web_url }
+          );
+
+          toast.success(`Foto ${newFoto.nome_arquivo} enviada ao SharePoint!`);
+          return;
+        }
+      } catch (directErr) {
+        console.info("[Inspecao] Upload direto sem sessão MS. Utilizando sincronização transparente de retaguarda:", directErr);
+      }
+
+      // 2. Modo transparente de retaguarda (igual a Entregas, sem exigir login no celular)
+      const tempRes = await uploadInspecaoPhotoTemporary(
+        order.id,
         pending.file,
         cleanNum,
-        photoIndex,
-        (progressPercent) => {
-          setPendingUploads((prev) =>
-            prev.map((p) => (p.id === pending.id ? { ...p, progress: progressPercent } : p))
-          );
-        },
-        pending.abortController?.signal
+        photoIndex
       );
 
-      // Foto enviada com sucesso no SharePoint!
-      const newFoto: InspecaoFoto = {
-        id: result.driveItem.id,
-        nome_arquivo: result.driveItem.name,
-        web_url: result.driveItem.webUrl,
-        sharepoint_item_id: result.driveItem.id,
-        sharepoint_folder_id: result.folderInfo.folderId,
-        tamanho_bytes: result.driveItem.size,
+      if (!tempRes.success || !tempRes.fileName) {
+        throw new Error(tempRes.error || "Falha ao preparar foto da inspeção.");
+      }
+
+      const tempFoto: InspecaoFoto = {
+        id: `temp_${Date.now()}_${photoIndex}`,
+        nome_arquivo: tempRes.fileName,
+        web_url: "",
+        sharepoint_item_id: "",
+        tamanho_bytes: tempRes.finalFile?.size || pending.file.size,
         created_at: new Date().toISOString(),
         criado_por: currentUserName || "Operador",
         thumbnail_url: pending.previewUrl,
+        status: "pendente_sharepoint",
+        storage_path: tempRes.filePath,
       };
 
-      // Atualiza fotos locais
-      const updatedFotos = [...fotos, newFoto];
+      const updatedFotos = [...fotos, tempFoto];
       setFotos(updatedFotos);
-
-      // Remove dos uploads pendentes
       setPendingUploads((prev) => prev.filter((p) => p.id !== pending.id));
-
-      // Persiste no banco de dados e registra histórico
       await onUpdate(order.id, { inspecao_fotos: updatedFotos });
       await recordHistory(
         "foto_anexada",
-        `Foto "${newFoto.nome_arquivo}" anexada com sucesso à inspeção`,
-        { foto_id: newFoto.id, sharepoint_url: newFoto.web_url }
+        `Foto "${tempFoto.nome_arquivo}" anexada à inspeção (sincronizando com SharePoint)`,
+        { foto_id: tempFoto.id, arquivo: tempFoto.nome_arquivo }
       );
 
-      toast.success(`Foto ${newFoto.nome_arquivo} enviada ao SharePoint!`);
+      toast.success("Foto salva! Sincronizando com SharePoint em segundo plano.");
+
+      // Dispara sincronização silenciosa se alguma estação estiver disponível
+      void syncPendingInspecaoPhotosToSharePoint(false).catch(() => {});
     } catch (err: any) {
       console.error("Falha no upload da foto de inspeção:", err);
-      const rawMsg = err?.message || "Falha na comunicação com o SharePoint.";
-      const isPopupBlocked =
-        err?.errorCode === "popup_window_error" ||
-        rawMsg.includes("popup_window_error") ||
-        rawMsg.includes("popup window") ||
-        rawMsg.includes("Pop-up") ||
-        rawMsg.includes("bloqueado pelo navegador");
-      const errMsg = isPopupBlocked
-        ? "Pop-up de login bloqueado pelo navegador. Toque no botão 'Conectar Microsoft' abaixo para autorizar."
-        : rawMsg;
+      const rawMsg = err?.message || "Falha no salvamento da foto.";
       setPendingUploads((prev) =>
         prev.map((p) =>
-          p.id === pending.id ? { ...p, status: "error", error: errMsg } : p
+          p.id === pending.id ? { ...p, status: "error", error: rawMsg } : p
         )
       );
-      toast.error(`Erro no upload: ${errMsg}`);
+      toast.error(`Erro ao salvar foto: ${rawMsg}`);
     }
   };
 
@@ -393,6 +431,10 @@ export function InspecaoWorkspaceDialog({
     if (readOnly) return;
     const targetFoto = fotos.find((f) => f.id === fotoId);
     if (!targetFoto) return;
+
+    if (targetFoto.storage_path) {
+      void supabase.storage.from("comprovantes-entrega").remove([targetFoto.storage_path]).catch(() => {});
+    }
 
     const updated = fotos.filter((f) => f.id !== fotoId);
     setFotos(updated);
@@ -521,9 +563,9 @@ export function InspecaoWorkspaceDialog({
                     SharePoint Conectado
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 text-[10px] text-amber-500 font-medium bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
-                    <AlertTriangle className="h-3 w-3" />
-                    SharePoint Desconectado
+                  <span className="inline-flex items-center gap-1 text-[10px] text-sky-400 font-medium bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20">
+                    <Cloud className="h-3 w-3" />
+                    SharePoint Integrado
                   </span>
                 )}
               </div>
@@ -556,17 +598,17 @@ export function InspecaoWorkspaceDialog({
               )}
             </div>
 
-            {/* Banner de Aviso e Conexão Microsoft caso o celular/navegador ainda não esteja autenticado */}
+            {/* Informação sobre sincronização direta com a pasta INSPEÇÃO */}
             {!msUser && !readOnly && (
-              <div className="p-3 rounded-xl border border-amber-500/40 bg-amber-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+              <div className="p-3 rounded-xl border border-sky-500/20 bg-sky-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                 <div className="flex items-start gap-2.5">
-                  <Cloud className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                  <Cloud className="h-4 w-4 text-sky-400 shrink-0 mt-0.5" />
                   <div className="space-y-0.5">
-                    <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
-                      Conecte sua conta Microsoft para salvar fotos no SharePoint
+                    <p className="text-xs font-bold text-sky-300">
+                      Sincronização com o SharePoint Ativa
                     </p>
                     <p className="text-[11px] text-muted-foreground leading-snug">
-                      Faça login uma única vez neste celular para evitar bloqueio de pop-up no Chrome.
+                      As fotos são salvas e sincronizadas automaticamente com a pasta <strong>INSPEÇÃO</strong> no SharePoint corporativo.
                     </p>
                   </div>
                 </div>
@@ -574,21 +616,15 @@ export function InspecaoWorkspaceDialog({
                   <Button
                     type="button"
                     size="sm"
+                    variant="ghost"
                     disabled={isConnectingMs}
                     onClick={handleConnectMicrosoft}
-                    className="h-7 text-xs px-2.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg"
+                    className="h-7 text-xs px-2.5 text-muted-foreground hover:text-foreground font-semibold rounded-lg"
+                    title="Conectar sua conta Microsoft individual se desejar sincronização direta nesta máquina"
                   >
                     <LogIn className="h-3.5 w-3.5 mr-1.5" />
-                    {isConnectingMs ? "Conectando..." : "Conectar Microsoft"}
+                    {isConnectingMs ? "Conectando..." : "Conectar Conta (Opcional)"}
                   </Button>
-                  <button
-                    type="button"
-                    onClick={handleConnectMicrosoftRedirect}
-                    className="text-[10px] text-muted-foreground underline hover:text-foreground"
-                    title="Se o navegador bloquear pop-ups, use o login por redirecionamento de tela inteira"
-                  >
-                    Sem pop-up
-                  </button>
                 </div>
               </div>
             )}
@@ -701,15 +737,24 @@ export function InspecaoWorkspaceDialog({
                       <span className="truncate max-w-[85px] font-mono-tech text-muted-foreground" title={foto.nome_arquivo}>
                         {foto.nome_arquivo}
                       </span>
-                      <a
-                        href={foto.web_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-sky-400 hover:text-sky-300 inline-flex items-center"
-                        title="Ver no SharePoint"
-                      >
-                        <ExternalLink className="h-3 w-3" />
-                      </a>
+                      {foto.web_url ? (
+                        <a
+                          href={foto.web_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-sky-400 hover:text-sky-300 inline-flex items-center"
+                          title="Ver no SharePoint"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      ) : (
+                        <span
+                          className="text-sky-400 inline-flex items-center gap-1 text-[9px] font-mono-tech"
+                          title="Foto salva. Sincronizando com SharePoint em segundo plano..."
+                        >
+                          <Cloud className="h-3 w-3 animate-pulse" />
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}

@@ -5,6 +5,7 @@ import type {
   DriveItemResponse,
   SharePointFolderInfo,
 } from "@/types/sharepoint";
+import type { InspecaoFoto } from "@/types/inspecao";
 
 // Sistema de Diagnóstico e Logs em Tempo Real do SharePoint
 export interface SharePointLogEntry {
@@ -768,6 +769,49 @@ export async function uploadInspecaoPhotoToSharePoint(
 }
 
 /**
+ * Salva temporariamente a foto de inspeção no bucket 'comprovantes-entrega'
+ * sem exigir autenticação Microsoft no celular/navegador do operador.
+ */
+export async function uploadInspecaoPhotoTemporary(
+  orderId: string,
+  file: File,
+  osNumber: string,
+  index: number
+): Promise<{ success: boolean; filePath?: string; fileName?: string; finalFile?: File; error?: string }> {
+  try {
+    const { file: processedFile } = await compressAndProcessImage(file);
+    const ext = processedFile.name.split(".").pop() || "jpg";
+    const uniqueName = formatInspecaoPhotoName(osNumber, index, ext);
+    const namedFile = new File([processedFile], uniqueName, { type: processedFile.type });
+    const filePath = `${orderId}/${uniqueName}`;
+
+    const { data, error } = await supabase.storage
+      .from("comprovantes-entrega")
+      .upload(filePath, namedFile, {
+        cacheControl: "3600",
+        upsert: true,
+      });
+
+    if (error) {
+      addSharePointLog("error", `Falha ao salvar foto temporária de inspeção: ${error.message}`);
+      return { success: false, error: error.message };
+    }
+
+    addSharePointLog("info", `Foto da inspeção #${uniqueName} armazenada para sincronização com SharePoint.`);
+    return {
+      success: true,
+      filePath: data.path,
+      fileName: uniqueName,
+      finalFile: namedFile,
+    };
+  } catch (err: any) {
+    const msg = err?.message || "Falha ao processar foto da inspeção.";
+    addSharePointLog("error", msg);
+    return { success: false, error: msg };
+  }
+}
+
+/**
  * Realiza o upload da foto/comprovante do protocolo de entrega diretamente para a pasta
  * 'PROTOCOLOS ENTREGAS' no SharePoint corporativo.
  */
@@ -1049,6 +1093,154 @@ export async function syncPendingProtocolsToSharePoint(
   } catch (err: any) {
     addSharePointLog("error", `Erro geral na rotina de sincronização: ${err?.message || err}`);
     result.errors.push(err?.message || "Falha geral de sincronização.");
+  }
+
+  return result;
+}
+
+/**
+ * Sincroniza fotos de inspeção pendentes armazenadas no bucket temporário
+ * diretamente para a pasta corporativa 'INSPEÇÃO/<numero-da-OS>' no SharePoint.
+ * Remove os arquivos temporários do Supabase Storage após o upload bem-sucedido.
+ */
+export async function syncPendingInspecaoPhotosToSharePoint(
+  interactiveFallback = false
+): Promise<{
+  total: number;
+  synced: number;
+  failed: number;
+  errors: string[];
+}> {
+  const result = { total: 0, synced: 0, failed: 0, errors: [] as string[] };
+
+  try {
+    // 1. Busca ordens que contenham inspecao_fotos no banco
+    const { data: ordersWithPhotos, error: queryErr } = await supabase
+      .from("orders")
+      .select("id, titulo, inspecao_fotos")
+      .not("inspecao_fotos", "is", null)
+      .limit(50);
+
+    if (queryErr || !ordersWithPhotos) {
+      if (queryErr) result.errors.push(queryErr.message);
+      return result;
+    }
+
+    // Filtra ordens que têm fotos com status "pendente_sharepoint" ou sem sharepoint_item_id
+    const pendingOrders = ordersWithPhotos.filter((ord: any) => {
+      const fotos: InspecaoFoto[] = Array.isArray(ord.inspecao_fotos) ? ord.inspecao_fotos : [];
+      return fotos.some(
+        (f) => f.status === "pendente_sharepoint" || (!f.web_url && !f.sharepoint_item_id)
+      );
+    });
+
+    if (pendingOrders.length === 0) {
+      return result;
+    }
+
+    // 2. Garante o token do SharePoint
+    let token: string | null = null;
+    try {
+      token = await getSharePointAccessToken(interactiveFallback);
+    } catch {
+      return result; // Sem sessão ativa nesta máquina; aguarda próxima oportunidade
+    }
+
+    if (!token) return result;
+
+    for (const ord of pendingOrders) {
+      const cleanOs = (ord.titulo || ord.id).replace(/^OS[\s._-]*/i, "").trim() || "SEM_OS";
+      const currentFotos: InspecaoFoto[] = Array.isArray(ord.inspecao_fotos) ? [...ord.inspecao_fotos] : [];
+      let orderUpdated = false;
+
+      let osFolder: SharePointFolderInfo;
+      try {
+        osFolder = await getOrCreateInspecaoOsFolder(cleanOs, interactiveFallback);
+      } catch (folderErr: any) {
+        result.errors.push(`O.S. #${cleanOs}: ${folderErr?.message || folderErr}`);
+        continue;
+      }
+
+      for (let i = 0; i < currentFotos.length; i++) {
+        const foto = currentFotos[i];
+        if (foto.status !== "pendente_sharepoint" && foto.web_url && foto.sharepoint_item_id) {
+          continue; // Já sincronizado
+        }
+
+        result.total++;
+        const storagePath = foto.storage_path || `${ord.id}/${foto.nome_arquivo}`;
+
+        try {
+          const { data: blob, error: downloadErr } = await supabase.storage
+            .from("comprovantes-entrega")
+            .download(storagePath);
+
+          if (downloadErr || !blob) {
+            continue;
+          }
+
+          const fileToUpload = new File([blob], foto.nome_arquivo, {
+            type: blob.type || "image/jpeg",
+          });
+
+          const driveItem = await uploadFileToSharePoint(
+            fileToUpload,
+            osFolder,
+            undefined,
+            undefined,
+            interactiveFallback
+          );
+
+          if (driveItem) {
+            currentFotos[i] = {
+              ...foto,
+              web_url: driveItem.webUrl,
+              sharepoint_item_id: driveItem.id,
+              sharepoint_folder_id: osFolder.folderId,
+              status: "sincronizado",
+              storage_path: undefined,
+            };
+            orderUpdated = true;
+            result.synced++;
+
+            // Grava metadados em order_attachments
+            await supabase.from("order_attachments" as any).insert({
+              order_id: ord.id,
+              nome_arquivo: driveItem.name || foto.nome_arquivo,
+              tamanho_bytes: driveItem.size || blob.size,
+              content_type: blob.type || "image/jpeg",
+              sharepoint_item_id: driveItem.id,
+              sharepoint_folder_id: osFolder.folderId,
+              sharepoint_folder_name: osFolder.folderName,
+              sharepoint_drive_id: osFolder.driveId,
+              sharepoint_site_id: osFolder.siteId,
+              sharepoint_web_url: driveItem.webUrl,
+              sharepoint_path: `INSPEÇÃO/${cleanOs}/${driveItem.name}`,
+              status: "sincronizado",
+            }).catch((err) => console.warn("[SyncInspecao] order_attachments warning:", err));
+
+            // Remove o arquivo temporário do bucket para manter o storage limpo
+            await supabase.storage.from("comprovantes-entrega").remove([storagePath]);
+            addSharePointLog(
+              "success",
+              `Foto da Inspeção da O.S. #${cleanOs} sincronizada no SharePoint: ${driveItem.name}`
+            );
+          }
+        } catch (itemErr: any) {
+          result.failed++;
+          result.errors.push(`Foto ${foto.nome_arquivo}: ${itemErr?.message || itemErr}`);
+        }
+      }
+
+      if (orderUpdated) {
+        await supabase
+          .from("orders")
+          .update({ inspecao_fotos: currentFotos } as any)
+          .eq("id", ord.id);
+      }
+    }
+  } catch (err: any) {
+    result.errors.push(err?.message || "Erro geral na sincronização de fotos da inspeção.");
   }
 
   return result;

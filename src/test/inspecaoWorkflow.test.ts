@@ -148,4 +148,24 @@ describe("Workflow e Regras da Etapa INSPEÇÃO", () => {
       expect(shouldShowQuickSuggestions).toBe(false);
     });
   });
+
+  describe("5. Sincronização Transparente de Fotos para o SharePoint (Modo Sem Pop-up / Celular)", () => {
+    it("deve aceitar foto com status 'pendente_sharepoint' validando a condição de saída", () => {
+      const pendingFoto: InspecaoFoto = {
+        id: "temp_1794848000000_1",
+        nome_arquivo: "73500_20261116-100000_1.jpg",
+        web_url: "",
+        sharepoint_item_id: "",
+        created_at: "2026-11-16T10:00:00Z",
+        criado_por: "Operador Celular",
+        status: "pendente_sharepoint",
+        storage_path: "order-uuid-1/73500_20261116-100000_1.jpg",
+      };
+
+      const res = validateInspecaoConditions(mockApprovedChecklist, [pendingFoto]);
+      expect(res.canMoveToSaida).toBe(true);
+      expect(res.hasRequiredPhotos).toBe(true);
+      expect(res.photoCount).toBe(1);
+    });
+  });
 });

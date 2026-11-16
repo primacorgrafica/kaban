@@ -33,6 +33,10 @@ import { toast } from "sonner";
 import { cleanOsNumber } from "@/lib/orderRelationsService";
 import { MuralHeaderBanner } from "./mural/MuralHeaderBanner";
 import { useMuralAlertas } from "@/hooks/useMuralAlertas";
+import {
+  syncPendingInspecaoPhotosToSharePoint,
+  syncPendingProtocolsToSharePoint,
+} from "@/lib/sharepointService";
 
 interface LayoutProps {
   children: ReactNode;
@@ -236,6 +240,22 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
     document.addEventListener("fullscreenchange", handler);
     return () => document.removeEventListener("fullscreenchange", handler);
   }, []);
+
+  // Sincronização corporativa em segundo plano de fotos e protocolos com o SharePoint
+  useEffect(() => {
+    if (!authReady || !user) return;
+    const runBackgroundSync = () => {
+      void syncPendingInspecaoPhotosToSharePoint(false).catch(() => {});
+      void syncPendingProtocolsToSharePoint(false).catch(() => {});
+    };
+
+    const initialTimer = setTimeout(runBackgroundSync, 4000);
+    const interval = setInterval(runBackgroundSync, 45000);
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(interval);
+    };
+  }, [authReady, user]);
 
   const canAccessGestaoEntregas = isAdmin || role === "coordenador" || permissions.canAccessDashboard;
 

@@ -60,6 +60,8 @@ export interface InspecaoFoto {
   created_at: string;
   criado_por?: string | null;
   thumbnail_url?: string;
+  status?: "sincronizado" | "pendente_sharepoint";
+  storage_path?: string;
 }
 
 export type InspecaoHistoryEventType =
