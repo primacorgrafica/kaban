@@ -460,8 +460,8 @@ export function InspecaoWorkspaceDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto bg-card border-border text-card-foreground shadow-2xl rounded-2xl p-6">
-        <DialogHeader className="border-b border-border pb-3">
+      <DialogContent className="max-sm:w-full max-sm:max-w-full max-sm:h-[100dvh] max-sm:max-h-[100dvh] max-sm:rounded-none max-sm:p-3 sm:max-w-3xl sm:max-h-[90vh] flex flex-col overflow-hidden bg-card border-border text-card-foreground shadow-2xl rounded-2xl p-6">
+        <DialogHeader className="border-b border-border pb-3 shrink-0">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2">
               <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-500 border border-emerald-500/30">
@@ -501,7 +501,7 @@ export function InspecaoWorkspaceDialog({
           </div>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
+        <div className="space-y-6 py-4 flex-1 overflow-y-auto">
           {/* ══════════════════════════════════════════════════════════════
               SEÇÃO 1: UPLOAD DE FOTOS (MÍNIMO 1, MÁXIMO 5)
              ══════════════════════════════════════════════════════════════ */}
@@ -535,7 +535,6 @@ export function InspecaoWorkspaceDialog({
                     ref={fileInputRef}
                     type="file"
                     accept="image/jpeg,image/png,image/webp,image/heic,.jpg,.jpeg,.png,.webp,.heic"
-                    capture="environment"
                     multiple
                     disabled={fotos.length >= 5}
                     onChange={handleFileSelect}
@@ -775,14 +774,14 @@ export function InspecaoWorkspaceDialog({
                       </div>
 
                       {/* 3 Opções Mutuamente Exclusivas */}
-                      <div className="flex items-center gap-1.5 shrink-0 pl-5 sm:pl-0">
+                      <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 shrink-0 pl-0 sm:pl-0 max-sm:w-full">
                         <Button
                           type="button"
                           size="sm"
                           variant={currentStatus === "aprovado" ? "default" : "outline"}
                           disabled={readOnly}
                           onClick={() => handleItemStatusChange(itemConfig.key, "aprovado")}
-                          className={`text-xs h-7 px-2.5 rounded-lg cursor-pointer ${
+                          className={`text-xs max-sm:text-sm h-7 max-sm:h-10 px-2.5 rounded-lg cursor-pointer max-sm:flex-1 ${
                             currentStatus === "aprovado"
                               ? "bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-xs"
                               : "text-muted-foreground hover:text-foreground"
@@ -798,7 +797,7 @@ export function InspecaoWorkspaceDialog({
                           variant={currentStatus === "aprovado_restricao" ? "default" : "outline"}
                           disabled={readOnly}
                           onClick={() => handleItemStatusChange(itemConfig.key, "aprovado_restricao")}
-                          className={`text-xs h-7 px-2.5 rounded-lg cursor-pointer ${
+                          className={`text-xs max-sm:text-sm h-7 max-sm:h-10 px-2.5 rounded-lg cursor-pointer max-sm:flex-1 ${
                             currentStatus === "aprovado_restricao"
                               ? "bg-amber-600 hover:bg-amber-500 text-white font-bold shadow-xs"
                               : "text-muted-foreground hover:text-foreground"
@@ -814,7 +813,7 @@ export function InspecaoWorkspaceDialog({
                           variant={currentStatus === "reprovado" ? "default" : "outline"}
                           disabled={readOnly}
                           onClick={() => handleItemStatusChange(itemConfig.key, "reprovado")}
-                          className={`text-xs h-7 px-2.5 rounded-lg cursor-pointer ${
+                          className={`text-xs max-sm:text-sm h-7 max-sm:h-10 px-2.5 rounded-lg cursor-pointer max-sm:flex-1 ${
                             currentStatus === "reprovado"
                               ? "bg-rose-600 hover:bg-rose-500 text-white font-bold shadow-xs"
                               : "text-muted-foreground hover:text-foreground"
@@ -855,7 +854,7 @@ export function InspecaoWorkspaceDialog({
                               ? "Descreva detalhadamente o motivo da reprovação..."
                               : "Observações ou detalhes da restrição aceita..."
                           }
-                          className={`text-xs min-h-[50px] resize-none ${
+                          className={`text-xs max-sm:text-base min-h-[50px] resize-none ${
                             isObsMissing ? "border-rose-500 focus-visible:ring-rose-500" : ""
                           }`}
                         />
@@ -913,8 +912,8 @@ export function InspecaoWorkspaceDialog({
           </div>
         </div>
 
-        <DialogFooter className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-border">
-          <div className="text-left text-xs">
+        <DialogFooter className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-border shrink-0 bg-card">
+          <div className="text-left text-xs max-sm:w-full">
             {!validation.canMoveToSaida ? (
               <span className="text-amber-500 font-medium">
                 {validation.errorMessages[0] || "Preencha os requisitos para liberar a Saída."}
@@ -927,13 +926,13 @@ export function InspecaoWorkspaceDialog({
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 max-sm:w-full max-sm:justify-end">
             <Button
               type="button"
               variant="outline"
               size="sm"
               onClick={() => onOpenChange(false)}
-              className="text-xs"
+              className="text-xs max-sm:h-10 max-sm:px-3"
             >
               Fechar
             </Button>
@@ -944,7 +943,7 @@ export function InspecaoWorkspaceDialog({
               size="sm"
               disabled={saving || readOnly}
               onClick={handleSaveChecklist}
-              className="text-xs font-semibold"
+              className="text-xs font-semibold max-sm:h-10 max-sm:px-3"
             >
               Salvar Checklist
             </Button>
@@ -955,7 +954,7 @@ export function InspecaoWorkspaceDialog({
                 size="sm"
                 disabled={saving || !validation.canMoveToSaida || readOnly}
                 onClick={handleConcludeAndMoveSaida}
-                className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer disabled:opacity-50"
+                className="text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer disabled:opacity-50 max-sm:h-10 max-sm:px-3"
               >
                 Liberar para Saída →
               </Button>
