@@ -39,11 +39,20 @@ import {
   Image as ImageIcon,
   FileText,
   AlertOctagon,
+  Cloud,
+  LogIn,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cleanOsNumber } from "@/lib/orderRelationsService";
 import { uploadInspecaoPhotoToSharePoint } from "@/lib/sharepointService";
+import {
+  getStoredMicrosoftUser,
+  getActiveMicrosoftAccount,
+  loginMicrosoft,
+  loginMicrosoftRedirect,
+  type StoredMicrosoftUser,
+} from "@/lib/msalClient";
 
 interface InspecaoWorkspaceDialogProps {
   order: Order | null;
@@ -80,7 +89,68 @@ export function InspecaoWorkspaceDialog({
   const [history, setHistory] = useState<InspecaoHistoryEntry[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [msUser, setMsUser] = useState<StoredMicrosoftUser | null>(() => getStoredMicrosoftUser());
+  const [isConnectingMs, setIsConnectingMs] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Sincroniza estado de autenticação da conta Microsoft / SharePoint
+  useEffect(() => {
+    void getActiveMicrosoftAccount().then((acc) => {
+      if (acc) {
+        setMsUser({ name: acc.name || acc.username, username: acc.username });
+      }
+    });
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "kaban_msal_user_info") {
+        setMsUser(getStoredMicrosoftUser());
+      }
+    };
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, []);
+
+  const handleConnectMicrosoft = async () => {
+    setIsConnectingMs(true);
+    try {
+      const acc = await loginMicrosoft();
+      if (acc) {
+        const u = { name: acc.name || acc.username, username: acc.username };
+        setMsUser(u);
+        toast.success(`Conectado ao Microsoft 365 como ${u.name}`);
+        // Retenta uploads que falharam por popup/sessão
+        const failedItems = pendingUploads.filter((p) => p.status === "error");
+        for (const p of failedItems) {
+          handleRetryUpload(p);
+        }
+      }
+    } catch (err: any) {
+      console.warn("Falha ao conectar Microsoft:", err);
+      const rawMsg = err?.message || String(err);
+      const isPopupBlocked =
+        err?.errorCode === "popup_window_error" ||
+        rawMsg.includes("popup_window_error") ||
+        rawMsg.includes("popup window") ||
+        rawMsg.includes("Pop-up");
+      if (isPopupBlocked) {
+        toast.error(
+          "Pop-up bloqueado pelo navegador. Toque em 'Sempre mostrar' na notificação superior do Chrome ou use a opção 'Entrar sem pop-up'."
+        );
+      } else {
+        toast.error(`Falha ao conectar Microsoft: ${rawMsg}`);
+      }
+    } finally {
+      setIsConnectingMs(false);
+    }
+  };
+
+  const handleConnectMicrosoftRedirect = async () => {
+    try {
+      await loginMicrosoftRedirect();
+    } catch (err: any) {
+      toast.error(`Falha ao redirecionar para Microsoft: ${err?.message || err}`);
+    }
+  };
 
   // Inicializa estado quando o order for alterado
   useEffect(() => {
@@ -213,6 +283,29 @@ export function InspecaoWorkspaceDialog({
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
+  const handleOpenAddPhotos = async () => {
+    if (fotos.length >= 5) {
+      toast.warning(
+        "Limite máximo de 5 fotos atingido. Remova uma foto antes de adicionar outra."
+      );
+      return;
+    }
+
+    // Se a conta Microsoft ainda não estiver autenticada neste navegador/aparelho
+    if (!msUser) {
+      const active = await getActiveMicrosoftAccount();
+      if (!active) {
+        toast.info("Conecte sua conta Microsoft corporativa para permitir o envio das fotos ao SharePoint.");
+        await handleConnectMicrosoft();
+        return;
+      } else {
+        setMsUser({ name: active.name || active.username, username: active.username });
+      }
+    }
+
+    fileInputRef.current?.click();
+  };
+
   const processAndUploadPhoto = async (pending: PendingUpload, photoIndex: number) => {
     try {
       setPendingUploads((prev) =>
@@ -262,7 +355,16 @@ export function InspecaoWorkspaceDialog({
       toast.success(`Foto ${newFoto.nome_arquivo} enviada ao SharePoint!`);
     } catch (err: any) {
       console.error("Falha no upload da foto de inspeção:", err);
-      const errMsg = err?.message || "Falha na comunicação com o SharePoint.";
+      const rawMsg = err?.message || "Falha na comunicação com o SharePoint.";
+      const isPopupBlocked =
+        err?.errorCode === "popup_window_error" ||
+        rawMsg.includes("popup_window_error") ||
+        rawMsg.includes("popup window") ||
+        rawMsg.includes("Pop-up") ||
+        rawMsg.includes("bloqueado pelo navegador");
+      const errMsg = isPopupBlocked
+        ? "Pop-up de login bloqueado pelo navegador. Toque no botão 'Conectar Microsoft' abaixo para autorizar."
+        : rawMsg;
       setPendingUploads((prev) =>
         prev.map((p) =>
           p.id === pending.id ? { ...p, status: "error", error: errMsg } : p
@@ -404,15 +506,26 @@ export function InspecaoWorkspaceDialog({
               SEÇÃO 1: UPLOAD DE FOTOS (MÍNIMO 1, MÁXIMO 5)
              ══════════════════════════════════════════════════════════════ */}
           <div className="p-4 rounded-xl border border-border/80 bg-muted/20 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Camera className="h-4 w-4 text-sky-400" />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <Camera className="h-4 w-4 text-sky-400 shrink-0" />
                 <Label className="text-xs font-bold uppercase tracking-wider text-foreground">
                   Fotos da Inspeção ({fotos.length}/5)
                 </Label>
                 <span className="text-[11px] text-muted-foreground">
                   (Mínimo 1 foto obrigatória para liberação)
                 </span>
+                {msUser ? (
+                  <span className="inline-flex items-center gap-1 text-[10px] text-emerald-500 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                    <CheckCircle2 className="h-3 w-3" />
+                    SharePoint Conectado
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[10px] text-amber-500 font-medium bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20">
+                    <AlertTriangle className="h-3 w-3" />
+                    SharePoint Desconectado
+                  </span>
+                )}
               </div>
 
               {/* Botão de Anexar Foto / Abrir Câmera */}
@@ -434,15 +547,7 @@ export function InspecaoWorkspaceDialog({
                     size="sm"
                     variant="outline"
                     disabled={fotos.length >= 5}
-                    onClick={() => {
-                      if (fotos.length >= 5) {
-                        toast.warning(
-                          "Limite máximo de 5 fotos atingido. Remova uma foto antes de adicionar outra."
-                        );
-                        return;
-                      }
-                      fileInputRef.current?.click();
-                    }}
+                    onClick={handleOpenAddPhotos}
                     className="text-xs h-8 gap-1.5 font-semibold bg-background hover:bg-muted"
                   >
                     <UploadCloud className="h-3.5 w-3.5 text-sky-400" />
@@ -451,6 +556,43 @@ export function InspecaoWorkspaceDialog({
                 </div>
               )}
             </div>
+
+            {/* Banner de Aviso e Conexão Microsoft caso o celular/navegador ainda não esteja autenticado */}
+            {!msUser && !readOnly && (
+              <div className="p-3 rounded-xl border border-amber-500/40 bg-amber-500/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div className="flex items-start gap-2.5">
+                  <Cloud className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
+                  <div className="space-y-0.5">
+                    <p className="text-xs font-bold text-amber-800 dark:text-amber-300">
+                      Conecte sua conta Microsoft para salvar fotos no SharePoint
+                    </p>
+                    <p className="text-[11px] text-muted-foreground leading-snug">
+                      Faça login uma única vez neste celular para evitar bloqueio de pop-up no Chrome.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={isConnectingMs}
+                    onClick={handleConnectMicrosoft}
+                    className="h-7 text-xs px-2.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg"
+                  >
+                    <LogIn className="h-3.5 w-3.5 mr-1.5" />
+                    {isConnectingMs ? "Conectando..." : "Conectar Microsoft"}
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={handleConnectMicrosoftRedirect}
+                    className="text-[10px] text-muted-foreground underline hover:text-foreground"
+                    title="Se o navegador bloquear pop-ups, use o login por redirecionamento de tela inteira"
+                  >
+                    Sem pop-up
+                  </button>
+                </div>
+              </div>
+            )}
 
             {fotos.length >= 5 && (
               <p className="text-[11px] text-amber-500 font-medium flex items-center gap-1.5">
@@ -467,13 +609,23 @@ export function InspecaoWorkspaceDialog({
                     key={pending.id}
                     className="p-2.5 rounded-lg border border-sky-500/30 bg-sky-500/10 text-xs flex flex-col gap-2"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono-tech text-[11px] truncate max-w-[300px]">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+                      <span className="font-mono-tech text-[11px] truncate max-w-[280px]">
                         {pending.file.name}
                       </span>
                       {pending.status === "error" ? (
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
                           <span className="text-rose-400 text-[10px] font-bold">Falha no envio</span>
+                          {(!msUser || pending.error?.includes("Pop-up") || pending.error?.includes("popup")) && (
+                            <Button
+                              size="sm"
+                              variant="default"
+                              onClick={handleConnectMicrosoft}
+                              className="h-6 text-[10px] px-2 bg-amber-600 hover:bg-amber-700 text-white font-semibold"
+                            >
+                              <LogIn className="h-3 w-3 mr-1" /> Conectar Microsoft
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="outline"

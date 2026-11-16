@@ -335,6 +335,17 @@ export async function getSharePointAccessToken(interactiveFallback = true): Prom
           }
           throw new Error("Autenticação Microsoft cancelada pelo usuário.");
         }
+
+        if (
+          popupError?.errorCode === "popup_window_error" ||
+          popupError?.message?.includes("popup_window_error") ||
+          popupError?.message?.includes("popup window")
+        ) {
+          throw new Error(
+            "Pop-up de login bloqueado pelo navegador. No topo do Chrome, toque em 'Sempre mostrar' ou conecte sua conta Microsoft antes de anexar fotos."
+          );
+        }
+
         throw popupError;
       }
     } finally {
@@ -402,6 +413,17 @@ export async function loginMicrosoft(): Promise<AccountInfo | null> {
         if (loginErr?.errorCode === "user_cancelled") {
           return null;
         }
+
+        if (
+          loginErr?.errorCode === "popup_window_error" ||
+          loginErr?.message?.includes("popup_window_error") ||
+          loginErr?.message?.includes("popup window")
+        ) {
+          throw new Error(
+            "Pop-up de login bloqueado pelo navegador. Toque em 'Sempre mostrar' na barra de notificação do Chrome no topo da tela ou utilize a opção de login por redirecionamento."
+          );
+        }
+
         throw loginErr;
       }
     } finally {
@@ -410,6 +432,17 @@ export async function loginMicrosoft(): Promise<AccountInfo | null> {
   })();
 
   return activeLoginPromise;
+}
+
+/**
+ * Conecta a conta corporativa Microsoft via redirecionamento de página inteira (ideal para mobile caso popups sejam bloqueados).
+ */
+export async function loginMicrosoftRedirect(): Promise<void> {
+  const pca = await getMsalInstance();
+  clearMsalInteractions();
+  await pca.loginRedirect({
+    scopes: SHAREPOINT_SCOPES,
+  });
 }
 
 /**
