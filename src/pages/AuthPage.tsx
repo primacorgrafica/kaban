@@ -247,26 +247,26 @@ export default function AuthPage() {
         initial={{ opacity: 0, scale: 0.96, y: 14 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-        className="relative w-full max-w-5xl rounded-[32px] border border-[#4A5C6A]/50 bg-[#11212D]/90 backdrop-blur-2xl shadow-[0_30px_90px_rgba(6,20,27,0.95)] overflow-hidden grid grid-cols-1 lg:grid-cols-12 z-10"
+        className="relative w-full max-w-5xl rounded-[32px] max-sm:rounded-2xl border border-[#4A5C6A]/50 bg-[#11212D]/90 backdrop-blur-2xl shadow-[0_30px_90px_rgba(6,20,27,0.95)] overflow-hidden grid grid-cols-1 lg:grid-cols-12 z-10"
       >
         {/* Subtle top edge highlight line */}
         <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-[#CCD0CF]/40 to-transparent z-20 pointer-events-none" />
 
         {/* LEFT COLUMN: Clean, Elegant Login Form */}
-        <div className="lg:col-span-7 p-7 sm:p-10 lg:p-12 flex flex-col justify-between">
+        <div className="lg:col-span-7 p-6 sm:p-10 lg:p-12 flex flex-col justify-between">
           <div>
             {/* Logo SEM CONTORNO, BEM DESTACADA E AINDA MAIOR */}
-            <div className="flex items-center mb-8">
+            <div className="flex items-center mb-6 sm:mb-8">
               <img
                 src={logoImg}
                 alt="Primacor Gráfica"
-                className="h-28 sm:h-36 md:h-40 w-auto object-contain filter drop-shadow-[0_16px_40px_rgba(0,0,0,0.9)] hover:scale-105 transition-transform duration-300"
+                className="h-20 sm:h-36 md:h-40 w-auto object-contain filter drop-shadow-[0_16px_40px_rgba(0,0,0,0.9)] hover:scale-105 transition-transform duration-300"
               />
             </div>
 
             {/* Header Titles */}
             <div className="mb-6">
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white font-sans">
+              <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight text-white font-sans">
                 Acessar Sistema
               </h1>
               <p className="text-xs sm:text-sm text-[#9BA8AB] mt-1.5 leading-relaxed font-sans">
@@ -294,7 +294,7 @@ export default function AuthPage() {
                     placeholder="admin@primacorgrafica.com.br"
                     autoFocus
                     autoComplete="email"
-                    className="h-11 bg-[#06141B]/70 border border-[#4A5C6A]/60 text-white placeholder:text-[#9BA8AB]/40 rounded-xl text-sm focus:border-[#CCD0CF] focus:ring-1 focus:ring-[#CCD0CF]/40 transition-all font-sans"
+                    className="h-11 bg-[#06141B]/70 border border-[#4A5C6A]/60 text-white placeholder:text-[#9BA8AB]/40 rounded-xl text-sm max-sm:text-base focus:border-[#CCD0CF] focus:ring-1 focus:ring-[#CCD0CF]/40 transition-all font-sans"
                   />
                 </div>
               </div>
@@ -316,12 +316,12 @@ export default function AuthPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••••••"
                     autoComplete="current-password"
-                    className="h-11 pr-10 bg-[#06141B]/70 border border-[#4A5C6A]/60 text-white placeholder:text-[#9BA8AB]/40 rounded-xl text-sm focus:border-[#CCD0CF] focus:ring-1 focus:ring-[#CCD0CF]/40 transition-all font-sans"
+                    className="h-11 pr-10 bg-[#06141B]/70 border border-[#4A5C6A]/60 text-white placeholder:text-[#9BA8AB]/40 rounded-xl text-sm max-sm:text-base focus:border-[#CCD0CF] focus:ring-1 focus:ring-[#CCD0CF]/40 transition-all font-sans"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#9BA8AB] hover:text-[#CCD0CF] transition-colors p-1"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[#9BA8AB] hover:text-[#CCD0CF] transition-colors p-1 max-sm:min-h-[40px] max-sm:min-w-[40px] flex items-center justify-center"
                     title={showPassword ? "Ocultar senha" : "Exibir senha"}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -333,7 +333,7 @@ export default function AuthPage() {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 rounded-xl font-extrabold text-sm bg-[#CCD0CF] hover:bg-white text-[#06141B] shadow-[0_8px_24px_rgba(204,208,207,0.2)] transition-all cursor-pointer mt-4"
+                className="w-full h-12 max-sm:min-h-[44px] rounded-xl font-extrabold text-sm bg-[#CCD0CF] hover:bg-white text-[#06141B] shadow-[0_8px_24px_rgba(204,208,207,0.2)] transition-all cursor-pointer mt-4"
               >
                 {loading ? (
                   <span className="flex items-center gap-2">
