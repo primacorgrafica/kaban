@@ -381,7 +381,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
   }, [isCadastrosActive]);
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-[100dvh] lg:h-screen overflow-hidden">
       {sidebarOpen && (
         <div className="fixed inset-0 bg-foreground/20 backdrop-blur-sm z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
@@ -392,7 +392,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
           width: isFullscreen ? 0 : sidebarCollapsed ? 72 : 256,
         }}
         transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-        className={`fixed lg:static inset-y-0 left-0 z-50 flex-col text-sidebar-foreground border-r border-sidebar-border/60 shrink-0 select-none overflow-hidden ${
+        className={`fixed lg:static inset-y-0 left-0 z-50 flex-col text-sidebar-foreground border-r border-sidebar-border/60 shrink-0 select-none overflow-hidden max-lg:!w-72 max-lg:!max-w-[85vw] ${
           isFullscreen ? "hidden" : "flex"
         } ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}`}
         style={{ background: "var(--gradient-sidebar)" }}
@@ -403,8 +403,9 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
           }`}
         >
           <button
-            className="lg:hidden absolute top-3 right-3 text-[#9BA8AB] hover:text-[#CCD0CF] transition-colors"
+            className="lg:hidden absolute top-3 right-3 p-2 text-[#9BA8AB] hover:text-[#CCD0CF] transition-colors rounded-lg hover:bg-white/5"
             onClick={() => setSidebarOpen(false)}
+            aria-label="Fechar menu"
           >
             <X className="h-5 w-5" />
           </button>
@@ -629,8 +630,12 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
           <div className="absolute -bottom-24 left-10 h-[400px] w-[400px] rounded-full bg-[#9BA8AB]/15 dark:bg-[#06141B]/70 blur-[110px] opacity-50" />
         </div>
 
-        <header className="h-14 border-b border-border/80 bg-card/80 backdrop-blur-2xl flex flex-wrap items-center gap-3 px-4 flex-shrink-0 z-10 shadow-xs dark:shadow-[0_4px_24px_rgba(6,20,27,0.4)]">
-          <button className="lg:hidden p-1.5 rounded-lg bg-card border border-border text-foreground hover:bg-muted" onClick={() => setSidebarOpen(true)}>
+        <header className="h-14 border-b border-border/80 bg-card/80 backdrop-blur-2xl flex items-center justify-between gap-2 px-3 sm:px-4 flex-shrink-0 z-10 shadow-xs dark:shadow-[0_4px_24px_rgba(6,20,27,0.4)] lg:gap-3">
+          <button
+            className="lg:hidden p-2 min-h-[40px] min-w-[40px] flex items-center justify-center rounded-lg bg-card border border-border text-foreground hover:bg-muted shrink-0 transition-colors"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Abrir menu lateral"
+          >
             <Menu className="h-4 w-4" />
           </button>
 
@@ -643,17 +648,17 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
           >
             {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
           </Button>
-          <div className="relative flex-1 min-w-0 max-w-sm order-1">
+          <div className="relative flex-1 min-w-0 max-w-xs sm:max-w-sm order-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Buscar O.S., cliente ou processo..."
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
-              className="pl-9 pr-16 h-9 bg-muted/50 border-input text-foreground placeholder:text-muted-foreground text-xs focus:border-primary focus:ring-1 focus:ring-primary/40 rounded-xl transition-all"
+              className="pl-9 pr-2 sm:pr-16 h-9 bg-muted/50 border-input text-foreground placeholder:text-muted-foreground text-xs focus:border-primary focus:ring-1 focus:ring-primary/40 rounded-xl transition-all"
             />
             <button
               onClick={() => setCommandPaletteOpen(true)}
-              className="hidden sm:inline-flex items-center gap-0.5 absolute right-2 top-1/2 -translate-y-1/2 text-[10px] bg-card text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded border border-border font-mono-tech transition-colors shadow-xs"
+              className="hidden lg:inline-flex items-center gap-0.5 absolute right-2 top-1/2 -translate-y-1/2 text-[10px] bg-card text-muted-foreground hover:text-foreground px-1.5 py-0.5 rounded border border-border font-mono-tech transition-colors shadow-xs"
               title="Abrir busca global rápida (Ctrl+K)"
             >
               Ctrl+K
@@ -670,7 +675,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
             };
             const SectorIcon = sectorIconMap[sectorName];
             return (
-              <span className="flex items-center gap-2 text-sm font-bold text-foreground px-3 py-1 rounded-xl bg-card border border-border order-1 shadow-xs">
+              <span className="hidden sm:flex items-center gap-2 text-sm font-bold text-foreground px-3 py-1 rounded-xl bg-card border border-border order-1 shadow-xs">
                 {SectorIcon && <SectorIcon className="h-4 w-4 text-primary" />}
                 <span className="tracking-wide uppercase font-mono-tech text-xs">{sectorName}</span>
               </span>
@@ -678,7 +683,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
           })()}
           {/* Alerta do Dia do Mural (Exibição Global no Topo - Conforme print de referência) */}
           <MuralHeaderBanner />
-          <div className="flex items-center gap-2 ml-auto order-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 ml-auto order-2 shrink-0">
             {(isAdmin || role === "coordenador") && <SharePointStatusIndicator />}
             {(isAdmin || role === "coordenador" || Boolean(typeof window !== "undefined" && localStorage.getItem("kaban_msal_user_info"))) && <OutlookStatusIndicator />}
             <ThemeToggle />
@@ -704,7 +709,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
               variant="ghost"
               size="icon"
               onClick={toggleFullscreen}
-              className="h-9 w-9 text-muted-foreground hover:text-foreground"
+              className="hidden lg:flex h-9 w-9 text-muted-foreground hover:text-foreground"
               title={isFullscreen ? "Sair da tela inteira" : "Tela inteira"}
             >
               {isFullscreen ? <Minimize className="h-4 w-4" /> : <Maximize className="h-4 w-4" />}
