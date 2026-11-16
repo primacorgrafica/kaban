@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { RotateCcw, Clock,
+  Check,
   User,
   FileText,
   Archive,
@@ -53,6 +54,10 @@ import {
   SPECIAL_SUPPLIES,
   isSpecialSupplyActive,
   getSpecialSupplyDetails,
+  getSpecialSupplyBadgeClasses,
+  toggleSpecialSupplySent,
+  formatSafeDate,
+  SpecialSupplyId,
 } from "@/lib/processos";
 import { cleanOsNumber } from "./ProductionCard";
 import {
@@ -87,6 +92,7 @@ interface ProductionTableProps {
   department?: DepartmentConfig;
   slowAlertIds?: Set<string>;
   showSectorColumn?: boolean;
+  currentUserName?: string | null;
 }
 
 type SortField = "titulo" | "cliente" | "status" | "prazo" | "created_at" | "setor";
@@ -107,6 +113,7 @@ export function ProductionTable({
   department,
   slowAlertIds,
   showSectorColumn = false,
+  currentUserName,
 }: ProductionTableProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [inspectOrder, setInspectOrder] = useState<Order | null>(null);
@@ -381,7 +388,7 @@ export function ProductionTable({
                 </div>
               </TableHead>
               <TableHead className="w-28 text-foreground font-bold">Vendedor</TableHead>
-              <TableHead className="min-w-[140px] text-foreground font-bold">Processos</TableHead>
+              <TableHead className="min-w-[150px] text-foreground font-bold">MATERIAIS</TableHead>
               <TableHead className="w-16 text-right pr-4 text-foreground font-bold">Ações</TableHead>
             </TableRow>
           </TableHeader>
@@ -539,7 +546,7 @@ export function ProductionTable({
                       </span>
                     </TableCell>
 
-                    {/* Processos e Suprimentos */}
+                    {/* Materiais e Processos */}
                     <TableCell>
                       {(() => {
                         const cleanProcs = sortAndFilterProcessos(order.processos);
@@ -553,11 +560,18 @@ export function ProductionTable({
                         }
 
                         return (
-                          <div className="flex flex-wrap gap-1 max-w-[220px] items-center">
-                            {/* Suprimentos Especiais (Clichê, Faca, Filme, Pantone, Outros) */}
+                          <div className="flex flex-wrap gap-1 max-w-[240px] items-center">
+                            {/* Suprimentos Especiais / Materiais (Clichê, Faca, Filme, Pantone, Outros) */}
                             {activeSupplies.map((s) => {
                               const details = getSpecialSupplyDetails(order.processos, s.id);
-                              const isReceived = details.operationalState === "recebido" || details.sent;
+                              const isOperational = s.id === "CLICHE" || s.id === "FACA" || s.id === "FILME";
+                              const isReceived = details.operationalState === "recebido";
+                              const isSent = details.operationalState === "enviado";
+                              const isPending = !isReceived && !isSent;
+
+                              const formattedTime = formatSafeDate(details.sentAt, "dd/MM HH:mm", { locale: ptBR });
+                              const opName = details.operator || order.operador || currentUserName || "";
+
                               let decodedInfo = "";
                               if (details.customText) {
                                 try {
@@ -566,35 +580,97 @@ export function ProductionTable({
                                   decodedInfo = details.customText;
                                 }
                               }
-                              const tooltip = decodedInfo ? `${s.label}: ${decodedInfo}` : s.label;
+
+                              let tooltip = "";
+                              let badgeClasses = "";
+                              let dotClasses = "";
+
+                              if (isOperational) {
+                                if (isReceived) {
+                                  tooltip = `${s.label}: CHEGOU NA PRODUÇÃO ${formattedTime ? `em ${formattedTime}` : ""}${opName ? ` por ${opName}` : ""} (Clique para alternar)`;
+                                  badgeClasses = "bg-emerald-500/20 text-emerald-300 border-emerald-500/50 hover:bg-emerald-500/30";
+                                  dotClasses = "bg-emerald-400";
+                                } else if (isSent) {
+                                  tooltip = `${s.label}: ENVIADO PELA PRÉ-IMPRESSÃO ${formattedTime ? `em ${formattedTime}` : ""}${opName ? ` por ${opName}` : ""} (Clique para confirmar que CHEGOU)`;
+                                  badgeClasses = "bg-amber-500/25 text-amber-200 border-amber-400/60 hover:bg-amber-500/35 ring-1 ring-amber-400/30 animate-pulse";
+                                  dotClasses = "bg-amber-400";
+                                } else {
+                                  tooltip = `${s.label}: PENDENTE DE ENVIO (Clique para marcar como Enviado ou Chegou)`;
+                                  badgeClasses = "bg-pink-500/20 text-pink-300 border-pink-500/50 hover:bg-pink-500/30";
+                                  dotClasses = "bg-pink-400";
+                                }
+                              } else {
+                                const isDone = details.sent || details.comprasStatus === "lancamento_ge" || details.comprasStatus === "saida";
+                                const isPedido = !isDone && details.comprasStatus === "pedido";
+
+                                if (isDone) {
+                                  tooltip = `${s.label}: Concluído / Disponível (Clique para alternar)`;
+                                  badgeClasses = "bg-emerald-500/20 text-emerald-300 border-emerald-500/50 hover:bg-emerald-500/30";
+                                  dotClasses = "bg-emerald-400";
+                                } else if (isPedido) {
+                                  tooltip = `${s.label}: Em Pedido no setor de Compras`;
+                                  badgeClasses = "bg-amber-500/25 text-amber-200 border-amber-400/60 hover:bg-amber-500/35";
+                                  dotClasses = "bg-amber-400";
+                                } else {
+                                  tooltip = `${s.label}: Entrada / Cotação no setor de Compras`;
+                                  badgeClasses = "bg-pink-500/20 text-pink-300 border-pink-500/50 hover:bg-pink-500/30";
+                                  dotClasses = "bg-pink-400";
+                                }
+                              }
 
                               return (
-                                <span
+                                <button
                                   key={s.id}
-                                  className={`text-[9.5px] font-bold px-1.5 py-0.5 rounded border inline-flex items-center gap-1 shadow-2xs ${
-                                    isReceived
-                                      ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/35"
-                                      : "bg-pink-500/15 text-pink-300 border-pink-500/35"
-                                  }`}
+                                  type="button"
+                                  disabled={permissions.isViewOnly}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    if (permissions.isViewOnly) return;
+
+                                    const operatorToSave = currentUserName || order.operador || "Operador Produção";
+                                    const updated = toggleSpecialSupplySent(order.processos, s.id, operatorToSave);
+                                    void Promise.resolve(onUpdate(order.id, { processos: updated }));
+
+                                    if (isOperational) {
+                                      if (isPending) {
+                                        toast.success(`${s.label} marcado como ENVIADO (Amarelo)!`);
+                                      } else if (isSent) {
+                                        toast.success(`${s.label} marcado como CHEGOU NA PRODUÇÃO (Verde)! ✅`);
+                                      } else {
+                                        toast.info(`${s.label} retornado para PENDENTE (Magenta).`);
+                                      }
+                                    } else {
+                                      if (details.sent) {
+                                        toast.info(`${s.label} retornado para Pendente.`);
+                                      } else {
+                                        toast.success(`${s.label} marcado como Concluído! ✅`);
+                                      }
+                                    }
+                                  }}
+                                  className={`text-[9.5px] font-bold px-2 py-0.5 rounded border inline-flex items-center gap-1 shadow-2xs transition-all cursor-pointer active:scale-95 ${badgeClasses}`}
                                   title={tooltip}
                                 >
-                                  <span
-                                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
-                                      isReceived ? "bg-emerald-400" : "bg-pink-400"
-                                    }`}
-                                  />
+                                  <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotClasses}`} />
                                   <span>{s.label}</span>
+                                  {isReceived && (
+                                    <Check className="h-2.5 w-2.5 text-emerald-300 shrink-0 stroke-[3]" />
+                                  )}
+                                  {isSent && (
+                                    <span className="text-[8.5px] font-mono-tech opacity-90 tracking-tight bg-black/20 px-1 rounded">
+                                      Enviado
+                                    </span>
+                                  )}
                                   {decodedInfo && (
-                                    <span className="text-[8.5px] opacity-80 max-w-[90px] truncate hidden xl:inline">
+                                    <span className="text-[8.5px] opacity-80 max-w-[80px] truncate hidden xl:inline">
                                       ({decodedInfo})
                                     </span>
                                   )}
-                                </span>
+                                </button>
                               );
                             })}
 
                             {/* Processos Tradicionais Limpos (Offset, Verniz, Refilo, etc.) */}
-                            {cleanProcs.slice(0, 3).map((p) => (
+                            {cleanProcs.slice(0, 2).map((p) => (
                               <span
                                 key={p}
                                 className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${getProcessoCor(p)}`}
@@ -603,12 +679,12 @@ export function ProductionTable({
                               </span>
                             ))}
 
-                            {cleanProcs.length > 3 && (
+                            {cleanProcs.length > 2 && (
                               <span
                                 className="text-[9px] text-muted-foreground font-mono-tech px-1"
-                                title={cleanProcs.slice(3).join(", ")}
+                                title={cleanProcs.slice(2).join(", ")}
                               >
-                                +{cleanProcs.length - 3}
+                                +{cleanProcs.length - 2}
                               </span>
                             )}
                           </div>

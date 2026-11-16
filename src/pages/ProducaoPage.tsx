@@ -75,6 +75,11 @@ export default function ProducaoPage() {
   const [onlySpecialSupplies, setOnlySpecialSupplies] = useState<boolean>(false);
   const [onlyBlocked, setOnlyBlocked] = useState<boolean>(false);
 
+  const currentUserName = useMemo(() => {
+    if (!user) return null;
+    return getProfileName(user.id) || user.email?.split("@")[0] || null;
+  }, [user, getProfileName]);
+
   // Estados dos modais de ação
   const [inspectOrder, setInspectOrder] = useState<Order | null>(null);
   const [slideOverOpen, setSlideOverOpen] = useState(false);
@@ -442,6 +447,7 @@ export default function ProducaoPage() {
             getProfileName={getProfileName}
             permissions={perms}
             showSectorColumn={selectedSector === "todos"}
+            currentUserName={currentUserName}
           />
         </div>
 
