@@ -1086,7 +1086,7 @@ function ProductionCardImpl({
                           }}
                           className="w-full py-1.5 px-2 text-[11px] font-bold rounded bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 border border-sky-500/30 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                         >
-                          <ShieldCheck className="h-3.5 w-3.5" /> Abrir Inspeção (Checklist & Fotos)
+                          <ShieldCheck className="h-3.5 w-3.5" /> Check-list
                         </button>
                       </div>
                     );
