@@ -284,7 +284,30 @@ export function ProductionKanbanBoard({
           </button>
         )}
 
-        <div ref={containerRef} className="flex gap-3.5 min-h-full items-stretch overflow-x-auto pb-8 px-1 scrollbar-hide select-none" style={{ WebkitOverflowScrolling: "touch" }}>
+        {/* Seletor rápido de colunas: visível apenas abaixo de lg */}
+        <div className="flex lg:hidden items-center gap-1.5 overflow-x-auto py-1 px-1 mb-2.5 scrollbar-none shrink-0 select-none">
+          {department.statuses.map((s) => {
+            const count = ordersByStatus[s.id]?.length || 0;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => {
+                  const el = document.getElementById(`prod-col-${department.id}-${s.id}`);
+                  el?.scrollIntoView({ behavior: "smooth", inline: "center", block: "nearest" });
+                }}
+                className="px-2.5 py-1 text-xs font-semibold rounded-full shrink-0 border border-border/60 bg-card/90 text-muted-foreground hover:text-foreground hover:bg-muted active:scale-95 transition-all flex items-center gap-1.5 shadow-xs"
+              >
+                <span>{s.label}</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-muted font-mono-tech font-bold">
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div ref={containerRef} className="flex gap-3.5 min-h-full items-stretch overflow-x-auto pb-8 px-1 scrollbar-hide select-none snap-x snap-mandatory lg:snap-none" style={{ WebkitOverflowScrolling: "touch" }}>
           {department.statuses.map((statusConfig) => (
             <ProductionColumn
               key={statusConfig.id}

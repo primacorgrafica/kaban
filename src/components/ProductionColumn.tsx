@@ -147,7 +147,10 @@ export function ProductionColumn({
   const verifiedEmailCount = getVerifiedCountForOrders(columnOrderIds);
 
   return (
-    <div className="flex-shrink-0 w-[80vw] sm:w-72 flex flex-col rounded-2xl glass-bento min-h-full transition-all duration-200">
+    <div
+      id={`prod-col-${department.id}-${statusConfig.id}`}
+      className="flex-shrink-0 w-[86vw] max-w-[340px] sm:w-72 lg:w-72 snap-center lg:snap-align-none flex flex-col rounded-2xl glass-bento min-h-full transition-all duration-200"
+    >
       <div
         className="flex items-center gap-2.5 px-3.5 py-3 border-b flex-shrink-0 rounded-t-2xl"
         style={{

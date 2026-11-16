@@ -117,7 +117,10 @@ export function KanbanColumn({
   const verifiedEmailCount = getVerifiedCountForOrders(columnOrderIds);
 
   return (
-    <div className="flex-shrink-0 w-[82vw] sm:w-[290px] flex flex-col rounded-2xl glass-bento transition-all min-h-full">
+    <div
+      id={`prepress-col-${status}`}
+      className="flex-shrink-0 w-[86vw] max-w-[340px] sm:w-[290px] lg:w-[290px] snap-center lg:snap-align-none flex flex-col rounded-2xl glass-bento transition-all min-h-full"
+    >
       <div className="flex items-center gap-2.5 px-3.5 py-3 border-b border-border/60 dark:border-[#4A5C6A]/25 flex-shrink-0 rounded-t-2xl bg-muted/30 dark:bg-[#11212D]/40">
         <div
           className="w-6 h-6 rounded-lg flex items-center justify-center shrink-0 border"
