@@ -56,6 +56,7 @@ export const ACCESS_MODULES: { id: string; label: string }[] = [
   { id: "digital", label: "Digital" },
   { id: "producao", label: "Produção" },
   { id: "qualidade", label: "Qualidade" },
+  { id: "inspecao", label: "Inspeção" },
   { id: "expedicao", label: "Expedição" },
   { id: "entregas", label: "Gestão Entregas" },
   { id: "entregador", label: "Entregador (App Mobile)" },

@@ -66,6 +66,7 @@ export default function ProducaoPage() {
     archiveOrder,
     deleteOrder,
     sendToProduction,
+    sendToInspecao,
     sendToExpedicao,
     sendBackToPrePress,
     getProfileName,
@@ -516,6 +517,7 @@ export default function ProducaoPage() {
                       onOpenBlockageDialog={handleOpenBlockageDialog}
                       onOpenSendDeptDialog={handleOpenSendDeptDialog}
                       onSendBackToPrePress={sendBackToPrePress}
+                      onSendToInspecao={sendToInspecao}
                       onSendToExpedicao={sendToExpedicao}
                       currentUserName={user?.email || "Operador"}
                     />
@@ -531,6 +533,7 @@ export default function ProducaoPage() {
                       onOpenBlockageDialog={handleOpenBlockageDialog}
                       onOpenSendDeptDialog={handleOpenSendDeptDialog}
                       onSendBackToPrePress={sendBackToPrePress}
+                      onSendToInspecao={sendToInspecao}
                       onSendToExpedicao={sendToExpedicao}
                       currentUserName={user?.email || "Operador"}
                     />
@@ -546,6 +549,7 @@ export default function ProducaoPage() {
                       onOpenBlockageDialog={handleOpenBlockageDialog}
                       onOpenSendDeptDialog={handleOpenSendDeptDialog}
                       onSendBackToPrePress={sendBackToPrePress}
+                      onSendToInspecao={sendToInspecao}
                       onSendToExpedicao={sendToExpedicao}
                       currentUserName={user?.email || "Operador"}
                     />
@@ -562,6 +566,7 @@ export default function ProducaoPage() {
                         onOpenBlockageDialog={handleOpenBlockageDialog}
                         onOpenSendDeptDialog={handleOpenSendDeptDialog}
                         onSendBackToPrePress={sendBackToPrePress}
+                        onSendToInspecao={sendToInspecao}
                         onSendToExpedicao={sendToExpedicao}
                         currentUserName={user?.email || "Operador"}
                       />
@@ -588,6 +593,7 @@ export default function ProducaoPage() {
                     onOpenBlockageDialog={handleOpenBlockageDialog}
                     onOpenSendDeptDialog={handleOpenSendDeptDialog}
                     onSendBackToPrePress={sendBackToPrePress}
+                    onSendToInspecao={sendToInspecao}
                     onSendToExpedicao={sendToExpedicao}
                     currentUserName={user?.email || "Operador"}
                   />
@@ -644,6 +650,7 @@ export default function ProducaoPage() {
           onOpenChange={setSendDeptDialogOpen}
           onSendToProduction={sendToProduction}
           onSendBackToPrePress={sendBackToPrePress}
+          onSendToInspecao={sendToInspecao}
           onSendToExpedicao={sendToExpedicao}
         />
       </div>

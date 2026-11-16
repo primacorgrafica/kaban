@@ -15,6 +15,7 @@ interface ProducaoSectorBlockProps {
   onOpenBlockageDialog: (order: Order) => void;
   onOpenSendDeptDialog: (order: Order) => void;
   onSendBackToPrePress?: (id: string) => void | Promise<any>;
+  onSendToInspecao?: (id: string) => void | Promise<any>;
   onSendToExpedicao?: (id: string) => void | Promise<any>;
   currentUserName?: string | null;
   readOnly?: boolean;
@@ -29,6 +30,7 @@ export function ProducaoSectorBlock({
   onOpenBlockageDialog,
   onOpenSendDeptDialog,
   onSendBackToPrePress,
+  onSendToInspecao,
   onSendToExpedicao,
   currentUserName,
   readOnly = false,
@@ -172,6 +174,7 @@ export function ProducaoSectorBlock({
               onOpenBlockageDialog={onOpenBlockageDialog}
               onOpenSendDeptDialog={onOpenSendDeptDialog}
               onSendBackToPrePress={onSendBackToPrePress}
+              onSendToInspecao={onSendToInspecao}
               onSendToExpedicao={onSendToExpedicao}
               currentUserName={currentUserName}
               readOnly={readOnly}

@@ -2,6 +2,7 @@ import { Order } from "@/types/order";
 import { toast } from "sonner";
 import { DepartmentConfig, Department } from "@/types/production";
 import { hasProductionPriority } from "@/lib/productionPriority";
+import { validateInspecaoConditions } from "@/types/inspecao";
 import { ProductionColumn } from "./ProductionColumn";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { useRef, useCallback, useState, useEffect } from "react";
@@ -171,6 +172,17 @@ export function ProductionKanbanBoard({
 
     const order = orders.find(o => o.id === result.draggableId);
     if (fromStatus !== toStatus) {
+      // Validação estrita para Saída na Inspeção
+      if (department.id === "inspecao" && toStatus === "saida" && order) {
+        const validation = validateInspecaoConditions(order.inspecao_checklist, order.inspecao_fotos);
+        if (!validation.canMoveToSaida) {
+          toast.error(`Bloqueio de Saída na Inspeção:\n• ${validation.errorMessages.join("\n• ")}`, {
+            duration: 6000,
+          });
+          return;
+        }
+      }
+
       // Ao arrastar card para paralisado ou qualquer coluna, sempre vir zerado
       setMotivoParada("");
       const moveData = {
@@ -205,7 +217,38 @@ export function ProductionKanbanBoard({
         return;
       }
     }
-    if (pendingMove.toStatus === "aguardando_novo_arquivo" || pendingMove.toStatus === "paralisado") {
+    // Bloqueio de Saída na Inspeção
+    if (department.id === "inspecao" && pendingMove.toStatus === "saida") {
+      const order = orders.find(o => o.id === pendingMove.id);
+      const validation = validateInspecaoConditions(order?.inspecao_checklist, order?.inspecao_fotos);
+      if (!validation.canMoveToSaida) {
+        toast.error(`Bloqueio de Saída na Inspeção:\n• ${validation.errorMessages.join("\n• ")}`, {
+          duration: 6000,
+        });
+        setPendingMove(null);
+        return;
+      }
+    }
+
+    // Parado na Inspeção exige motivo obrigatório
+    if (department.id === "inspecao" && pendingMove.toStatus === "parado") {
+      if (!motivoParada.trim()) {
+        toast.error("Ao mover para Parado na etapa Inspeção, o motivo é OBRIGATÓRIO.");
+        return;
+      }
+      onUpdate(pendingMove.id, {
+        inspecao_motivo_parada: motivoParada.trim(),
+        observacao: motivoParada.trim(),
+        inspecao_status: "parado",
+      });
+      void supabase.from("order_inspecao_history" as any).insert({
+        order_id: pendingMove.id,
+        tipo_evento: "parada",
+        descricao: `Parada na Inspeção: ${motivoParada.trim()}`,
+        detalhes: { motivo: motivoParada.trim() },
+        usuario_nome: "Operador",
+      });
+    } else if (pendingMove.toStatus === "aguardando_novo_arquivo" || pendingMove.toStatus === "paralisado") {
       onUpdate(pendingMove.id, { observacao: motivoParada.trim() || null });
     }
     onMove(pendingMove.id, pendingMove.toStatus, pendingMove.newIndex);
@@ -278,27 +321,66 @@ export function ProductionKanbanBoard({
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          {(pendingMove?.toStatus === "aguardando_novo_arquivo" || pendingMove?.toStatus === "paralisado") && (
-            <div className="p-3 rounded-xl border border-amber-500/40 bg-amber-500/10 space-y-2 text-left my-2">
+          {(pendingMove?.toStatus === "aguardando_novo_arquivo" || pendingMove?.toStatus === "paralisado" || pendingMove?.toStatus === "parado") && (
+            <div className="p-3.5 rounded-xl border border-amber-500/40 bg-amber-500/10 space-y-2 text-left my-2">
               <Label className="text-xs font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1.5 uppercase">
                 <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
-                Motivo da Parada
+                Motivo da Parada {department.id === "inspecao" ? "(Obrigatório)*" : ""}
               </Label>
               <Textarea
                 value={motivoParada}
                 onChange={(e) => setMotivoParada(e.target.value)}
                 placeholder="Informe o motivo da parada (ex: Aguardando novo arquivo do cliente, faca com problema, cliente pediu alteração...)"
                 className="text-xs bg-background min-h-[65px] text-foreground resize-none"
+                autoFocus
               />
+              <div className="space-y-1 pt-1">
+                <span className="text-[10px] text-muted-foreground font-medium block">Sugestões rápidas:</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    "Aguardando novo arquivo do cliente",
+                    "Aguardando aprovação de alteração",
+                    "Faca / clichê incorreto",
+                    "Arquivo corrompido ou sem sangria",
+                    "Cliente solicitou pausa no trabalho",
+                  ].map((sugestao) => (
+                    <Button
+                      key={sugestao}
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setMotivoParada(sugestao)}
+                      className="text-[10px] h-6 px-2 rounded-lg bg-muted/40 hover:bg-muted text-foreground cursor-pointer"
+                    >
+                      {sugestao}
+                    </Button>
+                  ))}
+                </div>
+              </div>
               <p className="text-[11px] text-muted-foreground">
                 Este motivo ficará em destaque visual no card da O.S.
               </p>
             </div>
           )}
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => { setMotivoParada(""); setPendingMove(null); }}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmMove}>Confirmar</AlertDialogAction>
-          </AlertDialogFooter>
+          {(() => {
+            const isParadoBlocked =
+              department.id === "inspecao" &&
+              pendingMove?.toStatus === "parado" &&
+              !motivoParada.trim();
+
+            return (
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => { setMotivoParada(""); setPendingMove(null); }}>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={confirmMove}
+                  disabled={isParadoBlocked}
+                  className={isParadoBlocked ? "opacity-50 cursor-not-allowed" : ""}
+                >
+                  Confirmar
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            );
+          })()}
         </AlertDialogContent>
       </AlertDialog>
 

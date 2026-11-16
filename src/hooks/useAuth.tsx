@@ -324,10 +324,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasModule = (mod: string) => {
     if (isAdmin) return true;
 
-    // Se o usuário possui um setor vinculado exclusivo (ex: "ctp", "digital", "pre_impressao", "qualidade", "producao")
+    // Se o usuário possui um setor vinculado exclusivo (ex: "ctp", "digital", "pre_impressao", "qualidade", "producao", "inspecao")
     // seu acesso operacional fica estritamente restrito a esse setor
     if (setorVinculado) {
-      if (["pre_impressao", "ctp", "digital", "qualidade", "producao"].includes(mod)) {
+      if (["pre_impressao", "ctp", "digital", "qualidade", "producao", "inspecao"].includes(mod)) {
         return setorVinculado.toLowerCase() === mod.toLowerCase();
       }
     }
@@ -345,16 +345,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     // Fallback seguro: default-deny baseado na role caso não haja módulos explicitamente configurados
     if (role === "coordenador") {
-      return ["comercial", "pcp", "pre_impressao", "ctp", "digital", "qualidade", "producao", "expedicao", "entregas", "gestao_entregas", "entregador", "trabalhos_concluidos", "compras", "manutencao", "dashboard", "cadastros", "cadastro", "utilidades", "mural"].includes(mod);
+      return ["comercial", "pcp", "pre_impressao", "ctp", "digital", "qualidade", "producao", "inspecao", "expedicao", "entregas", "gestao_entregas", "entregador", "trabalhos_concluidos", "compras", "manutencao", "dashboard", "cadastros", "cadastro", "utilidades", "mural"].includes(mod);
     }
     if (role === "vendedor") {
       return ["comercial", "utilidades"].includes(mod);
     }
     if (role === "orcamentista") {
-      return ["comercial", "pcp", "pre_impressao", "ctp", "digital", "producao", "utilidades"].includes(mod);
+      return ["comercial", "pcp", "pre_impressao", "ctp", "digital", "producao", "inspecao", "utilidades"].includes(mod);
     }
     if (role === "operador" || role === "impressor") {
-      return ["pre_impressao", "ctp", "digital", "qualidade", "producao", "utilidades"].includes(mod);
+      return ["pre_impressao", "ctp", "digital", "qualidade", "producao", "inspecao", "utilidades"].includes(mod);
     }
     if (role === "entregador") {
       return mod === "entregador";

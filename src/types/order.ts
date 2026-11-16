@@ -1,3 +1,5 @@
+import { InspecaoChecklist, InspecaoFoto } from "./inspecao";
+
 export type OrderStatus =
   | "fila_de_entrada"
   | "paralisado"
@@ -139,6 +141,11 @@ export interface Order {
   sharepoint_folder_id?: string | null;
   sharepoint_folder_url?: string | null;
   sharepoint_folder_name?: string | null;
+  // Inspeção fields
+  inspecao_checklist?: InspecaoChecklist | null;
+  inspecao_fotos?: InspecaoFoto[] | null;
+  inspecao_status?: string | null;
+  inspecao_motivo_parada?: string | null;
 }
 
 export interface Profile {

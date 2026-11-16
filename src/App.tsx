@@ -11,6 +11,7 @@ import AuthPage from "./pages/AuthPage";
 // Code-splitting em rotas pesadas para carregamento ultra rápido do bundle inicial
 const ProductionPage = lazy(() => import("./pages/ProductionPage"));
 const ProducaoPage = lazy(() => import("./pages/ProducaoPage"));
+const InspecaoPage = lazy(() => import("./pages/InspecaoPage"));
 const ExpedicaoPage = lazy(() => import("./pages/ExpedicaoPage"));
 const UserManagementPage = lazy(() => import("./pages/UserManagementPage"));
 const EquipamentosPage = lazy(() => import("./pages/EquipamentosPage"));
@@ -123,6 +124,9 @@ function ProducaoRedirect() {
   if (setorVinculado === "digital") {
     return <Navigate to="/digital" replace />;
   }
+  if (setorVinculado === "inspecao") {
+    return <Navigate to="/inspecao" replace />;
+  }
   return <Navigate to="/" replace />;
 }
 
@@ -148,6 +152,7 @@ const App = () => (
                 <Route path="/qualidade" element={<ProtectedRoute module="qualidade"><ProductionPage /></ProtectedRoute>} />
                 <Route path="/producao/:departamento" element={<ProtectedRoute module="producao"><ProductionPage /></ProtectedRoute>} />
                 <Route path="/producao" element={<ProtectedRoute module="producao"><ProducaoPage /></ProtectedRoute>} />
+                <Route path="/inspecao" element={<ProtectedRoute module="inspecao"><InspecaoPage /></ProtectedRoute>} />
                 <Route path="/expedicao" element={<ProtectedRoute module="expedicao"><ExpedicaoPage /></ProtectedRoute>} />
                 <Route path="/usuarios" element={<ProtectedRoute requireCoordinatorOrAdmin><UserManagementPage /></ProtectedRoute>} />
                 <Route path="/equipamentos" element={<ProtectedRoute module="cadastros"><EquipamentosPage /></ProtectedRoute>} />

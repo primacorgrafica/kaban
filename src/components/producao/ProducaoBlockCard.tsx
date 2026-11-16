@@ -19,6 +19,7 @@ import {
   CheckCircle2,
   PackageCheck,
   Truck,
+  ShieldCheck,
   Sparkles,
   Repeat,
   Layers,
@@ -67,6 +68,7 @@ interface ProducaoBlockCardProps {
   onOpenBlockageDialog: (order: Order) => void;
   onOpenSendDeptDialog: (order: Order) => void;
   onSendBackToPrePress?: (id: string) => void | Promise<any>;
+  onSendToInspecao?: (id: string) => void | Promise<any>;
   onSendToExpedicao?: (id: string) => void | Promise<any>;
   currentUserName?: string | null;
   readOnly?: boolean;
@@ -79,6 +81,7 @@ export function ProducaoBlockCard({
   onOpenBlockageDialog,
   onOpenSendDeptDialog,
   onSendBackToPrePress,
+  onSendToInspecao,
   onSendToExpedicao,
   currentUserName,
   readOnly = false,
@@ -283,7 +286,17 @@ export function ProducaoBlockCard({
                     </DropdownMenuItem>
                   )}
 
-                  {onSendToExpedicao && (
+                  {onSendToInspecao && (
+                    <DropdownMenuItem
+                      onClick={() => onSendToInspecao(order.id)}
+                      className="text-xs cursor-pointer text-emerald-400 font-semibold"
+                    >
+                      <ShieldCheck className="h-3.5 w-3.5 mr-2" />
+                      Enviar p/ Inspeção
+                    </DropdownMenuItem>
+                  )}
+
+                  {!onSendToInspecao && onSendToExpedicao && (
                     <DropdownMenuItem
                       onClick={() => onSendToExpedicao(order.id)}
                       className="text-xs cursor-pointer text-emerald-400"

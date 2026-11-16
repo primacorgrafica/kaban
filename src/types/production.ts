@@ -3,6 +3,7 @@ export type Department =
   | "ctp"
   | "digital"
   | "producao"
+  | "inspecao"
   | "expedicao" 
   | "compras"
   | "manutencao";
@@ -90,6 +91,17 @@ export const MANUTENCAO_DEPARTMENT: DepartmentConfig = {
   ],
 };
 
+export const INSPECAO_DEPARTMENT: DepartmentConfig = {
+  id: "inspecao",
+  label: "Inspeção",
+  statuses: [
+    { id: "entrada", label: "Entrada", colorKey: "entrada" },
+    { id: "inspecao", label: "Inspeção", colorKey: "andamento" },
+    { id: "parado", label: "Parado", colorKey: "revisao" },
+    { id: "saida", label: "Saída", colorKey: "concluido" },
+  ],
+};
+
 export const EXPEDICAO_DEPARTMENT: DepartmentConfig = {
   id: "expedicao",
   label: "Expedição",
@@ -109,7 +121,7 @@ export const DEPARTMENTS: DepartmentConfig[] = [
 ];
 
 export const DEPARTMENT_MAP: Record<Department, DepartmentConfig> = 
-  [...DEPARTMENTS, EXPEDICAO_DEPARTMENT, COMPRAS_DEPARTMENT, MANUTENCAO_DEPARTMENT].reduce((acc, dept) => {
+  [...DEPARTMENTS, INSPECAO_DEPARTMENT, EXPEDICAO_DEPARTMENT, COMPRAS_DEPARTMENT, MANUTENCAO_DEPARTMENT].reduce((acc, dept) => {
     acc[dept.id] = dept;
     return acc;
   }, {} as Record<Department, DepartmentConfig>);

@@ -82,6 +82,7 @@ const Index = () => {
     if (hasModule("ctp")) return <Navigate to="/ctp" replace />;
     if (hasModule("digital")) return <Navigate to="/digital" replace />;
     if (hasModule("qualidade")) return <Navigate to="/qualidade" replace />;
+    if (hasModule("inspecao")) return <Navigate to="/inspecao" replace />;
     if (hasModule("expedicao")) return <Navigate to="/expedicao" replace />;
     if (hasModule("entregas") || hasModule("gestao_entregas")) return <Navigate to="/entregas" replace />;
     if (hasModule("entregador")) return <Navigate to="/entregador" replace />;

@@ -272,7 +272,9 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
     ...(canAccessSector("digital") ? [{ to: "/digital", label: "Digital", icon: PrinterCheck, count: deptCountsLoaded ? (deptCounts["digital"] ?? 0) : undefined }] : []),
     // 7. PRODUÇÃO (Fila de Entrada em Tabela)
     ...(canAccessSector("producao") ? [{ to: "/producao", label: "Produção", icon: Factory, count: deptCountsLoaded ? (deptCounts["producao_entrada"] ?? 0) : undefined }] : []),
-    // 8. EXPEDIÇÃO
+    // 8. INSPEÇÃO (Posicionada ANTES de Expedição)
+    ...(hasModule("inspecao") || canAccessSector("inspecao") ? [{ to: "/inspecao", label: "Inspeção", icon: ShieldCheck, count: deptCountsLoaded ? (deptCounts["inspecao"] ?? 0) : undefined }] : []),
+    // 9. EXPEDIÇÃO
     ...(hasModule("expedicao") ? [{ to: "/expedicao", label: "Expedição", icon: Truck, count: deptCountsLoaded ? (deptCounts["expedicao"] ?? 0) : undefined }] : []),
     // 9. GESTÃO DE ENTREGAS
     ...(hasModule("entregas") ? [{ to: "/entregas", label: "Gestão de Entregas", icon: Package }] : []),

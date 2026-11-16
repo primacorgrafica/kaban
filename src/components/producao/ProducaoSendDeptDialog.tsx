@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Send, Layers, Printer, Factory, Truck, RotateCcw } from "lucide-react";
+import { Send, Layers, Printer, Factory, Truck, RotateCcw, ShieldCheck } from "lucide-react";
 import { cleanOsNumber } from "@/lib/orderRelationsService";
 import { toast } from "sonner";
 
@@ -28,6 +28,7 @@ interface ProducaoSendDeptDialogProps {
   onSendToProduction: (id: string, department: Department, machine?: string) => void | Promise<any>;
   onSendBackToPrePress?: (id: string) => void | Promise<any>;
   onSendToExpedicao?: (id: string) => void | Promise<any>;
+  onSendToInspecao?: (id: string) => void | Promise<any>;
 }
 
 export function ProducaoSendDeptDialog({
@@ -37,6 +38,7 @@ export function ProducaoSendDeptDialog({
   onSendToProduction,
   onSendBackToPrePress,
   onSendToExpedicao,
+  onSendToInspecao,
 }: ProducaoSendDeptDialogProps) {
   const [selectedDept, setSelectedDept] = useState<string>("");
 
@@ -53,6 +55,12 @@ export function ProducaoSendDeptDialog({
     if (selectedDept === "pre_impressao") {
       if (onSendBackToPrePress) {
         await Promise.resolve(onSendBackToPrePress(order.id));
+      }
+    } else if (selectedDept === "inspecao") {
+      if (onSendToInspecao) {
+        await Promise.resolve(onSendToInspecao(order.id));
+      } else {
+        await Promise.resolve(onSendToProduction(order.id, "inspecao"));
       }
     } else if (selectedDept === "expedicao") {
       if (onSendToExpedicao) {
@@ -114,10 +122,10 @@ export function ProducaoSendDeptDialog({
                     <span>Qualidade</span>
                   </div>
                 </SelectItem>
-                <SelectItem value="expedicao" className="text-xs">
+                <SelectItem value="inspecao" className="text-xs">
                   <div className="flex items-center gap-2">
-                    <Truck className="h-3.5 w-3.5 text-emerald-400" />
-                    <span>Expedição</span>
+                    <ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />
+                    <span>Inspeção</span>
                   </div>
                 </SelectItem>
                 <SelectItem value="pre_impressao" className="text-xs text-amber-500">

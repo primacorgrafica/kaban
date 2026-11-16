@@ -1089,6 +1089,43 @@ export function useOrders() {
     }
   }, [user, orders]);
 
+  const sendToInspecao = useCallback(async (orderId: string) => {
+    const originalOrder = orders.find(o => o.id === orderId);
+    if (!originalOrder) return;
+    const isUrgent = originalOrder.urgente_prova || originalOrder.urgente_impressao || originalOrder.urgente_acabamento || originalOrder.urgente_expedicao;
+    const cleanedObs = cleanObservationProductionPriority(originalOrder.observacao);
+
+    const payload: any = {
+      ...copyOrderFields(originalOrder),
+      observacao: cleanedObs,
+      prioridade_producao: false,
+      criado_por: originalOrder.criado_por,
+      atualizado_por: user?.id || null,
+      setor: "inspecao",
+      setor_status: "entrada",
+      posicao: isUrgent ? 0 : 9999,
+      parent_order_id: originalOrder.parent_order_id || orderId,
+    };
+
+    let { error } = await supabase.from("orders").insert(payload as any);
+    if (error && (error.message?.includes("prioridade_producao") || (error as any).code === "42703" || (error as any).code === "PGRST204")) {
+      delete payload.prioridade_producao;
+      const retry = await supabase.from("orders").insert(payload as any);
+      error = retry.error;
+    }
+
+    if (error) {
+      if ((error as any).code === "23505") {
+        toast.error("Esta O.S. já possui uma cópia ativa em INSPEÇÃO.");
+      } else {
+        toast.error("Erro ao enviar para Inspeção");
+      }
+      console.error(error);
+    } else {
+      toast.success("O.S. enviada para Inspeção!");
+    }
+  }, [user, orders]);
+
   const sendToExpedicao = useCallback(async (orderId: string) => {
     const originalOrder = orders.find(o => o.id === orderId);
     if (!originalOrder) return;
@@ -1209,7 +1246,7 @@ export function useOrders() {
     toast.success(`OS. enviada para ${created} setor(es)!`);
   }, [user, orders, sendToProduction]);
 
-  const VALID_EXTERNAL_SECTORS = ["qualidade", "ctp", "digital", "producao", "expedicao", "compras", "manutencao"];
+  const VALID_EXTERNAL_SECTORS = ["qualidade", "ctp", "digital", "producao", "inspecao", "expedicao", "compras", "manutencao"];
   const isPreImpressao = (o: Order) => !o.setor || !VALID_EXTERNAL_SECTORS.includes(o.setor);
 
   const matchesSearch = (o: Order, q: string) => {
@@ -1280,6 +1317,7 @@ export function useOrders() {
     sendToProduction,
     sendToMultipleProduction,
     sendBackToPrePress,
+    sendToInspecao,
     sendToExpedicao,
     sendToCompras,
     loading,

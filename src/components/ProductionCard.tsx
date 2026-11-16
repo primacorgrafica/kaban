@@ -10,8 +10,10 @@ import { ptBR } from "date-fns/locale";
 import { businessHoursMs } from "@/lib/businessHours";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeApprovalEntry } from "@/lib/approvalEntryCache";
-import { RotateCcw, Calendar, User, FileText, Archive, Trash2, ChevronRight, ChevronLeft, GripVertical, UserCheck, Clock, AlertTriangle, Send, Undo2, Briefcase, Truck, Edit2, Check, Mail, HardHat, CheckCircle, ArrowUp, ArrowDown, Repeat, Star, StarOff } from "lucide-react";
+import { RotateCcw, Calendar, User, FileText, Archive, Trash2, ChevronRight, ChevronLeft, GripVertical, UserCheck, Clock, AlertTriangle, Send, Undo2, Briefcase, Truck, Edit2, Check, Mail, HardHat, CheckCircle, ArrowUp, ArrowDown, Repeat, Star, StarOff, Camera, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { InspecaoWorkspaceDialog } from "./inspecao/InspecaoWorkspaceDialog";
+import { INSPECAO_CHECKLIST_ITEMS, InspecaoChecklist, InspecaoFoto } from "@/types/inspecao";
 import { OrderEmailEventsSection } from "@/components/email/OrderEmailEventsSection";
 import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -169,6 +171,8 @@ function ProductionCardImpl({
 
   const isExpedicao = department.id === "expedicao";
   const isExpedicaoEntrada = isExpedicao && currentStatus.id === "entrada";
+  const isInspecao = department.id === "inspecao";
+  const [inspecaoModalOpen, setInspecaoModalOpen] = useState(false);
 
   // Faturamento checklist state
   const [fatData, setFatData] = useState({
@@ -1029,6 +1033,78 @@ function ProductionCardImpl({
                     ))}
                 </div>
               )}
+
+              {/* Indicadores Visuais da INSPEÇÃO */}
+              {isInspecao && (
+                <div className="mt-2 pt-2 border-t border-border/60 space-y-2" onClick={(e) => e.stopPropagation()}>
+                  {(() => {
+                    const checklist = (order.inspecao_checklist || {}) as InspecaoChecklist;
+                    const fotos = (order.inspecao_fotos || []) as InspecaoFoto[];
+                    const answeredCount = Object.values(checklist).filter((item) => item?.status).length;
+                    const hasReproved = Object.values(checklist).some((item) => item?.status === "reprovado");
+                    const hasRestricted = Object.values(checklist).some((item) => item?.status === "aprovado_com_restricao");
+                    const isComplete = answeredCount === 5;
+
+                    let checklistColor = "border-border/60 text-muted-foreground bg-muted/20";
+                    let checklistLabel = `Checklist: ${answeredCount}/5`;
+                    if (hasReproved) {
+                      checklistColor = "border-red-500/50 text-red-400 bg-red-500/15 font-bold";
+                      checklistLabel = `Checklist: ${answeredCount}/5 (Reprovado)`;
+                    } else if (isComplete && hasRestricted) {
+                      checklistColor = "border-amber-500/50 text-amber-400 bg-amber-500/15 font-bold";
+                      checklistLabel = `Checklist: 5/5 (Com Restrição)`;
+                    } else if (isComplete) {
+                      checklistColor = "border-emerald-500/50 text-emerald-400 bg-emerald-500/15 font-bold";
+                      checklistLabel = `Checklist: 5/5 (Aprovado)`;
+                    } else if (answeredCount > 0) {
+                      checklistColor = "border-sky-500/50 text-sky-400 bg-sky-500/15";
+                    }
+
+                    const fotosCount = fotos.length;
+                    const fotosColor = fotosCount >= 1
+                      ? "border-emerald-500/50 text-emerald-400 bg-emerald-500/15 font-bold"
+                      : "border-amber-500/50 text-amber-400 bg-amber-500/15";
+
+                    return (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className={`text-[10px] px-2 py-0.5 rounded border flex items-center gap-1 ${checklistColor}`}>
+                            <ShieldCheck className="h-3 w-3 shrink-0" />
+                            {checklistLabel}
+                          </span>
+                          <span className={`text-[10px] px-2 py-0.5 rounded border flex items-center gap-1 ${fotosColor}`}>
+                            <Camera className="h-3 w-3 shrink-0" />
+                            Fotos: {fotosCount}/5
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setInspecaoModalOpen(true);
+                          }}
+                          className="w-full py-1.5 px-2 text-[11px] font-bold rounded bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 border border-sky-500/30 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <ShieldCheck className="h-3.5 w-3.5" /> Abrir Inspeção (Checklist & Fotos)
+                        </button>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Motivo de Parada na Inspeção */}
+                  {currentStatus.id === "parado" && (order.inspecao_motivo_parada || order.observacao) && (
+                    <div className="p-2 rounded bg-amber-500/10 border border-amber-500/30 text-amber-500 text-xs">
+                      <span className="font-bold flex items-center gap-1 mb-0.5">
+                        <AlertTriangle className="h-3 w-3" /> Motivo da Parada:
+                      </span>
+                      <p className="text-[11px] text-amber-400 font-medium">
+                        {order.inspecao_motivo_parada || order.observacao}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
 
@@ -1124,8 +1200,36 @@ function ProductionCardImpl({
           </div>
         )}
 
+        {/* Inspeção: Botão dedicado para Concluir Inspeção e Enviar para Expedição */}
+        {!readOnly && isExitStatus && isInspecao && (
+          <div className="flex flex-col border-t border-border/70 divide-y divide-border/60">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onSendToDepartment) {
+                  onSendToDepartment(order.id, "expedicao");
+                  toast.success(`O.S. #${order.titulo} enviada para EXPEDIÇÃO!`);
+                }
+              }}
+              className="w-full py-2.5 px-3 text-xs font-bold uppercase tracking-wide flex items-center justify-center gap-1.5 transition-colors bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs font-mono-tech cursor-pointer"
+              title="Concluir Inspeção e enviar para Expedição"
+            >
+              <Truck className="h-3.5 w-3.5" /> Concluir Inspeção → Enviar p/ Expedição
+            </button>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setSendDialogOpen(true); }}
+              className="py-1.5 text-[10px] font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 flex items-center justify-center gap-1 transition-colors cursor-pointer"
+              title="Ou enviar para outro setor"
+            >
+              <Send className="h-3 w-3" /> Outro Setor...
+            </button>
+          </div>
+        )}
+
         {/* Send to next department button when in exit/final status (demais setores) */}
-        {!readOnly && isExitStatus && department.id !== "faturamento" && department.id !== "ctp" && department.id !== "digital" && !isExpedicaoCopy && (
+        {!readOnly && isExitStatus && department.id !== "faturamento" && department.id !== "ctp" && department.id !== "digital" && !isInspecao && !isExpedicaoCopy && (
           <button
             onClick={(e) => { e.stopPropagation(); setSendDialogOpen(true); }}
             className="w-full py-2 text-xs font-bold uppercase tracking-wide flex items-center justify-center gap-1.5 transition-colors"
@@ -1838,10 +1942,13 @@ function ProductionCardImpl({
                 <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione o setor" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pre-impressao">Pré-Impressão</SelectItem>
-                  {DEPARTMENTS.filter(d => d.id !== department.id).map(d => (
+                  {DEPARTMENTS.filter(d => d.id !== department.id && d.id !== "inspecao").map(d => (
                     <SelectItem key={d.id} value={d.id}>{d.label}</SelectItem>
                   ))}
-                  {department.id !== "expedicao" && (
+                  {department.id !== "inspecao" && (
+                    <SelectItem value="inspecao">Inspeção</SelectItem>
+                  )}
+                  {department.id === "inspecao" && (
                     <SelectItem value="expedicao">Expedição</SelectItem>
                   )}
                 </SelectContent>
@@ -1937,6 +2044,17 @@ function ProductionCardImpl({
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Diálogo da Inspeção (Checklist & Fotos) */}
+      <InspecaoWorkspaceDialog
+        order={order}
+        open={inspecaoModalOpen}
+        onOpenChange={setInspecaoModalOpen}
+        onUpdate={onUpdate}
+        onMoveToStatus={onMove}
+        currentUserName={updatedByName}
+        readOnly={readOnly}
+      />
     </>
   );
 }

@@ -81,6 +81,10 @@ export const SHAREPOINT_PROTOCOLOS_FOLDER = "PROTOCOLOS ENTREGAS";
 export const SHAREPOINT_PROTOCOLOS_URL =
   "https://primacorgraficaeditora.sharepoint.com/sites/Produo_grupo/Documentos%20Compartilhados/Forms/AllItems.aspx?id=%2Fsites%2FProduo%5Fgrupo%2FDocumentos%20Compartilhados%2FPROTOCOLOS%20ENTREGAS&sortField=LinkFilename&isAscending=false&viewid=32c00a5e%2Dcce5%2D42f2%2Dafed%2D061024ee0ca4";
 
+export const SHAREPOINT_INSPECAO_FOLDER = "INSPEÇÃO";
+export const SHAREPOINT_INSPECAO_URL =
+  "https://primacorgraficaeditora.sharepoint.com/:f:/r/sites/Produo_grupo/Documentos%20Compartilhados/INSPE%C3%87%C3%83O?d=wd979244de4954c1c8dd7b800b3911536&csf=1&web=1&e=DyMrHJ";
+
 // Limite para upload direto simples (4 MB). Acima disso, usa Upload Session em chunks.
 const DIRECT_UPLOAD_LIMIT_BYTES = 4 * 1024 * 1024;
 
@@ -92,6 +96,7 @@ let cachedSiteId: string | null = null;
 let cachedDriveId: string | null = null;
 let cachedKabanFolderId: string | null = null;
 let cachedProtocolosFolderId: string | null = null;
+let cachedInspecaoFolderId: string | null = null;
 
 /**
  * Limpa o cache em memória de Site ID e Drive ID (útil após concessão de novas permissões)
@@ -101,6 +106,7 @@ export function resetSharePointCache(): void {
   cachedDriveId = null;
   cachedKabanFolderId = null;
   cachedProtocolosFolderId = null;
+  cachedInspecaoFolderId = null;
 }
 
 /**
@@ -439,6 +445,326 @@ export async function getOrCreateProtocolosFolder(interactiveFallback = true): P
   const errMsg = createErr?.error?.message || createRes.statusText;
   addSharePointLog("error", `Falha ao criar pasta '${SHAREPOINT_PROTOCOLOS_FOLDER}' no SharePoint: ${errMsg}`);
   throw new Error(`Falha ao preparar pasta '${SHAREPOINT_PROTOCOLOS_FOLDER}' no SharePoint: ${errMsg}`);
+}
+
+/**
+ * Garante que a pasta 'INSPEÇÃO' existe na raiz da biblioteca Documentos Compartilhados.
+ * Busca com tolerância a acentos e maiúsculas/minúsculas.
+ */
+export async function getOrCreateInspecaoFolder(interactiveFallback = true): Promise<SharePointFolderInfo> {
+  const { siteId, driveId } = await resolveSharePointSiteAndDrive(interactiveFallback);
+
+  if (cachedInspecaoFolderId) {
+    return {
+      folderId: cachedInspecaoFolderId,
+      folderName: SHAREPOINT_INSPECAO_FOLDER,
+      folderWebUrl: SHAREPOINT_INSPECAO_URL,
+      siteId,
+      driveId,
+    };
+  }
+
+  const token = await getSharePointAccessToken(interactiveFallback);
+
+  // 1. Lista os itens na raiz da biblioteca para localizar 'INSPEÇÃO'
+  const listChildrenUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root/children?$top=100`;
+  const listRes = await fetch(listChildrenUrl, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      Accept: "application/json",
+    },
+  });
+
+  if (listRes.ok) {
+    const listData = await listRes.json();
+    const items: Array<{ id: string; name: string; webUrl?: string; folder?: any }> = listData.value || [];
+    const found = items.find(
+      (item) =>
+        item.folder &&
+        (item.name.trim().toLowerCase() === "inspeção" ||
+          item.name.trim().toLowerCase() === "inspecao" ||
+          item.name.trim().toUpperCase() === "INSPEÇÃO" ||
+          item.name.trim().toUpperCase() === "INSPECAO")
+    );
+
+    if (found) {
+      cachedInspecaoFolderId = found.id;
+      addSharePointLog("info", `Pasta '${SHAREPOINT_INSPECAO_FOLDER}' localizada no SharePoint (ID: ${found.id})`);
+      return {
+        folderId: found.id,
+        folderName: found.name,
+        folderWebUrl: found.webUrl || SHAREPOINT_INSPECAO_URL,
+        driveId,
+        siteId,
+      };
+    }
+  } else {
+    const errBody = await listRes.json().catch(() => ({}));
+    addSharePointLog("warn", `Não foi possível listar raiz para localizar INSPEÇÃO (${listRes.status}): ${errBody?.error?.message || listRes.statusText}`);
+  }
+
+  // 2. Se não encontrou, cria a pasta na raiz
+  addSharePointLog("info", `Criando pasta '${SHAREPOINT_INSPECAO_FOLDER}' na biblioteca do SharePoint...`);
+  const createUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/root/children`;
+  const createRes = await fetch(createUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name: SHAREPOINT_INSPECAO_FOLDER,
+      folder: {},
+      "@microsoft.graph.conflictBehavior": "fail",
+    }),
+  });
+
+  if (createRes.ok) {
+    const createdFolder: DriveItemResponse = await createRes.json();
+    cachedInspecaoFolderId = createdFolder.id;
+    addSharePointLog("success", `Pasta '${SHAREPOINT_INSPECAO_FOLDER}' criada com sucesso no SharePoint!`);
+    return {
+      folderId: createdFolder.id,
+      folderName: createdFolder.name,
+      folderWebUrl: createdFolder.webUrl || SHAREPOINT_INSPECAO_URL,
+      driveId,
+      siteId,
+    };
+  }
+
+  // 3. Em caso de 409 (conflito por criação simultânea), recupera a pasta existente
+  if (createRes.status === 409) {
+    const retryListRes = await fetch(listChildrenUrl, {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+    });
+    if (retryListRes.ok) {
+      const listData = await retryListRes.json();
+      const items: Array<{ id: string; name: string; webUrl?: string; folder?: any }> = listData.value || [];
+      const found = items.find(
+        (item) =>
+          item.folder &&
+          (item.name.trim().toLowerCase() === "inspeção" ||
+            item.name.trim().toLowerCase() === "inspecao" ||
+            item.name.trim().toUpperCase() === "INSPEÇÃO" ||
+            item.name.trim().toUpperCase() === "INSPECAO")
+      );
+      if (found) {
+        cachedInspecaoFolderId = found.id;
+        return {
+          folderId: found.id,
+          folderName: found.name,
+          folderWebUrl: found.webUrl || SHAREPOINT_INSPECAO_URL,
+          driveId,
+          siteId,
+        };
+      }
+    }
+  }
+
+  const createErr = await createRes.json().catch(() => ({}));
+  const errMsg = createErr?.error?.message || createRes.statusText;
+  addSharePointLog("error", `Falha ao criar pasta '${SHAREPOINT_INSPECAO_FOLDER}' no SharePoint: ${errMsg}`);
+  throw new Error(`Falha ao preparar pasta '${SHAREPOINT_INSPECAO_FOLDER}' no SharePoint: ${errMsg}`);
+}
+
+/**
+ * Garante a subpasta da O.S. dentro de INSPEÇÃO: INSPEÇÃO/<numero-da-OS>
+ */
+export async function getOrCreateInspecaoOsFolder(
+  osNumber: string,
+  interactiveFallback = true
+): Promise<SharePointFolderInfo> {
+  const { siteId, driveId } = await resolveSharePointSiteAndDrive(interactiveFallback);
+  const inspecaoFolder = await getOrCreateInspecaoFolder(interactiveFallback);
+  const token = await getSharePointAccessToken(interactiveFallback);
+
+  const cleanOs = osNumber.replace(/^#+/, "").trim() || "OS_GERAL";
+  const folderName = cleanOs;
+
+  // 1. Verifica se a subpasta da O.S. já existe
+  const checkUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/items/${inspecaoFolder.folderId}:/${encodeURIComponent(
+    folderName
+  )}`;
+  const checkRes = await fetch(checkUrl, {
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" },
+  });
+
+  if (checkRes.ok) {
+    const folderData: DriveItemResponse = await checkRes.json();
+    return {
+      folderId: folderData.id,
+      folderName: folderData.name,
+      folderWebUrl: folderData.webUrl,
+      driveId,
+      siteId,
+    };
+  }
+
+  // 2. Se não existir, cria a subpasta
+  const createUrl = `https://graph.microsoft.com/v1.0/sites/${siteId}/drives/${driveId}/items/${inspecaoFolder.folderId}/children`;
+  const createRes = await fetch(createUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      name: folderName,
+      folder: {},
+      "@microsoft.graph.conflictBehavior": "fail",
+    }),
+  });
+
+  if (createRes.ok) {
+    const createdFolder: DriveItemResponse = await createRes.json();
+    return {
+      folderId: createdFolder.id,
+      folderName: createdFolder.name,
+      folderWebUrl: createdFolder.webUrl,
+      driveId,
+      siteId,
+    };
+  }
+
+  if (createRes.status === 409) {
+    const retryRes = await fetch(checkUrl, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (retryRes.ok) {
+      const folderData: DriveItemResponse = await retryRes.json();
+      return {
+        folderId: folderData.id,
+        folderName: folderData.name,
+        folderWebUrl: folderData.webUrl,
+        driveId,
+        siteId,
+      };
+    }
+  }
+
+  const errBody = await createRes.json().catch(() => ({}));
+  const errMsg = errBody?.error?.message || createRes.statusText;
+  throw new Error(`Falha ao criar subpasta da O.S. ${cleanOs} na Inspeção: ${errMsg}`);
+}
+
+/**
+ * Comprime e redimensiona a foto no cliente antes do upload (máx 1600px de largura/altura)
+ * Trata também imagens capturadas em celulares.
+ */
+export async function compressAndProcessImage(
+  file: File,
+  maxWidth = 1600,
+  maxHeight = 1600,
+  quality = 0.85
+): Promise<{ file: File; previewUrl: string }> {
+  return new Promise((resolve) => {
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+
+    img.onload = () => {
+      let width = img.naturalWidth || img.width;
+      let height = img.naturalHeight || img.height;
+
+      if (width > maxWidth || height > maxHeight) {
+        if (width > height) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        } else {
+          width = Math.round((width * maxHeight) / height);
+          height = maxHeight;
+        }
+      }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const baseName = file.name.replace(/\.[^/.]+$/, "");
+              const convertedFile = new File([blob], `${baseName}.jpg`, {
+                type: "image/jpeg",
+                lastModified: Date.now(),
+              });
+              const previewUrl = URL.createObjectURL(convertedFile);
+              URL.revokeObjectURL(objectUrl);
+              resolve({ file: convertedFile, previewUrl });
+            } else {
+              resolve({ file, previewUrl: objectUrl });
+            }
+          },
+          "image/jpeg",
+          quality
+        );
+      } else {
+        resolve({ file, previewUrl: objectUrl });
+      }
+    };
+
+    img.onerror = () => {
+      // Se não for possível decodificar no Canvas (ex.: HEIC sem codec no navegador Windows),
+      // mantém o arquivo original e o preview do objectUrl
+      resolve({ file, previewUrl: objectUrl });
+    };
+
+    img.src = objectUrl;
+  });
+}
+
+/**
+ * Formata o nome da foto de inspeção de forma única: <OS>_<AAAAMMDD-HHmmss>_<n>.<ext>
+ */
+export function formatInspecaoPhotoName(
+  osNumber: string,
+  index: number,
+  originalExt = "jpg"
+): string {
+  const cleanOs = osNumber.replace(/^#+/, "").trim() || "OS";
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const seconds = String(now.getSeconds()).padStart(2, "0");
+  const timestamp = `${year}${month}${day}-${hours}${minutes}${seconds}`;
+  const ext = originalExt.replace(/^\./, "").toLowerCase() || "jpg";
+  return `${cleanOs}_${timestamp}_${index}.${ext}`;
+}
+
+/**
+ * Envia uma foto da inspeção para a pasta INSPEÇÃO/<numero-da-OS> no SharePoint
+ */
+export async function uploadInspecaoPhotoToSharePoint(
+  file: File,
+  osNumber: string,
+  index: number,
+  onProgress?: (percent: number) => void,
+  abortSignal?: AbortSignal,
+  interactiveFallback = true
+): Promise<{ driveItem: DriveItemResponse; folderInfo: SharePointFolderInfo; finalFile: File }> {
+  // 1. Processa e comprime a foto
+  const { file: processedFile } = await compressAndProcessImage(file);
+  const ext = processedFile.name.split(".").pop() || "jpg";
+  const uniqueName = formatInspecaoPhotoName(osNumber, index, ext);
+  const namedFile = new File([processedFile], uniqueName, { type: processedFile.type });
+
+  // 2. Garante a subpasta da O.S. dentro de INSPEÇÃO
+  const osFolder = await getOrCreateInspecaoOsFolder(osNumber, interactiveFallback);
+
+  // 3. Faz o upload
+  const driveItem = await uploadFileToSharePoint(
+    namedFile,
+    osFolder,
+    onProgress,
+    abortSignal,
+    interactiveFallback
+  );
+
+  return { driveItem, folderInfo: osFolder, finalFile: namedFile };
 }
 
 /**
