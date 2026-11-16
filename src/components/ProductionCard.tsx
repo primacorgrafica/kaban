@@ -1052,7 +1052,7 @@ function ProductionCardImpl({
                       checklistLabel = `Checklist: ${answeredCount}/5 (Reprovado)`;
                     } else if (isComplete && hasRestricted) {
                       checklistColor = "border-amber-500/50 text-amber-400 bg-amber-500/15 font-bold";
-                      checklistLabel = `Checklist: 5/5 (Com Restrição)`;
+                      checklistLabel = `Checklist: 5/5 (Restrição)`;
                     } else if (isComplete) {
                       checklistColor = "border-emerald-500/50 text-emerald-400 bg-emerald-500/15 font-bold";
                       checklistLabel = `Checklist: 5/5 (Aprovado)`;
