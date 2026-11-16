@@ -5,7 +5,6 @@ import { useAuth } from "@/hooks/useAuth";
 import { Layout } from "@/components/Layout";
 import { ProductionTable } from "@/components/ProductionTable";
 import { OrderDetailDialog } from "@/components/OrderDetailDialog";
-import { ProducaoSectorBlock } from "@/components/producao/ProducaoSectorBlock";
 import { ProducaoBlockageDialog } from "@/components/producao/ProducaoBlockageDialog";
 import { ProducaoSendDeptDialog } from "@/components/producao/ProducaoSendDeptDialog";
 import { Order } from "@/types/order";
@@ -18,8 +17,6 @@ import {
   RefreshCw,
   Sparkles,
   Star,
-  LayoutGrid,
-  TableProperties,
   Printer,
   AlertOctagon,
 } from "lucide-react";
@@ -71,22 +68,6 @@ export default function ProducaoPage() {
     sendBackToPrePress,
     getProfileName,
   } = useOrders();
-
-  // Modo de exibição: "cards" ou "table", persistido no localStorage
-  const [viewMode, setViewMode] = useState<"cards" | "table">(() => {
-    try {
-      const saved = localStorage.getItem("producao_view_mode");
-      if (saved === "table" || saved === "cards") return saved;
-    } catch (_) {}
-    return "cards";
-  });
-
-  const handleSetViewMode = (mode: "cards" | "table") => {
-    setViewMode(mode);
-    try {
-      localStorage.setItem("producao_view_mode", mode);
-    } catch (_) {}
-  };
 
   // Filtros de Setor e Toggles rápidos
   const [selectedSector, setSelectedSector] = useState<string>("todos");
@@ -224,24 +205,6 @@ export default function ProducaoPage() {
     };
   }, [producaoEntradaOrders, extraSectors]);
 
-  // Grupos de ordens para os blocos da visualização em Cards
-  const ctpOrders = useMemo(() => {
-    return filteredOrders.filter((o) => o.setor?.toLowerCase() === "ctp");
-  }, [filteredOrders]);
-
-  const digitalOrders = useMemo(() => {
-    return filteredOrders.filter((o) => o.setor?.toLowerCase() === "digital");
-  }, [filteredOrders]);
-
-  const producaoOrders = useMemo(() => {
-    return filteredOrders.filter(
-      (o) =>
-        !o.setor ||
-        o.setor.toLowerCase() === "producao" ||
-        (!["ctp", "digital", ...extraSectors].includes(o.setor.toLowerCase()))
-    );
-  }, [filteredOrders, extraSectors]);
-
   // Handlers para abrir modais
   const handleInspect = useCallback((order: Order) => {
     setInspectOrder(order);
@@ -286,12 +249,12 @@ export default function ProducaoPage() {
                 </Badge>
               </div>
               <p className="text-[11px] sm:text-xs text-muted-foreground">
-                Painel por blocos de setor com cards compactos, prioridades, suprimentos e controle de paradas
+                Fila operacional consolidada em lista, prioridades, suprimentos e controle de paradas
               </p>
             </div>
           </div>
 
-          {/* Métricas rápidas e Switcher Cards vs Tabela */}
+          {/* Métricas rápidas */}
           <div className="flex items-center gap-2 flex-wrap justify-between lg:justify-end">
             <div className="flex items-center gap-1.5 flex-wrap">
               <div className="px-3 py-1.5 rounded-xl bg-background/80 border border-border text-xs flex items-center gap-2">
@@ -328,41 +291,6 @@ export default function ProducaoPage() {
                   </span>
                 </div>
               )}
-            </div>
-
-            {/* Alternador de Visualização: Cards vs Tabela */}
-            <div className="flex items-center p-0.5 rounded-xl bg-background/80 border border-border shadow-xs shrink-0">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => handleSetViewMode("cards")}
-                className={`h-7 px-3 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                  viewMode === "cards"
-                    ? "bg-primary text-primary-foreground shadow-xs font-bold"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                title="Visualização em Blocos por Setor com Cards Compactos"
-              >
-                <LayoutGrid className="h-3.5 w-3.5 mr-1.5" />
-                Cards
-              </Button>
-
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => handleSetViewMode("table")}
-                className={`h-7 px-3 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
-                  viewMode === "table"
-                    ? "bg-primary text-primary-foreground shadow-xs font-bold"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                title="Visualização Consolidada em Tabela"
-              >
-                <TableProperties className="h-3.5 w-3.5 mr-1.5" />
-                Tabela
-              </Button>
             </div>
           </div>
         </div>
@@ -500,124 +428,21 @@ export default function ProducaoPage() {
           </div>
         </div>
 
-        {/* Conteúdo Principal: Visualização em Cards (Blocos por Setor) OU Tabela */}
-        <div className="flex-1 min-h-0 overflow-hidden">
-          {viewMode === "cards" ? (
-            <div className="h-full overflow-y-auto pb-4">
-              {selectedSector === "todos" ? (
-                /* Grid responsiva com os 3 blocos principais (CTP, Digital, Produção) e eventuais extras */
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 h-full min-h-0">
-                  <div className="h-full min-h-[380px] sm:min-h-[500px]">
-                    <ProducaoSectorBlock
-                      sectorKey="ctp"
-                      sectorLabel="CTP"
-                      orders={ctpOrders}
-                      onUpdate={updateOrder}
-                      onInspect={handleInspect}
-                      onOpenBlockageDialog={handleOpenBlockageDialog}
-                      onOpenSendDeptDialog={handleOpenSendDeptDialog}
-                      onSendBackToPrePress={sendBackToPrePress}
-                      onSendToInspecao={sendToInspecao}
-                      onSendToExpedicao={sendToExpedicao}
-                      currentUserName={user?.email || "Operador"}
-                    />
-                  </div>
-
-                  <div className="h-full min-h-[380px] sm:min-h-[500px]">
-                    <ProducaoSectorBlock
-                      sectorKey="digital"
-                      sectorLabel="Digital"
-                      orders={digitalOrders}
-                      onUpdate={updateOrder}
-                      onInspect={handleInspect}
-                      onOpenBlockageDialog={handleOpenBlockageDialog}
-                      onOpenSendDeptDialog={handleOpenSendDeptDialog}
-                      onSendBackToPrePress={sendBackToPrePress}
-                      onSendToInspecao={sendToInspecao}
-                      onSendToExpedicao={sendToExpedicao}
-                      currentUserName={user?.email || "Operador"}
-                    />
-                  </div>
-
-                  <div className="h-full min-h-[380px] sm:min-h-[500px]">
-                    <ProducaoSectorBlock
-                      sectorKey="producao"
-                      sectorLabel="Produção"
-                      orders={producaoOrders}
-                      onUpdate={updateOrder}
-                      onInspect={handleInspect}
-                      onOpenBlockageDialog={handleOpenBlockageDialog}
-                      onOpenSendDeptDialog={handleOpenSendDeptDialog}
-                      onSendBackToPrePress={sendBackToPrePress}
-                      onSendToInspecao={sendToInspecao}
-                      onSendToExpedicao={sendToExpedicao}
-                      currentUserName={user?.email || "Operador"}
-                    />
-                  </div>
-
-                  {extraSectors.map((sec) => (
-                    <div key={sec} className="h-full min-h-[380px] sm:min-h-[500px]">
-                      <ProducaoSectorBlock
-                        sectorKey={sec}
-                        sectorLabel={sec.toUpperCase()}
-                        orders={filteredOrders.filter((o) => o.setor?.toLowerCase() === sec)}
-                        onUpdate={updateOrder}
-                        onInspect={handleInspect}
-                        onOpenBlockageDialog={handleOpenBlockageDialog}
-                        onOpenSendDeptDialog={handleOpenSendDeptDialog}
-                        onSendBackToPrePress={sendBackToPrePress}
-                        onSendToInspecao={sendToInspecao}
-                        onSendToExpedicao={sendToExpedicao}
-                        currentUserName={user?.email || "Operador"}
-                      />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                /* Setor específico selecionado: Exibe o bloco do setor em largura total */
-                <div className="h-full max-w-4xl mx-auto min-h-[500px]">
-                  <ProducaoSectorBlock
-                    sectorKey={selectedSector}
-                    sectorLabel={
-                      selectedSector === "ctp"
-                        ? "CTP"
-                        : selectedSector === "digital"
-                        ? "Digital"
-                        : selectedSector === "producao"
-                        ? "Produção"
-                        : selectedSector.toUpperCase()
-                    }
-                    orders={filteredOrders}
-                    onUpdate={updateOrder}
-                    onInspect={handleInspect}
-                    onOpenBlockageDialog={handleOpenBlockageDialog}
-                    onOpenSendDeptDialog={handleOpenSendDeptDialog}
-                    onSendBackToPrePress={sendBackToPrePress}
-                    onSendToInspecao={sendToInspecao}
-                    onSendToExpedicao={sendToExpedicao}
-                    currentUserName={user?.email || "Operador"}
-                  />
-                </div>
-              )}
-            </div>
-          ) : (
-            /* Modo Alternativo: Tabela consolidada com suporte completo */
-            <div className="h-full">
-              <ProductionTable
-                orders={filteredOrders}
-                onUpdate={updateOrder}
-                onMove={moveOrder}
-                onArchive={archiveOrder}
-                onDelete={deleteOrder}
-                onDuplicate={duplicateOrder}
-                onSendToProduction={sendToProduction}
-                onSendToExpedicao={sendToExpedicao}
-                getProfileName={getProfileName}
-                permissions={perms}
-                showSectorColumn={selectedSector === "todos"}
-              />
-            </div>
-          )}
+        {/* Conteúdo Principal: Tabela Consolidada de Produção (Lista) */}
+        <div className="flex-1 min-h-0 overflow-hidden h-full">
+          <ProductionTable
+            orders={filteredOrders}
+            onUpdate={updateOrder}
+            onMove={moveOrder}
+            onArchive={archiveOrder}
+            onDelete={deleteOrder}
+            onDuplicate={duplicateOrder}
+            onSendToProduction={sendToProduction}
+            onSendToExpedicao={sendToExpedicao}
+            getProfileName={getProfileName}
+            permissions={perms}
+            showSectorColumn={selectedSector === "todos"}
+          />
         </div>
 
         {/* Modal Centralizado de Detalhes da O.S. (Inspecionar / Editar) */}
