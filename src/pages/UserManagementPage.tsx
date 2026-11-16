@@ -1060,7 +1060,7 @@ export default function UserManagementPage() {
                 Novo Usuário
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="max-sm:w-[94vw] max-sm:max-w-full max-sm:p-4 max-sm:rounded-xl sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Criar Novo Usuário</DialogTitle>
               </DialogHeader>
@@ -1176,8 +1176,8 @@ export default function UserManagementPage() {
           {loading ? (
             <div className="flex items-center justify-center h-full text-muted-foreground">Carregando...</div>
           ) : (
-            <div className="rounded-lg border border-border overflow-hidden">
-              <Table>
+            <div className="rounded-lg border border-border overflow-hidden max-lg:overflow-x-auto">
+              <Table className="max-lg:min-w-[850px]">
                 <TableHeader>
                   <TableRow className="bg-muted/50">
                     <TableHead className="w-[200px]">Usuário</TableHead>
@@ -1339,7 +1339,7 @@ export default function UserManagementPage() {
 
       {/* Edit dialog */}
       <Dialog open={editOpen} onOpenChange={(open) => { if (!open) { setEditOpen(false); setEditTarget(null); } }}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-sm:w-[94vw] max-sm:max-w-full max-sm:p-4 max-sm:rounded-xl sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Editar Usuário</DialogTitle>
           </DialogHeader>

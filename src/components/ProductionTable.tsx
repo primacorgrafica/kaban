@@ -334,7 +334,7 @@ export function ProductionTable({
 
       {/* Table Container */}
       <div className="flex-1 overflow-auto scrollbar-thin">
-        <Table className="w-full text-left text-xs border-collapse">
+        <Table className="w-full max-lg:min-w-[800px] text-left text-xs border-collapse">
           <TableHeader className="sticky top-0 bg-card/95 backdrop-blur-md z-10 border-b border-border">
             <TableRow className="border-border hover:bg-transparent">
               <TableHead className="w-10 px-3 text-center">

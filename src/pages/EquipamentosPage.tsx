@@ -381,7 +381,7 @@ export default function EquipamentosPage() {
     showOmHistory = false
   ) => (
     <div className="space-y-4 max-h-[60vh] overflow-auto pr-1">
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label>Código *</Label>
           <Input value={data.codigo} onChange={(e) => onChange("codigo", e.target.value)} readOnly={readOnly} />
@@ -391,7 +391,7 @@ export default function EquipamentosPage() {
           <Input value={data.nome} onChange={(e) => onChange("nome", e.target.value)} readOnly={readOnly} />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="space-y-1.5">
           <Label>Setor</Label>
           {readOnly ? (
@@ -549,7 +549,7 @@ export default function EquipamentosPage() {
 
       {/* Main */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 border-b border-border/50 flex items-center gap-3 px-4 flex-shrink-0 glass">
+        <header className="h-14 max-lg:h-auto max-lg:py-2 border-b border-border/50 flex flex-wrap items-center gap-3 px-4 flex-shrink-0 glass">
           <Link to="/" className="lg:hidden">
             <ArrowLeft className="h-5 w-5 text-muted-foreground" />
           </Link>
@@ -562,7 +562,7 @@ export default function EquipamentosPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Buscar por nome, fabricante, operador..."
-              className="h-9 w-64 pl-9 text-sm"
+              className="h-9 w-64 max-sm:w-full pl-9 text-sm max-sm:text-base"
             />
           </div>
 
@@ -597,7 +597,7 @@ export default function EquipamentosPage() {
                 Novo Equipamento
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-4xl">
+            <DialogContent className="max-sm:w-[94vw] max-sm:max-w-full max-sm:p-4 max-sm:rounded-xl sm:max-w-4xl max-h-[90dvh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Cadastrar Novo Equipamento</DialogTitle>
               </DialogHeader>
@@ -618,8 +618,8 @@ export default function EquipamentosPage() {
               <p>Nenhum equipamento cadastrado</p>
             </div>
           ) : (
-            <div className="rounded-lg border border-border overflow-hidden">
-              <Table>
+            <div className="rounded-lg border border-border overflow-hidden max-lg:overflow-x-auto">
+              <Table className="max-lg:min-w-[650px]">
                 <TableHeader>
                   <TableRow className="bg-muted/50">
                     <TableHead>Código</TableHead>
@@ -678,7 +678,7 @@ export default function EquipamentosPage() {
 
       {/* View / Edit Dialog */}
       <Dialog open={viewOpen} onOpenChange={(open) => { setViewOpen(open); if (!open) { setEditMode(false); setSelectedEquip(null); } }}>
-        <DialogContent className="sm:max-w-4xl">
+        <DialogContent className="max-sm:w-[94vw] max-sm:max-w-full max-sm:p-4 max-sm:rounded-xl sm:max-w-4xl max-h-[90dvh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center justify-between pr-8">
               <span>{editMode ? "Editar Equipamento" : "Detalhes do Equipamento"}</span>

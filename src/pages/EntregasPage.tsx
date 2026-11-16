@@ -357,9 +357,9 @@ export default function EntregasPage() {
       countsLoading={ordersLoading}
       permissions={permissions}
     >
-      <div className="flex flex-col h-full gap-4 p-4">
+      <div className="flex flex-col h-full gap-3 sm:gap-4 p-2 sm:p-4">
         {/* Header */}
-         <div className="flex items-center flex-wrap gap-3">
+         <div className="flex items-center flex-wrap gap-2 sm:gap-3">
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold text-foreground">Programação de Entregas</h1>
             <div className="flex items-center rounded-lg bg-muted/60 border border-border p-0.5">
@@ -534,7 +534,7 @@ export default function EntregasPage() {
             <DeliveryMonitoringTab initialOrders={allOrders} />
           </div>
         ) : viewMode === "rotas" ? (
-          <div className="flex-1 min-h-[600px] h-[calc(100vh-175px)]">
+          <div className="flex-1 min-h-[500px] sm:min-h-[600px] h-[calc(100vh-175px)]">
             <DeliveryRoutesBoard
               orders={allOrders}
               entregadores={entregadores}
