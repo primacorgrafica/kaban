@@ -394,7 +394,7 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
       </div>
 
       <AlertDialog open={!!pendingMove} onOpenChange={(open) => !open && cancelMove()}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-sm:w-[94vw] max-sm:max-w-full max-sm:p-4 max-sm:rounded-xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar movimentação</AlertDialogTitle>
             <AlertDialogDescription asChild>
@@ -464,7 +464,7 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
                           value={motivoParada}
                           onChange={(e) => setMotivoParada(e.target.value)}
                           placeholder="Informe o motivo da parada (ex: Aguardando novo arquivo do cliente, faca com problema, cliente pediu alteração...)"
-                          className="text-xs bg-background min-h-[65px] text-foreground resize-none"
+                          className="text-xs max-sm:text-base bg-background min-h-[65px] text-foreground resize-none"
                         />
                         <p className="text-[11px] text-muted-foreground">
                           Este motivo ficará em destaque visual no card da O.S.
@@ -605,7 +605,7 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={cancelMove}>Cancelar</AlertDialogCancel>
+            <AlertDialogCancel onClick={cancelMove} className="max-sm:h-10 max-sm:px-4">Cancelar</AlertDialogCancel>
             {(() => {
               const isTargetSaida = pendingMove?.toStatus === "arquivo_liberado" || (pendingMove?.toStatus as string) === "saida";
               const currentOrder = orders.find((o) => o.id === pendingMove?.id);
@@ -628,7 +628,7 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
                 <AlertDialogAction
                   onClick={confirmMove}
                   disabled={isDisabled}
-                  className={isDisabled ? "opacity-50 cursor-not-allowed" : ""}
+                  className={`max-sm:h-10 max-sm:px-4 ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   Confirmar
                 </AlertDialogAction>

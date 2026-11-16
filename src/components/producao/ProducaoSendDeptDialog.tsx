@@ -78,7 +78,7 @@ export function ProducaoSendDeptDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm bg-card border-border text-card-foreground shadow-2xl rounded-2xl">
+      <DialogContent className="max-sm:w-[94vw] max-sm:max-w-full max-sm:p-4 max-sm:rounded-xl sm:max-w-sm bg-card border-border text-card-foreground shadow-2xl rounded-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base font-bold">
             <Send className="h-5 w-5 text-sky-400" />
@@ -94,7 +94,7 @@ export function ProducaoSendDeptDialog({
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Setor de Destino:</Label>
             <Select value={selectedDept} onValueChange={setSelectedDept}>
-              <SelectTrigger className="w-full text-xs bg-background border-border rounded-xl">
+              <SelectTrigger className="w-full text-xs max-sm:text-base max-sm:h-11 bg-background border-border rounded-xl">
                 <SelectValue placeholder="Selecione o setor..." />
               </SelectTrigger>
               <SelectContent className="bg-popover border-border text-popover-foreground">
@@ -145,7 +145,7 @@ export function ProducaoSendDeptDialog({
             variant="ghost"
             size="sm"
             onClick={() => onOpenChange(false)}
-            className="text-xs"
+            className="text-xs max-sm:text-sm max-sm:h-10 max-sm:px-4"
           >
             Cancelar
           </Button>
@@ -154,7 +154,7 @@ export function ProducaoSendDeptDialog({
             size="sm"
             onClick={handleConfirmSend}
             disabled={!selectedDept}
-            className="text-xs font-bold bg-sky-500 hover:bg-sky-400 text-slate-950 cursor-pointer"
+            className="text-xs max-sm:text-sm max-sm:h-10 max-sm:px-4 font-bold bg-sky-500 hover:bg-sky-400 text-slate-950 cursor-pointer"
           >
             Mover Agora
           </Button>

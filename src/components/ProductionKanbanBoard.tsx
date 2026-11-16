@@ -330,7 +330,7 @@ export function ProductionKanbanBoard({
       </div>
 
       <AlertDialog open={!!pendingMove} onOpenChange={(open) => { if (!open) { setMotivoParada(""); setPendingMove(null); } }}>
-        <AlertDialogContent>
+        <AlertDialogContent className="max-sm:w-[94vw] max-sm:max-w-full max-sm:p-4 max-sm:rounded-xl">
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar movimentação</AlertDialogTitle>
             <AlertDialogDescription>
@@ -354,7 +354,7 @@ export function ProductionKanbanBoard({
                 value={motivoParada}
                 onChange={(e) => setMotivoParada(e.target.value)}
                 placeholder="Informe o motivo da parada (ex: Aguardando novo arquivo do cliente, faca com problema, cliente pediu alteração...)"
-                className="text-xs bg-background min-h-[65px] text-foreground resize-none"
+                className="text-xs max-sm:text-base bg-background min-h-[65px] text-foreground resize-none"
                 autoFocus
               />
               {department.id !== "inspecao" && (
@@ -374,7 +374,7 @@ export function ProductionKanbanBoard({
                         variant="outline"
                         size="sm"
                         onClick={() => setMotivoParada(sugestao)}
-                        className="text-[10px] h-6 px-2 rounded-lg bg-muted/40 hover:bg-muted text-foreground cursor-pointer"
+                        className="text-[10px] max-sm:text-xs h-6 max-sm:h-9 px-2 max-sm:px-3 rounded-lg bg-muted/40 hover:bg-muted text-foreground cursor-pointer"
                       >
                         {sugestao}
                       </Button>
@@ -395,11 +395,11 @@ export function ProductionKanbanBoard({
 
             return (
               <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => { setMotivoParada(""); setPendingMove(null); }}>Cancelar</AlertDialogCancel>
+                <AlertDialogCancel onClick={() => { setMotivoParada(""); setPendingMove(null); }} className="max-sm:h-10 max-sm:px-4">Cancelar</AlertDialogCancel>
                 <AlertDialogAction
                   onClick={confirmMove}
                   disabled={isParadoBlocked}
-                  className={isParadoBlocked ? "opacity-50 cursor-not-allowed" : ""}
+                  className={`max-sm:h-10 max-sm:px-4 ${isParadoBlocked ? "opacity-50 cursor-not-allowed" : ""}`}
                 >
                   Confirmar
                 </AlertDialogAction>
