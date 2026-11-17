@@ -59,9 +59,22 @@ export function EtiquetaInspecaoDialog({
   const [alturaMm, setAlturaMm] = useState<number>(DEFAULT_ALTURA_ETIQUETA_MM);
   const [isPrinting, setIsPrinting] = useState(false);
 
-  // Inicializa os campos sempre que a ordem abrir
+  // Guarda o último ID de ordem e estado aberto para evitar reset de campos
+  // em re-renders ou perda/recuperação de foco da janela
+  const lastOpenedRef = React.useRef<{ orderId: string; wasOpen: boolean }>({
+    orderId: "",
+    wasOpen: false,
+  });
+
+  // Inicializa os campos apenas na transição de abertura (false -> true) ou troca de O.S.
   useEffect(() => {
-    if (order && open) {
+    if (!open) {
+      lastOpenedRef.current.wasOpen = false;
+      return;
+    }
+
+    if (order && (!lastOpenedRef.current.wasOpen || lastOpenedRef.current.orderId !== order.id)) {
+      lastOpenedRef.current = { orderId: order.id, wasOpen: true };
       const initial = parseOrderInspecaoInitialFields(order);
       setCliente(initial.cliente);
       setServico(initial.servico);
@@ -195,14 +208,25 @@ export function EtiquetaInspecaoDialog({
     }
   };
 
+  // Previne fechamento involuntário ao alternar abas do navegador ou minimizar a janela
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen && typeof document !== "undefined" && document.visibilityState === "hidden") {
+      // Ignora evento disparado pela perda de foco quando a aba ou janela é minimizada/oculta
+      return;
+    }
+    onOpenChange(nextOpen);
+  };
+
   if (!order) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
         className="max-sm:w-[96vw] max-sm:max-w-full max-sm:p-4 max-sm:rounded-xl sm:max-w-lg bg-card border-border text-card-foreground shadow-2xl rounded-2xl max-h-[92dvh] overflow-y-auto z-[70]"
         onClick={(e) => e.stopPropagation()}
+        onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
+        onFocusOutside={(e) => e.preventDefault()}
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
