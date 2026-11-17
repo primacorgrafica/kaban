@@ -40,6 +40,8 @@ export const CTP_DEPARTMENT: DepartmentConfig = {
   label: "CTP",
   statuses: [
     { id: "entrada", label: "Entrada", colorKey: "entrada" },
+    { id: "preparacao", label: "Preparação", colorKey: "andamento" },
+    { id: "paralisado", label: "Paralisado", colorKey: "revisao" },
     { id: "producao", label: "Produção", colorKey: "andamento" },
     { id: "saida", label: "Saída", colorKey: "concluido" },
   ],

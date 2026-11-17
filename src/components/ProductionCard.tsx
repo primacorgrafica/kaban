@@ -2033,7 +2033,7 @@ function ProductionCardImpl({
           </DialogHeader>
           <div className="space-y-3 mt-3">
             <Label className="text-xs font-semibold text-foreground">
-              Por que esta O.S está parada {department.id === "inspecao" ? "em Inspeção" : "em Preparação"}?
+              Por que esta O.S está parada {department.id === "inspecao" ? "em Inspeção" : department.id === "ctp" ? "no CTP" : "em Preparação"}?
             </Label>
             <Textarea
               value={motivoTexto}
