@@ -14,6 +14,7 @@ import { RotateCcw, Calendar, User, FileText, Archive, Trash2, ChevronRight, Che
 import { toast } from "sonner";
 import { InspecaoWorkspaceDialog } from "./inspecao/InspecaoWorkspaceDialog";
 import { EtiquetaInspecaoDialog } from "./inspecao/EtiquetaInspecaoDialog";
+import { getLocalPrintHistory, EtiquetaPrintHistoryEntry } from "@/lib/etiquetasInspecao";
 import { INSPECAO_CHECKLIST_ITEMS, InspecaoChecklist, InspecaoFoto } from "@/types/inspecao";
 import { OrderEmailEventsSection } from "@/components/email/OrderEmailEventsSection";
 import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
@@ -175,6 +176,23 @@ function ProductionCardImpl({
   const isInspecao = department.id === "inspecao";
   const [inspecaoModalOpen, setInspecaoModalOpen] = useState(false);
   const [etiquetaInspecaoOpen, setEtiquetaInspecaoOpen] = useState(false);
+  const [lastPrint, setLastPrint] = useState<EtiquetaPrintHistoryEntry | null>(() => {
+    if (department.id !== "inspecao" || !order?.id) return null;
+    const history = getLocalPrintHistory(order.id);
+    return history.length > 0 ? history[0] : null;
+  });
+
+  useEffect(() => {
+    if (!isInspecao || !order?.id) return;
+    const handlePrintEvent = (e: Event) => {
+      const custom = e as CustomEvent<{ orderId: string; entry: EtiquetaPrintHistoryEntry }>;
+      if (custom.detail?.orderId === order.id) {
+        setLastPrint(custom.detail.entry);
+      }
+    };
+    window.addEventListener("inspecao-print-completed", handlePrintEvent);
+    return () => window.removeEventListener("inspecao-print-completed", handlePrintEvent);
+  }, [isInspecao, order?.id]);
 
   // Faturamento checklist state
   const [fatData, setFatData] = useState({
@@ -1090,6 +1108,19 @@ function ProductionCardImpl({
                         >
                           <ShieldCheck className="h-3.5 w-3.5" /> Check-list
                         </button>
+
+                        {/* Indicador de última impressão concluída */}
+                        {lastPrint && (
+                          <div className="flex items-center justify-between text-[10px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2 py-1 rounded font-medium">
+                            <span className="flex items-center gap-1 truncate font-bold">
+                              <CheckCircle2 className="h-3 w-3 shrink-0" />
+                              {lastPrint.descricao}
+                            </span>
+                            <span className="text-[9px] text-muted-foreground shrink-0 font-mono-tech ml-1">
+                              {lastPrint.dataHora}
+                            </span>
+                          </div>
+                        )}
 
                         <button
                           type="button"
@@ -2075,6 +2106,10 @@ function ProductionCardImpl({
           order={order}
           open={etiquetaInspecaoOpen}
           onOpenChange={setEtiquetaInspecaoOpen}
+          currentUserName={updatedByName}
+          onPrintSuccess={() => {
+            setOpen(false);
+          }}
         />
       )}
     </>

@@ -11,13 +11,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Printer, Info, Sparkles, Hash, FileCheck, Package, Calendar, FileText } from "lucide-react";
+import { Printer, Info, Sparkles, Hash, FileCheck, Package, Calendar, FileText, History, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/hooks/useAuth";
 import {
   DEFAULT_ALTURA_ETIQUETA_MM,
   MAX_OBS_CHARS,
   CONFIRM_THRESHOLD_ETIQUETAS,
   EtiquetaInspecaoItem,
+  EtiquetaPrintHistoryEntry,
   validateSequenciaPacotes,
   generateSequenciaNumeros,
   formatLinhaPacoteManual,
@@ -25,19 +27,28 @@ import {
   parseOrderInspecaoInitialFields,
   generateEtiquetasInspecaoPrintHtml,
   printEtiquetasInspecaoViaIframe,
+  getLocalPrintHistory,
+  saveLocalPrintHistory,
+  recordPrintHistoryInSupabase,
 } from "@/lib/etiquetasInspecao";
 
 interface EtiquetaInspecaoDialogProps {
   order: Order | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  currentUserName?: string | null;
+  onPrintSuccess?: () => void;
 }
 
 export function EtiquetaInspecaoDialog({
   order,
   open,
   onOpenChange,
+  currentUserName,
+  onPrintSuccess,
 }: EtiquetaInspecaoDialogProps) {
+  const { user } = useAuth();
+  const [printHistory, setPrintHistory] = useState<EtiquetaPrintHistoryEntry[]>([]);
   // Campos editáveis apenas para esta impressão
   const [cliente, setCliente] = useState("");
   const [servico, setServico] = useState("");
@@ -89,6 +100,7 @@ export function EtiquetaInspecaoDialog({
       setAteStr(""); // Até sem valor padrão
       setAlturaMm(DEFAULT_ALTURA_ETIQUETA_MM);
       setIsPrinting(false);
+      setPrintHistory(getLocalPrintHistory(order.id));
     }
   }, [order, open]);
 
@@ -200,8 +212,45 @@ export function EtiquetaInspecaoDialog({
       const printHtml = generateEtiquetasInspecaoPrintHtml(itensParaImprimir, alturaMm);
       await printEtiquetasInspecaoViaIframe(printHtml);
 
-      // Mantém o diálogo aberto para o operador poder conferir, ajustar ou fechar quando quiser
-      toast.info("Janela de impressão aberta no navegador.");
+      // Registra a impressão no histórico de concluídas
+      const totalEtiquetas = itensParaImprimir.length;
+      const descricaoHistorico =
+        modo === "manual"
+          ? `Pacote ${numeroPacoteManual.trim() || "______"} (1 etiqueta)`
+          : `Pacotes ${deStr} a ${ateStr} (${totalEtiquetas} etiquetas)`;
+
+      const now = new Date();
+      const horaStr = `${String(now.getDate()).padStart(2, "0")}/${String(now.getMonth() + 1).padStart(2, "0")} às ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+
+      const historyEntry: EtiquetaPrintHistoryEntry = {
+        id: crypto.randomUUID(),
+        orderId: order.id,
+        descricao: descricaoHistorico,
+        detalhes: {
+          modo,
+          numeroPacote: numeroPacoteManual.trim() || undefined,
+          de: modo === "sequencial" ? sequencialValidation.de : undefined,
+          ate: modo === "sequencial" ? sequencialValidation.ate : undefined,
+          total: totalEtiquetas,
+          cliente,
+          osNumero,
+          quantidade,
+        },
+        usuario: currentUserName || user?.email?.split("@")[0] || "Operador",
+        dataHora: horaStr,
+        createdAt: now.toISOString(),
+      };
+
+      saveLocalPrintHistory(historyEntry);
+      void recordPrintHistoryInSupabase(historyEntry, user?.id);
+
+      // Atualiza lista local de histórico
+      setPrintHistory((prev) => [historyEntry, ...prev]);
+
+      // Fecha o diálogo e o card conforme solicitado pelo usuário
+      onOpenChange(false);
+      onPrintSuccess?.();
+      toast.success("Etiquetas enviadas para impressão com sucesso!");
     } catch (err: unknown) {
       console.error("[EtiquetaInspecao] Erro na impressão:", err);
       const errorMessage =
@@ -554,6 +603,44 @@ export function EtiquetaInspecaoDialog({
               </div>
             </div>
           </div>
+
+          {/* Histórico de Impressões Concluídas */}
+          {printHistory.length > 0 && (
+            <div className="p-3 rounded-xl border border-border/80 bg-muted/20 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <History className="h-3.5 w-3.5 text-emerald-400" />
+                  Histórico de Impressões Concluídas ({printHistory.length})
+                </span>
+                <span className="text-[10px] text-muted-foreground font-mono-tech">
+                  Registrado na Inspeção
+                </span>
+              </div>
+              <div className="space-y-1.5 max-h-[120px] overflow-y-auto pr-1">
+                {printHistory.map((h) => (
+                  <div
+                    key={h.id}
+                    className="flex items-center justify-between p-2 rounded-lg bg-background border border-border/60 text-[11px]"
+                  >
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="font-bold text-foreground leading-tight truncate">
+                          {h.descricao}
+                        </p>
+                        <span className="text-[10px] text-muted-foreground">
+                          Por: {h.usuario}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-mono-tech text-muted-foreground shrink-0 ml-2">
+                      {h.dataHora}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Aviso obrigatório de configuração da Zebra ZD230 */}
           <div className="p-2.5 rounded-lg bg-muted/40 border border-border/60 text-[11px] text-muted-foreground flex items-start gap-2">

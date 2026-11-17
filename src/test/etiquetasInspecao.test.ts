@@ -8,6 +8,8 @@ import {
   formatLinhaPacoteSequencial,
   generateEtiquetasInspecaoPrintHtml,
   DEFAULT_ALTURA_ETIQUETA_MM,
+  getLocalPrintHistory,
+  saveLocalPrintHistory,
 } from "@/lib/etiquetasInspecao";
 
 describe("etiquetasInspecao - Validação e Geração de Etiquetas da Inspeção", () => {
@@ -215,6 +217,35 @@ describe("etiquetasInspecao - Validação e Geração de Etiquetas da Inspeção
       expect(html).not.toContain("<b>Teste</b>");
       expect(html).toContain("&lt;b&gt;Teste&lt;/b&gt;");
       expect(html).not.toContain("<script>");
+    });
+  });
+
+  // (f) Histórico de impressões concluídas
+  describe("Histórico de impressões", () => {
+    it("deve salvar e recuperar registros no histórico local de impressões", () => {
+      const orderId = "order-test-123";
+      const entry = {
+        id: "entry-1",
+        orderId,
+        descricao: "Pacote 200 (1 etiqueta)",
+        detalhes: {
+          modo: "manual" as const,
+          numeroPacote: "200",
+          total: 1,
+          cliente: "TESTE",
+          osNumero: "020203",
+          quantidade: "100",
+        },
+        usuario: "Operador Teste",
+        dataHora: "17/11 às 11:45",
+        createdAt: new Date().toISOString(),
+      };
+
+      saveLocalPrintHistory(entry);
+      const history = getLocalPrintHistory(orderId);
+      expect(history).toHaveLength(1);
+      expect(history[0].descricao).toBe("Pacote 200 (1 etiqueta)");
+      expect(history[0].usuario).toBe("Operador Teste");
     });
   });
 });

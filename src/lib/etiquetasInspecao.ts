@@ -6,6 +6,7 @@
 
 import { Order } from "@/types/order";
 import { cleanOsNumber } from "@/components/ProductionCard";
+import { supabase } from "@/integrations/supabase/client";
 
 export const DEFAULT_ALTURA_ETIQUETA_MM = 50;
 export const MAX_OBS_CHARS = 120;
@@ -636,4 +637,85 @@ export function printEtiquetasInspecaoViaIframe(htmlContent: string): Promise<bo
       reject(err);
     }
   });
+}
+
+export interface EtiquetaPrintHistoryEntry {
+  id: string;
+  orderId: string;
+  descricao: string;
+  detalhes: {
+    modo: "manual" | "sequencial";
+    numeroPacote?: string;
+    de?: number;
+    ate?: number;
+    total: number;
+    cliente: string;
+    osNumero: string;
+    quantidade: string;
+  };
+  usuario: string;
+  dataHora: string;
+  createdAt: string;
+}
+
+/**
+ * Retorna o histórico de impressões concluídas armazenado para a O.S.
+ */
+export function getLocalPrintHistory(orderId: string): EtiquetaPrintHistoryEntry[] {
+  if (typeof window === "undefined" || !orderId) return [];
+  try {
+    const raw = localStorage.getItem(`primacor_etiquetas_history_${orderId}`);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Salva um novo registro no histórico de impressões concluídas (localStorage) e dispara evento customizado.
+ */
+export function saveLocalPrintHistory(entry: EtiquetaPrintHistoryEntry): void {
+  if (typeof window === "undefined" || !entry.orderId) return;
+  try {
+    const existing = getLocalPrintHistory(entry.orderId);
+    const updated = [entry, ...existing.filter((x) => x.id !== entry.id)].slice(0, 50);
+    localStorage.setItem(`primacor_etiquetas_history_${entry.orderId}`, JSON.stringify(updated));
+    window.dispatchEvent(
+      new CustomEvent("inspecao-print-completed", {
+        detail: { orderId: entry.orderId, entry },
+      })
+    );
+  } catch (err) {
+    console.warn("Falha ao salvar histórico local de impressão:", err);
+  }
+}
+
+/**
+ * Registra a impressão concluída na tabela de auditoria e rastreabilidade da Inspeção (Supabase).
+ */
+export async function recordPrintHistoryInSupabase(
+  entry: EtiquetaPrintHistoryEntry,
+  userId?: string | null
+): Promise<void> {
+  try {
+    const db = supabase as unknown as {
+      from: (table: string) => {
+        insert: (data: Record<string, unknown>) => Promise<unknown>;
+      };
+    };
+    await db.from("order_inspecao_history").insert({
+      order_id: entry.orderId,
+      tipo_evento: "checklist_item",
+      descricao: `Impressão de Etiqueta: ${entry.descricao}`,
+      detalhes: {
+        item: "rotulagem",
+        acao: "impressao_etiqueta",
+        ...entry.detalhes,
+      },
+      usuario_id: userId || null,
+      usuario_nome: entry.usuario,
+    });
+  } catch (err) {
+    console.warn("Falha ao sincronizar histórico de impressão no Supabase:", err);
+  }
 }
