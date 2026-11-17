@@ -6,7 +6,9 @@ import { Order, OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
 import { DEPARTMENTS, Department } from "@/types/production";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { RotateCcw, ShoppingBag, Calendar, User, FileText, Archive, Trash2, GripVertical, UserCheck, Clock, AlertTriangle, Send, Truck, Briefcase, Copy, Edit2, MessageSquarePlus, Repeat, Sparkles, Check, Zap, Mail, HardHat, ArrowUp, ArrowDown } from "lucide-react";
+import { RotateCcw, ShoppingBag, Calendar, User, FileText, Archive, Trash2, GripVertical, UserCheck, Clock, AlertTriangle, Send, Truck, Briefcase, Copy, Edit2, MessageSquarePlus, Repeat, Sparkles, Check, Zap, Mail, HardHat, ArrowUp, ArrowDown, CheckCircle2 } from "lucide-react";
+import { CtpChecklistDialog } from "./ctp/CtpChecklistDialog";
+import { getCtpChecklistStatus, isCtpChecklistComplete } from "@/types/ctp";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -324,6 +326,7 @@ function OrderCardImpl({ order, orderIndex, totalOrders, onUpdate, onMove, onArc
   const isLastStatus = order.status === "arquivo_liberado";
   const { isNearDeadline, isExpired, remainingText } = useDeadlineAlert(order.prazo);
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
+  const [checklistOpen, setChecklistOpen] = useState(false);
   const [selectedDepts, setSelectedDepts] = useState<{ department: Department; machine?: string }[]>([]);
   const [currentDept, setCurrentDept] = useState<Department | "">("");
   const [currentMachine, setCurrentMachine] = useState("");
@@ -945,13 +948,64 @@ function OrderCardImpl({ order, orderIndex, totalOrders, onUpdate, onMove, onArc
               <span>{format(new Date(order.updated_at), "dd/MM HH:mm", { locale: ptBR })}</span>
             </div>
           )}
+
+          {/* Checklist de Conferência da Saída da Pré-Impressão */}
+          {isLastStatus && (
+            <div className="pt-2 mt-2 border-t border-border/40 space-y-1.5" onClick={(e) => e.stopPropagation()}>
+              {(() => {
+                const ctpStatus = getCtpChecklistStatus(order.ctp_checklist);
+                return (
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-1 flex-wrap">
+                      <span
+                        className={`text-[9.5px] px-2 py-0.5 rounded border flex items-center gap-1 font-bold ${
+                          ctpStatus.complete
+                            ? "border-emerald-500/50 text-emerald-400 bg-emerald-500/15"
+                            : "border-amber-500/50 text-amber-400 bg-amber-500/15"
+                        }`}
+                      >
+                        <CheckCircle2 className="h-3 w-3 shrink-0" />
+                        Checklist: {ctpStatus.checkedCount}/13 {ctpStatus.complete ? "(Liberado)" : "(Pendente)"}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setChecklistOpen(true);
+                      }}
+                      className={`w-full py-1.5 px-2 text-[10.5px] font-bold rounded flex items-center justify-center gap-1.5 transition-colors cursor-pointer border ${
+                        ctpStatus.complete
+                          ? "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border-emerald-500/30"
+                          : "bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 border-sky-500/30"
+                      }`}
+                      title="Conferir checklist obrigatório de 13 itens para envio ao próximo setor"
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5" /> Checklist de Conferência (13 itens)
+                    </button>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
         </div>
 
         {isLastStatus && (permissions.canSendToProduction || onSendToCompras) && (
           <div className="flex items-center gap-1.5 p-1.5 rounded-b-2xl bg-muted/40 border-t border-border/40">
             {permissions.canSendToProduction && onSendToProduction && (
               <button
-                onClick={(e) => { e.stopPropagation(); setSendDialogOpen(true); }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!isCtpChecklistComplete(order.ctp_checklist)) {
+                    const ctpStatus = getCtpChecklistStatus(order.ctp_checklist);
+                    toast.error(`Bloqueio de Saída: É OBRIGATÓRIO marcar como verificado todos os 13 itens do checklist antes de enviar a O.S para o próximo setor (${ctpStatus.checkedCount}/13 verificados).`, {
+                      duration: 6000,
+                    });
+                    setChecklistOpen(true);
+                    return;
+                  }
+                  setSendDialogOpen(true);
+                }}
                 className="flex-1 py-2 text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all rounded-xl bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] shadow-md font-mono-tech"
               >
                 <Send className="h-3.5 w-3.5" /> Produção →
@@ -1549,6 +1603,14 @@ function OrderCardImpl({ order, orderIndex, totalOrders, onUpdate, onMove, onArc
               className="w-full"
               disabled={selectedDepts.length === 0}
               onClick={() => {
+                if (!isCtpChecklistComplete(order.ctp_checklist)) {
+                  const ctpStatus = getCtpChecklistStatus(order.ctp_checklist);
+                  toast.error(`Bloqueio de Saída: É OBRIGATÓRIO marcar como verificado todos os 13 itens do checklist antes de enviar a O.S para o próximo setor (${ctpStatus.checkedCount}/13 verificados).`, {
+                    duration: 6000,
+                  });
+                  setChecklistOpen(true);
+                  return;
+                }
                 if (onSendToMultipleProduction) {
                   onSendToMultipleProduction(order.id, selectedDepts);
                 } else if (onSendToProduction && selectedDepts.length > 0) {
@@ -1637,6 +1699,15 @@ function OrderCardImpl({ order, orderIndex, totalOrders, onUpdate, onMove, onArc
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Diálogo do Checklist de Conferência da Pré-Impressão (13 itens) */}
+      <CtpChecklistDialog
+        order={order}
+        open={checklistOpen}
+        onOpenChange={setChecklistOpen}
+        onUpdate={onUpdate}
+        currentUserName={updatedByName}
+      />
     </>
   );
 }

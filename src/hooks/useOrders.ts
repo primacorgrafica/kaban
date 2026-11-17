@@ -26,6 +26,7 @@ import { syncServerTimeOffset } from "@/lib/businessHours";
 import { toast } from "sonner";
 import { Order, OrderStatus, Profile, STATUS_CONFIG } from "@/types/order";
 import { Department } from "@/types/production";
+import { isCtpChecklistComplete } from "@/types/ctp";
 import { KANBAN_ESSENTIAL_COLUMNS } from "@/lib/autonomousEngine/queryOptimizer";
 import { measureQueryLatency } from "@/lib/autonomousEngine/telemetry";
 import { triggerSellerApprovalNotification } from "@/lib/sellerNotificationService";
@@ -1035,6 +1036,10 @@ export function useOrders() {
 
   const sendToProduction = useCallback(async (orderId: string, department: Department, machine?: string) => {
     const order = orders.find(o => o.id === orderId);
+    if (!order?.setor && !isCtpChecklistComplete(order?.ctp_checklist)) {
+      toast.error("Bloqueio de Saída: É obrigatório verificar todos os 13 itens do checklist antes de enviar a O.S para o próximo setor.");
+      return;
+    }
     const cleanedObs = cleanObservationProductionPriority(order?.observacao);
 
     const payload: any = {
@@ -1195,6 +1200,10 @@ export function useOrders() {
 
     const originalOrder = orders.find(o => o.id === orderId);
     if (!originalOrder) return;
+    if (!originalOrder.setor && !isCtpChecklistComplete(originalOrder.ctp_checklist)) {
+      toast.error("Bloqueio de Saída: É obrigatório verificar todos os 13 itens do checklist antes de enviar a O.S para o próximo setor.");
+      return;
+    }
     const cleanedObs = cleanObservationProductionPriority(originalOrder?.observacao);
 
     // Remove setores repetidos na mesma seleção

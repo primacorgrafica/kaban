@@ -6,6 +6,7 @@ import { fetchVendedores, formatVendedorNome } from "@/lib/vendedores";
 import { useState, useEffect, useMemo } from "react";
 import { Order, OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
 import { DEPARTMENTS, Department } from "@/types/production";
+import { isCtpChecklistComplete } from "@/types/ctp";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { RotateCcw, Calendar,
@@ -969,7 +970,15 @@ export function OrderDetailDialog({
                   {permissions.canSendToProduction && onSendToProduction && (
                     <Button
                       size="sm"
-                      onClick={() => setSendDialogOpen(true)}
+                      onClick={() => {
+                        if (isLastStatus && !order.setor && !isCtpChecklistComplete(order.ctp_checklist)) {
+                          toast.error("Bloqueio de Saída: É OBRIGATÓRIO marcar como verificado todos os 13 itens do checklist antes de enviar a O.S para o próximo setor.", {
+                            duration: 6000,
+                          });
+                          return;
+                        }
+                        setSendDialogOpen(true);
+                      }}
                       className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold text-xs rounded-xl h-9 px-4 gap-1.5 shadow-sm"
                     >
                       <Send className="h-3.5 w-3.5" /> {isLastStatus ? "Enviar → Produção" : "Mover de Setor"}
@@ -1158,6 +1167,12 @@ export function OrderDetailDialog({
               className="w-full"
               disabled={selectedDepts.length === 0}
               onClick={() => {
+                if (isLastStatus && !order.setor && !isCtpChecklistComplete(order.ctp_checklist)) {
+                  toast.error("Bloqueio de Saída: É OBRIGATÓRIO marcar como verificado todos os 13 itens do checklist antes de enviar a O.S para o próximo setor.", {
+                    duration: 6000,
+                  });
+                  return;
+                }
                 if (onSendToMultipleProduction) {
                   onSendToMultipleProduction(order.id, selectedDepts);
                 } else if (onSendToProduction && selectedDepts.length > 0) {

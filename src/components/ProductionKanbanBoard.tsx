@@ -3,7 +3,6 @@ import { toast } from "sonner";
 import { DepartmentConfig, Department } from "@/types/production";
 import { hasProductionPriority } from "@/lib/productionPriority";
 import { validateInspecaoConditions } from "@/types/inspecao";
-import { isCtpChecklistComplete, getCtpChecklistStatus } from "@/types/ctp";
 import { ProductionColumn } from "./ProductionColumn";
 import { DragDropContext, DropResult } from "@hello-pangea/dnd";
 import { useRef, useCallback, useState, useEffect } from "react";
@@ -173,17 +172,6 @@ export function ProductionKanbanBoard({
 
     const order = orders.find(o => o.id === result.draggableId);
     if (fromStatus !== toStatus) {
-      // Bloqueio de Checklist do CTP: para avançar para Produção ou Saída
-      if (department.id === "ctp" && (toStatus === "producao" || toStatus === "saida") && order) {
-        if (!isCtpChecklistComplete(order.ctp_checklist)) {
-          const ctpStatus = getCtpChecklistStatus(order.ctp_checklist);
-          toast.error(`Bloqueio CTP: É OBRIGATÓRIO marcar como verificado todos os 13 itens do checklist antes de avançar para Produção (${ctpStatus.checkedCount}/13 verificados).`, {
-            duration: 6000,
-          });
-          return;
-        }
-      }
-
       // Validação estrita para Saída na Inspeção
       if (department.id === "inspecao" && toStatus === "saida" && order) {
         const validation = validateInspecaoConditions(order.inspecao_checklist, order.inspecao_fotos);
@@ -229,19 +217,6 @@ export function ProductionKanbanBoard({
         return;
       }
     }
-    // Bloqueio de Produção no CTP sem checklist 100% conferido
-    if (department.id === "ctp" && (pendingMove.toStatus === "producao" || pendingMove.toStatus === "saida")) {
-      const order = orders.find(o => o.id === pendingMove.id);
-      if (order && !isCtpChecklistComplete(order.ctp_checklist)) {
-        const ctpStatus = getCtpChecklistStatus(order.ctp_checklist);
-        toast.error(`Bloqueio CTP: É OBRIGATÓRIO marcar como verificado todos os 13 itens do checklist antes de avançar para Produção (${ctpStatus.checkedCount}/13 verificados).`, {
-          duration: 6000,
-        });
-        setPendingMove(null);
-        return;
-      }
-    }
-
     // Bloqueio de Saída na Inspeção
     if (department.id === "inspecao" && pendingMove.toStatus === "saida") {
       const order = orders.find(o => o.id === pendingMove.id);

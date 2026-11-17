@@ -91,7 +91,7 @@ export function CtpChecklistDialog({
   const handleClearAll = () => {
     if (readOnly) return;
     setChecklist({});
-    toast.info("Checklist do CTP foi limpo");
+    toast.info("Checklist de conferência foi limpo");
   };
 
   const handleSave = async () => {
@@ -104,13 +104,13 @@ export function CtpChecklistDialog({
       await onUpdate(order.id, { ctp_checklist: checklist });
       const currentStatus = getCtpChecklistStatus(checklist);
       if (currentStatus.complete) {
-        toast.success("Checklist do CTP 100% verificado! O.S liberada para Produção.");
+        toast.success("Checklist 100% verificado! O.S liberada para envio ao próximo setor.");
       } else {
-        toast.success(`Checklist do CTP salvo (${currentStatus.checkedCount}/13 verificados).`);
+        toast.success(`Checklist salvo (${currentStatus.checkedCount}/13 verificados).`);
       }
       onOpenChange(false);
     } catch (err) {
-      toast.error("Erro ao salvar checklist do CTP.");
+      toast.error("Erro ao salvar checklist de conferência.");
     } finally {
       setIsSaving(false);
     }
@@ -130,7 +130,7 @@ export function CtpChecklistDialog({
                   <Layers className="h-4 w-4" />
                 </span>
                 <DialogTitle className="text-base sm:text-lg font-bold text-foreground">
-                  Checklist de Conferência CTP — O.S {cleanOs}
+                  Checklist de Conferência — O.S {cleanOs}
                 </DialogTitle>
               </div>
               <p className="text-xs text-muted-foreground line-clamp-1">
@@ -175,7 +175,7 @@ export function CtpChecklistDialog({
         {!readOnly && (
           <div className="px-6 py-2.5 bg-muted/30 border-b border-border/50 flex flex-wrap items-center justify-between gap-2 text-xs">
             <span className="text-muted-foreground text-[11px]">
-              Obrigatório marcar todos os 13 itens para avançar para <strong>Produção</strong>.
+              Obrigatório marcar todos os 13 itens para liberar o envio para o próximo setor.
             </span>
             <div className="flex items-center gap-2">
               <Button

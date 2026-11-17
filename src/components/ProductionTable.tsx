@@ -238,13 +238,6 @@ export function ProductionTable({
   // Batch actions
   const handleBatchMove = (status: string) => {
     if (permissions.isViewOnly) return;
-    if (department?.id === "ctp" && (status === "producao" || status === "saida")) {
-      const blocked = orders.filter((o) => selectedIds.has(o.id) && !isCtpChecklistComplete(o.ctp_checklist));
-      if (blocked.length > 0) {
-        toast.error(`Bloqueio CTP: ${blocked.length} O.S selecionada(s) não possuem os 13 itens do checklist conferidos.`);
-        return;
-      }
-    }
     const count = selectedIds.size;
     selectedIds.forEach((id) => onMove(id, status as any));
     const label = department ? department.statuses.find(s => s.id === status)?.label : STATUS_CONFIG[status as OrderStatus]?.label;
@@ -728,6 +721,12 @@ export function ProductionTable({
                           <button
                             type="button"
                             onClick={() => {
+                              if (departmentContext === "pre_impressao" && !order.setor && !isCtpChecklistComplete(order.ctp_checklist)) {
+                                toast.error("Bloqueio de Saída: É OBRIGATÓRIO marcar como verificado todos os 13 itens do checklist antes de enviar a O.S para o próximo setor.", {
+                                  duration: 6000,
+                                });
+                                return;
+                              }
                               setSendOrder(order);
                               setSendDialogOpen(true);
                             }}
@@ -753,6 +752,12 @@ export function ProductionTable({
                             {permissions.canSendToProduction && onSendToProduction && (
                               <DropdownMenuItem
                                 onClick={() => {
+                                  if (departmentContext === "pre_impressao" && !order.setor && !isCtpChecklistComplete(order.ctp_checklist)) {
+                                    toast.error("Bloqueio de Saída: É OBRIGATÓRIO marcar como verificado todos os 13 itens do checklist antes de enviar a O.S para o próximo setor.", {
+                                      duration: 6000,
+                                    });
+                                    return;
+                                  }
                                   setSendOrder(order);
                                   setSendDialogOpen(true);
                                 }}
@@ -934,6 +939,12 @@ export function ProductionTable({
               disabled={selectedDepts.length === 0 && !currentDept}
               onClick={() => {
                 if (!sendOrder) return;
+                if (departmentContext === "pre_impressao" && !sendOrder.setor && !isCtpChecklistComplete(sendOrder.ctp_checklist)) {
+                  toast.error("Bloqueio de Saída: É OBRIGATÓRIO marcar como verificado todos os 13 itens do checklist antes de enviar a O.S para o próximo setor.", {
+                    duration: 6000,
+                  });
+                  return;
+                }
                 const deptsToSend =
                   selectedDepts.length > 0
                     ? selectedDepts
