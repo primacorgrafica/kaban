@@ -1600,7 +1600,17 @@ function ProductionCardImpl({
               {/* Expedição: editable expedition fields */}
               {isExpedicao && !isSpecialOrder && !editing && (
                 <div className="border-t pt-1.5 space-y-0.5">
-                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Expedição</p>
+                  <div className="flex items-center justify-between pb-1">
+                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Expedição</p>
+                    <Button
+                      type="button"
+                      size="sm"
+                      onClick={() => setEtiquetaModalOpen(true)}
+                      className="h-7 px-2.5 text-xs bg-sky-500 hover:bg-sky-600 text-white font-bold gap-1.5 shadow-sm"
+                    >
+                      <Printer className="h-3.5 w-3.5" /> Imprimir etiqueta
+                    </Button>
+                  </div>
 
                   {/* Tipo Entrega: MOTO / CARRO / RETIRA (multiple selection) */}
                   <div className="flex items-center gap-4 flex-wrap">
@@ -1889,6 +1899,16 @@ function ProductionCardImpl({
                   ) : isSpecialOrder || isExpedicaoCopy ? (
                     /* OM/OC/NC/P copies in Expedição: Salvar + Arquivar + Excluir */
                     <div className="flex items-center gap-2">
+                      {isExpedicao && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => setEtiquetaModalOpen(true)}
+                          className="bg-sky-500 hover:bg-sky-600 text-white font-bold gap-1.5 shadow-sm"
+                        >
+                          <Printer className="h-4 w-4" /> Imprimir etiqueta
+                        </Button>
+                      )}
                       <div className="flex-1" />
                       <Button size="sm" variant="outline" onClick={() => { handleSave(); setOpen(false); }}>
                         <FileText className="h-4 w-4 mr-1" /> Salvar
@@ -1904,6 +1924,16 @@ function ProductionCardImpl({
                     /* Other departments: full actions */
                     <>
                       <div className="flex items-center gap-2">
+                        {isExpedicao && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => setEtiquetaModalOpen(true)}
+                            className="bg-sky-500 hover:bg-sky-600 text-white font-bold gap-1.5 shadow-sm"
+                          >
+                            <Printer className="h-4 w-4" /> Imprimir etiqueta
+                          </Button>
+                        )}
                         <div className="flex-1" />
                         <Button size="sm" variant="outline" onClick={() => setEditing(true)}>Editar</Button>
                         <Button size="sm" variant="outline" onClick={() => { onArchive(order.id); setOpen(false); }}>

@@ -110,7 +110,7 @@ export function EtiquetaExpedicaoDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="max-sm:w-[96vw] max-sm:max-w-full max-sm:p-4 max-sm:rounded-xl sm:max-w-lg bg-card border-border text-card-foreground shadow-2xl rounded-2xl max-h-[92dvh] overflow-y-auto"
+        className="max-sm:w-[96vw] max-sm:max-w-full max-sm:p-4 max-sm:rounded-xl sm:max-w-lg bg-card border-border text-card-foreground shadow-2xl rounded-2xl max-h-[92dvh] overflow-y-auto z-[70]"
         onClick={(e) => e.stopPropagation()}
       >
         <DialogHeader>
