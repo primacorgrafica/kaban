@@ -144,6 +144,11 @@ describe("etiquetasInspecao - Validação e Geração de Etiquetas da Inspeção
       expect(html).toContain("page-break-after: auto !important");
       expect(html).toContain("Pacote <u>01</u>");
       expect(html).toContain("Entrega urgente");
+      expect(html).toContain('class="etiqueta-card"');
+      expect(html).toContain('class="banner-pacote"');
+      expect(html).toContain('class="header-os-box"');
+      expect(html).toContain("Quantidade:");
+      expect(html).toContain("Data:");
     });
 
     it("deve gerar N etiquetas no modo sequencial com quebra em todas exceto a última", () => {

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Printer, Info, Sparkles, Hash } from "lucide-react";
+import { Printer, Info, Sparkles, Hash, FileCheck, Package, Calendar, FileText } from "lucide-react";
 import { toast } from "sonner";
 import {
   DEFAULT_ALTURA_ETIQUETA_MM,
@@ -42,6 +42,7 @@ export function EtiquetaInspecaoDialog({
   const [cliente, setCliente] = useState("");
   const [servico, setServico] = useState("");
   const [quantidade, setQuantidade] = useState("");
+  const [dataStr, setDataStr] = useState("");
   const [osNumero, setOsNumero] = useState("");
   const [observacao, setObservacao] = useState("");
 
@@ -79,6 +80,7 @@ export function EtiquetaInspecaoDialog({
       setCliente(initial.cliente);
       setServico(initial.servico);
       setQuantidade(initial.quantidade);
+      setDataStr(initial.data);
       setOsNumero(initial.osNumero);
       setObservacao(""); // Começa vazio
       setModo("manual"); // Modo inicial é Manual
@@ -112,6 +114,7 @@ export function EtiquetaInspecaoDialog({
         cliente,
         servico,
         quantidade,
+        data: dataStr,
         osNumero,
         observacao,
         numeroPacote: numTrim,
@@ -127,13 +130,14 @@ export function EtiquetaInspecaoDialog({
         cliente,
         servico,
         quantidade,
+        data: dataStr,
         osNumero,
         observacao,
         numeroPacote: primeiroNum,
         linhaPacoteHtml: formatLinhaPacoteSequencial(primeiroNum),
       };
     }
-  }, [modo, cliente, servico, quantidade, osNumero, observacao, numeroPacoteManual, sequencialValidation]);
+  }, [modo, cliente, servico, quantidade, dataStr, osNumero, observacao, numeroPacoteManual, sequencialValidation]);
 
   const handlePrint = async () => {
     if (!order || !isFormValid) {
@@ -150,6 +154,7 @@ export function EtiquetaInspecaoDialog({
           cliente,
           servico,
           quantidade,
+          data: dataStr,
           osNumero,
           observacao,
           numeroPacote: numTrim,
@@ -177,6 +182,7 @@ export function EtiquetaInspecaoDialog({
         cliente,
         servico,
         quantidade,
+        data: dataStr,
         osNumero,
         observacao,
         numeroPacote: num,
@@ -237,8 +243,8 @@ export function EtiquetaInspecaoDialog({
 
         <div className="space-y-4 pt-1">
           {/* Informações da O.S. editáveis apenas para esta impressão */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="sm:col-span-2 space-y-1">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="sm:col-span-3 space-y-1">
               <Label className="text-xs font-semibold text-muted-foreground">
                 Cliente:
               </Label>
@@ -246,11 +252,11 @@ export function EtiquetaInspecaoDialog({
                 value={cliente}
                 onChange={(e) => setCliente(e.target.value)}
                 placeholder="Nome do cliente"
-                className="text-xs max-sm:text-base max-sm:h-11 bg-background"
+                className="text-xs max-sm:text-base max-sm:h-11 bg-background font-bold uppercase"
               />
             </div>
 
-            <div className="sm:col-span-2 space-y-1">
+            <div className="sm:col-span-3 space-y-1">
               <Label className="text-xs font-semibold text-muted-foreground">
                 Serviço / Produto:
               </Label>
@@ -269,8 +275,20 @@ export function EtiquetaInspecaoDialog({
               <Input
                 value={quantidade}
                 onChange={(e) => setQuantidade(e.target.value)}
-                placeholder="Ex: 5.000 un"
-                className="text-xs max-sm:text-base max-sm:h-11 bg-background"
+                placeholder="Ex: 100"
+                className="text-xs max-sm:text-base max-sm:h-11 bg-background font-bold"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold text-muted-foreground">
+                Data:
+              </Label>
+              <Input
+                value={dataStr}
+                onChange={(e) => setDataStr(e.target.value)}
+                placeholder="DD/MM/AAAA"
+                className="text-xs max-sm:text-base max-sm:h-11 bg-background font-medium"
               />
             </div>
 
@@ -281,13 +299,13 @@ export function EtiquetaInspecaoDialog({
               <Input
                 value={osNumero}
                 onChange={(e) => setOsNumero(e.target.value)}
-                placeholder="Ex: 73210"
-                className="text-xs max-sm:text-base max-sm:h-11 bg-background"
+                placeholder="Ex: 020203"
+                className="text-xs max-sm:text-base max-sm:h-11 bg-background font-black"
               />
             </div>
 
             {/* Campo Obs: multilinha, opcional, max 120 caracteres com contador */}
-            <div className="sm:col-span-2 space-y-1">
+            <div className="sm:col-span-3 space-y-1">
               <div className="flex items-center justify-between">
                 <Label className="text-xs font-semibold text-muted-foreground">
                   Obs. (opcional):
@@ -450,61 +468,88 @@ export function EtiquetaInspecaoDialog({
                   Pré-visualização ({modo === "sequencial" ? "Primeira Etiqueta" : "Etiqueta"} — 80x{alturaMm}mm):
                 </span>
               </Label>
-              <span className="text-[10px] text-muted-foreground">Fiel à Zebra ZD230</span>
+              <span className="text-[10px] text-muted-foreground font-mono-tech">Fiel à Zebra ZD230</span>
             </div>
 
-            <div className="p-3 rounded-xl bg-neutral-100 dark:bg-neutral-900 border border-border/80 flex items-center justify-center overflow-x-auto">
+            <div className="p-3 rounded-xl bg-neutral-200 dark:bg-neutral-900 border border-border/80 flex items-center justify-center overflow-x-auto">
               <div
                 style={{
                   width: "100%",
-                  maxWidth: "340px",
+                  maxWidth: "370px",
                   aspectRatio: `80 / ${alturaMm}`,
                 }}
-                className="bg-white text-black p-3 rounded shadow-md border border-neutral-300 font-sans text-xs flex flex-col justify-between select-none"
+                className="bg-white text-black p-2.5 rounded-xl shadow-md border-[2.2px] border-black font-sans flex flex-col justify-between select-none box-border"
               >
-                <div className="space-y-1 text-[11px] leading-tight">
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-bold text-black shrink-0">Cliente:</span>
-                    <span className="font-semibold text-black break-words line-clamp-2">
-                      {previewItem.cliente.trim() || "—"}
-                    </span>
-                  </div>
-
-                  <div className="flex items-baseline gap-1">
-                    <span className="font-bold text-black shrink-0">Serviço:</span>
-                    <span className="text-black break-words line-clamp-2">
-                      {previewItem.servico.trim() || "—"}
-                    </span>
-                  </div>
-
-                  <div className="flex items-baseline justify-between gap-2 pt-0.5">
-                    <div className="flex items-baseline gap-1">
-                      <span className="font-bold text-black shrink-0">Quantidade:</span>
-                      <span className="font-semibold text-black">
-                        {previewItem.quantidade.trim() || "—"}
-                      </span>
-                    </div>
-                    <div className="flex items-baseline gap-1">
-                      <span className="font-bold text-black shrink-0">O.S.:</span>
-                      <span className="font-extrabold text-black">
-                        {previewItem.osNumero.trim() || "—"}
-                      </span>
+                {/* CABEÇALHO */}
+                <div className="flex items-center justify-between border-b-2 border-black pb-1.5 gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                    <FileCheck className="h-6 w-6 stroke-[2.2] text-black shrink-0" />
+                    <div className="w-[2px] h-6 bg-black shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <div className="font-black text-xs uppercase leading-tight tracking-tight line-clamp-2">
+                        {previewItem.cliente.trim() || "CLIENTE"}
+                      </div>
+                      <div className="text-[10px] text-black font-medium leading-tight line-clamp-1 mt-0.5">
+                        <strong className="font-bold">Serviço:</strong> {previewItem.servico.trim() || "—"}
+                      </div>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-1 pt-0.5 min-h-[18px]">
-                    <span className="font-bold text-black shrink-0">Obs.:</span>
-                    <span className="text-[10px] text-black break-words line-clamp-3">
-                      {previewItem.observacao?.trim() || <span className="inline-block w-32 border-b border-dotted border-black/60">&nbsp;</span>}
+                  {/* Badge OS */}
+                  <div className="border-2 border-black rounded-lg px-2 py-0.5 text-center shrink-0 min-w-[62px] flex flex-col items-center justify-center bg-white">
+                    <span className="text-[9px] font-black leading-none tracking-wider">O.S.:</span>
+                    <span className="text-sm font-black leading-none tracking-tight mt-0.5">
+                      {previewItem.osNumero.trim() || "—"}
                     </span>
                   </div>
                 </div>
 
-                <div className="text-center font-black text-base pt-1.5 mt-auto border-t-2 border-dashed border-black tracking-wide text-black leading-none">
-                  Pacote{" "}
-                  <u className="underline underline-offset-4">
-                    {previewItem.numeroPacote || "______"}
-                  </u>
+                {/* CORPO: 3 LINHAS COM ÍCONES E BARRAS */}
+                <div className="flex flex-col justify-around py-1 space-y-1 flex-1">
+                  {/* Linha 1: Quantidade */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Package className="h-4 w-4 stroke-[2.2] text-black" />
+                      <div className="w-[1.5px] h-3.5 bg-black mx-1" />
+                      <span className="text-[11px] font-extrabold text-black">Quantidade:</span>
+                    </div>
+                    <span className="text-sm font-black text-black text-right truncate">
+                      {previewItem.quantidade.trim() || "—"}
+                    </span>
+                  </div>
+
+                  {/* Linha 2: Data */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Calendar className="h-4 w-4 stroke-[2.2] text-black" />
+                      <div className="w-[1.5px] h-3.5 bg-black mx-1" />
+                      <span className="text-[11px] font-extrabold text-black">Data:</span>
+                    </div>
+                    <span className="text-xs font-black text-black text-right">
+                      {previewItem.data || "—"}
+                    </span>
+                  </div>
+
+                  {/* Linha 3: Obs */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1 shrink-0">
+                      <FileText className="h-4 w-4 stroke-[2.2] text-black" />
+                      <div className="w-[1.5px] h-3.5 bg-black mx-1" />
+                      <span className="text-[11px] font-extrabold text-black">Obs.:</span>
+                    </div>
+                    <span className="text-[10px] font-bold text-black text-right line-clamp-1 flex-1">
+                      {previewItem.observacao?.trim() || <span className="inline-block w-20 border-b border-dotted border-black/60">&nbsp;</span>}
+                    </span>
+                  </div>
+                </div>
+
+                {/* BANNER INFERIOR DO PACOTE */}
+                <div className="bg-black text-white rounded-lg py-1 px-3 flex items-center justify-center gap-2 mt-auto">
+                  <div className="flex-1 h-[2px] bg-white rounded-full" />
+                  <span className="text-sm font-black tracking-wide whitespace-nowrap leading-none">
+                    Pacote {previewItem.numeroPacote || "______"}
+                  </span>
+                  <div className="flex-1 h-[2px] bg-white rounded-full" />
                 </div>
               </div>
             </div>
