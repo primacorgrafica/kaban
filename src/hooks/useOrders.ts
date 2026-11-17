@@ -1060,10 +1060,15 @@ export function useOrders() {
     }
 
     if (error) {
-      if ((error as any).code === "23505") {
+      const isDuplicate =
+        (error as any).code === "23505" ||
+        error.message?.toLowerCase().includes("já possui uma cópia ativa") ||
+        error.message?.toLowerCase().includes("duplicate");
+
+      if (isDuplicate) {
         toast.error(`Esta OS. já possui uma cópia ativa em ${department.toUpperCase()}.`);
       } else {
-        toast.error("Erro ao enviar para produção");
+        toast.error(error.message || "Erro ao enviar para produção");
       }
       console.error(error);
     } else {
@@ -1204,35 +1209,56 @@ export function useOrders() {
 
     const [first, ...rest] = uniqueDepartments;
 
-    const { error: updateError } = await supabase
+    const firstPayload: any = {
+      setor: first.department,
+      setor_status: "entrada",
+      maquina: first.machine || null,
+      posicao: 9999,
+      atualizado_por: user?.id || null,
+      prioridade_producao: false,
+      urgente: false,
+      urgente_prova: false,
+      urgente_impressao: false,
+      urgente_acabamento: false,
+      urgente_expedicao: false,
+      observacao: cleanedObs,
+    };
+
+    let { error: updateError } = await supabase
       .from("orders")
-      .update({
-        setor: first.department,
-        setor_status: "entrada",
-        maquina: first.machine || null,
-        posicao: 9999,
-        atualizado_por: user?.id || null,
-        prioridade_producao: false,
-        urgente: false,
-        urgente_prova: false,
-        urgente_impressao: false,
-        urgente_acabamento: false,
-        urgente_expedicao: false,
-        observacao: cleanedObs,
-      })
+      .update(firstPayload)
       .eq("id", orderId);
 
+    if (
+      updateError &&
+      (updateError.message?.includes("prioridade_producao") ||
+        (updateError as any).code === "42703" ||
+        (updateError as any).code === "PGRST204")
+    ) {
+      delete firstPayload.prioridade_producao;
+      const retry = await supabase.from("orders").update(firstPayload).eq("id", orderId);
+      updateError = retry.error;
+    }
+
     if (updateError) {
-      if ((updateError as any).code === "23505") {
+      const isDuplicate =
+        (updateError as any).code === "23505" ||
+        updateError.message?.toLowerCase().includes("já possui uma cópia ativa") ||
+        updateError.message?.toLowerCase().includes("duplicate");
+
+      if (isDuplicate) {
         toast.error(`Esta OS. já possui uma cópia ativa em ${first.department.toUpperCase()}.`);
       } else {
-        toast.error("Erro ao enviar para produção");
+        toast.error(updateError.message || "Erro ao enviar para produção");
       }
-      console.error(updateError);
+      console.error("[sendToMultipleProduction] updateError:", updateError);
       return;
     }
 
     let created = 1;
+    const newOrdersCreated: Order[] = [];
+    const rootParentId = originalOrder.parent_order_id || orderId;
+
     for (const dept of rest) {
       const insertPayload: any = {
         ...copyOrderFields(originalOrder),
@@ -1249,29 +1275,68 @@ export function useOrders() {
         urgente_acabamento: false,
         urgente_expedicao: false,
         observacao: cleanedObs,
-        parent_order_id: orderId,
+        parent_order_id: rootParentId,
       };
 
-      let { error: insertError } = await supabase.from("orders").insert(insertPayload as any);
-      if (insertError && (insertError.message?.includes("prioridade_producao") || insertError.message?.includes("revisao") || insertError.message?.includes("os_anterior") || (insertError as any).code === "42703" || (insertError as any).code === "PGRST204")) {
+      delete insertPayload.id;
+      delete insertPayload.created_at;
+      delete insertPayload.updated_at;
+
+      let { data: insertedData, error: insertError } = await supabase
+        .from("orders")
+        .insert(insertPayload as any)
+        .select()
+        .maybeSingle();
+
+      if (
+        insertError &&
+        (insertError.message?.includes("prioridade_producao") ||
+          insertError.message?.includes("revisao") ||
+          insertError.message?.includes("os_anterior") ||
+          (insertError as any).code === "42703" ||
+          (insertError as any).code === "PGRST204")
+      ) {
         delete insertPayload.prioridade_producao;
         delete insertPayload.revisao;
         delete insertPayload.os_anterior;
-        const retry = await supabase.from("orders").insert(insertPayload as any);
+        const retry = await supabase
+          .from("orders")
+          .insert(insertPayload as any)
+          .select()
+          .maybeSingle();
         insertError = retry.error;
+        insertedData = retry.data;
       }
 
       if (insertError) {
-        if ((insertError as any).code === "23505") {
+        const isDuplicate =
+          (insertError as any).code === "23505" ||
+          insertError.message?.toLowerCase().includes("já possui uma cópia ativa") ||
+          insertError.message?.toLowerCase().includes("duplicate");
+
+        if (isDuplicate) {
           toast.error(`Esta OS. já possui uma cópia ativa em ${dept.department.toUpperCase()}.`);
         } else {
-          toast.error(`Erro ao criar sub-ordem para ${dept.department}`);
+          toast.error(insertError.message || `Erro ao criar sub-ordem para ${dept.department}`);
         }
-        console.error(insertError);
+        console.error("[sendToMultipleProduction] insertError:", insertError);
       } else {
         created++;
+        if (insertedData) {
+          newOrdersCreated.push(insertedData as Order);
+        }
       }
     }
+
+    setOrders((prev) => {
+      let next = prev.map((o) => (o.id === orderId ? { ...o, ...firstPayload } : o));
+      if (newOrdersCreated.length > 0) {
+        const existingIds = new Set(next.map((o) => o.id));
+        const toAdd = newOrdersCreated.filter((o) => !existingIds.has(o.id));
+        next = [...next, ...toAdd];
+      }
+      return next;
+    });
 
     toast.success(`OS. enviada para ${created} setor(es)!`);
   }, [user, orders, sendToProduction]);
