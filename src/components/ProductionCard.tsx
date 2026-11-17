@@ -1155,8 +1155,8 @@ function ProductionCardImpl({
                 </div>
               )}
 
-              {/* Indicadores Visuais do CTP (Checklist de Conferência de 13 itens) */}
-              {isCtp && (
+              {/* Indicadores Visuais do CTP (Checklist de Conferência de 13 itens - SOMENTE em Preparação) */}
+              {isCtp && currentStatus.id === "preparacao" && (
                 <div className="mt-2 pt-2 border-t border-border/60 space-y-2" onClick={(e) => e.stopPropagation()}>
                   {(() => {
                     const ctpStatus = getCtpChecklistStatus(order.ctp_checklist);
