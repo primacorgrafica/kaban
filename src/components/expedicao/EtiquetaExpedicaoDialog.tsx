@@ -87,12 +87,8 @@ export function EtiquetaExpedicaoDialog({
       const printHtml = generateEtiquetasPrintHtml(etiquetas, alturaMm);
       await printEtiquetasViaIframe(printHtml);
 
-      toast.success(
-        `Disparada impressão de ${etiquetas.length} ${
-          etiquetas.length === 1 ? "etiqueta" : "etiquetas"
-        } para a O.S. #${osNumero || order.titulo}!`
-      );
-      onOpenChange(false);
+      // Mantém o diálogo aberto para o operador poder conferir, ajustar dados ou fechar quando quiser
+      toast.info("Janela de impressão aberta no navegador.");
     } catch (err: unknown) {
       console.error("[EtiquetaExpedicao] Erro na impressão:", err);
       const errorMessage =
@@ -112,6 +108,7 @@ export function EtiquetaExpedicaoDialog({
       <DialogContent
         className="max-sm:w-[96vw] max-sm:max-w-full max-sm:p-4 max-sm:rounded-xl sm:max-w-lg bg-card border-border text-card-foreground shadow-2xl rounded-2xl max-h-[92dvh] overflow-y-auto z-[70]"
         onClick={(e) => e.stopPropagation()}
+        onInteractOutside={(e) => e.preventDefault()}
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground">
@@ -317,7 +314,7 @@ export function EtiquetaExpedicaoDialog({
             disabled={isPrinting}
             className="w-full sm:w-auto max-sm:min-h-[40px] text-xs font-semibold"
           >
-            Cancelar
+            Fechar
           </Button>
 
           <Button
