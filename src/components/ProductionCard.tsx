@@ -10,10 +10,9 @@ import { ptBR } from "date-fns/locale";
 import { businessHoursMs } from "@/lib/businessHours";
 import { supabase } from "@/integrations/supabase/client";
 import { subscribeApprovalEntry } from "@/lib/approvalEntryCache";
-import { RotateCcw, Calendar, User, FileText, Archive, Trash2, ChevronRight, ChevronLeft, GripVertical, UserCheck, Clock, AlertTriangle, Send, Undo2, Briefcase, Truck, Edit2, Check, Mail, HardHat, CheckCircle, ArrowUp, ArrowDown, Repeat, Star, StarOff, Camera, ShieldCheck, CheckCircle2, Printer } from "lucide-react";
+import { RotateCcw, Calendar, User, FileText, Archive, Trash2, ChevronRight, ChevronLeft, GripVertical, UserCheck, Clock, AlertTriangle, Send, Undo2, Briefcase, Truck, Edit2, Check, Mail, HardHat, CheckCircle, ArrowUp, ArrowDown, Repeat, Star, StarOff, Camera, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { InspecaoWorkspaceDialog } from "./inspecao/InspecaoWorkspaceDialog";
-import { EtiquetaExpedicaoDialog } from "./expedicao/EtiquetaExpedicaoDialog";
 import { INSPECAO_CHECKLIST_ITEMS, InspecaoChecklist, InspecaoFoto } from "@/types/inspecao";
 import { OrderEmailEventsSection } from "@/components/email/OrderEmailEventsSection";
 import { useUnreadEmailReplies } from "@/hooks/useUnreadEmailReplies";
@@ -174,7 +173,6 @@ function ProductionCardImpl({
   const isExpedicaoEntrada = isExpedicao && currentStatus.id === "entrada";
   const isInspecao = department.id === "inspecao";
   const [inspecaoModalOpen, setInspecaoModalOpen] = useState(false);
-  const [etiquetaModalOpen, setEtiquetaModalOpen] = useState(false);
 
   // Faturamento checklist state
   const [fatData, setFatData] = useState({
@@ -1107,23 +1105,6 @@ function ProductionCardImpl({
                   )}
                 </div>
               )}
-
-              {/* Botão de Impressão de Etiquetas da EXPEDIÇÃO */}
-              {isExpedicao && (
-                <div className="mt-2 pt-2 border-t border-border/60" onClick={(e) => e.stopPropagation()}>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setEtiquetaModalOpen(true);
-                    }}
-                    className="w-full py-1.5 px-2 text-[11px] font-bold rounded bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 border border-sky-500/30 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
-                    title="Imprimir etiquetas de embalagem"
-                  >
-                    <Printer className="h-3.5 w-3.5" /> Imprimir etiqueta
-                  </button>
-                </div>
-              )}
             </>
           )}
 
@@ -1600,17 +1581,7 @@ function ProductionCardImpl({
               {/* Expedição: editable expedition fields */}
               {isExpedicao && !isSpecialOrder && !editing && (
                 <div className="border-t pt-1.5 space-y-0.5">
-                  <div className="flex items-center justify-between pb-1">
-                    <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Expedição</p>
-                    <Button
-                      type="button"
-                      size="sm"
-                      onClick={() => setEtiquetaModalOpen(true)}
-                      className="h-7 px-2.5 text-xs bg-sky-500 hover:bg-sky-600 text-white font-bold gap-1.5 shadow-sm"
-                    >
-                      <Printer className="h-3.5 w-3.5" /> Imprimir etiqueta
-                    </Button>
-                  </div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Expedição</p>
 
                   {/* Tipo Entrega: MOTO / CARRO / RETIRA (multiple selection) */}
                   <div className="flex items-center gap-4 flex-wrap">
@@ -1899,16 +1870,6 @@ function ProductionCardImpl({
                   ) : isSpecialOrder || isExpedicaoCopy ? (
                     /* OM/OC/NC/P copies in Expedição: Salvar + Arquivar + Excluir */
                     <div className="flex items-center gap-2">
-                      {isExpedicao && (
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={() => setEtiquetaModalOpen(true)}
-                          className="bg-sky-500 hover:bg-sky-600 text-white font-bold gap-1.5 shadow-sm"
-                        >
-                          <Printer className="h-4 w-4" /> Imprimir etiqueta
-                        </Button>
-                      )}
                       <div className="flex-1" />
                       <Button size="sm" variant="outline" onClick={() => { handleSave(); setOpen(false); }}>
                         <FileText className="h-4 w-4 mr-1" /> Salvar
@@ -1924,16 +1885,6 @@ function ProductionCardImpl({
                     /* Other departments: full actions */
                     <>
                       <div className="flex items-center gap-2">
-                        {isExpedicao && (
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={() => setEtiquetaModalOpen(true)}
-                            className="bg-sky-500 hover:bg-sky-600 text-white font-bold gap-1.5 shadow-sm"
-                          >
-                            <Printer className="h-4 w-4" /> Imprimir etiqueta
-                          </Button>
-                        )}
                         <div className="flex-1" />
                         <Button size="sm" variant="outline" onClick={() => setEditing(true)}>Editar</Button>
                         <Button size="sm" variant="outline" onClick={() => { onArchive(order.id); setOpen(false); }}>
@@ -2103,15 +2054,6 @@ function ProductionCardImpl({
         currentUserName={updatedByName}
         readOnly={readOnly}
       />
-
-      {/* Diálogo de Impressão de Etiquetas da Expedição */}
-      {isExpedicao && (
-        <EtiquetaExpedicaoDialog
-          order={order}
-          open={etiquetaModalOpen}
-          onOpenChange={setEtiquetaModalOpen}
-        />
-      )}
     </>
   );
 }
