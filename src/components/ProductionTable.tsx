@@ -4,6 +4,7 @@ import { getEffectiveOsAnterior } from "@/lib/orderAnterior";
 import { useState, useMemo } from "react";
 import { Order, OrderStatus, STATUS_CONFIG, STATUS_ORDER } from "@/types/order";
 import { Department, DepartmentConfig, DEPARTMENTS } from "@/types/production";
+import { isCtpChecklistComplete } from "@/types/ctp";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -237,6 +238,13 @@ export function ProductionTable({
   // Batch actions
   const handleBatchMove = (status: string) => {
     if (permissions.isViewOnly) return;
+    if (department?.id === "ctp" && (status === "producao" || status === "saida")) {
+      const blocked = orders.filter((o) => selectedIds.has(o.id) && !isCtpChecklistComplete(o.ctp_checklist));
+      if (blocked.length > 0) {
+        toast.error(`Bloqueio CTP: ${blocked.length} O.S selecionada(s) não possuem os 13 itens do checklist conferidos.`);
+        return;
+      }
+    }
     const count = selectedIds.size;
     selectedIds.forEach((id) => onMove(id, status as any));
     const label = department ? department.statuses.find(s => s.id === status)?.label : STATUS_CONFIG[status as OrderStatus]?.label;

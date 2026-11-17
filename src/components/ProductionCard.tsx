@@ -14,6 +14,8 @@ import { RotateCcw, Calendar, User, FileText, Archive, Trash2, ChevronRight, Che
 import { toast } from "sonner";
 import { InspecaoWorkspaceDialog } from "./inspecao/InspecaoWorkspaceDialog";
 import { EtiquetaInspecaoDialog } from "./inspecao/EtiquetaInspecaoDialog";
+import { CtpChecklistDialog } from "./ctp/CtpChecklistDialog";
+import { getCtpChecklistStatus } from "@/types/ctp";
 import { getLocalPrintHistory, EtiquetaPrintHistoryEntry } from "@/lib/etiquetasInspecao";
 import { INSPECAO_CHECKLIST_ITEMS, InspecaoChecklist, InspecaoFoto } from "@/types/inspecao";
 import { OrderEmailEventsSection } from "@/components/email/OrderEmailEventsSection";
@@ -176,6 +178,8 @@ function ProductionCardImpl({
   const isInspecao = department.id === "inspecao";
   const [inspecaoModalOpen, setInspecaoModalOpen] = useState(false);
   const [etiquetaInspecaoOpen, setEtiquetaInspecaoOpen] = useState(false);
+  const isCtp = department.id === "ctp";
+  const [ctpChecklistOpen, setCtpChecklistOpen] = useState(false);
   const [lastPrint, setLastPrint] = useState<EtiquetaPrintHistoryEntry | null>(() => {
     if (department.id !== "inspecao" || !order?.id) return null;
     const history = getLocalPrintHistory(order.id);
@@ -1150,6 +1154,50 @@ function ProductionCardImpl({
                   )}
                 </div>
               )}
+
+              {/* Indicadores Visuais do CTP (Checklist de Conferência de 13 itens) */}
+              {isCtp && (
+                <div className="mt-2 pt-2 border-t border-border/60 space-y-2" onClick={(e) => e.stopPropagation()}>
+                  {(() => {
+                    const ctpStatus = getCtpChecklistStatus(order.ctp_checklist);
+                    const isPreparacao = currentStatus.id === "preparacao";
+                    return (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                          <span
+                            className={`text-[10px] px-2 py-0.5 rounded border flex items-center gap-1 font-bold ${
+                              ctpStatus.complete
+                                ? "border-emerald-500/50 text-emerald-400 bg-emerald-500/15"
+                                : isPreparacao
+                                ? "border-amber-500/50 text-amber-400 bg-amber-500/15"
+                                : "border-border/60 text-muted-foreground bg-muted/20"
+                            }`}
+                          >
+                            <CheckCircle2 className="h-3 w-3 shrink-0" />
+                            Checklist CTP: {ctpStatus.checkedCount}/13 {ctpStatus.complete ? "(Liberado)" : "(Pendente)"}
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCtpChecklistOpen(true);
+                          }}
+                          className={`w-full py-1.5 px-2 text-[11px] font-bold rounded flex items-center justify-center gap-1.5 transition-colors cursor-pointer border ${
+                            ctpStatus.complete
+                              ? "bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border-emerald-500/30"
+                              : "bg-sky-500/15 hover:bg-sky-500/25 text-sky-400 border-sky-500/30"
+                          }`}
+                          title="Conferir checklist obrigatório do CTP (13 itens)"
+                        >
+                          <CheckCircle2 className="h-3.5 w-3.5" /> Checklist CTP (13 itens)
+                        </button>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
             </>
           )}
 
@@ -2110,6 +2158,18 @@ function ProductionCardImpl({
           onPrintSuccess={() => {
             setOpen(false);
           }}
+        />
+      )}
+
+      {/* Diálogo do Checklist de Conferência do CTP (13 itens) */}
+      {isCtp && (
+        <CtpChecklistDialog
+          order={order}
+          open={ctpChecklistOpen}
+          onOpenChange={setCtpChecklistOpen}
+          onUpdate={onUpdate}
+          currentUserName={updatedByName}
+          readOnly={readOnly}
         />
       )}
     </>

@@ -1,4 +1,5 @@
 import { InspecaoChecklist, InspecaoFoto } from "./inspecao";
+import { CtpChecklist } from "./ctp";
 
 export type OrderStatus =
   | "fila_de_entrada"
@@ -146,6 +147,8 @@ export interface Order {
   inspecao_fotos?: InspecaoFoto[] | null;
   inspecao_status?: string | null;
   inspecao_motivo_parada?: string | null;
+  // CTP fields
+  ctp_checklist?: CtpChecklist | null;
 }
 
 export interface Profile {
