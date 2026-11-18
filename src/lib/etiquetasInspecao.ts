@@ -211,22 +211,22 @@ export function parseOrderInspecaoInitialFields(order: Order): {
   };
 }
 
-const SVG_FILE_CHECK = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+const SVG_FILE_CHECK = `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
   <polyline points="14 2 14 8 20 8"/>
   <line x1="8" y1="12" x2="12" y2="12"/>
   <line x1="8" y1="8" x2="11" y2="8"/>
   <circle cx="16" cy="16" r="4.5" fill="#000" stroke="none"/>
-  <path d="M14.2 16l1.2 1.2 2.6-2.6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M14.2 16l1.2 1.2 2.6-2.6" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
 
-const SVG_PACKAGE = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+const SVG_PACKAGE = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
   <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
   <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
   <line x1="12" y1="22.08" x2="12" y2="12"/>
 </svg>`;
 
-const SVG_CALENDAR = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+const SVG_CALENDAR = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
   <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
   <line x1="16" y1="2" x2="16" y2="6"/>
   <line x1="8" y1="2" x2="8" y2="6"/>
@@ -239,7 +239,7 @@ const SVG_CALENDAR = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none
   <circle cx="16.5" cy="18" r="1.1" fill="#000"/>
 </svg>`;
 
-const SVG_FILE_TEXT = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
+const SVG_FILE_TEXT = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;">
   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
   <polyline points="14 2 14 8 20 8"/>
   <line x1="8" y1="13" x2="16" y2="13"/>
@@ -381,7 +381,7 @@ export function generateEtiquetasInspecaoPrintHtml(
     .etiqueta-card {
       width: 100%;
       height: 100%;
-      border: 2.2px solid #000;
+      border: 3px solid #000;
       border-radius: 9px;
       padding: 2mm 2.8mm;
       display: flex;
@@ -395,7 +395,7 @@ export function generateEtiquetasInspecaoPrintHtml(
       display: flex;
       align-items: center;
       justify-content: space-between;
-      border-bottom: 2px solid #000;
+      border-bottom: 2.5px solid #000;
       padding-bottom: 1.5mm;
       gap: 2mm;
       box-sizing: border-box;
@@ -408,7 +408,7 @@ export function generateEtiquetasInspecaoPrintHtml(
       flex: 1;
     }
     .header-vbar {
-      width: 2px;
+      width: 2.5px;
       height: 26px;
       background: #000;
       flex-shrink: 0;
@@ -442,7 +442,7 @@ export function generateEtiquetasInspecaoPrintHtml(
       -webkit-box-orient: vertical;
     }
     .header-os-box {
-      border: 2px solid #000;
+      border: 2.5px solid #000;
       border-radius: 7px;
       padding: 1mm 2.5mm;
       text-align: center;
@@ -490,7 +490,7 @@ export function generateEtiquetasInspecaoPrintHtml(
       flex-shrink: 0;
     }
     .row-vbar {
-      width: 1.8px;
+      width: 2.5px;
       height: 15px;
       background: #000;
       flex-shrink: 0;
@@ -531,7 +531,7 @@ export function generateEtiquetasInspecaoPrintHtml(
     .obs-linha-manual {
       display: inline-block;
       width: 100%;
-      border-bottom: 1px dotted #444;
+      border-bottom: 1.5px dotted #333;
       height: 4mm;
     }
     /* BANNER DO PACOTE */
@@ -549,7 +549,7 @@ export function generateEtiquetasInspecaoPrintHtml(
     }
     .linha-asa {
       flex: 1;
-      height: 2px;
+      height: 2.5px;
       background: #fff;
       border-radius: 1px;
     }
