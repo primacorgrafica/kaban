@@ -506,9 +506,9 @@ export default function TutorialPage() {
 
       {/* ─── Footer ─── */}
       <footer className="border-t border-[#253745] bg-[#11212D] py-8 px-4 sm:px-8 text-center text-xs text-[#9BA8AB] mt-12">
-        <div className="max-w-5xl mx-auto space-y-2">
+        <div className="max-w-5xl mx-auto space-y-1">
           <p className="font-bold text-white">Primacor Gráfica e Editora LTDA — Sistema Kaban</p>
-          <p>Manual de Integração e Onboarding do Colaborador • Acesso direto via <code>/tutorial</code></p>
+          <p>Manual de Integração e Onboarding do Colaborador</p>
         </div>
       </footer>
     </div>
