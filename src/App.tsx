@@ -25,6 +25,7 @@ const PcpPage = lazy(() => import("./pages/PcpPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const DashboardPage = lazy(() => import("./pages/DashboardPage"));
 const MuralAlertasPage = lazy(() => import("./pages/MuralAlertasPage"));
+const TutorialPage = lazy(() => import("./pages/TutorialPage"));
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { AutonomousEngineMonitor } from "@/components/AutonomousEngineMonitor";
@@ -165,6 +166,8 @@ const App = () => (
                 <Route path="/entregador" element={<ProtectedRoute module="entregador"><EntregadorPage /></ProtectedRoute>} />
                 <Route path="/chat" element={<Navigate to="/" replace />} />
                 <Route path="/mural" element={<ProtectedRoute module="mural"><MuralAlertasPage /></ProtectedRoute>} />
+                <Route path="/tutorial" element={<TutorialPage />} />
+                <Route path="/turorial" element={<Navigate to="/tutorial" replace />} />
 
                 <Route path="*" element={<NotFound />} />
               </Routes>
