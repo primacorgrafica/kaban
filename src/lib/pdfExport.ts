@@ -418,3 +418,213 @@ export function exportEntregasPDF(
 
   doc.save(`Entregas_${new Date().toISOString().slice(0, 10)}.pdf`);
 }
+
+// ─── Chão de Fábrica (Dashboard Production Table) ───────────────────────────
+
+export interface ChaoDeFabricaOrderRow {
+  titulo: string;
+  cliente: string;
+  descricao: string | null;
+  setor: string | null;
+  setor_status: string | null;
+  status: string | null;
+  updated_at: string;
+  prazo: string | null;
+  urgente?: boolean;
+  urgente_impressao?: boolean;
+  urgente_acabamento?: boolean;
+  urgente_expedicao?: boolean;
+  vendedor?: string | null;
+  operador?: string | null;
+}
+
+const SETOR_LABELS: Record<string, string> = {
+  pre_impressao: "Pré-Impressão",
+  ctp: "CTP",
+  digital: "Digital",
+  producao: "Produção",
+  qualidade: "Qualidade",
+  expedicao: "Expedição",
+  compras: "Compras",
+};
+
+const SETOR_STATUS_LABELS: Record<string, string> = {
+  entrada: "Entrada",
+  preparacao: "Preparação",
+  producao: "Produção",
+  saida: "Saída",
+  paralisado: "Paralisado",
+};
+
+function getSectorLabel(setor: string | null, status: string | null): string {
+  if (!setor) return status ? `Pré-Impressão / ${status}` : "Pré-Impressão";
+  const setorLabel = SETOR_LABELS[setor] || setor;
+  const statusLabel = setor_status_label(status);
+  return statusLabel ? `${setorLabel} / ${statusLabel}` : setorLabel;
+}
+
+function setor_status_label(ss: string | null): string {
+  if (!ss) return "";
+  return SETOR_STATUS_LABELS[ss] || ss;
+}
+
+function isUrgent(o: ChaoDeFabricaOrderRow): boolean {
+  return !!(o.urgente || o.urgente_impressao || o.urgente_acabamento || o.urgente_expedicao);
+}
+
+const SECTOR_COLORS: Record<string, [number, number, number]> = {
+  all: [30, 64, 175],
+  pre_impressao: [99, 102, 241],
+  ctp: [234, 88, 12],
+  digital: [59, 130, 246],
+  qualidade: [16, 185, 129],
+  expedicao: [245, 158, 11],
+  compras: [139, 92, 246],
+};
+
+export function exportChaoDeFabricaPDF(
+  orders: ChaoDeFabricaOrderRow[],
+  sectorFilter: string,
+  sectorLabel: string
+) {
+  const doc = new jsPDF("landscape");
+  const timestamp = fmtDate(new Date().toISOString());
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 10;
+  const usableWidth = pageWidth - margin * 2;
+
+  const color = SECTOR_COLORS[sectorFilter] || SECTOR_COLORS["all"];
+
+  // ── Cover Banner ──
+  doc.setFillColor(color[0], color[1], color[2]);
+  doc.roundedRect(margin, 6, usableWidth, 12, 2, 2, "F");
+  doc.setFontSize(13);
+  doc.setTextColor(255);
+  doc.text(
+    `Relatório do Chão de Fábrica — ${sectorLabel}`,
+    margin + 4,
+    14
+  );
+
+  doc.setFontSize(8);
+  doc.setTextColor(100);
+  doc.text(
+    `${orders.length} ordem(ns) ativa(s)  •  Gerado em: ${timestamp}`,
+    margin + 4,
+    21
+  );
+
+  // ── Summary boxes ──
+  const urgent = orders.filter(isUrgent).length;
+  const withDeadline = orders.filter((o) => o.prazo).length;
+  const overdue = orders.filter((o) => {
+    if (!o.prazo) return false;
+    return new Date(o.prazo).getTime() < Date.now();
+  }).length;
+
+  const summaryData = [
+    ["Total de O.S.", String(orders.length)],
+    ["Urgentes", String(urgent)],
+    ["Com prazo", String(withDeadline)],
+    ["Atrasadas", String(overdue)],
+  ];
+
+  autoTable(doc, {
+    startY: 25,
+    head: [["Indicador", "Qtd"]],
+    body: summaryData,
+    theme: "grid",
+    headStyles: { fillColor: color, fontSize: 8, textColor: [255, 255, 255], cellPadding: 1.5 },
+    styles: { fontSize: 8, cellPadding: 1.5 },
+    tableWidth: 60,
+    margin: { left: margin },
+  });
+
+  // ── Main table ──
+  const rows = orders.map((o, i) => {
+    const urg = isUrgent(o);
+    const prazoStr = o.prazo
+      ? new Date(o.prazo).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" })
+      : "—";
+    const isLate = o.prazo ? new Date(o.prazo).getTime() < Date.now() : false;
+    return [
+      String(i + 1),
+      o.titulo,
+      (o.cliente || "").toUpperCase(),
+      o.descricao || "—",
+      getSectorLabel(o.setor, o.status),
+      o.operador || o.vendedor || "—",
+      fmtDate(o.updated_at),
+      urg ? "⚠ URG" : prazoStr + (isLate ? " ⚠" : ""),
+    ];
+  });
+
+  const startY = (doc as any).lastAutoTable?.finalY
+    ? (doc as any).lastAutoTable.finalY + 6
+    : 56;
+
+  doc.setFontSize(10);
+  doc.setTextColor(0);
+
+  autoTable(doc, {
+    startY,
+    margin: { left: margin, right: margin },
+    tableWidth: usableWidth,
+    head: [["#", "O.S.", "Cliente", "Descrição", "Setor / Etapa", "Operador", "Última Atualiz.", "Prazo / Urgência"]],
+    body: rows,
+    theme: "striped",
+    headStyles: {
+      fillColor: color,
+      fontSize: 7.5,
+      textColor: [255, 255, 255],
+      cellPadding: 1.5,
+      halign: "center",
+    },
+    styles: { fontSize: 7.5, cellPadding: 1.5, overflow: "linebreak" },
+    alternateRowStyles: { fillColor: [245, 247, 250] },
+    didParseCell: (data) => {
+      // Highlight urgent rows
+      if (data.section === "body") {
+        const row = orders[data.row.index];
+        if (row && isUrgent(row)) {
+          data.cell.styles.fillColor = [255, 237, 213];
+          data.cell.styles.textColor = [154, 52, 18];
+          data.cell.styles.fontStyle = "bold";
+        }
+        // Highlight overdue deadline
+        if (data.column.index === 7 && row?.prazo) {
+          const isLate = new Date(row.prazo).getTime() < Date.now();
+          if (isLate && !isUrgent(row)) {
+            data.cell.styles.fillColor = [254, 226, 226];
+            data.cell.styles.textColor = [185, 28, 28];
+            data.cell.styles.fontStyle = "bold";
+          }
+        }
+      }
+    },
+    columnStyles: {
+      0: { cellWidth: usableWidth * 0.03, halign: "center" },
+      1: { cellWidth: usableWidth * 0.09 },
+      2: { cellWidth: usableWidth * 0.14 },
+      3: { cellWidth: usableWidth * 0.26 },
+      4: { cellWidth: usableWidth * 0.17 },
+      5: { cellWidth: usableWidth * 0.12 },
+      6: { cellWidth: usableWidth * 0.12 },
+      7: { cellWidth: usableWidth * 0.07, halign: "center" },
+    },
+  });
+
+  // ── Footer on every page ──
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7);
+    doc.setTextColor(160);
+    doc.text(`Página ${i} de ${pageCount}`, pageWidth - 35, pageHeight - 6);
+    doc.text(`Primacor Gráfica — ${timestamp}`, margin, pageHeight - 6);
+  }
+
+  const safeSector = sectorLabel.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, "_");
+  doc.save(`ChaoDeFabrica_${safeSector}_${new Date().toISOString().slice(0, 10)}.pdf`);
+}

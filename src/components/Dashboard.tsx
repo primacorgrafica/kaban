@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useOrderAnalytics, formatDuration } from "@/hooks/useOrderAnalytics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { exportSingleOrderPDF, exportFullAnalyticsPDF, exportColumnPDF, exportAllColumnsPDF } from "@/lib/pdfExport";
+import { exportSingleOrderPDF, exportFullAnalyticsPDF, exportColumnPDF, exportAllColumnsPDF, exportChaoDeFabricaPDF, ChaoDeFabricaOrderRow } from "@/lib/pdfExport";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useRef, useEffect, useMemo } from "react";
@@ -686,8 +686,7 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
     return list;
   }, [saidaOrders, governancaSearch]);
 
-  const handleExportGovernancaCSV = () => {
-    const rows: string[][] = [];
+  const handleExportGovernancaCSV = () => {    const rows: string[][] = [];
     rows.push(["TIPO", "O.S.", "CLIENTE", "STATUS_OU_ETAPA", "DETALHES_MUDANCA", "OPERADOR_OU_RESPONSAVEL", "VENDEDOR", "DATA_ATUALIZACAO"]);
 
     revisionOrders.forEach((r) => {
@@ -743,6 +742,53 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
     toast.success("Relatório de Governança e Auditoria exportado com sucesso!");
+  };
+
+  const [pdfExporting, setPdfExporting] = useState(false);
+
+  const SECTOR_LABELS_MAP: Record<string, string> = {
+    all: "Todos os Setores",
+    pre_impressao: "Pré-Impressão",
+    ctp: "CTP",
+    digital: "Digital",
+    qualidade: "Qualidade",
+    expedicao: "Expedição",
+    compras: "Compras",
+  };
+
+  const handleExportChaoDeFabricaPDF = () => {
+    if (filteredProductionOrders.length === 0) {
+      toast.info("Nenhuma ordem para exportar com os filtros atuais.");
+      return;
+    }
+    setPdfExporting(true);
+    try {
+      const rows: ChaoDeFabricaOrderRow[] = filteredProductionOrders.map((o) => ({
+        titulo: o.titulo,
+        cliente: o.cliente || "",
+        descricao: o.descricao || null,
+        setor: o.setor || null,
+        setor_status: o.setor_status || null,
+        status: o.status || null,
+        updated_at: o.updated_at,
+        prazo: o.prazo || null,
+        urgente: o.urgente,
+        urgente_impressao: o.urgente_impressao,
+        urgente_acabamento: o.urgente_acabamento,
+        urgente_expedicao: o.urgente_expedicao,
+        vendedor: o.vendedor,
+        operador: o.operador,
+      }));
+      const label = onlyUrgent
+        ? "Urgentes"
+        : SECTOR_LABELS_MAP[selectedSector] || "Todos os Setores";
+      exportChaoDeFabricaPDF(rows, selectedSector, label);
+      toast.success(`PDF gerado com ${rows.length} ordens!`);
+    } catch (err: unknown) {
+      toast.error("Erro ao gerar PDF: " + (err instanceof Error ? err.message : "Tente novamente."));
+    } finally {
+      setPdfExporting(false);
+    }
   };
 
   const dashboardContainerVariants = {
@@ -2442,6 +2488,23 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
               >
                 <AlertTriangle className="h-3.5 w-3.5" />
                 Urgentes
+              </Button>
+
+              {/* PDF Export Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExportChaoDeFabricaPDF}
+                disabled={pdfExporting || filteredProductionOrders.length === 0}
+                className="h-8 text-xs rounded-xl px-3 gap-1.5 border-rose-500/40 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 hover:border-rose-500/60 transition-colors"
+                title={`Exportar ${filteredProductionOrders.length} ordem(ns) em PDF`}
+              >
+                {pdfExporting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <FileDown className="h-3.5 w-3.5" />
+                )}
+                {pdfExporting ? "Gerando..." : "Exportar PDF"}
               </Button>
             </div>
           </div>
