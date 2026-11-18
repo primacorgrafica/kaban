@@ -5,7 +5,7 @@ import {
   ArrowRight, FileDown, DatabaseBackup, Loader2, Upload, AlertTriangle,
   Printer, CalendarClock, History, Bell, Trash2, Info, Square,
   PrinterCheck, Layers, Truck, List, Eye, EyeOff, Search, Filter,
-  ChevronLeft, ChevronRight, Activity, ShieldCheck, Sparkles, RefreshCw, X, Download, Check, Palette, ShoppingCart, Factory
+  ChevronLeft, ChevronRight, ChevronDown, Activity, ShieldCheck, Sparkles, RefreshCw, X, Download, Check, Palette, ShoppingCart, Factory
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -18,6 +18,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { useOrderAnalytics, formatDuration } from "@/hooks/useOrderAnalytics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { exportSingleOrderPDF, exportFullAnalyticsPDF, exportColumnPDF, exportAllColumnsPDF, exportChaoDeFabricaPDF, ChaoDeFabricaOrderRow } from "@/lib/pdfExport";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -754,16 +762,48 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
     qualidade: "Qualidade",
     expedicao: "Expedição",
     compras: "Compras",
+    urgentes: "Urgentes",
   };
 
-  const handleExportChaoDeFabricaPDF = () => {
-    if (filteredProductionOrders.length === 0) {
-      toast.info("Nenhuma ordem para exportar com os filtros atuais.");
+  // Exporta PDF de um setor específico (ou todos) — independente do filtro ativo na tela
+  const handleExportChaoDeFabricaPDF = (sectorKey: string) => {
+    let ordersToExport = activeNonArchived.filter((o) => {
+      if (o.setor === "compras") return o.setor_status !== "saida";
+      if (o.setor) return o.setor_status !== "saida" && !o.parent_order_id;
+      else return o.status !== "arquivo_liberado" && !o.parent_order_id;
+    });
+
+    if (sectorKey === "urgentes") {
+      ordersToExport = ordersToExport.filter(
+        (o) => o.urgente || (o as any).urgente_prova || o.urgente_impressao || o.urgente_acabamento || o.urgente_expedicao
+      );
+    } else if (sectorKey === "pre_impressao") {
+      ordersToExport = ordersToExport.filter(
+        (o) => !o.setor || !["qualidade", "ctp", "digital", "producao", "expedicao", "compras", "manutencao"].includes(o.setor)
+      );
+    } else if (sectorKey !== "all") {
+      ordersToExport = ordersToExport.filter((o) => o.setor === sectorKey);
+    }
+
+    // Aplica busca de texto ativa se houver
+    if (searchTerm.trim()) {
+      const q = searchTerm.toLowerCase();
+      ordersToExport = ordersToExport.filter(
+        (o) =>
+          o.titulo.toLowerCase().includes(q) ||
+          (o.cliente && o.cliente.toLowerCase().includes(q)) ||
+          (o.descricao && o.descricao.toLowerCase().includes(q))
+      );
+    }
+
+    if (ordersToExport.length === 0) {
+      toast.info(`Nenhuma ordem encontrada para ${SECTOR_LABELS_MAP[sectorKey] || sectorKey}.`);
       return;
     }
+
     setPdfExporting(true);
     try {
-      const rows: ChaoDeFabricaOrderRow[] = filteredProductionOrders.map((o) => ({
+      const rows: ChaoDeFabricaOrderRow[] = ordersToExport.map((o) => ({
         titulo: o.titulo,
         cliente: o.cliente || "",
         descricao: o.descricao || null,
@@ -779,11 +819,9 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
         vendedor: o.vendedor,
         operador: o.operador,
       }));
-      const label = onlyUrgent
-        ? "Urgentes"
-        : SECTOR_LABELS_MAP[selectedSector] || "Todos os Setores";
-      exportChaoDeFabricaPDF(rows, selectedSector, label);
-      toast.success(`PDF gerado com ${rows.length} ordens!`);
+      const label = SECTOR_LABELS_MAP[sectorKey] || "Todos os Setores";
+      exportChaoDeFabricaPDF(rows, sectorKey, label);
+      toast.success(`PDF gerado: ${rows.length} ordens — ${label}`);
     } catch (err: unknown) {
       toast.error("Erro ao gerar PDF: " + (err instanceof Error ? err.message : "Tente novamente."));
     } finally {
@@ -2490,22 +2528,82 @@ export function Dashboard({ orders, archivedCount }: DashboardProps) {
                 Urgentes
               </Button>
 
-              {/* PDF Export Button */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExportChaoDeFabricaPDF}
-                disabled={pdfExporting || filteredProductionOrders.length === 0}
-                className="h-8 text-xs rounded-xl px-3 gap-1.5 border-rose-500/40 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 hover:border-rose-500/60 transition-colors"
-                title={`Exportar ${filteredProductionOrders.length} ordem(ns) em PDF`}
-              >
-                {pdfExporting ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <FileDown className="h-3.5 w-3.5" />
-                )}
-                {pdfExporting ? "Gerando..." : "Exportar PDF"}
-              </Button>
+              {/* PDF Export Dropdown — by sector */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={pdfExporting}
+                    className="h-8 text-xs rounded-xl px-3 gap-1.5 border-rose-500/40 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 hover:border-rose-500/60 transition-colors"
+                  >
+                    {pdfExporting ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <FileDown className="h-3.5 w-3.5" />
+                    )}
+                    {pdfExporting ? "Gerando..." : "Exportar PDF"}
+                    <ChevronDown className="h-3 w-3 opacity-70" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52 z-[80]">
+                  <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground pb-1">
+                    Selecione o setor
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-xs gap-2 cursor-pointer"
+                    onClick={() => handleExportChaoDeFabricaPDF("all")}
+                  >
+                    <FileDown className="h-3.5 w-3.5 text-blue-400" />
+                    Todos ({activeNonArchived.filter((o) => !o.parent_order_id && ((o.setor && o.setor_status !== "saida") || (!o.setor && o.status !== "arquivo_liberado"))).length})
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-xs gap-2 cursor-pointer"
+                    onClick={() => handleExportChaoDeFabricaPDF("pre_impressao")}
+                  >
+                    <FileDown className="h-3.5 w-3.5 text-indigo-400" />
+                    Pré-Impressão ({sectorCounts.pre_impressao})
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-xs gap-2 cursor-pointer"
+                    onClick={() => handleExportChaoDeFabricaPDF("ctp")}
+                  >
+                    <FileDown className="h-3.5 w-3.5 text-orange-400" />
+                    CTP ({sectorCounts.ctp})
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-xs gap-2 cursor-pointer"
+                    onClick={() => handleExportChaoDeFabricaPDF("digital")}
+                  >
+                    <FileDown className="h-3.5 w-3.5 text-sky-400" />
+                    Digital ({sectorCounts.digital})
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-xs gap-2 cursor-pointer"
+                    onClick={() => handleExportChaoDeFabricaPDF("qualidade")}
+                  >
+                    <FileDown className="h-3.5 w-3.5 text-emerald-400" />
+                    Qualidade ({sectorCounts.qualidade})
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="text-xs gap-2 cursor-pointer"
+                    onClick={() => handleExportChaoDeFabricaPDF("expedicao")}
+                  >
+                    <FileDown className="h-3.5 w-3.5 text-amber-400" />
+                    Expedição ({sectorCounts.expedicao})
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-xs gap-2 cursor-pointer text-rose-400 focus:text-rose-300"
+                    onClick={() => handleExportChaoDeFabricaPDF("urgentes")}
+                  >
+                    <AlertTriangle className="h-3.5 w-3.5 text-rose-400" />
+                    Urgentes ({urgentOrders.length})
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
