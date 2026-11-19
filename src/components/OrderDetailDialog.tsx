@@ -26,7 +26,9 @@ import { RotateCcw, Calendar,
   Check,
   Sparkles,
   HardHat,
-  Mail, } from "lucide-react";
+  Mail,
+  ShieldCheck,
+} from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -100,6 +102,7 @@ export interface OrderDetailDialogProps {
   onSendToProduction?: (id: string, department: Department, machine?: string) => void;
   onSendToMultipleProduction?: (id: string, departments: { department: Department; machine?: string }[]) => void;
   onSendToExpedicao?: (id: string) => void;
+  onSendToInspecao?: (id: string) => void | Promise<any>;
   permissions?: OrderDetailDialogPermissions;
   departmentContext?: string;
   getProfileName?: (userId: string | null) => string | null;
@@ -118,6 +121,7 @@ export function OrderDetailDialog({
   onSendToProduction,
   onSendToMultipleProduction,
   onSendToExpedicao,
+  onSendToInspecao,
   permissions = {
     canEditCard: true,
     canAdvanceCards: true,
@@ -967,6 +971,18 @@ export function OrderDetailDialog({
               {/* Rodapé Fixo de Ações */}
               <div className="px-6 py-3.5 border-t border-border/80 bg-card/90 dark:border-[#4A5C6A]/35 dark:bg-[#11212D]/90 backdrop-blur-xl flex flex-wrap items-center justify-between gap-3 shrink-0">
                 <div className="flex items-center gap-2">
+                  {onSendToInspecao && (
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        await Promise.resolve(onSendToInspecao(order.id));
+                        onOpenChange(false);
+                      }}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs rounded-xl h-9 px-4 gap-1.5 shadow-sm cursor-pointer"
+                    >
+                      <ShieldCheck className="h-3.5 w-3.5" /> Enviar → Inspeção
+                    </Button>
+                  )}
                   {permissions.canSendToProduction && onSendToProduction && (
                     <Button
                       size="sm"

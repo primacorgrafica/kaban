@@ -445,9 +445,11 @@ export default function ProducaoPage() {
             onDuplicate={duplicateOrder}
             onSendToProduction={sendToProduction}
             onSendToMultipleProduction={sendToMultipleProduction}
+            onSendToInspecao={sendToInspecao}
             onSendToExpedicao={sendToExpedicao}
             getProfileName={getProfileName}
             permissions={perms}
+            departmentContext="producao"
             showSectorColumn={selectedSector === "todos"}
             currentUserName={currentUserName}
           />
@@ -463,8 +465,10 @@ export default function ProducaoPage() {
           onDelete={deleteOrder}
           onDuplicate={duplicateOrder}
           onSendToProduction={sendToProduction}
+          onSendToInspecao={sendToInspecao}
           onSendToExpedicao={sendToExpedicao}
           permissions={perms}
+          departmentContext="producao"
           getProfileName={getProfileName}
         />
 

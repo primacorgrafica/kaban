@@ -335,6 +335,7 @@ export default function ProductionPage() {
                 onArchive={archiveOrder}
                 onDelete={deleteOrder}
                 onSendToProduction={sendToDepartment}
+                onSendToInspecao={(id) => sendToDepartment(id, "inspecao")}
                 getProfileName={getProfileName}
                 permissions={permissions}
                 departmentContext={activeDepartment}

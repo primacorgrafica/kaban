@@ -1273,8 +1273,36 @@ function ProductionCardImpl({
           </div>
         )}
 
+        {/* Produção: Botão dedicado para Concluir Produção e Enviar para Inspeção */}
+        {!readOnly && isExitStatus && department.id === "producao" && (
+          <div className="flex flex-col border-t border-border/70 divide-y divide-border/60">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onSendToDepartment) {
+                  onSendToDepartment(order.id, "inspecao");
+                  toast.success(`O.S. #${cleanOsNumber(order.titulo) || order.titulo} enviada para INSPEÇÃO!`);
+                }
+              }}
+              className="w-full py-2.5 px-3 text-xs font-bold uppercase tracking-wide flex items-center justify-center gap-1.5 transition-colors bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs font-mono-tech cursor-pointer"
+              title="Concluir Produção e enviar para Inspeção"
+            >
+              <ShieldCheck className="h-3.5 w-3.5" /> Concluir Produção → Enviar p/ Inspeção
+            </button>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setSendDialogOpen(true); }}
+              className="py-1.5 text-[10px] font-medium text-muted-foreground hover:text-foreground hover:bg-accent/50 flex items-center justify-center gap-1 transition-colors cursor-pointer"
+              title="Ou enviar para outro setor"
+            >
+              <Send className="h-3 w-3" /> Outro Setor...
+            </button>
+          </div>
+        )}
+
         {/* Send to next department button when in exit/final status (demais setores) */}
-        {!readOnly && isExitStatus && department.id !== "faturamento" && department.id !== "ctp" && department.id !== "digital" && !isInspecao && !isExpedicaoCopy && (
+        {!readOnly && isExitStatus && department.id !== "faturamento" && department.id !== "ctp" && department.id !== "digital" && department.id !== "producao" && !isInspecao && !isExpedicaoCopy && (
           <button
             onClick={(e) => { e.stopPropagation(); setSendDialogOpen(true); }}
             className="w-full py-2 text-xs font-bold uppercase tracking-wide flex items-center justify-center gap-1.5 transition-colors"
@@ -1958,6 +1986,20 @@ function ProductionCardImpl({
                       )}
                     </>
                   )}
+                  {isExitStatus && department.id === "producao" && (
+                    <Button
+                      className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold cursor-pointer"
+                      onClick={() => {
+                        if (onSendToDepartment) {
+                          onSendToDepartment(order.id, "inspecao");
+                          toast.success(`O.S. #${cleanOsNumber(order.titulo) || order.titulo} enviada para INSPEÇÃO!`);
+                        }
+                        setOpen(false);
+                      }}
+                    >
+                      <ShieldCheck className="h-4 w-4 mr-2" /> Enviar para Inspeção
+                    </Button>
+                  )}
                   {isExitStatus && !isExpedicaoCopy && !(isSpecialOrder && department.id === "expedicao") && (
                     <Button
                       className="w-full"
@@ -1990,7 +2032,7 @@ function ProductionCardImpl({
                   {DEPARTMENTS.filter(d => d.id !== department.id).map(d => (
                     <SelectItem key={d.id} value={d.id}>{d.label}</SelectItem>
                   ))}
-                  {department.id === "inspecao" && (
+                  {(department.id === "inspecao" || department.id === "producao") && (
                     <SelectItem value="expedicao">Expedição</SelectItem>
                   )}
                 </SelectContent>

@@ -37,6 +37,7 @@ const Index = () => {
     deleteOrder,
     sendToProduction,
     sendToMultipleProduction,
+    sendToInspecao,
     sendToExpedicao,
     sendToCompras,
     getProfileName,
@@ -219,6 +220,7 @@ const Index = () => {
                 onDuplicate={duplicateOrder}
                 onSendToProduction={sendToProduction}
                 onSendToMultipleProduction={sendToMultipleProduction}
+                onSendToInspecao={sendToInspecao}
                 onSendToExpedicao={sendToExpedicao}
                 onSendToCompras={sendToCompras}
                 getProfileName={getProfileName}
@@ -236,6 +238,7 @@ const Index = () => {
                 onDuplicate={duplicateOrder}
                 onSendToProduction={sendToProduction}
                 onSendToMultipleProduction={sendToMultipleProduction}
+                onSendToInspecao={sendToInspecao}
                 onSendToExpedicao={sendToExpedicao}
                 getProfileName={getProfileName}
                 permissions={perms}

@@ -60,6 +60,7 @@ import { RotateCcw, Clock,
   Repeat,
   Star,
   StarOff,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { OrderDetailDialog } from "./OrderDetailDialog";
@@ -102,6 +103,7 @@ interface ProductionTableProps {
   onSendToProduction?: (id: string, department: Department, machine?: string) => void;
   onSendToMultipleProduction?: (id: string, depts: { department: Department; machine?: string }[]) => void;
   onSendToExpedicao?: (id: string) => void;
+  onSendToInspecao?: (id: string) => void | Promise<any>;
   getProfileName: (userId: string | null) => string | null;
   permissions: Permissions;
   departmentContext?: string;
@@ -124,6 +126,7 @@ export function ProductionTable({
   onSendToProduction,
   onSendToMultipleProduction,
   onSendToExpedicao,
+  onSendToInspecao,
   getProfileName,
   permissions,
   departmentContext,
@@ -279,6 +282,15 @@ export function ProductionTable({
     setSelectedIds(new Set());
   };
 
+  const handleBatchSendToInspecao = async () => {
+    if (!onSendToInspecao || selectedIds.size === 0) return;
+    const ids = Array.from(selectedIds);
+    for (const id of ids) {
+      await Promise.resolve(onSendToInspecao(id));
+    }
+    setSelectedIds(new Set());
+  };
+
   const handleOpenSlideOver = (order: Order) => {
     setInspectOrder(order);
     setSlideOverOpen(true);
@@ -326,6 +338,19 @@ export function ProductionTable({
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
+
+            {/* Botão de Enviar para Inspeção em Lote */}
+            {onSendToInspecao && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleBatchSendToInspecao}
+                className="h-7 text-xs text-emerald-400 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 rounded-lg font-semibold cursor-pointer"
+                title="Enviar O.S. selecionadas para Inspeção"
+              >
+                <ShieldCheck className="h-3 w-3 mr-1" /> Inspeção
+              </Button>
+            )}
 
             {/* Botão de Prioridade em Lote */}
             <Button
@@ -717,7 +742,17 @@ export function ProductionTable({
                     {/* Ações */}
                     <TableCell className="text-right pr-4" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1.5">
-                        {permissions.canSendToProduction && onSendToProduction && (
+                        {departmentContext === "producao" && onSendToInspecao ? (
+                          <button
+                            type="button"
+                            onClick={() => onSendToInspecao(order.id)}
+                            className="px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm font-mono-tech whitespace-nowrap cursor-pointer hover:scale-[1.02] active:scale-95"
+                            title="Enviar esta O.S. para Inspeção"
+                          >
+                            <ShieldCheck className="h-3.5 w-3.5 stroke-[2.5]" />
+                            <span>ENVIAR PARA INSPEÇÃO</span>
+                          </button>
+                        ) : permissions.canSendToProduction && onSendToProduction && (
                           <button
                             type="button"
                             onClick={() => {
@@ -749,6 +784,14 @@ export function ProductionTable({
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="bg-popover border-border text-popover-foreground">
+                            {onSendToInspecao && (
+                              <DropdownMenuItem
+                                onClick={() => onSendToInspecao(order.id)}
+                                className="text-xs hover:bg-accent cursor-pointer font-semibold text-emerald-500 dark:text-emerald-400"
+                              >
+                                <ShieldCheck className="h-3.5 w-3.5 mr-2 text-emerald-500 dark:text-emerald-400" /> Enviar para Inspeção
+                              </DropdownMenuItem>
+                            )}
                             {permissions.canSendToProduction && onSendToProduction && (
                               <DropdownMenuItem
                                 onClick={() => {
@@ -763,7 +806,7 @@ export function ProductionTable({
                                 }}
                                 className="text-xs hover:bg-accent cursor-pointer font-semibold"
                               >
-                                <Send className="h-3.5 w-3.5 mr-2 text-sky-400" /> Enviar para Produção
+                                <Send className="h-3.5 w-3.5 mr-2 text-sky-400" /> {departmentContext === "producao" ? "Mover de Setor..." : "Enviar para Produção"}
                               </DropdownMenuItem>
                             )}
                             <DropdownMenuItem
@@ -819,9 +862,10 @@ export function ProductionTable({
         onDelete={onDelete}
         onDuplicate={onDuplicate}
         onSendToProduction={onSendToProduction}
+        onSendToInspecao={onSendToInspecao}
         onSendToExpedicao={onSendToExpedicao}
         permissions={permissions}
-        departmentContext={department}
+        departmentContext={departmentContext || department?.id}
         getProfileName={getProfileName}
       />
 

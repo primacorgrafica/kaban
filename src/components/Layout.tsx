@@ -838,6 +838,17 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
           toast.success("O.S. enviada para produção!");
           setInspectOrder(null);
         }}
+        onSendToInspecao={async (id) => {
+          await supabase.from("orders").update({
+            setor: "inspecao",
+            setor_status: "entrada",
+            maquina: null,
+            atualizado_por: user?.id || null,
+            prioridade_producao: false,
+          }).eq("id", id);
+          toast.success("O.S. enviada para Inspeção!");
+          setInspectOrder(null);
+        }}
         onSendToExpedicao={async (id) => {
           await supabase.from("orders").update({
             setor: "expedicao",
