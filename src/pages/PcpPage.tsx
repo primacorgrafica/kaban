@@ -40,6 +40,17 @@ interface EmitidaEntry {
   os_anterior?: string | null;
 }
 
+interface ExpedicaoEntry {
+  order_id: string;
+  titulo: string;
+  cliente: string;
+  descricao: string;
+  vendedor: string | null;
+  chegou_em: string;
+  urgente?: boolean;
+  os_anterior?: string | null;
+}
+
 function isSameDay(a: Date, b: Date): boolean {
   return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
 }
@@ -231,6 +242,7 @@ export default function PcpPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [liberadas, setLiberadas] = useState<LiberadaEntry[]>([]);
   const [emitidas, setEmitidas] = useState<EmitidaEntry[]>([]);
+  const [expedicao, setExpedicao] = useState<ExpedicaoEntry[]>([]);
   const [sectorCounts, setSectorCounts] = useState<SectorFlowCounts & { loading: boolean }>({
     preImpressao: 0,
     producao: 0,
@@ -253,7 +265,7 @@ export default function PcpPage() {
   }, [soundEnabled]);
 
   const announcedOrderIdsRef = useRef<Set<string>>(new Set());
-  const [mobileTab, setMobileTab] = useState<"todas" | "emitidas" | "liberadas">("emitidas");
+  const [mobileTab, setMobileTab] = useState<"todas" | "emitidas" | "liberadas" | "expedicao">("emitidas");
 
   // Relógio ao vivo atualizado a cada segundo
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -467,6 +479,77 @@ export default function PcpPage() {
     setLoading(false);
   };
 
+  const fetchExpedicao = async () => {
+    const since = new Date();
+    since.setDate(since.getDate() - 14);
+    since.setHours(0, 0, 0, 0);
+    const sinceISO = since.toISOString();
+
+    const [sectorRes, activeExpRes] = await Promise.all([
+      supabase
+        .from("sector_history")
+        .select("order_id, setor_novo, created_at")
+        .eq("setor_novo", "expedicao")
+        .gte("created_at", sinceISO),
+      supabase
+        .from("orders")
+        .select("id, titulo, cliente, descricao, vendedor, created_at, updated_at, setor, setor_status, arquivado, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao")
+        .eq("setor", "expedicao")
+        .eq("arquivado", false),
+    ]);
+
+    const ids = new Set<string>();
+    (sectorRes.data || []).forEach((r: any) => ids.add(r.order_id));
+    (activeExpRes.data || []).forEach((r: any) => ids.add(r.id));
+
+    if (ids.size === 0) {
+      setExpedicao([]);
+      return;
+    }
+
+    const { data: ordersData } = await supabase
+      .from("orders")
+      .select("id, titulo, cliente, descricao, vendedor, created_at, updated_at, setor, setor_status, arquivado, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao")
+      .in("id", Array.from(ids));
+
+    const map = new Map<string, { titulo: string; cliente: string; descricao: string; vendedor: string | null; urgente?: boolean; os_anterior?: string | null; fallbackDate: string }>();
+    (ordersData || []).forEach((o: any) => {
+      const isUrg = !!(o.urgente || o.urgente_impressao || o.urgente_acabamento || o.urgente_expedicao);
+      map.set(o.id, {
+        titulo: o.titulo,
+        cliente: o.cliente,
+        descricao: o.descricao,
+        vendedor: o.vendedor,
+        urgente: isUrg,
+        os_anterior: getEffectiveOsAnterior(o) || null,
+        fallbackDate: o.updated_at || o.created_at,
+      });
+    });
+
+    const entries: ExpedicaoEntry[] = [];
+    (sectorRes.data || []).forEach((r: any) => {
+      const m = map.get(r.order_id);
+      if (m) entries.push({ order_id: r.order_id, ...m, chegou_em: r.created_at });
+    });
+    (activeExpRes.data || []).forEach((r: any) => {
+      const m = map.get(r.id);
+      if (m) entries.push({ order_id: r.id, ...m, chegou_em: m.fallbackDate });
+    });
+
+    const latestByKey = new Map<string, ExpedicaoEntry>();
+    for (const e of entries) {
+      const key = (e.titulo || "").trim().toUpperCase() || e.order_id;
+      const prev = latestByKey.get(key);
+      if (!prev || e.chegou_em > prev.chegou_em) latestByKey.set(key, e);
+    }
+    const deduped = Array.from(latestByKey.values());
+    deduped.sort((a, b) => b.chegou_em.localeCompare(a.chegou_em));
+    setExpedicao(deduped);
+  };
+
+  const fetchExpedicaoRef = useRef<() => Promise<void>>();
+  fetchExpedicaoRef.current = fetchExpedicao;
+
   const fetchSectorCounts = async () => {
     try {
       const { data, error } = await supabase
@@ -493,6 +576,7 @@ export default function PcpPage() {
     if (!authReady || !user) return;
     fetchLiberadas();
     fetchEmitidas();
+    fetchExpedicao();
     fetchSectorCounts();
 
     const unsubInc = subscribeOrdersIncremental((payload) => {
@@ -532,6 +616,7 @@ export default function PcpPage() {
         ) {
           fetchLiberadasRef.current?.();
           fetchEmitidas();
+          fetchExpedicaoRef.current?.();
           fetchSectorCountsRef.current?.();
         }
       } else if (payload.eventType === "INSERT") {
@@ -540,6 +625,7 @@ export default function PcpPage() {
       } else if (payload.eventType === "DELETE") {
         fetchLiberadasRef.current?.();
         fetchEmitidas();
+        fetchExpedicaoRef.current?.();
         fetchSectorCountsRef.current?.();
       }
     });
@@ -547,12 +633,14 @@ export default function PcpPage() {
     const unsubOrders = subscribeOrders(() => {
       fetchLiberadasRef.current?.();
       fetchEmitidas();
+      fetchExpedicaoRef.current?.();
       fetchSectorCountsRef.current?.();
     });
 
     const interval = setInterval(() => {
       fetchLiberadasRef.current?.();
       fetchEmitidas();
+      fetchExpedicaoRef.current?.();
       fetchSectorCountsRef.current?.();
     }, 15000);
 
@@ -610,12 +698,30 @@ export default function PcpPage() {
     return { hoje, anteriores };
   }, [emitidas, searchQuery, dayKey]);
 
+  const expedicaoGrouped = useMemo(() => {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const q = searchQuery.trim().toLowerCase();
+    const filterFn = (e: ExpedicaoEntry) =>
+      !q || e.titulo.toLowerCase().includes(q) || e.cliente.toLowerCase().includes(q) || e.descricao.toLowerCase().includes(q) || (e.vendedor || "").toLowerCase().includes(q);
+
+    const hoje: ExpedicaoEntry[] = [];
+    const anteriores: ExpedicaoEntry[] = [];
+    expedicao.filter(filterFn).forEach(e => {
+      const d = new Date(e.chegou_em);
+      if (isSameDay(d, today)) hoje.push(e);
+      else if (d < today) anteriores.push(e);
+    });
+    return { hoje, anteriores };
+  }, [expedicao, searchQuery, dayKey]);
+
   // Contadores
   const totalEmitidasHoje = emitidasGrouped.hoje.length;
   const totalLiberadasHoje = liberadasGrouped.hoje.length;
+  const totalExpedicaoHoje = expedicaoGrouped.hoje.length;
   const lastLiberada = liberadasGrouped.hoje[0] || liberadas[0] || null;
   const listRefLeft = useRef<HTMLDivElement>(null);
   const listRefRight = useRef<HTMLDivElement>(null);
+  const listRefThird = useRef<HTMLDivElement>(null);
 
   // Conteúdo principal
   const mainContent = (
@@ -813,8 +919,19 @@ export default function PcpPage() {
           <span>Liberadas ({totalLiberadasHoje})</span>
         </button>
         <button
+          onClick={() => setMobileTab("expedicao")}
+          className={`flex-1 py-1.5 px-2 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+            mobileTab === "expedicao"
+              ? "bg-violet-600 text-white shadow-xs"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <Truck className="h-3.5 w-3.5" />
+          <span>Expedição ({totalExpedicaoHoje})</span>
+        </button>
+        <button
           onClick={() => setMobileTab("todas")}
-          className={`py-1.5 px-3 rounded-lg transition-all ${
+          className={`py-1.5 px-2.5 rounded-lg transition-all ${
             mobileTab === "todas"
               ? "bg-slate-800 text-white dark:bg-slate-700 shadow-xs"
               : "text-muted-foreground hover:text-foreground"
@@ -824,46 +941,46 @@ export default function PcpPage() {
         </button>
       </div>
 
-      {/* DUAS COLUNAS PRINCIPAIS: OS EMITIDAS (ESQUERDA) vs OS LIBERADAS (DIREITA) */}
-      <div className={`gap-3.5 flex-1 min-h-0 ${
+      {/* TRÊS COLUNAS PRINCIPAIS: OS EMITIDAS | OS LIBERADAS | O.S EXPEDIÇÃO */}
+      <div className={`gap-2 sm:gap-2.5 flex-1 min-h-0 ${
         mobileTab === "todas"
-          ? "flex flex-col lg:grid lg:grid-cols-2 overflow-y-auto lg:overflow-hidden"
-          : "grid grid-cols-1 lg:grid-cols-2"
+          ? "flex flex-col lg:grid lg:grid-cols-3 overflow-y-auto lg:overflow-hidden"
+          : "grid grid-cols-1 lg:grid-cols-3"
       }`}>
         {/* ========================================================= */}
-        {/* COLUNA ESQUERDA: OS EMITIDAS                              */}
+        {/* COLUNA 1: OS EMITIDAS                                     */}
         {/* ========================================================= */}
         <div className={`flex flex-col rounded-2xl glass-bento border border-blue-500/30 overflow-hidden shadow-sm bg-card/60 dark:bg-[#11212D]/80 ${
-          mobileTab === "liberadas" ? "hidden lg:flex" : "flex"
+          mobileTab !== "emitidas" && mobileTab !== "todas" ? "hidden lg:flex" : "flex"
         } ${mobileTab === "todas" ? "min-h-[440px] lg:min-h-0" : ""}`}>
           {/* TÍTULO PRINCIPAL: OS EMITIDAS */}
-          <div className="py-2.5 px-4 bg-blue-600/10 dark:bg-blue-950/50 border-b border-blue-500/20 text-center flex items-center justify-center gap-2 shrink-0">
-            <Layers className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-            <h2 className="text-sm sm:text-base font-black tracking-wider text-blue-700 dark:text-blue-400 uppercase">
+          <div className="py-2 px-3 bg-blue-600/10 dark:bg-blue-950/50 border-b border-blue-500/20 text-center flex items-center justify-center gap-2 shrink-0">
+            <Layers className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
+            <h2 className="text-xs sm:text-sm font-black tracking-wider text-blue-700 dark:text-blue-400 uppercase">
               OS EMITIDAS
             </h2>
           </div>
 
           {/* SEÇÃO 1: HOJE */}
           <div className="flex flex-col shrink-0 border-b border-blue-500/20">
-            <div className="py-1.5 px-4 bg-blue-100/80 dark:bg-blue-900/30 border-b border-blue-500/20 flex items-center justify-center gap-2 shrink-0">
-              <span className="text-xs font-bold text-blue-900 dark:text-blue-200">
+            <div className="py-1 px-3 bg-blue-100/80 dark:bg-blue-900/30 border-b border-blue-500/20 flex items-center justify-center gap-2 shrink-0">
+              <span className="text-[11px] font-bold text-blue-900 dark:text-blue-200">
                 Hoje
               </span>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-600 text-white shadow-xs">
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-blue-600 text-white shadow-xs">
                 {emitidasGrouped.hoje.length}
               </span>
             </div>
 
-            <div className="overflow-x-auto max-h-[220px] overflow-y-auto">
-              <table className="w-full min-w-[500px] text-left text-xs table-fixed">
-                <thead className="sticky top-0 bg-muted/90 dark:bg-[#0c1822]/95 backdrop-blur-xs text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
+            <div className="overflow-x-auto max-h-[200px] sm:max-h-[220px] overflow-y-auto">
+              <table className="w-full min-w-0 text-left text-[11px] table-fixed">
+                <thead className="sticky top-0 bg-muted/90 dark:bg-[#0c1822]/95 backdrop-blur-xs text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
                   <tr>
-                    <th className="w-[15%] py-2 pl-3">OS</th>
-                    <th className="w-[27%] py-2">CLIENTE</th>
-                    <th className="w-[31%] py-2">DESCRIÇÃO</th>
-                    <th className="w-[12%] py-2">VENDEDOR</th>
-                    <th className="w-[15%] py-2 pr-3 text-right">CRIADA</th>
+                    <th className="w-[18%] py-1.5 pl-2">OS</th>
+                    <th className="w-[28%] py-1.5">CLIENTE</th>
+                    <th className="w-[28%] py-1.5">DESCRIÇÃO</th>
+                    <th className="w-[13%] py-1.5">VENDEDOR</th>
+                    <th className="w-[13%] py-1.5 pr-2 text-right">CRIADA</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
@@ -888,29 +1005,29 @@ export default function PcpPage() {
                           e.urgente ? "bg-rose-500/10 text-rose-600 dark:text-rose-300 font-semibold" : ""
                         }`}
                       >
-                        <td className="py-2 pl-3 font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap truncate">
+                        <td className="py-1.5 pl-2 font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap truncate">
                           {cleanOsTitle(e.titulo)}
                           {e.os_anterior && (
-                            <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9.5px] bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center" title={`Repetição da O.S. Anterior: #${e.os_anterior}`}>
+                            <span className="ml-1 px-1 py-0.2 rounded text-[8.5px] bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center" title={`Repetição da O.S. Anterior: #${e.os_anterior}`}>
                               REP #{e.os_anterior}
                             </span>
                           )}
                           {e.urgente && (
-                            <span className="ml-1 text-[9px] text-rose-500 font-extrabold" title="Urgente">
+                            <span className="ml-0.5 text-[8.5px] text-rose-500 font-extrabold" title="Urgente">
                               🚨
                             </span>
                           )}
                         </td>
-                        <td className="py-2 font-semibold text-foreground truncate" title={e.cliente}>
+                        <td className="py-1.5 font-semibold text-foreground truncate" title={e.cliente}>
                           {e.cliente}
                         </td>
-                        <td className="py-2 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
+                        <td className="py-1.5 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
                           {e.descricao || "—"}
                         </td>
-                        <td className="py-2 text-muted-foreground truncate" title={e.vendedor || ""}>
+                        <td className="py-1.5 text-muted-foreground truncate" title={e.vendedor || ""}>
                           {e.vendedor || "—"}
                         </td>
-                        <td className="py-2 pr-3 text-right text-muted-foreground whitespace-nowrap">
+                        <td className="py-1.5 pr-2 text-right text-muted-foreground whitespace-nowrap">
                           {formatPcpDate(e.created_at)}
                         </td>
                       </tr>
@@ -923,24 +1040,24 @@ export default function PcpPage() {
 
           {/* SEÇÃO 2: ANTERIORES */}
           <div className="flex flex-col flex-1 min-h-0">
-            <div className="py-1.5 px-4 bg-blue-100/80 dark:bg-blue-900/30 border-b border-blue-500/20 flex items-center justify-center gap-2 shrink-0">
-              <span className="text-xs font-bold text-blue-900 dark:text-blue-200">
+            <div className="py-1 px-3 bg-blue-100/80 dark:bg-blue-900/30 border-b border-blue-500/20 flex items-center justify-center gap-2 shrink-0">
+              <span className="text-[11px] font-bold text-blue-900 dark:text-blue-200">
                 Anteriores
               </span>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-blue-600 text-white shadow-xs">
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-blue-600 text-white shadow-xs">
                 {emitidasGrouped.anteriores.length}
               </span>
             </div>
 
             <div ref={listRefLeft} className="flex-1 overflow-y-auto overflow-x-auto scroll-smooth">
-              <table className="w-full min-w-[500px] text-left text-xs table-fixed">
-                <thead className="sticky top-0 bg-muted/90 dark:bg-[#0c1822]/95 backdrop-blur-xs text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
+              <table className="w-full min-w-0 text-left text-[11px] table-fixed">
+                <thead className="sticky top-0 bg-muted/90 dark:bg-[#0c1822]/95 backdrop-blur-xs text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
                   <tr>
-                    <th className="w-[15%] py-2 pl-3">OS</th>
-                    <th className="w-[27%] py-2">CLIENTE</th>
-                    <th className="w-[31%] py-2">DESCRIÇÃO</th>
-                    <th className="w-[12%] py-2">VENDEDOR</th>
-                    <th className="w-[15%] py-2 pr-3 text-right">CRIADA</th>
+                    <th className="w-[18%] py-1.5 pl-2">OS</th>
+                    <th className="w-[28%] py-1.5">CLIENTE</th>
+                    <th className="w-[28%] py-1.5">DESCRIÇÃO</th>
+                    <th className="w-[13%] py-1.5">VENDEDOR</th>
+                    <th className="w-[13%] py-1.5 pr-2 text-right">CRIADA</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
@@ -965,29 +1082,29 @@ export default function PcpPage() {
                           e.urgente ? "bg-rose-500/10 text-rose-600 dark:text-rose-300 font-semibold" : ""
                         }`}
                       >
-                        <td className="py-2 pl-3 font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap truncate">
+                        <td className="py-1.5 pl-2 font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap truncate">
                           {cleanOsTitle(e.titulo)}
                           {e.os_anterior && (
-                            <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9.5px] bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center" title={`Repetição da O.S. Anterior: #${e.os_anterior}`}>
+                            <span className="ml-1 px-1 py-0.2 rounded text-[8.5px] bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center" title={`Repetição da O.S. Anterior: #${e.os_anterior}`}>
                               REP #{e.os_anterior}
                             </span>
                           )}
                           {e.urgente && (
-                            <span className="ml-1 text-[9px] text-rose-500 font-extrabold" title="Urgente">
+                            <span className="ml-0.5 text-[8.5px] text-rose-500 font-extrabold" title="Urgente">
                               🚨
                             </span>
                           )}
                         </td>
-                        <td className="py-2 font-semibold text-foreground truncate" title={e.cliente}>
+                        <td className="py-1.5 font-semibold text-foreground truncate" title={e.cliente}>
                           {e.cliente}
                         </td>
-                        <td className="py-2 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
+                        <td className="py-1.5 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
                           {e.descricao || "—"}
                         </td>
-                        <td className="py-2 text-muted-foreground truncate" title={e.vendedor || ""}>
+                        <td className="py-1.5 text-muted-foreground truncate" title={e.vendedor || ""}>
                           {e.vendedor || "—"}
                         </td>
-                        <td className="py-2 pr-3 text-right text-muted-foreground whitespace-nowrap">
+                        <td className="py-1.5 pr-2 text-right text-muted-foreground whitespace-nowrap">
                           {formatPcpDate(e.created_at)}
                         </td>
                       </tr>
@@ -1000,39 +1117,39 @@ export default function PcpPage() {
         </div>
 
         {/* ========================================================= */}
-        {/* COLUNA DIREITA: OS LIBERADAS                             */}
+        {/* COLUNA 2: OS LIBERADAS                                    */}
         {/* ========================================================= */}
         <div className={`flex flex-col rounded-2xl glass-bento border border-emerald-500/30 overflow-hidden shadow-sm bg-card/60 dark:bg-[#11212D]/80 ${
-          mobileTab === "emitidas" ? "hidden lg:flex" : "flex"
+          mobileTab !== "liberadas" && mobileTab !== "todas" ? "hidden lg:flex" : "flex"
         } ${mobileTab === "todas" ? "min-h-[440px] lg:min-h-0" : ""}`}>
           {/* TÍTULO PRINCIPAL: OS LIBERADAS */}
-          <div className="py-2.5 px-4 bg-emerald-600/10 dark:bg-emerald-950/50 border-b border-emerald-500/20 text-center flex items-center justify-center gap-2 shrink-0">
-            <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-            <h2 className="text-sm sm:text-base font-black tracking-wider text-emerald-700 dark:text-emerald-400 uppercase">
+          <div className="py-2 px-3 bg-emerald-600/10 dark:bg-emerald-950/50 border-b border-emerald-500/20 text-center flex items-center justify-center gap-2 shrink-0">
+            <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-600 dark:text-emerald-400" />
+            <h2 className="text-xs sm:text-sm font-black tracking-wider text-emerald-700 dark:text-emerald-400 uppercase">
               OS LIBERADAS
             </h2>
           </div>
 
           {/* SEÇÃO 1: HOJE */}
           <div className="flex flex-col shrink-0 border-b border-emerald-500/20">
-            <div className="py-1.5 px-4 bg-emerald-100/80 dark:bg-emerald-900/30 border-b border-emerald-500/20 flex items-center justify-center gap-2 shrink-0">
-              <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
+            <div className="py-1 px-3 bg-emerald-100/80 dark:bg-emerald-900/30 border-b border-emerald-500/20 flex items-center justify-center gap-2 shrink-0">
+              <span className="text-[11px] font-bold text-emerald-900 dark:text-emerald-200">
                 Hoje
               </span>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-600 text-white shadow-xs">
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-600 text-white shadow-xs">
                 {liberadasGrouped.hoje.length}
               </span>
             </div>
 
-            <div className="overflow-x-auto max-h-[220px] overflow-y-auto">
-              <table className="w-full min-w-[500px] text-left text-xs table-fixed">
-                <thead className="sticky top-0 bg-muted/90 dark:bg-[#0c1822]/95 backdrop-blur-xs text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
+            <div className="overflow-x-auto max-h-[200px] sm:max-h-[220px] overflow-y-auto">
+              <table className="w-full min-w-0 text-left text-[11px] table-fixed">
+                <thead className="sticky top-0 bg-muted/90 dark:bg-[#0c1822]/95 backdrop-blur-xs text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
                   <tr>
-                    <th className="w-[15%] py-2 pl-3">OS</th>
-                    <th className="w-[27%] py-2">CLIENTE</th>
-                    <th className="w-[31%] py-2">DESCRIÇÃO</th>
-                    <th className="w-[12%] py-2">VENDEDOR</th>
-                    <th className="w-[15%] py-2 pr-3 text-right">QUANDO</th>
+                    <th className="w-[18%] py-1.5 pl-2">OS</th>
+                    <th className="w-[28%] py-1.5">CLIENTE</th>
+                    <th className="w-[28%] py-1.5">DESCRIÇÃO</th>
+                    <th className="w-[13%] py-1.5">VENDEDOR</th>
+                    <th className="w-[13%] py-1.5 pr-2 text-right">QUANDO</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
@@ -1063,29 +1180,29 @@ export default function PcpPage() {
                               : ""
                           }`}
                         >
-                          <td className="py-2 pl-3 font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap truncate">
+                          <td className="py-1.5 pl-2 font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap truncate">
                             {cleanOsTitle(e.titulo)}
                             {e.os_anterior && (
-                              <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9.5px] bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center" title={`Repetição da O.S. Anterior: #${e.os_anterior}`}>
+                              <span className="ml-1 px-1 py-0.2 rounded text-[8.5px] bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center" title={`Repetição da O.S. Anterior: #${e.os_anterior}`}>
                                 REP #{e.os_anterior}
                               </span>
                             )}
                             {e.urgente && (
-                              <span className="ml-1 text-[9px] text-rose-500 font-extrabold" title="Urgente">
+                              <span className="ml-0.5 text-[8.5px] text-rose-500 font-extrabold" title="Urgente">
                                 🚨
                               </span>
                             )}
                           </td>
-                          <td className="py-2 font-semibold text-foreground truncate" title={e.cliente}>
+                          <td className="py-1.5 font-semibold text-foreground truncate" title={e.cliente}>
                             {e.cliente}
                           </td>
-                          <td className="py-2 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
+                          <td className="py-1.5 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
                             {e.descricao || "—"}
                           </td>
-                          <td className="py-2 text-muted-foreground truncate" title={e.vendedor || ""}>
+                          <td className="py-1.5 text-muted-foreground truncate" title={e.vendedor || ""}>
                             {e.vendedor || "—"}
                           </td>
-                          <td className="py-2 pr-3 text-right text-muted-foreground whitespace-nowrap">
+                          <td className="py-1.5 pr-2 text-right text-muted-foreground whitespace-nowrap">
                             {formatPcpDate(e.chegou_em)}
                           </td>
                         </tr>
@@ -1099,24 +1216,24 @@ export default function PcpPage() {
 
           {/* SEÇÃO 2: ANTERIORES */}
           <div className="flex flex-col flex-1 min-h-0">
-            <div className="py-1.5 px-4 bg-emerald-100/80 dark:bg-emerald-900/30 border-b border-emerald-500/20 flex items-center justify-center gap-2 shrink-0">
-              <span className="text-xs font-bold text-emerald-900 dark:text-emerald-200">
+            <div className="py-1 px-3 bg-emerald-100/80 dark:bg-emerald-900/30 border-b border-emerald-500/20 flex items-center justify-center gap-2 shrink-0">
+              <span className="text-[11px] font-bold text-emerald-900 dark:text-emerald-200">
                 Anteriores
               </span>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-600 text-white shadow-xs">
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-600 text-white shadow-xs">
                 {liberadasGrouped.anteriores.length}
               </span>
             </div>
 
             <div ref={listRefRight} className="flex-1 overflow-y-auto overflow-x-auto scroll-smooth">
-              <table className="w-full min-w-[500px] text-left text-xs table-fixed">
-                <thead className="sticky top-0 bg-muted/90 dark:bg-[#0c1822]/95 backdrop-blur-xs text-[10px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
+              <table className="w-full min-w-0 text-left text-[11px] table-fixed">
+                <thead className="sticky top-0 bg-muted/90 dark:bg-[#0c1822]/95 backdrop-blur-xs text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
                   <tr>
-                    <th className="w-[15%] py-2 pl-3">OS</th>
-                    <th className="w-[27%] py-2">CLIENTE</th>
-                    <th className="w-[31%] py-2">DESCRIÇÃO</th>
-                    <th className="w-[12%] py-2">VENDEDOR</th>
-                    <th className="w-[15%] py-2 pr-3 text-right">QUANDO</th>
+                    <th className="w-[18%] py-1.5 pl-2">OS</th>
+                    <th className="w-[28%] py-1.5">CLIENTE</th>
+                    <th className="w-[28%] py-1.5">DESCRIÇÃO</th>
+                    <th className="w-[13%] py-1.5">VENDEDOR</th>
+                    <th className="w-[13%] py-1.5 pr-2 text-right">QUANDO</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
@@ -1141,29 +1258,205 @@ export default function PcpPage() {
                           e.urgente ? "bg-rose-500/10 text-rose-600 dark:text-rose-300 font-semibold" : ""
                         }`}
                       >
-                        <td className="py-2 pl-3 font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap truncate">
+                        <td className="py-1.5 pl-2 font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap truncate">
                           {cleanOsTitle(e.titulo)}
                           {e.os_anterior && (
-                            <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9.5px] bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center" title={`Repetição da O.S. Anterior: #${e.os_anterior}`}>
+                            <span className="ml-1 px-1 py-0.2 rounded text-[8.5px] bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center" title={`Repetição da O.S. Anterior: #${e.os_anterior}`}>
                               REP #{e.os_anterior}
                             </span>
                           )}
                           {e.urgente && (
-                            <span className="ml-1 text-[9px] text-rose-500 font-extrabold" title="Urgente">
+                            <span className="ml-0.5 text-[8.5px] text-rose-500 font-extrabold" title="Urgente">
                               🚨
                             </span>
                           )}
                         </td>
-                        <td className="py-2 font-semibold text-foreground truncate" title={e.cliente}>
+                        <td className="py-1.5 font-semibold text-foreground truncate" title={e.cliente}>
                           {e.cliente}
                         </td>
-                        <td className="py-2 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
+                        <td className="py-1.5 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
                           {e.descricao || "—"}
                         </td>
-                        <td className="py-2 text-muted-foreground truncate" title={e.vendedor || ""}>
+                        <td className="py-1.5 text-muted-foreground truncate" title={e.vendedor || ""}>
                           {e.vendedor || "—"}
                         </td>
-                        <td className="py-2 pr-3 text-right text-muted-foreground whitespace-nowrap">
+                        <td className="py-1.5 pr-2 text-right text-muted-foreground whitespace-nowrap">
+                          {formatPcpDate(e.chegou_em)}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        {/* ========================================================= */}
+        {/* COLUNA 3: O.S EXPEDIÇÃO                                   */}
+        {/* ========================================================= */}
+        <div className={`flex flex-col rounded-2xl glass-bento border border-violet-500/30 overflow-hidden shadow-sm bg-card/60 dark:bg-[#11212D]/80 ${
+          mobileTab !== "expedicao" && mobileTab !== "todas" ? "hidden lg:flex" : "flex"
+        } ${mobileTab === "todas" ? "min-h-[440px] lg:min-h-0" : ""}`}>
+          {/* TÍTULO PRINCIPAL: O.S EXPEDIÇÃO */}
+          <div className="py-2 px-3 bg-violet-600/10 dark:bg-violet-950/50 border-b border-violet-500/20 text-center flex items-center justify-center gap-2 shrink-0">
+            <Truck className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-violet-600 dark:text-violet-400" />
+            <h2 className="text-xs sm:text-sm font-black tracking-wider text-violet-700 dark:text-violet-400 uppercase">
+              O.S EXPEDIÇÃO
+            </h2>
+          </div>
+
+          {/* SEÇÃO 1: HOJE */}
+          <div className="flex flex-col shrink-0 border-b border-violet-500/20">
+            <div className="py-1 px-3 bg-violet-100/80 dark:bg-violet-900/30 border-b border-violet-500/20 flex items-center justify-center gap-2 shrink-0">
+              <span className="text-[11px] font-bold text-violet-900 dark:text-violet-200">
+                Hoje
+              </span>
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-violet-600 text-white shadow-xs">
+                {expedicaoGrouped.hoje.length}
+              </span>
+            </div>
+
+            <div className="overflow-x-auto max-h-[200px] sm:max-h-[220px] overflow-y-auto">
+              <table className="w-full min-w-0 text-left text-[11px] table-fixed">
+                <thead className="sticky top-0 bg-muted/90 dark:bg-[#0c1822]/95 backdrop-blur-xs text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
+                  <tr>
+                    <th className="w-[18%] py-1.5 pl-2">OS</th>
+                    <th className="w-[28%] py-1.5">CLIENTE</th>
+                    <th className="w-[28%] py-1.5">DESCRIÇÃO</th>
+                    <th className="w-[13%] py-1.5">VENDEDOR</th>
+                    <th className="w-[13%] py-1.5 pr-2 text-right">QUANDO</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/20">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={5} className="py-4 text-center text-xs text-muted-foreground">
+                        <RefreshCw className="h-4 w-4 animate-spin inline mr-1.5 text-violet-500" />
+                        Carregando...
+                      </td>
+                    </tr>
+                  ) : expedicaoGrouped.hoje.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-4 text-center text-xs text-muted-foreground italic font-medium">
+                        Nenhuma OS
+                      </td>
+                    </tr>
+                  ) : (
+                    expedicaoGrouped.hoje.map((e) => {
+                      const isRecent = isToday(parseISO(e.chegou_em)) && (Date.now() - new Date(e.chegou_em).getTime()) < 1800000;
+                      return (
+                        <tr
+                          key={`${e.order_id}-${e.chegou_em}`}
+                          className={`hover:bg-violet-500/10 transition-colors ${
+                            e.urgente
+                              ? "bg-rose-500/10 text-rose-600 dark:text-rose-300 font-semibold"
+                              : isRecent
+                              ? "bg-violet-500/15"
+                              : ""
+                          }`}
+                        >
+                          <td className="py-1.5 pl-2 font-bold text-violet-600 dark:text-violet-400 whitespace-nowrap truncate">
+                            {cleanOsTitle(e.titulo)}
+                            {e.os_anterior && (
+                              <span className="ml-1 px-1 py-0.2 rounded text-[8.5px] bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center" title={`Repetição da O.S. Anterior: #${e.os_anterior}`}>
+                                REP #{e.os_anterior}
+                              </span>
+                            )}
+                            {e.urgente && (
+                              <span className="ml-0.5 text-[8.5px] text-rose-500 font-extrabold" title="Urgente">
+                                🚨
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-1.5 font-semibold text-foreground truncate" title={e.cliente}>
+                            {e.cliente}
+                          </td>
+                          <td className="py-1.5 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
+                            {e.descricao || "—"}
+                          </td>
+                          <td className="py-1.5 text-muted-foreground truncate" title={e.vendedor || ""}>
+                            {e.vendedor || "—"}
+                          </td>
+                          <td className="py-1.5 pr-2 text-right text-muted-foreground whitespace-nowrap">
+                            {formatPcpDate(e.chegou_em)}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* SEÇÃO 2: ANTERIORES */}
+          <div className="flex flex-col flex-1 min-h-0">
+            <div className="py-1 px-3 bg-violet-100/80 dark:bg-violet-900/30 border-b border-violet-500/20 flex items-center justify-center gap-2 shrink-0">
+              <span className="text-[11px] font-bold text-violet-900 dark:text-violet-200">
+                Anteriores
+              </span>
+              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-violet-600 text-white shadow-xs">
+                {expedicaoGrouped.anteriores.length}
+              </span>
+            </div>
+
+            <div ref={listRefThird} className="flex-1 overflow-y-auto overflow-x-auto scroll-smooth">
+              <table className="w-full min-w-0 text-left text-[11px] table-fixed">
+                <thead className="sticky top-0 bg-muted/90 dark:bg-[#0c1822]/95 backdrop-blur-xs text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
+                  <tr>
+                    <th className="w-[18%] py-1.5 pl-2">OS</th>
+                    <th className="w-[28%] py-1.5">CLIENTE</th>
+                    <th className="w-[28%] py-1.5">DESCRIÇÃO</th>
+                    <th className="w-[13%] py-1.5">VENDEDOR</th>
+                    <th className="w-[13%] py-1.5 pr-2 text-right">QUANDO</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/20">
+                  {loading ? (
+                    <tr>
+                      <td colSpan={5} className="py-6 text-center text-xs text-muted-foreground">
+                        <RefreshCw className="h-4 w-4 animate-spin inline mr-1.5 text-violet-500" />
+                        Carregando anteriores...
+                      </td>
+                    </tr>
+                  ) : expedicaoGrouped.anteriores.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-6 text-center text-xs text-muted-foreground italic font-medium">
+                        Nenhuma OS anterior
+                      </td>
+                    </tr>
+                  ) : (
+                    expedicaoGrouped.anteriores.map((e) => (
+                      <tr
+                        key={`${e.order_id}-${e.chegou_em}`}
+                        className={`hover:bg-violet-500/10 transition-colors ${
+                          e.urgente ? "bg-rose-500/10 text-rose-600 dark:text-rose-300 font-semibold" : ""
+                        }`}
+                      >
+                        <td className="py-1.5 pl-2 font-bold text-violet-600 dark:text-violet-400 whitespace-nowrap truncate">
+                          {cleanOsTitle(e.titulo)}
+                          {e.os_anterior && (
+                            <span className="ml-1 px-1 py-0.2 rounded text-[8.5px] bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center" title={`Repetição da O.S. Anterior: #${e.os_anterior}`}>
+                              REP #{e.os_anterior}
+                            </span>
+                          )}
+                          {e.urgente && (
+                            <span className="ml-0.5 text-[8.5px] text-rose-500 font-extrabold" title="Urgente">
+                              🚨
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-1.5 font-semibold text-foreground truncate" title={e.cliente}>
+                          {e.cliente}
+                        </td>
+                        <td className="py-1.5 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
+                          {e.descricao || "—"}
+                        </td>
+                        <td className="py-1.5 text-muted-foreground truncate" title={e.vendedor || ""}>
+                          {e.vendedor || "—"}
+                        </td>
+                        <td className="py-1.5 pr-2 text-right text-muted-foreground whitespace-nowrap">
                           {formatPcpDate(e.chegou_em)}
                         </td>
                       </tr>
@@ -1185,7 +1478,7 @@ export default function PcpPage() {
 
         <div className="flex-1 overflow-hidden whitespace-nowrap text-foreground dark:text-slate-300 text-[11px]">
           <span className="inline-block animate-marquee">
-            📢 <strong>PRIMACOR GRÁFICA</strong> • HOJE: {totalEmitidasHoje} EMITIDAS / {totalLiberadasHoje} LIBERADAS • {lastLiberada ? `ÚLTIMA LIBERAÇÃO: ${cleanOsTitle(lastLiberada.titulo)} (${lastLiberada.cliente}) • ` : ""}RITMO: {totalEmitidasHoje > 0 ? `${Math.round((totalLiberadasHoje / totalEmitidasHoje) * 100)}%` : "100%"}
+            📢 <strong>PRIMACOR GRÁFICA</strong> • HOJE: {totalEmitidasHoje} EMITIDAS / {totalLiberadasHoje} LIBERADAS / {totalExpedicaoHoje} EXPEDIÇÃO • {lastLiberada ? `ÚLTIMA LIBERAÇÃO: ${cleanOsTitle(lastLiberada.titulo)} (${lastLiberada.cliente}) • ` : ""}RITMO: {totalEmitidasHoje > 0 ? `${Math.round((totalLiberadasHoje / totalEmitidasHoje) * 100)}%` : "100%"}
           </span>
         </div>
 
