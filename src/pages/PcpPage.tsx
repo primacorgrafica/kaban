@@ -49,6 +49,9 @@ interface ExpedicaoEntry {
   chegou_em: string;
   urgente?: boolean;
   os_anterior?: string | null;
+  status_entrega?: string | null;
+  entregue_para?: string | null;
+  setor_status?: string | null;
 }
 
 function isSameDay(a: Date, b: Date): boolean {
@@ -485,63 +488,105 @@ export default function PcpPage() {
     since.setHours(0, 0, 0, 0);
     const sinceISO = since.toISOString();
 
-    const [sectorRes, activeExpRes] = await Promise.all([
+    const [sectorRes, expOrdersRes, deliveredRes] = await Promise.all([
+      // 1. Histórico de setores para 'expedicao'
       supabase
         .from("sector_history")
         .select("order_id, setor_novo, created_at")
         .eq("setor_novo", "expedicao")
         .gte("created_at", sinceISO),
+      // 2. Ordens pertencentes ao setor 'expedicao'
       supabase
         .from("orders")
-        .select("id, titulo, cliente, descricao, vendedor, created_at, updated_at, setor, setor_status, arquivado, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao")
-        .eq("setor", "expedicao")
-        .eq("arquivado", false),
+        .select("id, titulo, cliente, descricao, vendedor, created_at, updated_at, setor, setor_status, arquivado, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao, status_entrega, entregue_em, data_chegada_entrega, data_saida_entrega, entregue_para, entregue_por, rota_numero, tipo_entrega")
+        .eq("setor", "expedicao"),
+      // 3. Ordens com entrega realizada ou em andamento
+      supabase
+        .from("orders")
+        .select("id, titulo, cliente, descricao, vendedor, created_at, updated_at, setor, setor_status, arquivado, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao, status_entrega, entregue_em, data_chegada_entrega, data_saida_entrega, entregue_para, entregue_por, rota_numero, tipo_entrega")
+        .or(`status_entrega.eq.entregue,entregue_em.gte.${sinceISO},data_chegada_entrega.gte.${sinceISO}`),
     ]);
 
-    const ids = new Set<string>();
-    (sectorRes.data || []).forEach((r: any) => ids.add(r.order_id));
-    (activeExpRes.data || []).forEach((r: any) => ids.add(r.id));
+    const orderMap = new Map<string, any>();
+    (expOrdersRes.data || []).forEach((o: any) => orderMap.set(o.id, o));
+    (deliveredRes.data || []).forEach((o: any) => orderMap.set(o.id, o));
 
-    if (ids.size === 0) {
+    // Carrega dados de ordens do histórico que não vieram nas outras queries
+    const missingIds = (sectorRes.data || [])
+      .map((r: any) => r.order_id)
+      .filter((id: string) => !orderMap.has(id));
+
+    if (missingIds.length > 0) {
+      const { data: missingData } = await supabase
+        .from("orders")
+        .select("id, titulo, cliente, descricao, vendedor, created_at, updated_at, setor, setor_status, arquivado, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao, status_entrega, entregue_em, data_chegada_entrega, data_saida_entrega, entregue_para, entregue_por, rota_numero, tipo_entrega")
+        .in("id", missingIds);
+      (missingData || []).forEach((o: any) => orderMap.set(o.id, o));
+    }
+
+    if (orderMap.size === 0) {
       setExpedicao([]);
       return;
     }
 
-    const { data: ordersData } = await supabase
-      .from("orders")
-      .select("id, titulo, cliente, descricao, vendedor, created_at, updated_at, setor, setor_status, arquivado, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao")
-      .in("id", Array.from(ids));
+    // Histórico de transição mais recente para expedição
+    const sectorDateMap = new Map<string, string>();
+    (sectorRes.data || []).forEach((r: any) => {
+      const prev = sectorDateMap.get(r.order_id);
+      if (!prev || r.created_at > prev) {
+        sectorDateMap.set(r.order_id, r.created_at);
+      }
+    });
 
-    const map = new Map<string, { titulo: string; cliente: string; descricao: string; vendedor: string | null; urgente?: boolean; os_anterior?: string | null; fallbackDate: string }>();
-    (ordersData || []).forEach((o: any) => {
+    const entries: ExpedicaoEntry[] = [];
+    orderMap.forEach((o: any) => {
       const isUrg = !!(o.urgente || o.urgente_impressao || o.urgente_acabamento || o.urgente_expedicao);
-      map.set(o.id, {
+      const isDelivered = o.status_entrega === "entregue" || !!o.entregue_em || o.setor_status === "saida";
+
+      // Determinação da data representativa para Expedição:
+      // Se entregue, a prioridade absoluta é a data/hora da entrega (entregue_em / data_chegada_entrega / updated_at)
+      let targetDate: string = o.created_at;
+      if (o.entregue_em) {
+        targetDate = o.entregue_em;
+      } else if (o.data_chegada_entrega) {
+        targetDate = o.data_chegada_entrega;
+      } else if (isDelivered && o.updated_at) {
+        targetDate = o.updated_at;
+      } else {
+        const histDate = sectorDateMap.get(o.id);
+        if (histDate) {
+          targetDate = histDate;
+        } else if (o.data_saida_entrega) {
+          targetDate = o.data_saida_entrega;
+        } else {
+          targetDate = o.updated_at || o.created_at;
+        }
+      }
+
+      entries.push({
+        order_id: o.id,
         titulo: o.titulo,
         cliente: o.cliente,
         descricao: o.descricao,
         vendedor: o.vendedor,
+        chegou_em: targetDate,
         urgente: isUrg,
         os_anterior: getEffectiveOsAnterior(o) || null,
-        fallbackDate: o.updated_at || o.created_at,
+        status_entrega: isDelivered ? "entregue" : (o.status_entrega || null),
+        entregue_para: o.entregue_para || null,
+        setor_status: o.setor_status || null,
       });
-    });
-
-    const entries: ExpedicaoEntry[] = [];
-    (sectorRes.data || []).forEach((r: any) => {
-      const m = map.get(r.order_id);
-      if (m) entries.push({ order_id: r.order_id, ...m, chegou_em: r.created_at });
-    });
-    (activeExpRes.data || []).forEach((r: any) => {
-      const m = map.get(r.id);
-      if (m) entries.push({ order_id: r.id, ...m, chegou_em: m.fallbackDate });
     });
 
     const latestByKey = new Map<string, ExpedicaoEntry>();
     for (const e of entries) {
       const key = (e.titulo || "").trim().toUpperCase() || e.order_id;
       const prev = latestByKey.get(key);
-      if (!prev || e.chegou_em > prev.chegou_em) latestByKey.set(key, e);
+      if (!prev || e.chegou_em > prev.chegou_em) {
+        latestByKey.set(key, e);
+      }
     }
+
     const deduped = Array.from(latestByKey.values());
     deduped.sort((a, b) => b.chegou_em.localeCompare(a.chegou_em));
     setExpedicao(deduped);
@@ -612,7 +657,9 @@ export default function PcpPage() {
           newRow.status !== oldRow?.status ||
           newRow.setor_status !== oldRow?.setor_status ||
           newRow.setor !== oldRow?.setor ||
-          newRow.arquivado !== oldRow?.arquivado
+          newRow.arquivado !== oldRow?.arquivado ||
+          newRow.status_entrega !== oldRow?.status_entrega ||
+          newRow.entregue_em !== oldRow?.entregue_em
         ) {
           fetchLiberadasRef.current?.();
           fetchEmitidas();
@@ -708,8 +755,8 @@ export default function PcpPage() {
     const anteriores: ExpedicaoEntry[] = [];
     expedicao.filter(filterFn).forEach(e => {
       const d = new Date(e.chegou_em);
-      if (isSameDay(d, today)) hoje.push(e);
-      else if (d < today) anteriores.push(e);
+      if (isSameDay(d, today) || d >= today) hoje.push(e);
+      else anteriores.push(e);
     });
     return { hoje, anteriores };
   }, [expedicao, searchQuery, dayKey]);
@@ -1414,6 +1461,21 @@ export default function PcpPage() {
                           <td className="py-1.5 pl-2 font-bold text-violet-600 dark:text-violet-400 truncate">
                             <div className="flex items-center gap-1 min-w-0 truncate">
                               <span className="truncate">{cleanOsTitle(e.titulo)}</span>
+                              {e.status_entrega === "entregue" ? (
+                                <span
+                                  className="shrink-0 px-1 py-0.2 rounded text-[8px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/40 font-bold tracking-tight inline-flex items-center"
+                                  title={e.entregue_para ? `Entregue para: ${e.entregue_para}` : "Entregue"}
+                                >
+                                  ENTREGUE
+                                </span>
+                              ) : e.status_entrega === "em_rota" ? (
+                                <span
+                                  className="shrink-0 px-1 py-0.2 rounded text-[8px] bg-blue-500/20 text-blue-600 dark:text-blue-300 border border-blue-500/40 font-bold tracking-tight inline-flex items-center"
+                                  title="Em rota"
+                                >
+                                  ROTA
+                                </span>
+                              ) : null}
                               {e.os_anterior && (
                                 <span
                                   className="shrink-0 px-1 py-0.2 rounded text-[8px] bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center"
@@ -1504,6 +1566,14 @@ export default function PcpPage() {
                         <td className="py-1.5 pl-2 font-bold text-violet-600 dark:text-violet-400 truncate">
                           <div className="flex items-center gap-1 min-w-0 truncate">
                             <span className="truncate">{cleanOsTitle(e.titulo)}</span>
+                            {e.status_entrega === "entregue" ? (
+                              <span
+                                className="shrink-0 px-1 py-0.2 rounded text-[8px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/40 font-bold tracking-tight inline-flex items-center"
+                                title={e.entregue_para ? `Entregue para: ${e.entregue_para}` : "Entregue"}
+                              >
+                                ENTREGUE
+                              </span>
+                            ) : null}
                             {e.os_anterior && (
                               <span
                                 className="shrink-0 px-1 py-0.2 rounded text-[8px] bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center"
