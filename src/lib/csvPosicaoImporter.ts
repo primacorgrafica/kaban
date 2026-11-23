@@ -81,10 +81,21 @@ export function parsePosicaoCsv(csvText: string): CsvPosicaoRow[] {
   if (hasHeader) {
     startIndex = 1;
     headers.forEach((h, idx) => {
-      if (/nro\s*os|n[úu]mero\s*os|^\s*os\b/i.test(h)) colOs = idx;
-      else if (/posi[çc][ãa]o\s*atual|posi[çc][ãa]o/i.test(h)) colPosicao = idx;
-      else if (/dt\.?\s*posi|data\s*posi/i.test(h)) colDataPosicao = idx;
-      else if (/previs[ãa]o\s*cliente|previs[ãa]o/i.test(h)) colPrevisao = idx;
+      const clean = h
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+
+      if (/^nro|^os\b|numero.*os|ordem/i.test(clean)) {
+        colOs = idx;
+      } else if (/dt|data/i.test(clean) && /posi/i.test(clean)) {
+        colDataPosicao = idx;
+      } else if (/previs/i.test(clean)) {
+        colPrevisao = idx;
+      } else if (/posi/i.test(clean) && !/dt|data/i.test(clean)) {
+        colPosicao = idx;
+      }
     });
   }
 
