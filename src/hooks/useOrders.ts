@@ -33,6 +33,7 @@ import { triggerSellerApprovalNotification } from "@/lib/sellerNotificationServi
 import { hasSpecialSuppliesForCompras } from "@/lib/processos";
 import { syncOrderToCompras } from "@/lib/comprasSync";
 import { sanitizeVendedorNome } from "@/lib/vendedores";
+import { getPosicaoFromCache } from "@/lib/csvPosicaoImporter";
 
 
 export function useOrders() {
@@ -150,6 +151,8 @@ export function useOrders() {
           const effectiveOsAnt = getEffectiveOsAnterior(r);
           const effectiveRelated = getEffectiveRelatedOrders(r);
           const hasPrio = hasProductionPriority(r);
+          const cleanNum = cleanOsNumber(r.titulo);
+          const cachedPos = getPosicaoFromCache(r.id, cleanNum);
 
           // Auto-reparo: se a O.S. 73503 ficou com tag residual [REV1] do teste anterior,
           // restaura para versão original (sem revisão) tanto no objeto em memória quanto no Supabase
@@ -161,6 +164,9 @@ export function useOrders() {
 
           return {
             ...r,
+            posicao_atual: r.posicao_atual ?? cachedPos?.posicaoAtual ?? null,
+            data_posicao: r.data_posicao ?? cachedPos?.dataPosicao ?? null,
+            previsao_cliente: r.previsao_cliente ?? cachedPos?.previsaoCliente ?? null,
             os_anterior: effectiveOsAnt || r.os_anterior || null,
             tipo_trabalho: effectiveOsAnt && (!r.tipo_trabalho || r.tipo_trabalho === "novo") ? "repeticao" : (r.tipo_trabalho || "novo"),
             revisao: getOrderRevision(r),
@@ -206,8 +212,12 @@ export function useOrders() {
     const effectiveOsAnt = getEffectiveOsAnterior(newRow);
     const effectiveRelated = getEffectiveRelatedOrders(newRow);
     const hasPrio = hasProductionPriority(newRow);
+    const cachedPos = getPosicaoFromCache(newRow.id, cleanOsNumber(newRow.titulo));
     const normalizedRow: Order = {
       ...newRow,
+      posicao_atual: newRow.posicao_atual ?? cachedPos?.posicaoAtual ?? null,
+      data_posicao: newRow.data_posicao ?? cachedPos?.dataPosicao ?? null,
+      previsao_cliente: newRow.previsao_cliente ?? cachedPos?.previsaoCliente ?? null,
       os_anterior: effectiveOsAnt || newRow.os_anterior || null,
       tipo_trabalho: effectiveOsAnt && (!newRow.tipo_trabalho || newRow.tipo_trabalho === "novo") ? "repeticao" : (newRow.tipo_trabalho || "novo"),
       revisao: getOrderRevision(newRow),
@@ -226,14 +236,27 @@ export function useOrders() {
         return prev;
       }
       const copy = [...prev];
-      const prevRelated = copy[idx]?.related_order_ids;
+      const prevOrder = copy[idx];
+      const prevRelated = prevOrder?.related_order_ids;
       const finalRelated =
         normalizedRow.related_order_ids && normalizedRow.related_order_ids.length > 0
           ? normalizedRow.related_order_ids
           : prevRelated && prevRelated.length > 0 && newRow.observacao === undefined
           ? prevRelated
           : normalizedRow.related_order_ids;
-      copy[idx] = { ...copy[idx], ...normalizedRow, related_order_ids: finalRelated };
+
+      const finalPosicao = normalizedRow.posicao_atual ?? prevOrder?.posicao_atual ?? null;
+      const finalDataPos = normalizedRow.data_posicao ?? prevOrder?.data_posicao ?? null;
+      const finalPrevisao = normalizedRow.previsao_cliente ?? prevOrder?.previsao_cliente ?? null;
+
+      copy[idx] = {
+        ...copy[idx],
+        ...normalizedRow,
+        posicao_atual: finalPosicao,
+        data_posicao: finalDataPos,
+        previsao_cliente: finalPrevisao,
+        related_order_ids: finalRelated,
+      };
       return copy;
     });
   }, []);

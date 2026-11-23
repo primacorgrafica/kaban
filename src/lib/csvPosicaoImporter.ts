@@ -15,6 +15,58 @@ export interface CsvImportResult {
   skippedCount: number;
   updatedOrders: { os: string; id: string; posicaoAtual: string | null }[];
   notFoundOsList: string[];
+  databaseColumnsMissing?: boolean;
+}
+
+export const POSICAO_CACHE_KEY = "kaban_producao_posicao_csv_cache_v1";
+
+export interface PosicaoCacheEntry {
+  posicaoAtual: string | null;
+  dataPosicao: string | null;
+  previsaoCliente: string | null;
+  updatedAt: string;
+}
+
+/**
+ * Lê o mapa em cache local de posições e previsões importadas via CSV.
+ */
+export function getPosicaoCache(): Record<string, PosicaoCacheEntry> {
+  if (typeof window === "undefined") return {};
+  try {
+    const raw = localStorage.getItem(POSICAO_CACHE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    console.warn("[csvPosicaoImporter] Erro ao ler cache local de posições:", e);
+    return {};
+  }
+}
+
+/**
+ * Salva ou mescla registros no cache persistente do navegador.
+ */
+export function savePosicaoCache(entries: Record<string, PosicaoCacheEntry>): void {
+  if (typeof window === "undefined") return;
+  try {
+    const current = getPosicaoCache();
+    const merged = { ...current, ...entries };
+    localStorage.setItem(POSICAO_CACHE_KEY, JSON.stringify(merged));
+  } catch (e) {
+    console.warn("[csvPosicaoImporter] Erro ao salvar cache local de posições:", e);
+  }
+}
+
+/**
+ * Busca a posição/previsão em cache por UUID da ordem ou por número limpo de OS.
+ */
+export function getPosicaoFromCache(
+  orderId?: string | null,
+  osNumber?: string | null
+): PosicaoCacheEntry | null {
+  if (!orderId && !osNumber) return null;
+  const cache = getPosicaoCache();
+  if (orderId && cache[orderId]) return cache[orderId];
+  if (osNumber && cache[osNumber]) return cache[osNumber];
+  return null;
 }
 
 /**
@@ -178,10 +230,29 @@ export async function importPosicaoCsv(
     }
   }
 
-  // Executa os updates no Supabase em lotes concorrentes para alta performance
+  // 1. Salva imediatamente no cache local persistente (localStorage) para que os dados NUNCA sumam
+  const cacheEntries: Record<string, PosicaoCacheEntry> = {};
+  const nowIso = new Date().toISOString();
+  for (const item of updatesToApply) {
+    const entry: PosicaoCacheEntry = {
+      posicaoAtual: item.posicaoAtual,
+      dataPosicao: item.dataPosicao,
+      previsaoCliente: item.previsaoCliente,
+      updatedAt: nowIso,
+    };
+    cacheEntries[item.order.id] = entry;
+    const cleanNum = cleanOsNumber(item.order.titulo);
+    if (cleanNum) {
+      cacheEntries[cleanNum] = entry;
+    }
+  }
+  savePosicaoCache(cacheEntries);
+
+  // 2. Executa os updates no Supabase em lotes concorrentes para alta performance
   const CHUNK_SIZE = 15;
   const total = updatesToApply.length;
   let processed = 0;
+  let databaseColumnsMissing = false;
 
   for (let i = 0; i < total; i += CHUNK_SIZE) {
     const chunk = updatesToApply.slice(i, i + CHUNK_SIZE);
@@ -199,7 +270,14 @@ export async function importPosicaoCsv(
           .eq("id", item.order.id);
 
         if (error) {
-          console.warn(`[csvPosicaoImporter] Erro ao atualizar O.S #${item.order.titulo}:`, error);
+          if (
+            error.code === "PGRST204" ||
+            error.code === "42703" ||
+            error.message?.includes("column")
+          ) {
+            databaseColumnsMissing = true;
+          }
+          console.warn(`[csvPosicaoImporter] Aviso ao atualizar O.S #${item.order.titulo} no Supabase:`, error);
         }
       })
     );
@@ -220,6 +298,7 @@ export async function importPosicaoCsv(
       posicaoAtual: u.posicaoAtual,
     })),
     notFoundOsList,
+    databaseColumnsMissing,
   };
 
   return { result, updatedOrdersMap };

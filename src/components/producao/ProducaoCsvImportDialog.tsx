@@ -17,6 +17,8 @@ import {
   Loader2,
   RefreshCw,
   FileCheck,
+  AlertTriangle,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -288,19 +290,55 @@ export function ProducaoCsvImportDialog({
 
           {/* Resultado Pós-Importação */}
           {importResult && (
-            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/40 space-y-3">
-              <div className="flex items-center gap-2 text-emerald-500 font-bold text-sm">
-                <CheckCircle2 className="h-5 w-5" />
-                <span>Importação Concluída com Sucesso!</span>
+            <div className="space-y-3">
+              <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/40 space-y-3">
+                <div className="flex items-center gap-2 text-emerald-500 font-bold text-sm">
+                  <CheckCircle2 className="h-5 w-5" />
+                  <span>Importação Concluída com Sucesso!</span>
+                </div>
+                <div className="text-xs space-y-1 text-foreground font-mono-tech">
+                  <p>
+                    • <strong>{importResult.updatedCount}</strong> O.S. atualizadas no Kaban.
+                  </p>
+                  <p className="text-muted-foreground">
+                    • <strong>{importResult.skippedCount}</strong> O.S. ignoradas por não existirem no Kaban.
+                  </p>
+                </div>
               </div>
-              <div className="text-xs space-y-1 text-foreground font-mono-tech">
-                <p>
-                  • <strong>{importResult.updatedCount}</strong> O.S. atualizadas no Kaban.
-                </p>
-                <p className="text-muted-foreground">
-                  • <strong>{importResult.skippedCount}</strong> O.S. ignoradas por não existirem no Kaban.
-                </p>
-              </div>
+
+              {importResult.databaseColumnsMissing && (
+                <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-2 text-xs">
+                  <div className="flex items-start gap-2 text-amber-500">
+                    <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold text-foreground">Salvo com Segurança no Navegador</p>
+                      <p className="text-muted-foreground mt-0.5 leading-relaxed">
+                        Os dados foram salvos no armazenamento local deste navegador e <strong>não vão sumir ao atualizar a página</strong>.
+                        Para que todos os outros computadores da gráfica também vejam as colunas no Supabase, execute o script SQL abaixo no Supabase SQL Editor:
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between bg-black/40 p-2 rounded border border-border/60">
+                    <span className="font-mono-tech text-[11px] text-muted-foreground truncate max-w-[280px]">
+                      ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS posicao_atual...
+                    </span>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-xs gap-1 shrink-0 ml-2"
+                      onClick={() => {
+                        const sql = `ALTER TABLE public.orders\n  ADD COLUMN IF NOT EXISTS posicao_atual TEXT,\n  ADD COLUMN IF NOT EXISTS data_posicao TEXT,\n  ADD COLUMN IF NOT EXISTS previsao_cliente TEXT;\n\nCREATE INDEX IF NOT EXISTS idx_orders_posicao_atual ON public.orders(posicao_atual);\nCREATE INDEX IF NOT EXISTS idx_orders_data_posicao ON public.orders(data_posicao);\nCREATE INDEX IF NOT EXISTS idx_orders_previsao_cliente ON public.orders(previsao_cliente);\n\nNOTIFY pgrst, 'reload schema';`;
+                        void navigator.clipboard.writeText(sql);
+                        toast.success("Script SQL copiado com sucesso!");
+                      }}
+                    >
+                      <Copy className="h-3 w-3" />
+                      <span>Copiar SQL</span>
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>

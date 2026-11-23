@@ -13,7 +13,8 @@ import { Order, Profile } from "@/types/order";
 import { Department } from "@/types/production";
 import { hasSpecialSuppliesForCompras, setComprasStatusInProcessos } from "@/lib/processos";
 import { syncOrderToCompras, syncComprasStatusToParent } from "@/lib/comprasSync";
-import { getEffectiveRelatedOrders, registerKnownOrders } from "@/lib/orderRelationsService";
+import { getEffectiveRelatedOrders, registerKnownOrders, cleanOsNumber } from "@/lib/orderRelationsService";
+import { getPosicaoFromCache } from "@/lib/csvPosicaoImporter";
 import {
   hasProductionPriority,
   setObservationProductionPriority,
@@ -60,8 +61,12 @@ export function useProductionOrders() {
       all.push(...batch.map((r) => {
         const effectiveRelated = getEffectiveRelatedOrders(r);
         const hasPrio = hasProductionPriority(r);
+        const cachedPos = getPosicaoFromCache(r.id, cleanOsNumber(r.titulo));
         return {
           ...r,
+          posicao_atual: r.posicao_atual ?? cachedPos?.posicaoAtual ?? null,
+          data_posicao: r.data_posicao ?? cachedPos?.dataPosicao ?? null,
+          previsao_cliente: r.previsao_cliente ?? cachedPos?.previsaoCliente ?? null,
           prioridade_producao: hasPrio,
           related_order_ids: (r.related_order_ids && r.related_order_ids.length > 0) ? r.related_order_ids : effectiveRelated,
         };
@@ -108,8 +113,12 @@ export function useProductionOrders() {
     if (!newRow?.id) return;
     const effectiveRelated = getEffectiveRelatedOrders(newRow);
     const hasPrio = hasProductionPriority(newRow);
+    const cachedPos = getPosicaoFromCache(newRow.id, cleanOsNumber(newRow.titulo));
     const normalizedRow: Order = {
       ...newRow,
+      posicao_atual: newRow.posicao_atual ?? cachedPos?.posicaoAtual ?? null,
+      data_posicao: newRow.data_posicao ?? cachedPos?.dataPosicao ?? null,
+      previsao_cliente: newRow.previsao_cliente ?? cachedPos?.previsaoCliente ?? null,
       prioridade_producao: hasPrio,
       related_order_ids: (newRow.related_order_ids && newRow.related_order_ids.length > 0) ? newRow.related_order_ids : effectiveRelated,
     };
@@ -125,7 +134,18 @@ export function useProductionOrders() {
       }
       if (idx === -1) return [...prev, normalizedRow];
       const copy = [...prev];
-      copy[idx] = { ...copy[idx], ...normalizedRow };
+      const prevOrder = copy[idx];
+      const finalPosicao = normalizedRow.posicao_atual ?? prevOrder?.posicao_atual ?? null;
+      const finalDataPos = normalizedRow.data_posicao ?? prevOrder?.data_posicao ?? null;
+      const finalPrevisao = normalizedRow.previsao_cliente ?? prevOrder?.previsao_cliente ?? null;
+
+      copy[idx] = {
+        ...copy[idx],
+        ...normalizedRow,
+        posicao_atual: finalPosicao,
+        data_posicao: finalDataPos,
+        previsao_cliente: finalPrevisao,
+      };
       return copy;
     });
   }, []);
