@@ -60,12 +60,12 @@ function cleanOsTitle(titulo: string): string {
   return titulo.replace(/^O\.?S\.?[\s._-]*/i, "").trim() || titulo;
 }
 
-function formatPcpDate(dateStr: string | null | undefined): string {
+function formatPcpDate(dateStr: string | null | undefined, onlyTime = false): string {
   if (!dateStr) return "—";
   try {
     const d = typeof dateStr === "string" ? parseISO(dateStr) : new Date(dateStr);
     if (isNaN(d.getTime())) return "—";
-    return format(d, "dd/MM/yy HH:mm");
+    return onlyTime ? format(d, "HH:mm") : format(d, "dd/MM HH:mm");
   } catch {
     return "—";
   }
@@ -945,7 +945,7 @@ export default function PcpPage() {
       <div className={`gap-2 sm:gap-2.5 flex-1 min-h-0 ${
         mobileTab === "todas"
           ? "flex flex-col lg:grid lg:grid-cols-3 overflow-y-auto lg:overflow-hidden"
-          : "grid grid-cols-1 lg:grid-cols-3"
+          : "grid grid-cols-1 lg:grid-cols-3 overflow-hidden"
       }`}>
         {/* ========================================================= */}
         {/* COLUNA 1: OS EMITIDAS                                     */}
@@ -954,33 +954,40 @@ export default function PcpPage() {
           mobileTab !== "emitidas" && mobileTab !== "todas" ? "hidden lg:flex" : "flex"
         } ${mobileTab === "todas" ? "min-h-[440px] lg:min-h-0" : ""}`}>
           {/* TÍTULO PRINCIPAL: OS EMITIDAS */}
-          <div className="py-2 px-3 bg-blue-600/10 dark:bg-blue-950/50 border-b border-blue-500/20 text-center flex items-center justify-center gap-2 shrink-0">
-            <Layers className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-blue-600 dark:text-blue-400" />
-            <h2 className="text-xs sm:text-sm font-black tracking-wider text-blue-700 dark:text-blue-400 uppercase">
+          <div className="py-2 px-3 bg-gradient-to-r from-blue-600/20 via-blue-500/10 to-blue-600/20 border-b border-blue-500/30 text-center flex items-center justify-center gap-2 shrink-0">
+            <Layers className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <h2 className="text-xs sm:text-sm font-black tracking-wider text-blue-700 dark:text-blue-400 uppercase drop-shadow-[0_0_10px_rgba(59,130,246,0.25)]">
               OS EMITIDAS
             </h2>
           </div>
 
           {/* SEÇÃO 1: HOJE */}
           <div className="flex flex-col shrink-0 border-b border-blue-500/20">
-            <div className="py-1 px-3 bg-blue-100/80 dark:bg-blue-900/30 border-b border-blue-500/20 flex items-center justify-center gap-2 shrink-0">
-              <span className="text-[11px] font-bold text-blue-900 dark:text-blue-200">
+            <div className="py-1 px-3 bg-blue-100/80 dark:bg-blue-950/40 border-b border-blue-500/20 flex items-center justify-center gap-2 shrink-0">
+              <span className="text-[11px] font-bold text-blue-900 dark:text-blue-300">
                 Hoje
               </span>
-              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-blue-600 text-white shadow-xs">
+              <span className="text-[10px] font-black px-1.5 py-0.2 rounded-full bg-blue-600 text-white shadow-xs">
                 {emitidasGrouped.hoje.length}
               </span>
             </div>
 
-            <div className="overflow-x-auto max-h-[200px] sm:max-h-[220px] overflow-y-auto">
-              <table className="w-full min-w-0 text-left text-[11px] table-fixed">
-                <thead className="sticky top-0 bg-muted/90 dark:bg-[#0c1822]/95 backdrop-blur-xs text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
+            <div className="overflow-x-hidden max-h-[190px] sm:max-h-[210px] overflow-y-auto">
+              <table className="w-full text-left text-[11px] table-fixed select-none">
+                <colgroup>
+                  <col className="w-[16%]" />
+                  <col className="w-[30%]" />
+                  <col className="w-[28%]" />
+                  <col className="w-[13%]" />
+                  <col className="w-[13%]" />
+                </colgroup>
+                <thead className="sticky top-0 bg-muted/95 dark:bg-[#0c1822]/98 backdrop-blur-xs text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
                   <tr>
-                    <th className="w-[18%] py-1.5 pl-2">OS</th>
-                    <th className="w-[28%] py-1.5">CLIENTE</th>
-                    <th className="w-[28%] py-1.5">DESCRIÇÃO</th>
-                    <th className="w-[13%] py-1.5">VENDEDOR</th>
-                    <th className="w-[13%] py-1.5 pr-2 text-right">CRIADA</th>
+                    <th className="py-1.5 pl-2 text-left truncate">OS</th>
+                    <th className="py-1.5 px-1 text-left truncate">CLIENTE</th>
+                    <th className="py-1.5 px-1 text-left truncate">DESCRIÇÃO</th>
+                    <th className="py-1.5 px-1 text-left truncate">VENDEDOR</th>
+                    <th className="py-1.5 pr-2 text-right truncate">HORA</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
@@ -1005,30 +1012,35 @@ export default function PcpPage() {
                           e.urgente ? "bg-rose-500/10 text-rose-600 dark:text-rose-300 font-semibold" : ""
                         }`}
                       >
-                        <td className="py-1.5 pl-2 font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap truncate">
-                          {cleanOsTitle(e.titulo)}
-                          {e.os_anterior && (
-                            <span className="ml-1 px-1 py-0.2 rounded text-[8.5px] bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center" title={`Repetição da O.S. Anterior: #${e.os_anterior}`}>
-                              REP #{e.os_anterior}
-                            </span>
-                          )}
-                          {e.urgente && (
-                            <span className="ml-0.5 text-[8.5px] text-rose-500 font-extrabold" title="Urgente">
-                              🚨
-                            </span>
-                          )}
+                        <td className="py-1.5 pl-2 font-bold text-blue-600 dark:text-blue-400 truncate">
+                          <div className="flex items-center gap-1 min-w-0 truncate">
+                            <span className="truncate">{cleanOsTitle(e.titulo)}</span>
+                            {e.os_anterior && (
+                              <span
+                                className="shrink-0 px-1 py-0.2 rounded text-[8px] bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center"
+                                title={`Repetição da O.S. Anterior: #${e.os_anterior}`}
+                              >
+                                REP
+                              </span>
+                            )}
+                            {e.urgente && (
+                              <span className="shrink-0 text-[8.5px] text-rose-500 font-extrabold" title="Urgente">
+                                🚨
+                              </span>
+                            )}
+                          </div>
                         </td>
-                        <td className="py-1.5 font-semibold text-foreground truncate" title={e.cliente}>
+                        <td className="py-1.5 px-1 font-semibold text-foreground truncate" title={e.cliente}>
                           {e.cliente}
                         </td>
-                        <td className="py-1.5 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
+                        <td className="py-1.5 px-1 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
                           {e.descricao || "—"}
                         </td>
-                        <td className="py-1.5 text-muted-foreground truncate" title={e.vendedor || ""}>
+                        <td className="py-1.5 px-1 text-muted-foreground truncate" title={e.vendedor || ""}>
                           {e.vendedor || "—"}
                         </td>
-                        <td className="py-1.5 pr-2 text-right text-muted-foreground whitespace-nowrap">
-                          {formatPcpDate(e.created_at)}
+                        <td className="py-1.5 pr-2 text-right text-muted-foreground font-mono text-[10px] whitespace-nowrap truncate">
+                          {formatPcpDate(e.created_at, true)}
                         </td>
                       </tr>
                     ))
@@ -1040,24 +1052,31 @@ export default function PcpPage() {
 
           {/* SEÇÃO 2: ANTERIORES */}
           <div className="flex flex-col flex-1 min-h-0">
-            <div className="py-1 px-3 bg-blue-100/80 dark:bg-blue-900/30 border-b border-blue-500/20 flex items-center justify-center gap-2 shrink-0">
-              <span className="text-[11px] font-bold text-blue-900 dark:text-blue-200">
+            <div className="py-1 px-3 bg-blue-100/80 dark:bg-blue-950/40 border-b border-blue-500/20 flex items-center justify-center gap-2 shrink-0">
+              <span className="text-[11px] font-bold text-blue-900 dark:text-blue-300">
                 Anteriores
               </span>
-              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-blue-600 text-white shadow-xs">
+              <span className="text-[10px] font-black px-1.5 py-0.2 rounded-full bg-blue-600 text-white shadow-xs">
                 {emitidasGrouped.anteriores.length}
               </span>
             </div>
 
-            <div ref={listRefLeft} className="flex-1 overflow-y-auto overflow-x-auto scroll-smooth">
-              <table className="w-full min-w-0 text-left text-[11px] table-fixed">
-                <thead className="sticky top-0 bg-muted/90 dark:bg-[#0c1822]/95 backdrop-blur-xs text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
+            <div ref={listRefLeft} className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth">
+              <table className="w-full text-left text-[11px] table-fixed select-none">
+                <colgroup>
+                  <col className="w-[16%]" />
+                  <col className="w-[30%]" />
+                  <col className="w-[28%]" />
+                  <col className="w-[13%]" />
+                  <col className="w-[13%]" />
+                </colgroup>
+                <thead className="sticky top-0 bg-muted/95 dark:bg-[#0c1822]/98 backdrop-blur-xs text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
                   <tr>
-                    <th className="w-[18%] py-1.5 pl-2">OS</th>
-                    <th className="w-[28%] py-1.5">CLIENTE</th>
-                    <th className="w-[28%] py-1.5">DESCRIÇÃO</th>
-                    <th className="w-[13%] py-1.5">VENDEDOR</th>
-                    <th className="w-[13%] py-1.5 pr-2 text-right">CRIADA</th>
+                    <th className="py-1.5 pl-2 text-left truncate">OS</th>
+                    <th className="py-1.5 px-1 text-left truncate">CLIENTE</th>
+                    <th className="py-1.5 px-1 text-left truncate">DESCRIÇÃO</th>
+                    <th className="py-1.5 px-1 text-left truncate">VENDEDOR</th>
+                    <th className="py-1.5 pr-2 text-right truncate">DATA</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
@@ -1082,30 +1101,35 @@ export default function PcpPage() {
                           e.urgente ? "bg-rose-500/10 text-rose-600 dark:text-rose-300 font-semibold" : ""
                         }`}
                       >
-                        <td className="py-1.5 pl-2 font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap truncate">
-                          {cleanOsTitle(e.titulo)}
-                          {e.os_anterior && (
-                            <span className="ml-1 px-1 py-0.2 rounded text-[8.5px] bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center" title={`Repetição da O.S. Anterior: #${e.os_anterior}`}>
-                              REP #{e.os_anterior}
-                            </span>
-                          )}
-                          {e.urgente && (
-                            <span className="ml-0.5 text-[8.5px] text-rose-500 font-extrabold" title="Urgente">
-                              🚨
-                            </span>
-                          )}
+                        <td className="py-1.5 pl-2 font-bold text-blue-600 dark:text-blue-400 truncate">
+                          <div className="flex items-center gap-1 min-w-0 truncate">
+                            <span className="truncate">{cleanOsTitle(e.titulo)}</span>
+                            {e.os_anterior && (
+                              <span
+                                className="shrink-0 px-1 py-0.2 rounded text-[8px] bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center"
+                                title={`Repetição da O.S. Anterior: #${e.os_anterior}`}
+                              >
+                                REP
+                              </span>
+                            )}
+                            {e.urgente && (
+                              <span className="ml-0.5 text-[8.5px] text-rose-500 font-extrabold" title="Urgente">
+                                🚨
+                              </span>
+                            )}
+                          </div>
                         </td>
-                        <td className="py-1.5 font-semibold text-foreground truncate" title={e.cliente}>
+                        <td className="py-1.5 px-1 font-semibold text-foreground truncate" title={e.cliente}>
                           {e.cliente}
                         </td>
-                        <td className="py-1.5 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
+                        <td className="py-1.5 px-1 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
                           {e.descricao || "—"}
                         </td>
-                        <td className="py-1.5 text-muted-foreground truncate" title={e.vendedor || ""}>
+                        <td className="py-1.5 px-1 text-muted-foreground truncate" title={e.vendedor || ""}>
                           {e.vendedor || "—"}
                         </td>
-                        <td className="py-1.5 pr-2 text-right text-muted-foreground whitespace-nowrap">
-                          {formatPcpDate(e.created_at)}
+                        <td className="py-1.5 pr-2 text-right text-muted-foreground font-mono text-[10px] whitespace-nowrap truncate">
+                          {formatPcpDate(e.created_at, false)}
                         </td>
                       </tr>
                     ))
@@ -1123,33 +1147,40 @@ export default function PcpPage() {
           mobileTab !== "liberadas" && mobileTab !== "todas" ? "hidden lg:flex" : "flex"
         } ${mobileTab === "todas" ? "min-h-[440px] lg:min-h-0" : ""}`}>
           {/* TÍTULO PRINCIPAL: OS LIBERADAS */}
-          <div className="py-2 px-3 bg-emerald-600/10 dark:bg-emerald-950/50 border-b border-emerald-500/20 text-center flex items-center justify-center gap-2 shrink-0">
-            <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-emerald-600 dark:text-emerald-400" />
-            <h2 className="text-xs sm:text-sm font-black tracking-wider text-emerald-700 dark:text-emerald-400 uppercase">
+          <div className="py-2 px-3 bg-gradient-to-r from-emerald-600/20 via-emerald-500/10 to-emerald-600/20 border-b border-emerald-500/30 text-center flex items-center justify-center gap-2 shrink-0">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <h2 className="text-xs sm:text-sm font-black tracking-wider text-emerald-700 dark:text-emerald-400 uppercase drop-shadow-[0_0_10px_rgba(16,185,129,0.25)]">
               OS LIBERADAS
             </h2>
           </div>
 
           {/* SEÇÃO 1: HOJE */}
           <div className="flex flex-col shrink-0 border-b border-emerald-500/20">
-            <div className="py-1 px-3 bg-emerald-100/80 dark:bg-emerald-900/30 border-b border-emerald-500/20 flex items-center justify-center gap-2 shrink-0">
-              <span className="text-[11px] font-bold text-emerald-900 dark:text-emerald-200">
+            <div className="py-1 px-3 bg-emerald-100/80 dark:bg-emerald-950/40 border-b border-emerald-500/20 flex items-center justify-center gap-2 shrink-0">
+              <span className="text-[11px] font-bold text-emerald-900 dark:text-emerald-300">
                 Hoje
               </span>
-              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-600 text-white shadow-xs">
+              <span className="text-[10px] font-black px-1.5 py-0.2 rounded-full bg-emerald-600 text-white shadow-xs">
                 {liberadasGrouped.hoje.length}
               </span>
             </div>
 
-            <div className="overflow-x-auto max-h-[200px] sm:max-h-[220px] overflow-y-auto">
-              <table className="w-full min-w-0 text-left text-[11px] table-fixed">
-                <thead className="sticky top-0 bg-muted/90 dark:bg-[#0c1822]/95 backdrop-blur-xs text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
+            <div className="overflow-x-hidden max-h-[190px] sm:max-h-[210px] overflow-y-auto">
+              <table className="w-full text-left text-[11px] table-fixed select-none">
+                <colgroup>
+                  <col className="w-[16%]" />
+                  <col className="w-[30%]" />
+                  <col className="w-[28%]" />
+                  <col className="w-[13%]" />
+                  <col className="w-[13%]" />
+                </colgroup>
+                <thead className="sticky top-0 bg-muted/95 dark:bg-[#0c1822]/98 backdrop-blur-xs text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
                   <tr>
-                    <th className="w-[18%] py-1.5 pl-2">OS</th>
-                    <th className="w-[28%] py-1.5">CLIENTE</th>
-                    <th className="w-[28%] py-1.5">DESCRIÇÃO</th>
-                    <th className="w-[13%] py-1.5">VENDEDOR</th>
-                    <th className="w-[13%] py-1.5 pr-2 text-right">QUANDO</th>
+                    <th className="py-1.5 pl-2 text-left truncate">OS</th>
+                    <th className="py-1.5 px-1 text-left truncate">CLIENTE</th>
+                    <th className="py-1.5 px-1 text-left truncate">DESCRIÇÃO</th>
+                    <th className="py-1.5 px-1 text-left truncate">VENDEDOR</th>
+                    <th className="py-1.5 pr-2 text-right truncate">HORA</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
@@ -1180,30 +1211,35 @@ export default function PcpPage() {
                               : ""
                           }`}
                         >
-                          <td className="py-1.5 pl-2 font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap truncate">
-                            {cleanOsTitle(e.titulo)}
-                            {e.os_anterior && (
-                              <span className="ml-1 px-1 py-0.2 rounded text-[8.5px] bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center" title={`Repetição da O.S. Anterior: #${e.os_anterior}`}>
-                                REP #{e.os_anterior}
-                              </span>
-                            )}
-                            {e.urgente && (
-                              <span className="ml-0.5 text-[8.5px] text-rose-500 font-extrabold" title="Urgente">
-                                🚨
-                              </span>
-                            )}
+                          <td className="py-1.5 pl-2 font-bold text-emerald-600 dark:text-emerald-400 truncate">
+                            <div className="flex items-center gap-1 min-w-0 truncate">
+                              <span className="truncate">{cleanOsTitle(e.titulo)}</span>
+                              {e.os_anterior && (
+                                <span
+                                  className="shrink-0 px-1 py-0.2 rounded text-[8px] bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center"
+                                  title={`Repetição da O.S. Anterior: #${e.os_anterior}`}
+                                >
+                                  REP
+                                </span>
+                              )}
+                              {e.urgente && (
+                                <span className="shrink-0 text-[8.5px] text-rose-500 font-extrabold" title="Urgente">
+                                  🚨
+                                </span>
+                              )}
+                            </div>
                           </td>
-                          <td className="py-1.5 font-semibold text-foreground truncate" title={e.cliente}>
+                          <td className="py-1.5 px-1 font-semibold text-foreground truncate" title={e.cliente}>
                             {e.cliente}
                           </td>
-                          <td className="py-1.5 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
+                          <td className="py-1.5 px-1 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
                             {e.descricao || "—"}
                           </td>
-                          <td className="py-1.5 text-muted-foreground truncate" title={e.vendedor || ""}>
+                          <td className="py-1.5 px-1 text-muted-foreground truncate" title={e.vendedor || ""}>
                             {e.vendedor || "—"}
                           </td>
-                          <td className="py-1.5 pr-2 text-right text-muted-foreground whitespace-nowrap">
-                            {formatPcpDate(e.chegou_em)}
+                          <td className="py-1.5 pr-2 text-right text-muted-foreground font-mono text-[10px] whitespace-nowrap truncate">
+                            {formatPcpDate(e.chegou_em, true)}
                           </td>
                         </tr>
                       );
@@ -1216,24 +1252,31 @@ export default function PcpPage() {
 
           {/* SEÇÃO 2: ANTERIORES */}
           <div className="flex flex-col flex-1 min-h-0">
-            <div className="py-1 px-3 bg-emerald-100/80 dark:bg-emerald-900/30 border-b border-emerald-500/20 flex items-center justify-center gap-2 shrink-0">
-              <span className="text-[11px] font-bold text-emerald-900 dark:text-emerald-200">
+            <div className="py-1 px-3 bg-emerald-100/80 dark:bg-emerald-950/40 border-b border-emerald-500/20 flex items-center justify-center gap-2 shrink-0">
+              <span className="text-[11px] font-bold text-emerald-900 dark:text-emerald-300">
                 Anteriores
               </span>
-              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-600 text-white shadow-xs">
+              <span className="text-[10px] font-black px-1.5 py-0.2 rounded-full bg-emerald-600 text-white shadow-xs">
                 {liberadasGrouped.anteriores.length}
               </span>
             </div>
 
-            <div ref={listRefRight} className="flex-1 overflow-y-auto overflow-x-auto scroll-smooth">
-              <table className="w-full min-w-0 text-left text-[11px] table-fixed">
-                <thead className="sticky top-0 bg-muted/90 dark:bg-[#0c1822]/95 backdrop-blur-xs text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
+            <div ref={listRefRight} className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth">
+              <table className="w-full text-left text-[11px] table-fixed select-none">
+                <colgroup>
+                  <col className="w-[16%]" />
+                  <col className="w-[30%]" />
+                  <col className="w-[28%]" />
+                  <col className="w-[13%]" />
+                  <col className="w-[13%]" />
+                </colgroup>
+                <thead className="sticky top-0 bg-muted/95 dark:bg-[#0c1822]/98 backdrop-blur-xs text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
                   <tr>
-                    <th className="w-[18%] py-1.5 pl-2">OS</th>
-                    <th className="w-[28%] py-1.5">CLIENTE</th>
-                    <th className="w-[28%] py-1.5">DESCRIÇÃO</th>
-                    <th className="w-[13%] py-1.5">VENDEDOR</th>
-                    <th className="w-[13%] py-1.5 pr-2 text-right">QUANDO</th>
+                    <th className="py-1.5 pl-2 text-left truncate">OS</th>
+                    <th className="py-1.5 px-1 text-left truncate">CLIENTE</th>
+                    <th className="py-1.5 px-1 text-left truncate">DESCRIÇÃO</th>
+                    <th className="py-1.5 px-1 text-left truncate">VENDEDOR</th>
+                    <th className="py-1.5 pr-2 text-right truncate">DATA</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
@@ -1258,30 +1301,35 @@ export default function PcpPage() {
                           e.urgente ? "bg-rose-500/10 text-rose-600 dark:text-rose-300 font-semibold" : ""
                         }`}
                       >
-                        <td className="py-1.5 pl-2 font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap truncate">
-                          {cleanOsTitle(e.titulo)}
-                          {e.os_anterior && (
-                            <span className="ml-1 px-1 py-0.2 rounded text-[8.5px] bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center" title={`Repetição da O.S. Anterior: #${e.os_anterior}`}>
-                              REP #{e.os_anterior}
-                            </span>
-                          )}
-                          {e.urgente && (
-                            <span className="ml-0.5 text-[8.5px] text-rose-500 font-extrabold" title="Urgente">
-                              🚨
-                            </span>
-                          )}
+                        <td className="py-1.5 pl-2 font-bold text-emerald-600 dark:text-emerald-400 truncate">
+                          <div className="flex items-center gap-1 min-w-0 truncate">
+                            <span className="truncate">{cleanOsTitle(e.titulo)}</span>
+                            {e.os_anterior && (
+                              <span
+                                className="shrink-0 px-1 py-0.2 rounded text-[8px] bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center"
+                                title={`Repetição da O.S. Anterior: #${e.os_anterior}`}
+                              >
+                                REP
+                              </span>
+                            )}
+                            {e.urgente && (
+                              <span className="shrink-0 text-[8.5px] text-rose-500 font-extrabold" title="Urgente">
+                                🚨
+                              </span>
+                            )}
+                          </div>
                         </td>
-                        <td className="py-1.5 font-semibold text-foreground truncate" title={e.cliente}>
+                        <td className="py-1.5 px-1 font-semibold text-foreground truncate" title={e.cliente}>
                           {e.cliente}
                         </td>
-                        <td className="py-1.5 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
+                        <td className="py-1.5 px-1 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
                           {e.descricao || "—"}
                         </td>
-                        <td className="py-1.5 text-muted-foreground truncate" title={e.vendedor || ""}>
+                        <td className="py-1.5 px-1 text-muted-foreground truncate" title={e.vendedor || ""}>
                           {e.vendedor || "—"}
                         </td>
-                        <td className="py-1.5 pr-2 text-right text-muted-foreground whitespace-nowrap">
-                          {formatPcpDate(e.chegou_em)}
+                        <td className="py-1.5 pr-2 text-right text-muted-foreground font-mono text-[10px] whitespace-nowrap truncate">
+                          {formatPcpDate(e.chegou_em, false)}
                         </td>
                       </tr>
                     ))
@@ -1299,33 +1347,40 @@ export default function PcpPage() {
           mobileTab !== "expedicao" && mobileTab !== "todas" ? "hidden lg:flex" : "flex"
         } ${mobileTab === "todas" ? "min-h-[440px] lg:min-h-0" : ""}`}>
           {/* TÍTULO PRINCIPAL: O.S EXPEDIÇÃO */}
-          <div className="py-2 px-3 bg-violet-600/10 dark:bg-violet-950/50 border-b border-violet-500/20 text-center flex items-center justify-center gap-2 shrink-0">
-            <Truck className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-violet-600 dark:text-violet-400" />
-            <h2 className="text-xs sm:text-sm font-black tracking-wider text-violet-700 dark:text-violet-400 uppercase">
+          <div className="py-2 px-3 bg-gradient-to-r from-violet-600/20 via-violet-500/10 to-violet-600/20 border-b border-violet-500/30 text-center flex items-center justify-center gap-2 shrink-0">
+            <Truck className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+            <h2 className="text-xs sm:text-sm font-black tracking-wider text-violet-700 dark:text-violet-400 uppercase drop-shadow-[0_0_10px_rgba(139,92,246,0.25)]">
               O.S EXPEDIÇÃO
             </h2>
           </div>
 
           {/* SEÇÃO 1: HOJE */}
           <div className="flex flex-col shrink-0 border-b border-violet-500/20">
-            <div className="py-1 px-3 bg-violet-100/80 dark:bg-violet-900/30 border-b border-violet-500/20 flex items-center justify-center gap-2 shrink-0">
-              <span className="text-[11px] font-bold text-violet-900 dark:text-violet-200">
+            <div className="py-1 px-3 bg-violet-100/80 dark:bg-violet-950/40 border-b border-violet-500/20 flex items-center justify-center gap-2 shrink-0">
+              <span className="text-[11px] font-bold text-violet-900 dark:text-violet-300">
                 Hoje
               </span>
-              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-violet-600 text-white shadow-xs">
+              <span className="text-[10px] font-black px-1.5 py-0.2 rounded-full bg-violet-600 text-white shadow-xs">
                 {expedicaoGrouped.hoje.length}
               </span>
             </div>
 
-            <div className="overflow-x-auto max-h-[200px] sm:max-h-[220px] overflow-y-auto">
-              <table className="w-full min-w-0 text-left text-[11px] table-fixed">
-                <thead className="sticky top-0 bg-muted/90 dark:bg-[#0c1822]/95 backdrop-blur-xs text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
+            <div className="overflow-x-hidden max-h-[190px] sm:max-h-[210px] overflow-y-auto">
+              <table className="w-full text-left text-[11px] table-fixed select-none">
+                <colgroup>
+                  <col className="w-[16%]" />
+                  <col className="w-[30%]" />
+                  <col className="w-[28%]" />
+                  <col className="w-[13%]" />
+                  <col className="w-[13%]" />
+                </colgroup>
+                <thead className="sticky top-0 bg-muted/95 dark:bg-[#0c1822]/98 backdrop-blur-xs text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
                   <tr>
-                    <th className="w-[18%] py-1.5 pl-2">OS</th>
-                    <th className="w-[28%] py-1.5">CLIENTE</th>
-                    <th className="w-[28%] py-1.5">DESCRIÇÃO</th>
-                    <th className="w-[13%] py-1.5">VENDEDOR</th>
-                    <th className="w-[13%] py-1.5 pr-2 text-right">QUANDO</th>
+                    <th className="py-1.5 pl-2 text-left truncate">OS</th>
+                    <th className="py-1.5 px-1 text-left truncate">CLIENTE</th>
+                    <th className="py-1.5 px-1 text-left truncate">DESCRIÇÃO</th>
+                    <th className="py-1.5 px-1 text-left truncate">VENDEDOR</th>
+                    <th className="py-1.5 pr-2 text-right truncate">HORA</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
@@ -1356,30 +1411,35 @@ export default function PcpPage() {
                               : ""
                           }`}
                         >
-                          <td className="py-1.5 pl-2 font-bold text-violet-600 dark:text-violet-400 whitespace-nowrap truncate">
-                            {cleanOsTitle(e.titulo)}
-                            {e.os_anterior && (
-                              <span className="ml-1 px-1 py-0.2 rounded text-[8.5px] bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center" title={`Repetição da O.S. Anterior: #${e.os_anterior}`}>
-                                REP #{e.os_anterior}
-                              </span>
-                            )}
-                            {e.urgente && (
-                              <span className="ml-0.5 text-[8.5px] text-rose-500 font-extrabold" title="Urgente">
-                                🚨
-                              </span>
-                            )}
+                          <td className="py-1.5 pl-2 font-bold text-violet-600 dark:text-violet-400 truncate">
+                            <div className="flex items-center gap-1 min-w-0 truncate">
+                              <span className="truncate">{cleanOsTitle(e.titulo)}</span>
+                              {e.os_anterior && (
+                                <span
+                                  className="shrink-0 px-1 py-0.2 rounded text-[8px] bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center"
+                                  title={`Repetição da O.S. Anterior: #${e.os_anterior}`}
+                                >
+                                  REP
+                                </span>
+                              )}
+                              {e.urgente && (
+                                <span className="shrink-0 text-[8.5px] text-rose-500 font-extrabold" title="Urgente">
+                                  🚨
+                                </span>
+                              )}
+                            </div>
                           </td>
-                          <td className="py-1.5 font-semibold text-foreground truncate" title={e.cliente}>
+                          <td className="py-1.5 px-1 font-semibold text-foreground truncate" title={e.cliente}>
                             {e.cliente}
                           </td>
-                          <td className="py-1.5 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
+                          <td className="py-1.5 px-1 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
                             {e.descricao || "—"}
                           </td>
-                          <td className="py-1.5 text-muted-foreground truncate" title={e.vendedor || ""}>
+                          <td className="py-1.5 px-1 text-muted-foreground truncate" title={e.vendedor || ""}>
                             {e.vendedor || "—"}
                           </td>
-                          <td className="py-1.5 pr-2 text-right text-muted-foreground whitespace-nowrap">
-                            {formatPcpDate(e.chegou_em)}
+                          <td className="py-1.5 pr-2 text-right text-muted-foreground font-mono text-[10px] whitespace-nowrap truncate">
+                            {formatPcpDate(e.chegou_em, true)}
                           </td>
                         </tr>
                       );
@@ -1392,24 +1452,31 @@ export default function PcpPage() {
 
           {/* SEÇÃO 2: ANTERIORES */}
           <div className="flex flex-col flex-1 min-h-0">
-            <div className="py-1 px-3 bg-violet-100/80 dark:bg-violet-900/30 border-b border-violet-500/20 flex items-center justify-center gap-2 shrink-0">
-              <span className="text-[11px] font-bold text-violet-900 dark:text-violet-200">
+            <div className="py-1 px-3 bg-violet-100/80 dark:bg-violet-950/40 border-b border-violet-500/20 flex items-center justify-center gap-2 shrink-0">
+              <span className="text-[11px] font-bold text-violet-900 dark:text-violet-300">
                 Anteriores
               </span>
-              <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-violet-600 text-white shadow-xs">
+              <span className="text-[10px] font-black px-1.5 py-0.2 rounded-full bg-violet-600 text-white shadow-xs">
                 {expedicaoGrouped.anteriores.length}
               </span>
             </div>
 
-            <div ref={listRefThird} className="flex-1 overflow-y-auto overflow-x-auto scroll-smooth">
-              <table className="w-full min-w-0 text-left text-[11px] table-fixed">
-                <thead className="sticky top-0 bg-muted/90 dark:bg-[#0c1822]/95 backdrop-blur-xs text-[9.5px] font-bold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
+            <div ref={listRefThird} className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth">
+              <table className="w-full text-left text-[11px] table-fixed select-none">
+                <colgroup>
+                  <col className="w-[16%]" />
+                  <col className="w-[30%]" />
+                  <col className="w-[28%]" />
+                  <col className="w-[13%]" />
+                  <col className="w-[13%]" />
+                </colgroup>
+                <thead className="sticky top-0 bg-muted/95 dark:bg-[#0c1822]/98 backdrop-blur-xs text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
                   <tr>
-                    <th className="w-[18%] py-1.5 pl-2">OS</th>
-                    <th className="w-[28%] py-1.5">CLIENTE</th>
-                    <th className="w-[28%] py-1.5">DESCRIÇÃO</th>
-                    <th className="w-[13%] py-1.5">VENDEDOR</th>
-                    <th className="w-[13%] py-1.5 pr-2 text-right">QUANDO</th>
+                    <th className="py-1.5 pl-2 text-left truncate">OS</th>
+                    <th className="py-1.5 px-1 text-left truncate">CLIENTE</th>
+                    <th className="py-1.5 px-1 text-left truncate">DESCRIÇÃO</th>
+                    <th className="py-1.5 px-1 text-left truncate">VENDEDOR</th>
+                    <th className="py-1.5 pr-2 text-right truncate">DATA</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
@@ -1434,30 +1501,35 @@ export default function PcpPage() {
                           e.urgente ? "bg-rose-500/10 text-rose-600 dark:text-rose-300 font-semibold" : ""
                         }`}
                       >
-                        <td className="py-1.5 pl-2 font-bold text-violet-600 dark:text-violet-400 whitespace-nowrap truncate">
-                          {cleanOsTitle(e.titulo)}
-                          {e.os_anterior && (
-                            <span className="ml-1 px-1 py-0.2 rounded text-[8.5px] bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center" title={`Repetição da O.S. Anterior: #${e.os_anterior}`}>
-                              REP #{e.os_anterior}
-                            </span>
-                          )}
-                          {e.urgente && (
-                            <span className="ml-0.5 text-[8.5px] text-rose-500 font-extrabold" title="Urgente">
-                              🚨
-                            </span>
-                          )}
+                        <td className="py-1.5 pl-2 font-bold text-violet-600 dark:text-violet-400 truncate">
+                          <div className="flex items-center gap-1 min-w-0 truncate">
+                            <span className="truncate">{cleanOsTitle(e.titulo)}</span>
+                            {e.os_anterior && (
+                              <span
+                                className="shrink-0 px-1 py-0.2 rounded text-[8px] bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center"
+                                title={`Repetição da O.S. Anterior: #${e.os_anterior}`}
+                              >
+                                REP
+                              </span>
+                            )}
+                            {e.urgente && (
+                              <span className="shrink-0 text-[8.5px] text-rose-500 font-extrabold" title="Urgente">
+                                🚨
+                              </span>
+                            )}
+                          </div>
                         </td>
-                        <td className="py-1.5 font-semibold text-foreground truncate" title={e.cliente}>
+                        <td className="py-1.5 px-1 font-semibold text-foreground truncate" title={e.cliente}>
                           {e.cliente}
                         </td>
-                        <td className="py-1.5 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
+                        <td className="py-1.5 px-1 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
                           {e.descricao || "—"}
                         </td>
-                        <td className="py-1.5 text-muted-foreground truncate" title={e.vendedor || ""}>
+                        <td className="py-1.5 px-1 text-muted-foreground truncate" title={e.vendedor || ""}>
                           {e.vendedor || "—"}
                         </td>
-                        <td className="py-1.5 pr-2 text-right text-muted-foreground whitespace-nowrap">
-                          {formatPcpDate(e.chegou_em)}
+                        <td className="py-1.5 pr-2 text-right text-muted-foreground font-mono text-[10px] whitespace-nowrap truncate">
+                          {formatPcpDate(e.chegou_em, false)}
                         </td>
                       </tr>
                     ))
