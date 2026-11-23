@@ -517,6 +517,9 @@ export type Database = {
           pausado: boolean
           pausado_em: string | null
           posicao: number
+          posicao_atual?: string | null
+          data_posicao?: string | null
+          previsao_cliente?: string | null
           prazo: string | null
           prioridade: string
           processos: string[] | null
@@ -618,6 +621,9 @@ export type Database = {
           pausado?: boolean
           pausado_em?: string | null
           posicao?: number
+          posicao_atual?: string | null
+          data_posicao?: string | null
+          previsao_cliente?: string | null
           prazo?: string | null
           prioridade?: string
           processos?: string[] | null
@@ -715,6 +721,9 @@ export type Database = {
           pausado?: boolean
           pausado_em?: string | null
           posicao?: number
+          posicao_atual?: string | null
+          data_posicao?: string | null
+          previsao_cliente?: string | null
           prazo?: string | null
           prioridade?: string
           processos?: string[] | null
@@ -1100,6 +1109,9 @@ export type Database = {
           prioridade: "baixa" | "media" | "alta" | "urgente"
           etapa_id: string
           posicao: number
+          posicao_atual?: string | null
+          data_posicao?: string | null
+          previsao_cliente?: string | null
           status: "aberta" | "fechada_ganha" | "fechada_perdida" | "cancelada" | "pausada"
           motivo_perda: string | null
           detalhes_motivo_perda: string | null
@@ -1135,6 +1147,9 @@ export type Database = {
           prioridade?: "baixa" | "media" | "alta" | "urgente"
           etapa_id: string
           posicao?: number
+          posicao_atual?: string | null
+          data_posicao?: string | null
+          previsao_cliente?: string | null
           status?: "aberta" | "fechada_ganha" | "fechada_perdida" | "cancelada" | "pausada"
           motivo_perda?: string | null
           detalhes_motivo_perda?: string | null
@@ -1170,6 +1185,9 @@ export type Database = {
           prioridade?: "baixa" | "media" | "alta" | "urgente"
           etapa_id?: string
           posicao?: number
+          posicao_atual?: string | null
+          data_posicao?: string | null
+          previsao_cliente?: string | null
           status?: "aberta" | "fechada_ganha" | "fechada_perdida" | "cancelada" | "pausada"
           motivo_perda?: string | null
           detalhes_motivo_perda?: string | null
@@ -1289,6 +1307,9 @@ export type Database = {
           id: string
           proposta_id: string
           posicao: number
+          posicao_atual?: string | null
+          data_posicao?: string | null
+          previsao_cliente?: string | null
           descricao_item: string
           formato_aberto: string | null
           formato_fechado: string | null
@@ -1304,6 +1325,9 @@ export type Database = {
           id?: string
           proposta_id: string
           posicao?: number
+          posicao_atual?: string | null
+          data_posicao?: string | null
+          previsao_cliente?: string | null
           descricao_item: string
           formato_aberto?: string | null
           formato_fechado?: string | null
@@ -1319,6 +1343,9 @@ export type Database = {
           id?: string
           proposta_id?: string
           posicao?: number
+          posicao_atual?: string | null
+          data_posicao?: string | null
+          previsao_cliente?: string | null
           descricao_item?: string
           formato_aberto?: string | null
           formato_fechado?: string | null

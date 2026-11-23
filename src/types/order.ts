@@ -149,6 +149,10 @@ export interface Order {
   inspecao_motivo_parada?: string | null;
   // CTP fields
   ctp_checklist?: CtpChecklist | null;
+  // Produção: Posição Atual, Data Posição e Previsão Cliente (importados via CSV)
+  posicao_atual?: string | null;
+  data_posicao?: string | null;
+  previsao_cliente?: string | null;
 }
 
 export interface Profile {

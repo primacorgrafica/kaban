@@ -113,7 +113,7 @@ interface ProductionTableProps {
   currentUserName?: string | null;
 }
 
-type SortField = "titulo" | "cliente" | "status" | "prazo" | "created_at" | "setor";
+type SortField = "titulo" | "cliente" | "status" | "prazo" | "created_at" | "setor" | "posicao_atual" | "data_posicao" | "previsao_cliente";
 type SortDirection = "asc" | "desc";
 
 export function ProductionTable({
@@ -212,6 +212,12 @@ export function ProductionTable({
         comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       } else if (sortField === "setor") {
         comparison = (a.setor || "").localeCompare(b.setor || "");
+      } else if (sortField === "posicao_atual") {
+        comparison = (a.posicao_atual || "").localeCompare(b.posicao_atual || "");
+      } else if (sortField === "data_posicao") {
+        comparison = (a.data_posicao || "").localeCompare(b.data_posicao || "");
+      } else if (sortField === "previsao_cliente") {
+        comparison = (a.previsao_cliente || "").localeCompare(b.previsao_cliente || "");
       }
       return sortDirection === "asc" ? comparison : -comparison;
     });
@@ -422,27 +428,54 @@ export function ProductionTable({
                   </div>
                 </TableHead>
               )}
-              <TableHead className="w-36 cursor-pointer select-none" onClick={() => handleSort("status")}>
-                <div className="flex items-center gap-1 text-foreground font-bold">
-                  <span>Etapa / Status</span>
-                  <ArrowUpDown className="h-3 w-3" />
-                </div>
-              </TableHead>
-              <TableHead className="w-32 cursor-pointer select-none" onClick={() => handleSort("prazo")}>
-                <div className="flex items-center gap-1 text-foreground font-bold">
-                  <span>Prazo Limite</span>
-                  <ArrowUpDown className="h-3 w-3" />
-                </div>
-              </TableHead>
+              {departmentContext === "producao" ? (
+                <>
+                  <TableHead className="w-36 font-bold text-foreground cursor-pointer select-none" onClick={() => handleSort("posicao_atual")}>
+                    <div className="flex items-center gap-1">
+                      <span>Posição Atual</span>
+                      <ArrowUpDown className="h-3 w-3" />
+                    </div>
+                  </TableHead>
+                  <TableHead className="w-28 font-bold text-foreground cursor-pointer select-none" onClick={() => handleSort("data_posicao")}>
+                    <div className="flex items-center gap-1">
+                      <span>Data. Posição</span>
+                      <ArrowUpDown className="h-3 w-3" />
+                    </div>
+                  </TableHead>
+                  <TableHead className="w-32 font-bold text-foreground cursor-pointer select-none" onClick={() => handleSort("previsao_cliente")}>
+                    <div className="flex items-center gap-1">
+                      <span>Previsão Cliente</span>
+                      <ArrowUpDown className="h-3 w-3" />
+                    </div>
+                  </TableHead>
+                </>
+              ) : (
+                <>
+                  <TableHead className="w-36 cursor-pointer select-none" onClick={() => handleSort("status")}>
+                    <div className="flex items-center gap-1 text-foreground font-bold">
+                      <span>Etapa / Status</span>
+                      <ArrowUpDown className="h-3 w-3" />
+                    </div>
+                  </TableHead>
+                  <TableHead className="w-32 cursor-pointer select-none" onClick={() => handleSort("prazo")}>
+                    <div className="flex items-center gap-1 text-foreground font-bold">
+                      <span>Prazo Limite</span>
+                      <ArrowUpDown className="h-3 w-3" />
+                    </div>
+                  </TableHead>
+                </>
+              )}
               <TableHead className="w-28 text-foreground font-bold">Vendedor</TableHead>
               <TableHead className="min-w-[150px] text-foreground font-bold">MATERIAIS</TableHead>
-              <TableHead className="min-w-[210px] text-right pr-4 text-foreground font-bold">Ações</TableHead>
+              <TableHead className="min-w-[210px] text-right pr-4 text-foreground font-bold">
+                {departmentContext === "producao" ? "" : "Ações"}
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {sortedOrders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={showSectorColumn ? 11 : 10} className="h-48 text-center text-muted-foreground">
+                <TableCell colSpan={showSectorColumn ? 12 : 11} className="h-48 text-center text-muted-foreground">
                   <div className="flex flex-col items-center justify-center gap-2">
                     <Filter className="h-8 w-8 opacity-40 text-muted-foreground" />
                     <span>Nenhuma ordem de serviço encontrada com os filtros atuais.</span>
@@ -552,39 +585,78 @@ export function ProductionTable({
                       </TableCell>
                     )}
 
-                    {/* Status */}
-                    <TableCell>
-                      <span
-                        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold font-mono-tech border"
-                        style={{
-                          backgroundColor: `hsl(var(--status-${config.colorKey}-bg))`,
-                          borderColor: `hsl(var(--status-${config.colorKey}) / 0.3)`,
-                          color: `hsl(var(--status-${config.colorKey}))`,
-                        }}
-                      >
-                        <span
-                          className="w-1.5 h-1.5 rounded-full shrink-0"
-                          style={{ backgroundColor: `hsl(var(--status-${config.colorKey}))` }}
-                        />
-                        <span className="truncate max-w-[110px]">{config.label}</span>
-                      </span>
-                    </TableCell>
+                    {departmentContext === "producao" ? (
+                      <>
+                        {/* Posição Atual */}
+                        <TableCell>
+                          {order.posicao_atual ? (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-accent/60 text-foreground border border-border/80">
+                              {order.posicao_atual}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground/40 font-mono-tech">—</span>
+                          )}
+                        </TableCell>
 
-                    {/* Prazo */}
-                    <TableCell>
-                      {order.prazo ? (
-                        <div
-                          className={`flex items-center gap-1 font-mono-tech text-[11px] ${
-                            isNearDeadline ? "text-rose-500 font-bold" : "text-muted-foreground"
-                          }`}
-                        >
-                          <Clock className="h-3 w-3" />
-                          <span>{format(new Date(order.prazo), "dd/MM HH:mm", { locale: ptBR })}</span>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground/50">—</span>
-                      )}
-                    </TableCell>
+                        {/* Data. Posição */}
+                        <TableCell>
+                          {order.data_posicao ? (
+                            <span className="font-mono-tech text-[11px] text-muted-foreground">
+                              {order.data_posicao}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground/40 font-mono-tech">—</span>
+                          )}
+                        </TableCell>
+
+                        {/* Previsão Cliente */}
+                        <TableCell>
+                          {order.previsao_cliente ? (
+                            <span className="font-mono-tech text-[11px] font-semibold text-foreground">
+                              {order.previsao_cliente}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground/40 font-mono-tech">—</span>
+                          )}
+                        </TableCell>
+                      </>
+                    ) : (
+                      <>
+                        {/* Status */}
+                        <TableCell>
+                          <span
+                            className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold font-mono-tech border"
+                            style={{
+                              backgroundColor: `hsl(var(--status-${config.colorKey}-bg))`,
+                              borderColor: `hsl(var(--status-${config.colorKey}) / 0.3)`,
+                              color: `hsl(var(--status-${config.colorKey}))`,
+                            }}
+                          >
+                            <span
+                              className="w-1.5 h-1.5 rounded-full shrink-0"
+                              style={{ backgroundColor: `hsl(var(--status-${config.colorKey}))` }}
+                            />
+                            <span className="truncate max-w-[110px]">{config.label}</span>
+                          </span>
+                        </TableCell>
+
+                        {/* Prazo */}
+                        <TableCell>
+                          {order.prazo ? (
+                            <div
+                              className={`flex items-center gap-1 font-mono-tech text-[11px] ${
+                                isNearDeadline ? "text-rose-500 font-bold" : "text-muted-foreground"
+                              }`}
+                            >
+                              <Clock className="h-3 w-3" />
+                              <span>{format(new Date(order.prazo), "dd/MM HH:mm", { locale: ptBR })}</span>
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground/50">—</span>
+                          )}
+                        </TableCell>
+                      </>
+                    )}
 
                     {/* Vendedor */}
                     <TableCell>
@@ -739,61 +811,26 @@ export function ProductionTable({
                       })()}
                     </TableCell>
 
-                    {/* Ações */}
+                    {/* Ações / Enviar para Inspeção */}
                     <TableCell className="text-right pr-4" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-1.5">
-                        {departmentContext === "producao" && onSendToInspecao ? (
-                          <button
-                            type="button"
-                            onClick={() => onSendToInspecao(order.id)}
-                            className="px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm font-mono-tech whitespace-nowrap cursor-pointer hover:scale-[1.02] active:scale-95"
-                            title="Enviar esta O.S. para Inspeção"
-                          >
-                            <ShieldCheck className="h-3.5 w-3.5 stroke-[2.5]" />
-                            <span>ENVIAR PARA INSPEÇÃO</span>
-                          </button>
-                        ) : permissions.canSendToProduction && onSendToProduction && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (departmentContext === "pre_impressao" && !order.setor && !isCtpChecklistComplete(order.ctp_checklist)) {
-                                toast.error("Bloqueio de Saída: É OBRIGATÓRIO marcar como verificado todos os 13 itens do checklist antes de enviar a O.S para o próximo setor.", {
-                                  duration: 6000,
-                                });
-                                return;
-                              }
-                              setSendOrder(order);
-                              setSendDialogOpen(true);
-                            }}
-                            className="px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all rounded-lg bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] shadow-sm font-mono-tech whitespace-nowrap cursor-pointer hover:scale-[1.02] active:scale-95"
-                            title="Enviar esta O.S. para Produção"
-                          >
-                            <Send className="h-3 w-3 stroke-[2.5]" />
-                            <span>ENVIAR PARA PRODUÇÃO</span>
-                          </button>
-                        )}
-
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg shrink-0"
+                        {departmentContext === "producao" ? (
+                          onSendToInspecao && (
+                            <button
+                              type="button"
+                              onClick={() => onSendToInspecao(order.id)}
+                              className="px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm font-mono-tech whitespace-nowrap cursor-pointer hover:scale-[1.02] active:scale-95"
+                              title="Enviar esta O.S. para Inspeção"
                             >
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="bg-popover border-border text-popover-foreground">
-                            {onSendToInspecao && (
-                              <DropdownMenuItem
-                                onClick={() => onSendToInspecao(order.id)}
-                                className="text-xs hover:bg-accent cursor-pointer font-semibold text-emerald-500 dark:text-emerald-400"
-                              >
-                                <ShieldCheck className="h-3.5 w-3.5 mr-2 text-emerald-500 dark:text-emerald-400" /> Enviar para Inspeção
-                              </DropdownMenuItem>
-                            )}
+                              <ShieldCheck className="h-3.5 w-3.5 stroke-[2.5]" />
+                              <span>ENVIAR PARA INSPEÇÃO</span>
+                            </button>
+                          )
+                        ) : (
+                          <>
                             {permissions.canSendToProduction && onSendToProduction && (
-                              <DropdownMenuItem
+                              <button
+                                type="button"
                                 onClick={() => {
                                   if (departmentContext === "pre_impressao" && !order.setor && !isCtpChecklistComplete(order.ctp_checklist)) {
                                     toast.error("Bloqueio de Saída: É OBRIGATÓRIO marcar como verificado todos os 13 itens do checklist antes de enviar a O.S para o próximo setor.", {
@@ -804,44 +841,85 @@ export function ProductionTable({
                                   setSendOrder(order);
                                   setSendDialogOpen(true);
                                 }}
-                                className="text-xs hover:bg-accent cursor-pointer font-semibold"
+                                className="px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all rounded-lg bg-slate-900 hover:bg-slate-800 text-white dark:bg-[#CCD0CF] dark:hover:bg-white dark:text-[#06141B] shadow-sm font-mono-tech whitespace-nowrap cursor-pointer hover:scale-[1.02] active:scale-95"
+                                title="Enviar esta O.S. para Produção"
                               >
-                                <Send className="h-3.5 w-3.5 mr-2 text-sky-400" /> {departmentContext === "producao" ? "Mover de Setor..." : "Enviar para Produção"}
-                              </DropdownMenuItem>
+                                <Send className="h-3 w-3 stroke-[2.5]" />
+                                <span>ENVIAR PARA PRODUÇÃO</span>
+                              </button>
                             )}
-                            <DropdownMenuItem
-                              onClick={() => handleOpenSlideOver(order)}
-                              className="text-xs hover:bg-accent cursor-pointer"
-                            >
-                              <ExternalLink className="h-3.5 w-3.5 mr-2 text-[#9BA8AB]" /> Inspecionar O.S.
-                            </DropdownMenuItem>
-                            {!permissions.isViewOnly && (
-                              <DropdownMenuItem
-                                onClick={() => void toggleProductionPriority(order, (id, data) => onUpdate(id, data))}
-                                className="text-xs hover:bg-accent cursor-pointer text-amber-500"
-                              >
-                                <Star className={`h-3.5 w-3.5 mr-2 ${hasProductionPriority(order) ? "fill-amber-500 text-amber-500" : ""}`} />
-                                {hasProductionPriority(order) ? "Remover prioridade" : "Marcar como prioridade"}
-                              </DropdownMenuItem>
-                            )}
-                            {permissions.canArchive && (
-                              <DropdownMenuItem
-                                onClick={() => onArchive(order.id)}
-                                className="text-xs hover:bg-accent cursor-pointer text-amber-500"
-                              >
-                                <Archive className="h-3.5 w-3.5 mr-2" /> Arquivar
-                              </DropdownMenuItem>
-                            )}
-                            {permissions.canDelete && (
-                              <DropdownMenuItem
-                                onClick={() => onDelete(order.id)}
-                                className="text-xs hover:bg-accent cursor-pointer text-rose-500"
-                              >
-                                <Trash2 className="h-3.5 w-3.5 mr-2" /> Excluir
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg shrink-0"
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end" className="bg-popover border-border text-popover-foreground">
+                                {onSendToInspecao && (
+                                  <DropdownMenuItem
+                                    onClick={() => onSendToInspecao(order.id)}
+                                    className="text-xs hover:bg-accent cursor-pointer font-semibold text-emerald-500 dark:text-emerald-400"
+                                  >
+                                    <ShieldCheck className="h-3.5 w-3.5 mr-2 text-emerald-500 dark:text-emerald-400" /> Enviar para Inspeção
+                                  </DropdownMenuItem>
+                                )}
+                                {permissions.canSendToProduction && onSendToProduction && (
+                                  <DropdownMenuItem
+                                    onClick={() => {
+                                      if (departmentContext === "pre_impressao" && !order.setor && !isCtpChecklistComplete(order.ctp_checklist)) {
+                                        toast.error("Bloqueio de Saída: É OBRIGATÓRIO marcar como verificado todos os 13 itens do checklist antes de enviar a O.S para o próximo setor.", {
+                                          duration: 6000,
+                                        });
+                                        return;
+                                      }
+                                      setSendOrder(order);
+                                      setSendDialogOpen(true);
+                                    }}
+                                    className="text-xs hover:bg-accent cursor-pointer font-semibold"
+                                  >
+                                    <Send className="h-3.5 w-3.5 mr-2 text-sky-400" /> Enviar para Produção
+                                  </DropdownMenuItem>
+                                )}
+                                <DropdownMenuItem
+                                  onClick={() => handleOpenSlideOver(order)}
+                                  className="text-xs hover:bg-accent cursor-pointer"
+                                >
+                                  <ExternalLink className="h-3.5 w-3.5 mr-2 text-[#9BA8AB]" /> Inspecionar O.S.
+                                </DropdownMenuItem>
+                                {!permissions.isViewOnly && (
+                                  <DropdownMenuItem
+                                    onClick={() => void toggleProductionPriority(order, (id, data) => onUpdate(id, data))}
+                                    className="text-xs hover:bg-accent cursor-pointer text-amber-500"
+                                  >
+                                    <Star className={`h-3.5 w-3.5 mr-2 ${hasProductionPriority(order) ? "fill-amber-500 text-amber-500" : ""}`} />
+                                    {hasProductionPriority(order) ? "Remover prioridade" : "Marcar como prioridade"}
+                                  </DropdownMenuItem>
+                                )}
+                                {permissions.canArchive && (
+                                  <DropdownMenuItem
+                                    onClick={() => onArchive(order.id)}
+                                    className="text-xs hover:bg-accent cursor-pointer text-amber-500"
+                                  >
+                                    <Archive className="h-3.5 w-3.5 mr-2" /> Arquivar
+                                  </DropdownMenuItem>
+                                )}
+                                {permissions.canDelete && (
+                                  <DropdownMenuItem
+                                    onClick={() => onDelete(order.id)}
+                                    className="text-xs hover:bg-accent cursor-pointer text-rose-500"
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5 mr-2" /> Excluir
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

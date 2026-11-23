@@ -1401,6 +1401,15 @@ export function useOrders() {
     return () => window.removeEventListener("popstate", handleRouteChange);
   }, [fetchArchivedOrders]);
 
+  const batchUpdateOrders = useCallback((updatedMap: Map<string, Partial<Order>>) => {
+    setOrders((prev) =>
+      prev.map((o) => {
+        const patch = updatedMap.get(o.id);
+        return patch ? { ...o, ...patch } : o;
+      })
+    );
+  }, []);
+
   return {
     orders,
     activeOrders,
@@ -1414,6 +1423,7 @@ export function useOrders() {
     addOrder,
     duplicateOrder,
     updateOrder,
+    batchUpdateOrders,
     moveOrder,
     archiveOrder,
     unarchiveOrder,

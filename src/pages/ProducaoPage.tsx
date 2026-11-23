@@ -7,6 +7,7 @@ import { ProductionTable } from "@/components/ProductionTable";
 import { OrderDetailDialog } from "@/components/OrderDetailDialog";
 import { ProducaoBlockageDialog } from "@/components/producao/ProducaoBlockageDialog";
 import { ProducaoSendDeptDialog } from "@/components/producao/ProducaoSendDeptDialog";
+import { ProducaoCsvImportDialog } from "@/components/producao/ProducaoCsvImportDialog";
 import { Order } from "@/types/order";
 import {
   Factory,
@@ -19,6 +20,7 @@ import {
   Star,
   Printer,
   AlertOctagon,
+  FileSpreadsheet,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -59,6 +61,7 @@ export default function ProducaoPage() {
     addOrder,
     duplicateOrder,
     updateOrder,
+    batchUpdateOrders,
     moveOrder,
     archiveOrder,
     deleteOrder,
@@ -90,6 +93,8 @@ export default function ProducaoPage() {
 
   const [sendDeptOrder, setSendDeptOrder] = useState<Order | null>(null);
   const [sendDeptDialogOpen, setSendDeptDialogOpen] = useState(false);
+
+  const [csvImportOpen, setCsvImportOpen] = useState(false);
 
   // Filtra estritamente ordens de PRODUÇÃO que estão em status ENTRADA
   const producaoEntradaOrders = useMemo(() => {
@@ -298,6 +303,18 @@ export default function ProducaoPage() {
                 </div>
               )}
             </div>
+
+            {/* Botão de Importação de CSV do Excel */}
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => setCsvImportOpen(true)}
+              className="h-8 px-3 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white shadow-xs flex items-center gap-1.5 cursor-pointer font-mono-tech transition-all hover:scale-[1.02] active:scale-95"
+              title="Importar arquivo CSV do Excel para atualizar Posição e Previsão das O.S."
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              <span>Importar CSV</span>
+            </Button>
           </div>
         </div>
 
@@ -489,6 +506,14 @@ export default function ProducaoPage() {
           onSendBackToPrePress={sendBackToPrePress}
           onSendToInspecao={sendToInspecao}
           onSendToExpedicao={sendToExpedicao}
+        />
+
+        {/* Modal de Importação de Posição via CSV do Excel */}
+        <ProducaoCsvImportDialog
+          open={csvImportOpen}
+          onOpenChange={setCsvImportOpen}
+          orders={orders}
+          onBatchUpdateOrders={batchUpdateOrders}
         />
       </div>
     </Layout>
