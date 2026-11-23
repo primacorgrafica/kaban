@@ -488,29 +488,47 @@ export default function PcpPage() {
     since.setHours(0, 0, 0, 0);
     const sinceISO = since.toISOString();
 
-    const [sectorRes, expOrdersRes, deliveredRes] = await Promise.all([
+    const [sectorRes, expOrdersRes, archivedExpRes, deliveredRes, deliveredStatusRes] = await Promise.all([
       // 1. Histórico de setores para 'expedicao'
       supabase
         .from("sector_history")
         .select("order_id, setor_novo, created_at")
         .eq("setor_novo", "expedicao")
         .gte("created_at", sinceISO),
-      // 2. Ordens pertencentes ao setor 'expedicao'
+      // 2. Ordens ativas no setor 'expedicao'
       supabase
         .from("orders")
         .select("id, titulo, cliente, descricao, vendedor, created_at, updated_at, setor, setor_status, arquivado, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao, status_entrega, entregue_em, data_chegada_entrega, data_saida_entrega, entregue_para, entregue_por, tipo_entrega")
         .eq("setor", "expedicao")
         .eq("arquivado", false),
-      // 3. Ordens com entrega realizada ou em andamento
+      // 3. Ordens da expedição arquivadas/finalizadas recentemente (nos últimos 14 dias)
       supabase
         .from("orders")
         .select("id, titulo, cliente, descricao, vendedor, created_at, updated_at, setor, setor_status, arquivado, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao, status_entrega, entregue_em, data_chegada_entrega, data_saida_entrega, entregue_para, entregue_por, tipo_entrega")
-        .or(`status_entrega.eq.entregue,entregue_em.gte.${sinceISO},data_chegada_entrega.gte.${sinceISO}`),
+        .eq("setor", "expedicao")
+        .eq("arquivado", true)
+        .gte("updated_at", sinceISO)
+        .order("updated_at", { ascending: false }),
+      // 4. Ordens com entrega realizada (entregue_em recente nos últimos 14 dias)
+      supabase
+        .from("orders")
+        .select("id, titulo, cliente, descricao, vendedor, created_at, updated_at, setor, setor_status, arquivado, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao, status_entrega, entregue_em, data_chegada_entrega, data_saida_entrega, entregue_para, entregue_por, tipo_entrega")
+        .gte("entregue_em", sinceISO)
+        .order("entregue_em", { ascending: false }),
+      // 5. Ordens com status_entrega = 'entregue' atualizadas recentemente
+      supabase
+        .from("orders")
+        .select("id, titulo, cliente, descricao, vendedor, created_at, updated_at, setor, setor_status, arquivado, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao, status_entrega, entregue_em, data_chegada_entrega, data_saida_entrega, entregue_para, entregue_por, tipo_entrega")
+        .eq("status_entrega", "entregue")
+        .gte("updated_at", sinceISO)
+        .order("updated_at", { ascending: false }),
     ]);
 
     const orderMap = new Map<string, any>();
     (expOrdersRes.data || []).forEach((o: any) => orderMap.set(o.id, o));
+    (archivedExpRes.data || []).forEach((o: any) => orderMap.set(o.id, o));
     (deliveredRes.data || []).forEach((o: any) => orderMap.set(o.id, o));
+    (deliveredStatusRes.data || []).forEach((o: any) => orderMap.set(o.id, o));
 
     // Carrega dados de ordens do histórico que não vieram nas outras queries
     const missingIds = (sectorRes.data || [])
@@ -542,10 +560,13 @@ export default function PcpPage() {
     const entries: ExpedicaoEntry[] = [];
     orderMap.forEach((o: any) => {
       const isUrg = !!(o.urgente || o.urgente_impressao || o.urgente_acabamento || o.urgente_expedicao);
-      const isDelivered = o.status_entrega === "entregue" || !!o.entregue_em || o.setor_status === "saida";
+      const isDelivered =
+        o.status_entrega === "entregue" ||
+        !!o.entregue_em ||
+        (o.setor === "expedicao" && (o.setor_status === "saida" || o.arquivado));
 
       // Determinação da data representativa para Expedição:
-      // Se entregue, a prioridade absoluta é a data/hora da entrega (entregue_em / data_chegada_entrega / updated_at)
+      // Se entregue ou arquivada após expedição, a prioridade absoluta é a data/hora da entrega/conclusão
       let targetDate: string = o.created_at;
       if (o.entregue_em) {
         targetDate = o.entregue_em;
@@ -756,8 +777,13 @@ export default function PcpPage() {
     const anteriores: ExpedicaoEntry[] = [];
     expedicao.filter(filterFn).forEach(e => {
       const d = new Date(e.chegou_em);
-      if (isSameDay(d, today) || d >= today) hoje.push(e);
-      else anteriores.push(e);
+      if (isSameDay(d, today) || d >= today) {
+        hoje.push(e);
+      } else {
+        // Se a ordem já foi concluída/entregue em dia anterior, não polui as pendências de dias anteriores
+        if (e.status_entrega === "entregue") return;
+        anteriores.push(e);
+      }
     });
     return { hoje, anteriores };
   }, [expedicao, searchQuery, dayKey]);
