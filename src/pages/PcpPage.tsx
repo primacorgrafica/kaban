@@ -498,12 +498,13 @@ export default function PcpPage() {
       // 2. Ordens pertencentes ao setor 'expedicao'
       supabase
         .from("orders")
-        .select("id, titulo, cliente, descricao, vendedor, created_at, updated_at, setor, setor_status, arquivado, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao, status_entrega, entregue_em, data_chegada_entrega, data_saida_entrega, entregue_para, entregue_por, rota_numero, tipo_entrega")
-        .eq("setor", "expedicao"),
+        .select("id, titulo, cliente, descricao, vendedor, created_at, updated_at, setor, setor_status, arquivado, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao, status_entrega, entregue_em, data_chegada_entrega, data_saida_entrega, entregue_para, entregue_por, tipo_entrega")
+        .eq("setor", "expedicao")
+        .eq("arquivado", false),
       // 3. Ordens com entrega realizada ou em andamento
       supabase
         .from("orders")
-        .select("id, titulo, cliente, descricao, vendedor, created_at, updated_at, setor, setor_status, arquivado, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao, status_entrega, entregue_em, data_chegada_entrega, data_saida_entrega, entregue_para, entregue_por, rota_numero, tipo_entrega")
+        .select("id, titulo, cliente, descricao, vendedor, created_at, updated_at, setor, setor_status, arquivado, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao, status_entrega, entregue_em, data_chegada_entrega, data_saida_entrega, entregue_para, entregue_por, tipo_entrega")
         .or(`status_entrega.eq.entregue,entregue_em.gte.${sinceISO},data_chegada_entrega.gte.${sinceISO}`),
     ]);
 
@@ -519,7 +520,7 @@ export default function PcpPage() {
     if (missingIds.length > 0) {
       const { data: missingData } = await supabase
         .from("orders")
-        .select("id, titulo, cliente, descricao, vendedor, created_at, updated_at, setor, setor_status, arquivado, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao, status_entrega, entregue_em, data_chegada_entrega, data_saida_entrega, entregue_para, entregue_por, rota_numero, tipo_entrega")
+        .select("id, titulo, cliente, descricao, vendedor, created_at, updated_at, setor, setor_status, arquivado, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao, status_entrega, entregue_em, data_chegada_entrega, data_saida_entrega, entregue_para, entregue_por, tipo_entrega")
         .in("id", missingIds);
       (missingData || []).forEach((o: any) => orderMap.set(o.id, o));
     }
