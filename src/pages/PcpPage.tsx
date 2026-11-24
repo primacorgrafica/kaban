@@ -1060,8 +1060,8 @@ export default function PcpPage() {
                     <th className="py-1.5 pl-2 text-left truncate">OS</th>
                     <th className="py-1.5 px-1 text-left truncate">CLIENTE</th>
                     <th className="py-1.5 px-1 text-left truncate">DESCRIÇÃO</th>
-                    <th className="py-1.5 px-1 text-left truncate">VENDEDOR</th>
-                    <th className="py-1.5 pr-2 text-right truncate">HORA</th>
+                    <th className="py-1.5 px-1 text-left truncate text-white dark:text-white">VENDEDOR</th>
+                    <th className="py-1.5 pr-2 text-right truncate text-white dark:text-white">HORA</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
@@ -1110,10 +1110,10 @@ export default function PcpPage() {
                         <td className="py-1.5 px-1 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
                           {e.descricao || "—"}
                         </td>
-                        <td className="py-1.5 px-1 text-muted-foreground truncate" title={e.vendedor || ""}>
+                        <td className="py-1.5 px-1 text-white dark:text-white font-medium truncate" title={e.vendedor || ""}>
                           {e.vendedor || "—"}
                         </td>
-                        <td className="py-1.5 pr-2 text-right text-muted-foreground font-mono text-[10px] whitespace-nowrap truncate">
+                        <td className="py-1.5 pr-2 text-right text-white dark:text-white font-mono text-[10px] whitespace-nowrap truncate">
                           {formatPcpDate(e.created_at, true)}
                         </td>
                       </tr>
@@ -1149,8 +1149,8 @@ export default function PcpPage() {
                     <th className="py-1.5 pl-2 text-left truncate">OS</th>
                     <th className="py-1.5 px-1 text-left truncate">CLIENTE</th>
                     <th className="py-1.5 px-1 text-left truncate">DESCRIÇÃO</th>
-                    <th className="py-1.5 px-1 text-left truncate">VENDEDOR</th>
-                    <th className="py-1.5 pr-2 text-right truncate">DATA</th>
+                    <th className="py-1.5 px-1 text-left truncate text-white dark:text-white">VENDEDOR</th>
+                    <th className="py-1.5 pr-2 text-right truncate text-white dark:text-white">DATA</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
@@ -1199,10 +1199,10 @@ export default function PcpPage() {
                         <td className="py-1.5 px-1 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
                           {e.descricao || "—"}
                         </td>
-                        <td className="py-1.5 px-1 text-muted-foreground truncate" title={e.vendedor || ""}>
+                        <td className="py-1.5 px-1 text-white dark:text-white font-medium truncate" title={e.vendedor || ""}>
                           {e.vendedor || "—"}
                         </td>
-                        <td className="py-1.5 pr-2 text-right text-muted-foreground font-mono text-[10px] whitespace-nowrap truncate">
+                        <td className="py-1.5 pr-2 text-right text-white dark:text-white font-mono text-[10px] whitespace-nowrap truncate">
                           {formatPcpDate(e.created_at, false)}
                         </td>
                       </tr>
@@ -1253,8 +1253,8 @@ export default function PcpPage() {
                     <th className="py-1.5 pl-2 text-left truncate">OS</th>
                     <th className="py-1.5 px-1 text-left truncate">CLIENTE</th>
                     <th className="py-1.5 px-1 text-left truncate">DESCRIÇÃO</th>
-                    <th className="py-1.5 px-1 text-left truncate">VENDEDOR</th>
-                    <th className="py-1.5 pr-2 text-right truncate">HORA</th>
+                    <th className="py-1.5 px-1 text-left truncate text-white dark:text-white">VENDEDOR</th>
+                    <th className="py-1.5 pr-2 text-right truncate text-white dark:text-white">HORA</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
@@ -1309,10 +1309,10 @@ export default function PcpPage() {
                           <td className="py-1.5 px-1 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
                             {e.descricao || "—"}
                           </td>
-                          <td className="py-1.5 px-1 text-muted-foreground truncate" title={e.vendedor || ""}>
+                          <td className="py-1.5 px-1 text-white dark:text-white font-medium truncate" title={e.vendedor || ""}>
                             {e.vendedor || "—"}
                           </td>
-                          <td className="py-1.5 pr-2 text-right text-muted-foreground font-mono text-[10px] whitespace-nowrap truncate">
+                          <td className="py-1.5 pr-2 text-right text-white dark:text-white font-mono text-[10px] whitespace-nowrap truncate">
                             {formatPcpDate(e.chegou_em, true)}
                           </td>
                         </tr>
@@ -1349,8 +1349,8 @@ export default function PcpPage() {
                     <th className="py-1.5 pl-2 text-left truncate">OS</th>
                     <th className="py-1.5 px-1 text-left truncate">CLIENTE</th>
                     <th className="py-1.5 px-1 text-left truncate">DESCRIÇÃO</th>
-                    <th className="py-1.5 px-1 text-left truncate">VENDEDOR</th>
-                    <th className="py-1.5 pr-2 text-right truncate">DATA</th>
+                    <th className="py-1.5 px-1 text-left truncate text-white dark:text-white">VENDEDOR</th>
+                    <th className="py-1.5 pr-2 text-right truncate text-white dark:text-white">DATA</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
@@ -1399,10 +1399,10 @@ export default function PcpPage() {
                         <td className="py-1.5 px-1 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
                           {e.descricao || "—"}
                         </td>
-                        <td className="py-1.5 px-1 text-muted-foreground truncate" title={e.vendedor || ""}>
+                        <td className="py-1.5 px-1 text-white dark:text-white font-medium truncate" title={e.vendedor || ""}>
                           {e.vendedor || "—"}
                         </td>
-                        <td className="py-1.5 pr-2 text-right text-muted-foreground font-mono text-[10px] whitespace-nowrap truncate">
+                        <td className="py-1.5 pr-2 text-right text-white dark:text-white font-mono text-[10px] whitespace-nowrap truncate">
                           {formatPcpDate(e.chegou_em, false)}
                         </td>
                       </tr>
@@ -1453,8 +1453,8 @@ export default function PcpPage() {
                     <th className="py-1.5 pl-2 text-left truncate">OS</th>
                     <th className="py-1.5 px-1 text-left truncate">CLIENTE</th>
                     <th className="py-1.5 px-1 text-left truncate">DESCRIÇÃO</th>
-                    <th className="py-1.5 px-1 text-left truncate">VENDEDOR</th>
-                    <th className="py-1.5 pr-2 text-right truncate">HORA</th>
+                    <th className="py-1.5 px-1 text-left truncate text-white dark:text-white">VENDEDOR</th>
+                    <th className="py-1.5 pr-2 text-right truncate text-white dark:text-white">HORA</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
@@ -1524,10 +1524,10 @@ export default function PcpPage() {
                           <td className="py-1.5 px-1 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
                             {e.descricao || "—"}
                           </td>
-                          <td className="py-1.5 px-1 text-muted-foreground truncate" title={e.vendedor || ""}>
+                          <td className="py-1.5 px-1 text-white dark:text-white font-medium truncate" title={e.vendedor || ""}>
                             {e.vendedor || "—"}
                           </td>
-                          <td className="py-1.5 pr-2 text-right text-muted-foreground font-mono text-[10px] whitespace-nowrap truncate">
+                          <td className="py-1.5 pr-2 text-right text-white dark:text-white font-mono text-[10px] whitespace-nowrap truncate">
                             {formatPcpDate(e.chegou_em, true)}
                           </td>
                         </tr>
@@ -1564,8 +1564,8 @@ export default function PcpPage() {
                     <th className="py-1.5 pl-2 text-left truncate">OS</th>
                     <th className="py-1.5 px-1 text-left truncate">CLIENTE</th>
                     <th className="py-1.5 px-1 text-left truncate">DESCRIÇÃO</th>
-                    <th className="py-1.5 px-1 text-left truncate">VENDEDOR</th>
-                    <th className="py-1.5 pr-2 text-right truncate">DATA</th>
+                    <th className="py-1.5 px-1 text-left truncate text-white dark:text-white">VENDEDOR</th>
+                    <th className="py-1.5 pr-2 text-right truncate text-white dark:text-white">DATA</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
@@ -1622,10 +1622,10 @@ export default function PcpPage() {
                         <td className="py-1.5 px-1 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
                           {e.descricao || "—"}
                         </td>
-                        <td className="py-1.5 px-1 text-muted-foreground truncate" title={e.vendedor || ""}>
+                        <td className="py-1.5 px-1 text-white dark:text-white font-medium truncate" title={e.vendedor || ""}>
                           {e.vendedor || "—"}
                         </td>
-                        <td className="py-1.5 pr-2 text-right text-muted-foreground font-mono text-[10px] whitespace-nowrap truncate">
+                        <td className="py-1.5 pr-2 text-right text-white dark:text-white font-mono text-[10px] whitespace-nowrap truncate">
                           {formatPcpDate(e.chegou_em, false)}
                         </td>
                       </tr>
