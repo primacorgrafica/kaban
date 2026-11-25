@@ -305,6 +305,16 @@ export async function syncExpedicaoCsvFromSharePoint(
     const cacheEntries: Record<string, PosicaoCacheEntry> = {};
     const nowIso = new Date().toISOString();
 
+    interface PendingOrderUpdate {
+      id: string;
+      cleanOs: string;
+      isFaturamento: boolean;
+      deliveryUpdates: Record<string, any>;
+      extraUpdates: Record<string, any>;
+    }
+
+    const pendingUpdates: PendingOrderUpdate[] = [];
+
     for (let i = 1; i < lines.length; i++) {
       const cols = parseCsvLine(lines[i], sep);
       const rawOs = cols[idxOs] || "";
@@ -357,33 +367,52 @@ export async function syncExpedicaoCsvFromSharePoint(
           deliveryUpdates.entrega_endereco = addr;
         }
 
-        let orderWasUpdated = false;
-
-        if (Object.keys(deliveryUpdates).length > 0) {
-          const { error: updErr } = await (supabase.from("orders") as any)
-            .update(deliveryUpdates)
-            .eq("id", matchedOrder.id);
-
-          if (!updErr) {
-            orderWasUpdated = true;
-          } else {
-            console.warn(`[expedicaoCsvSync] Erro ao atualizar entrega OS ${cleanOs}:`, updErr);
-            if (!firstError) firstError = updErr.message;
-          }
-        }
-
-        if (Object.keys(extraUpdates).length > 0) {
-          const { error: extraErr } = await (supabase.from("orders") as any)
-            .update(extraUpdates)
-            .eq("id", matchedOrder.id);
-
-          if (!extraErr) orderWasUpdated = true;
-        }
-
-        if (orderWasUpdated && matchedOrder.setor !== "faturamento") {
-          updatedCount++;
+        if (Object.keys(deliveryUpdates).length > 0 || Object.keys(extraUpdates).length > 0) {
+          pendingUpdates.push({
+            id: matchedOrder.id,
+            cleanOs,
+            isFaturamento: matchedOrder.setor === "faturamento",
+            deliveryUpdates,
+            extraUpdates,
+          });
         }
       }
+    }
+
+    // Executa atualizações em lotes paralelos de 25 para máxima velocidade
+    const CHUNK_SIZE = 25;
+    for (let i = 0; i < pendingUpdates.length; i += CHUNK_SIZE) {
+      const chunk = pendingUpdates.slice(i, i + CHUNK_SIZE);
+      await Promise.all(
+        chunk.map(async (item) => {
+          let orderWasUpdated = false;
+
+          if (Object.keys(item.deliveryUpdates).length > 0) {
+            const { error: updErr } = await (supabase.from("orders") as any)
+              .update(item.deliveryUpdates)
+              .eq("id", item.id);
+
+            if (!updErr) {
+              orderWasUpdated = true;
+            } else {
+              console.warn(`[expedicaoCsvSync] Erro ao atualizar entrega OS ${item.cleanOs}:`, updErr);
+              if (!firstError) firstError = updErr.message;
+            }
+          }
+
+          if (Object.keys(item.extraUpdates).length > 0) {
+            const { error: extraErr } = await (supabase.from("orders") as any)
+              .update(item.extraUpdates)
+              .eq("id", item.id);
+
+            if (!extraErr) orderWasUpdated = true;
+          }
+
+          if (orderWasUpdated && !item.isFaturamento) {
+            updatedCount++;
+          }
+        })
+      );
     }
 
     if (Object.keys(cacheEntries).length > 0) {
