@@ -403,4 +403,18 @@ export function canAlterRouteStop(statusEntrega?: string | null): boolean {
   return statusEntrega !== "no_local" && statusEntrega !== "entregue";
 }
 
+// =====================================================================================
+// FASE 5: MOTIVOS DE INSUCESSO NA TELA DO ENTREGADOR
+// =====================================================================================
+
+export const INSUCESSO_MOTIVOS = [
+  "Cliente ausente / estabelecimento fechado",
+  "Endereço não localizado / número inexistente",
+  "Destinatário recusou o recebimento",
+  "Mercadoria avariada durante o transporte",
+  "Horário comercial expirado",
+  "Outro motivo (especificar nas observações)",
+] as const;
+
+
 

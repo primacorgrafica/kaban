@@ -27,7 +27,7 @@ import {
   type StoredMicrosoftUser,
 } from "@/lib/msalClient";
 import type { DeliveryStatus, Entregador, RotaId, MotivoPausaRota } from "@/types/delivery";
-import { DELIVERY_STATUS_CONFIG, MOTIVOS_PAUSA_CONFIG } from "@/types/delivery";
+import { DELIVERY_STATUS_CONFIG, MOTIVOS_PAUSA_CONFIG, INSUCESSO_MOTIVOS } from "@/types/delivery";
 import type { Order } from "@/types/order";
 import { cleanOsNumber } from "@/components/ProductionCard";
 import { Link } from "react-router-dom";
@@ -65,15 +65,6 @@ import {
 import { format, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { cn } from "@/lib/utils";
-
-const INSUCESSO_MOTIVOS = [
-  "Cliente ausente / estabelecimento fechado",
-  "Endereço não localizado / número inexistente",
-  "Destinatário recusou o recebimento",
-  "Mercadoria avariada durante o transporte",
-  "Horário comercial expirado",
-  "Outro motivo (especificar nas observações)",
-];
 
 // Alerta sonoro agradável para entregador via Web Audio API (funciona offline e em segundo plano)
 function playNotificationChime() {
