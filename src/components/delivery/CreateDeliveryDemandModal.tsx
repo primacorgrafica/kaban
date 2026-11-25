@@ -132,6 +132,7 @@ export function CreateDeliveryDemandModal({
         setor_status: "aguardando_expedicao",
         status: "arquivo_liberado",
         tipo_entrega: [isColeta ? "coleta" : "entrega", "demanda_manual"],
+        tipo_veiculo_entrega: "moto",
         entrega_endereco: endereco.trim(),
         endereco_entrega: endereco.trim(),
         entrega_para: responsavelLocal.trim() || null,

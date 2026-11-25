@@ -161,6 +161,44 @@ export interface EntregadorPosicao {
   created_at: string;
 }
 
+export const DELIVERY_STATUS_ORDER: DeliveryStatus[] = [
+  "pendente",
+  "atribuido",
+  "em_rota",
+  "no_local",
+  "entregue",
+  "insucesso",
+];
+
+export const SEM_REGIAO_LABEL = "Sem região";
+
+export type LocalidadeTipo = "bairro" | "cidade";
+
+export interface Regional {
+  id: string;
+  nome: string;
+  slug: string;
+  ativo: boolean;
+  ordem: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Localidade {
+  id: string;
+  regional_id: string;
+  nome: string;
+  tipo: LocalidadeTipo;
+  slug: string;
+  ativo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LocalidadeComRegional extends Localidade {
+  regional?: Pick<Regional, "id" | "nome" | "slug" | "ativo" | "ordem"> | null;
+}
+
 export const DELIVERY_STATUS_CONFIG: Record<
   DeliveryStatus,
   {
@@ -170,7 +208,7 @@ export const DELIVERY_STATUS_CONFIG: Record<
   }
 > = {
   pendente: {
-    label: "Pendente",
+    label: "Aguardando atribuição",
     badgeClass: "bg-zinc-800/80 text-zinc-300 border-zinc-700",
     borderClass: "border-zinc-700",
   },

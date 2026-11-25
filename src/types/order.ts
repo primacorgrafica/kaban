@@ -94,6 +94,11 @@ export interface Order {
   rota_pausa_obs?: string | null; // Observação complementar
   rota_pausa_em?: string | null; // Timestamp da pausa
   parada_agrupada_id?: string | null; // Agrupamento de O.S. do mesmo cliente numa única parada
+  // Fase 2: Regional, Localidade e Tipo de Veículo (Carro/Moto)
+  regional_id?: string | null;
+  localidade_id?: string | null;
+  regiao?: string | null;
+  tipo_veiculo_entrega?: "carro" | "moto" | null;
   // Faturamento fields
   fat_cnpj_ok: boolean;
   fat_cnpj_obs: string | null;

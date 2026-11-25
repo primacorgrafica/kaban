@@ -559,3 +559,54 @@ export async function deleteEntregador(
     return { success: false, error: err.message || "Erro ao excluir entregador." };
   }
 }
+
+/**
+ * Atualiza a região/localidade de uma entrega (ajuste manual na Gestão de Entregas).
+ */
+export async function updateDeliveryRegion(
+  orderId: string,
+  regionData: {
+    regional_id: string | null;
+    localidade_id: string | null;
+    regiao: string | null;
+  }
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await (supabase.from("orders") as any)
+      .update({
+        regional_id: regionData.regional_id,
+        localidade_id: regionData.localidade_id,
+        regiao: regionData.regiao,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", orderId);
+
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Erro ao atualizar região da entrega." };
+  }
+}
+
+/**
+ * Atualiza o tipo de veículo da entrega (Carro ou Moto).
+ */
+export async function updateDeliveryVehicleType(
+  orderId: string,
+  tipoVeiculo: "carro" | "moto"
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await (supabase.from("orders") as any)
+      .update({
+        tipo_veiculo_entrega: tipoVeiculo,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", orderId);
+
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Erro ao atualizar tipo de veículo." };
+  }
+}
+

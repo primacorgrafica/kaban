@@ -21,6 +21,7 @@ const EmConstrucaoPage = lazy(() => import("./pages/EmConstrucaoPage"));
 const EntregasPage = lazy(() => import("./pages/EntregasPage"));
 const RotasPage = lazy(() => import("./pages/RotasPage"));
 const EntregadoresPage = lazy(() => import("./pages/EntregadoresPage"));
+const RegionaisLocalidadesPage = lazy(() => import("./pages/RegionaisLocalidadesPage"));
 const EntregadorPage = lazy(() => import("./pages/EntregadorPage"));
 const ComercialPage = lazy(() => import("./pages/ComercialPage"));
 const PcpPage = lazy(() => import("./pages/PcpPage"));
@@ -159,6 +160,7 @@ const App = () => (
                 <Route path="/expedicao" element={<ProtectedRoute module="expedicao"><ExpedicaoPage /></ProtectedRoute>} />
                 <Route path="/usuarios" element={<ProtectedRoute requireCoordinatorOrAdmin><UserManagementPage /></ProtectedRoute>} />
                 <Route path="/equipamentos" element={<ProtectedRoute module="cadastros"><EquipamentosPage /></ProtectedRoute>} />
+                <Route path="/regionais" element={<ProtectedRoute requireCoordinatorOrAdmin><RegionaisLocalidadesPage /></ProtectedRoute>} />
                 <Route path="/comercial" element={<ProtectedRoute module="comercial"><ComercialPage /></ProtectedRoute>} />
                 <Route path="/pcp" element={<ProtectedRoute module="pcp"><PcpPage /></ProtectedRoute>} />
                 

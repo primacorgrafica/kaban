@@ -624,6 +624,10 @@ export type Database = {
           tempo_pausado_ms: number
           tipo_entrega: string[] | null
           tipo_trabalho: string | null
+          tipo_veiculo_entrega?: string | null
+          regional_id?: string | null
+          localidade_id?: string | null
+          regiao?: string | null
           os_anterior?: string | null
           revisao?: number | null
           titulo: string
@@ -725,6 +729,10 @@ export type Database = {
           tempo_pausado_ms?: number
           tipo_entrega?: string[] | null
           tipo_trabalho?: string | null
+          tipo_veiculo_entrega?: string | null
+          regional_id?: string | null
+          localidade_id?: string | null
+          regiao?: string | null
           os_anterior?: string | null
           revisao?: number | null
           titulo: string
@@ -825,6 +833,10 @@ export type Database = {
           tempo_pausado_ms?: number
           tipo_entrega?: string[] | null
           tipo_trabalho?: string | null
+          tipo_veiculo_entrega?: string | null
+          regional_id?: string | null
+          localidade_id?: string | null
+          regiao?: string | null
           os_anterior?: string | null
           revisao?: number | null
           titulo?: string
@@ -846,6 +858,77 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      localidades: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          regional_id: string
+          slug: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          regional_id: string
+          slug: string
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          regional_id?: string
+          slug?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "localidades_regional_id_fkey"
+            columns: ["regional_id"]
+            isOneToOne: false
+            referencedRelation: "regionais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      regionais: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -975,6 +1058,77 @@ export type Database = {
           nome?: string
           email?: string | null
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      localidades: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          regional_id: string
+          slug: string
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          regional_id: string
+          slug: string
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          regional_id?: string
+          slug?: string
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "localidades_regional_id_fkey"
+            columns: ["regional_id"]
+            isOneToOne: false
+            referencedRelation: "regionais"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      regionais: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          id: string
+          nome: string
+          ordem: number
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome: string
+          ordem?: number
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          slug?: string
+          updated_at?: string
         }
         Relationships: []
       }

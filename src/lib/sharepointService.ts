@@ -86,6 +86,10 @@ export const SHAREPOINT_INSPECAO_FOLDER = "INSPEÇÃO";
 export const SHAREPOINT_INSPECAO_URL =
   "https://primacorgraficaeditora.sharepoint.com/:f:/r/sites/Produo_grupo/Documentos%20Compartilhados/INSPE%C3%87%C3%83O?d=wd979244de4954c1c8dd7b800b3911536&csf=1&web=1&e=DyMrHJ";
 
+export const SHAREPOINT_EXPEDICAO_FOLDER = "EXPEDICAO";
+export const SHAREPOINT_EXPEDICAO_URL =
+  "https://primacorgraficaeditora.sharepoint.com/:f:/r/sites/Produo_grupo/Documentos%20Compartilhados/EXPEDICAO?d=w1dd9f898fe444ccda91f3a0d93dbebbd&csf=1&web=1&e=rWfMQL";
+
 // Limite para upload direto simples (4 MB). Acima disso, usa Upload Session em chunks.
 const DIRECT_UPLOAD_LIMIT_BYTES = 4 * 1024 * 1024;
 

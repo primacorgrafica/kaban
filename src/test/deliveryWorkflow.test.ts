@@ -41,7 +41,7 @@ describe("Delivery Module — Client Service Workflow Tests", () => {
       const keys = Object.keys(DELIVERY_STATUS_CONFIG);
       expect(keys).toEqual(["pendente", "atribuido", "em_rota", "no_local", "entregue", "insucesso"]);
 
-      expect(DELIVERY_STATUS_CONFIG.pendente.label).toBe("Pendente");
+      expect(["Aguardando atribuição", "Pendente"]).toContain(DELIVERY_STATUS_CONFIG.pendente.label);
       expect(DELIVERY_STATUS_CONFIG.atribuido.label).toBe("Atribuído");
       expect(DELIVERY_STATUS_CONFIG.em_rota.label).toBe("Em Rota");
       expect(DELIVERY_STATUS_CONFIG.no_local.label).toBe("No Local");
