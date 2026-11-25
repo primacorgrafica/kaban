@@ -52,6 +52,7 @@ interface ExpedicaoEntry {
   status_entrega?: string | null;
   entregue_para?: string | null;
   setor_status?: string | null;
+  entrega_data_limite?: string | null;
 }
 
 function isSameDay(a: Date, b: Date): boolean {
@@ -565,10 +566,12 @@ export default function PcpPage() {
         !!o.entregue_em ||
         (o.setor === "expedicao" && (o.setor_status === "saida" || o.arquivado));
 
-      // Determinação da data representativa para Expedição:
-      // Se entregue ou arquivada após expedição, a prioridade absoluta é a data/hora da entrega/conclusão
-      let targetDate: string = o.created_at;
-      if (o.entregue_em) {
+      // Determinação da data representativa para Expedição (Fase 6):
+      // Prioriza a Data de Entrega (entrega_data_limite) para contagem no box do Painel
+      let targetDate: string = o.entrega_data_limite || o.created_at;
+      if (o.entrega_data_limite) {
+        targetDate = o.entrega_data_limite;
+      } else if (o.entregue_em) {
         targetDate = o.entregue_em;
       } else if (o.data_chegada_entrega) {
         targetDate = o.data_chegada_entrega;
@@ -597,6 +600,7 @@ export default function PcpPage() {
         status_entrega: isDelivered ? "entregue" : (o.status_entrega || null),
         entregue_para: o.entregue_para || null,
         setor_status: o.setor_status || null,
+        entrega_data_limite: o.entrega_data_limite || null,
       });
     });
 
@@ -776,10 +780,10 @@ export default function PcpPage() {
     const hoje: ExpedicaoEntry[] = [];
     const anteriores: ExpedicaoEntry[] = [];
     expedicao.filter(filterFn).forEach(e => {
-      const d = new Date(e.chegou_em);
-      if (isSameDay(d, today) || d >= today) {
+      const d = new Date(e.entrega_data_limite || e.chegou_em);
+      if (isSameDay(d, today)) {
         hoje.push(e);
-      } else {
+      } else if (d < today) {
         // Se a ordem já foi concluída/entregue em dia anterior, não polui as pendências de dias anteriores
         if (e.status_entrega === "entregue") return;
         anteriores.push(e);
