@@ -524,81 +524,60 @@ export function EtiquetaInspecaoDialog({
               <div
                 style={{
                   width: "100%",
-                  maxWidth: "370px",
+                  maxWidth: "380px",
                   aspectRatio: `80 / ${alturaMm}`,
                 }}
-                className="bg-white text-black p-2.5 rounded-xl shadow-md border-[2.2px] border-black font-sans flex flex-col justify-between select-none box-border"
+                className="bg-white text-black px-3.5 py-2.5 rounded-lg shadow-md font-sans flex flex-col justify-between select-none box-border"
               >
-                {/* CABEÇALHO */}
-                <div className="flex items-center justify-between border-b-2 border-black pb-1.5 gap-2">
-                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                    <FileCheck className="h-6 w-6 stroke-[2.2] text-black shrink-0" />
-                    <div className="w-[2px] h-6 bg-black shrink-0" />
-                    <div className="min-w-0 flex-1">
-                      <div className="font-black text-xs uppercase leading-tight tracking-tight line-clamp-2">
-                        {previewItem.cliente.trim() || "CLIENTE"}
-                      </div>
-                      <div className="text-[10px] text-black font-medium leading-tight line-clamp-1 mt-0.5">
-                        <strong className="font-bold">Serviço:</strong> {previewItem.servico.trim() || "—"}
-                      </div>
+                {/* TOPO: OS + CLIENTE + DESCRIÇÃO */}
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-extrabold tracking-tight text-black">OS:</span>
+                    <div className="border border-black px-3 py-0.5 min-w-[76px] text-center">
+                      <span className="text-sm font-black tracking-tight text-black">
+                        {previewItem.osNumero.trim() || "—"}
+                      </span>
                     </div>
                   </div>
 
-                  {/* Badge OS */}
-                  <div className="border-2 border-black rounded-lg px-2 py-0.5 text-center shrink-0 min-w-[62px] flex flex-col items-center justify-center bg-white">
-                    <span className="text-[9px] font-black leading-none tracking-wider">O.S.:</span>
-                    <span className="text-sm font-black leading-none tracking-tight mt-0.5">
-                      {previewItem.osNumero.trim() || "—"}
-                    </span>
+                  <div className="text-xs leading-tight text-black truncate">
+                    <span className="font-bold">CLIENTE:</span>{" "}
+                    <span className="font-black">{previewItem.cliente.trim() || "—"}</span>
+                  </div>
+
+                  <div className="text-xs leading-tight text-black line-clamp-2">
+                    <span className="font-bold">DESCRIÇÃO:</span>{" "}
+                    <span className="font-black">{previewItem.servico.trim() || "—"}</span>
                   </div>
                 </div>
 
-                {/* CORPO: 3 LINHAS COM ÍCONES E BARRAS */}
-                <div className="flex flex-col justify-around py-1 space-y-1 flex-1">
-                  {/* Linha 1: Quantidade */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Package className="h-4 w-4 stroke-[2.2] text-black" />
-                      <div className="w-[1.5px] h-3.5 bg-black mx-1" />
-                      <span className="text-[11px] font-extrabold text-black">Quantidade:</span>
+                {/* MEIO + RODAPÉ COM LOGO */}
+                <div className="flex items-end justify-between gap-2 mt-auto pt-1">
+                  <div className="flex flex-col gap-1 min-w-0 flex-1">
+                    <div className="text-xs leading-tight text-black">
+                      <span className="font-bold">QUANT:</span>{" "}
+                      <span className="font-black ml-1">{previewItem.quantidade.trim() || "—"}</span>
                     </div>
-                    <span className="text-sm font-black text-black text-right truncate">
-                      {previewItem.quantidade.trim() || "—"}
-                    </span>
+                    <div className="text-xs leading-tight text-black">
+                      <span className="font-bold">PACOTE:</span>{" "}
+                      <span className="font-black ml-1">
+                        {previewItem.numeroPacote || "____ / ____"}
+                      </span>
+                    </div>
+
+                    <div className="mt-1.5 text-[7.5px] leading-[1.25] font-semibold text-black">
+                      <div>Av. Coronel Jose Dias Bicalho, 33 - Sao Jose - BH / MG</div>
+                      <div>Tel: (31) 3319-0910 - primacor@primacorgrafica.com.br</div>
+                    </div>
                   </div>
 
-                  {/* Linha 2: Data */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Calendar className="h-4 w-4 stroke-[2.2] text-black" />
-                      <div className="w-[1.5px] h-3.5 bg-black mx-1" />
-                      <span className="text-[11px] font-extrabold text-black">Data:</span>
-                    </div>
-                    <span className="text-xs font-black text-black text-right">
-                      {previewItem.data || "—"}
-                    </span>
+                  <div className="shrink-0 flex items-end justify-end pb-0.5">
+                    <img
+                      src="/logo-etiqueta-primacor.png"
+                      alt="Primacor Gráfica"
+                      className="h-12 w-auto object-contain"
+                    />
                   </div>
-
-                  {/* Linha 3: Obs */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1 shrink-0">
-                      <FileText className="h-4 w-4 stroke-[2.2] text-black" />
-                      <div className="w-[1.5px] h-3.5 bg-black mx-1" />
-                      <span className="text-[11px] font-extrabold text-black">Obs.:</span>
-                    </div>
-                    <span className="text-[10px] font-bold text-black text-right line-clamp-1 flex-1">
-                      {previewItem.observacao?.trim() || <span className="inline-block w-20 border-b border-dotted border-black/60">&nbsp;</span>}
-                    </span>
-                  </div>
-                </div>
-
-                {/* BANNER INFERIOR DO PACOTE */}
-                <div className="bg-black text-white rounded-lg py-1 px-3 flex items-center justify-center gap-2 mt-auto">
-                  <div className="flex-1 h-[2px] bg-white rounded-full" />
-                  <span className="text-sm font-black tracking-wide whitespace-nowrap leading-none">
-                    Pacote {previewItem.numeroPacote || "______"}
-                  </span>
-                  <div className="flex-1 h-[2px] bg-white rounded-full" />
                 </div>
               </div>
             </div>

@@ -261,73 +261,54 @@ export function generateEtiquetasInspecaoPrintHtml(
 ): string {
   const altura = alturaMm > 0 ? alturaMm : DEFAULT_ALTURA_ETIQUETA_MM;
 
+  const logoUrl =
+    typeof window !== "undefined" && window.location?.origin
+      ? `${window.location.origin}/logo-etiqueta-primacor.png`
+      : "/logo-etiqueta-primacor.png";
+
   const labelsHtml = etiquetas
     .map((item, index) => {
       const isLast = index === etiquetas.length - 1;
-      const obsText = (item.observacao || "").trim();
-      const obsContent = obsText
-        ? escapeHtml(obsText)
-        : '<span class="obs-linha-manual">&nbsp;</span>';
-
-      const dataStr = (item.data || "").trim() || (() => {
-        const d = new Date();
-        return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
-      })();
+      const pacoteText = item.numeroPacote
+        ? escapeHtml(item.numeroPacote)
+        : "____ / ____";
 
       return `
       <div class="etiqueta-page ${isLast ? "etiqueta-last" : ""}">
         <div class="etiqueta-card">
-          <!-- CABEÇALHO -->
-          <div class="etiqueta-header">
-            <div class="header-left">
-              ${SVG_FILE_CHECK}
-              <div class="header-vbar"></div>
-              <div class="header-titles">
-                <div class="cliente-nome">${escapeHtml(item.cliente || "CLIENTE")}</div>
-                <div class="servico-nome"><strong>Serviço:</strong> ${escapeHtml(item.servico || "—")}</div>
-              </div>
+          <div class="etiqueta-top">
+            <div class="os-row">
+              <span class="os-label">OS:</span>
+              <span class="os-box">${escapeHtml(item.osNumero || "—")}</span>
             </div>
-            <div class="header-os-box">
-              <div class="os-label">O.S.:</div>
-              <div class="os-num">${escapeHtml(item.osNumero || "—")}</div>
+            <div class="info-line">
+              <span class="lbl">CLIENTE:</span>
+              <span class="val">${escapeHtml(item.cliente || "—")}</span>
             </div>
-          </div>
-
-          <!-- CORPO COM ÍCONES E DADOS -->
-          <div class="etiqueta-body">
-            <div class="info-row">
-              <div class="row-left">
-                ${SVG_PACKAGE}
-                <div class="row-vbar"></div>
-                <span class="row-label">Quantidade:</span>
-              </div>
-              <div class="row-value val-qtd">${escapeHtml(item.quantidade || "—")}</div>
-            </div>
-
-            <div class="info-row">
-              <div class="row-left">
-                ${SVG_CALENDAR}
-                <div class="row-vbar"></div>
-                <span class="row-label">Data:</span>
-              </div>
-              <div class="row-value val-data">${escapeHtml(dataStr)}</div>
-            </div>
-
-            <div class="info-row">
-              <div class="row-left">
-                ${SVG_FILE_TEXT}
-                <div class="row-vbar"></div>
-                <span class="row-label">Obs.:</span>
-              </div>
-              <div class="row-value val-obs">${obsContent}</div>
+            <div class="info-line desc-line">
+              <span class="lbl">DESCRIÇÃO:</span>
+              <span class="val">${escapeHtml(item.servico || "—")}</span>
             </div>
           </div>
 
-          <!-- BANNER INFERIOR DO PACOTE -->
-          <div class="banner-pacote">
-            <div class="linha-asa"></div>
-            <div class="texto-pacote">${item.linhaPacoteHtml || `Pacote <u>${escapeHtml(item.numeroPacote || "______")}</u>`}</div>
-            <div class="linha-asa"></div>
+          <div class="etiqueta-bottom">
+            <div class="bottom-left">
+              <div class="info-line">
+                <span class="lbl">QUANT:</span>
+                <span class="val">${escapeHtml(item.quantidade || "—")}</span>
+              </div>
+              <div class="info-line">
+                <span class="lbl">PACOTE:</span>
+                <span class="val">${pacoteText}</span>
+              </div>
+              <div class="footer-address">
+                <div>Av. Coronel Jose Dias Bicalho, 33 - Sao Jose - BH / MG</div>
+                <div>Tel: (31) 3319-0910 - primacor@primacorgrafica.com.br</div>
+              </div>
+            </div>
+            <div class="bottom-right">
+              <img src="${logoUrl}" alt="Primacor Gráfica" class="primacor-logo" />
+            </div>
           </div>
         </div>
       </div>`;
