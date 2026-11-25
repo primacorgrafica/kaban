@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { cleanOsNumber } from "@/lib/orderRelationsService";
-import { getActiveMicrosoftAccount, getGraphToken } from "@/lib/msalClient";
+import { getActiveMicrosoftAccount, getSharePointAccessToken } from "@/lib/msalClient";
 import {
   resolveSharePointSiteAndDrive,
   SHAREPOINT_EXPEDICAO_FOLDER,
@@ -78,7 +78,7 @@ export async function syncExpedicaoCsvFromSharePoint(
   interactiveFallback = false
 ): Promise<ExpedicaoCsvSyncResult> {
   try {
-    const account = getActiveMicrosoftAccount();
+    const account = await getActiveMicrosoftAccount();
     if (!account && !interactiveFallback) {
       return {
         success: false,
@@ -88,7 +88,7 @@ export async function syncExpedicaoCsvFromSharePoint(
       };
     }
 
-    const token = await getGraphToken(interactiveFallback);
+    const token = await getSharePointAccessToken(interactiveFallback);
     if (!token) {
       return {
         success: false,
