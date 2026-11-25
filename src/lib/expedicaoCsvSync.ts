@@ -251,40 +251,53 @@ export async function syncExpedicaoCsvFromSharePoint(
       const matchedOrder = orderByCleanOs.get(cleanOs);
       if (!matchedOrder) continue;
 
-      const updates: Record<string, any> = {};
+      const deliveryUpdates: Record<string, any> = {};
+      const extraUpdates: Record<string, any> = {};
 
       if (idxPosicao !== -1 && cols[idxPosicao]) {
         const pos = cols[idxPosicao].trim();
         if (pos && pos !== matchedOrder.posicao_atual) {
-          updates.posicao_atual = pos;
+          extraUpdates.posicao_atual = pos;
         }
       }
 
       if (idxPrevisao !== -1 && cols[idxPrevisao]) {
         const prevStr = cols[idxPrevisao].trim();
         if (prevStr && prevStr !== matchedOrder.previsao_cliente) {
-          updates.previsao_cliente = prevStr;
+          extraUpdates.previsao_cliente = prevStr;
         }
         const isoDate = parseDateToIso(prevStr);
         if (isoDate && !matchedOrder.entrega_data_limite) {
-          updates.entrega_data_limite = isoDate;
+          deliveryUpdates.entrega_data_limite = isoDate;
         }
       }
 
       if (idxEndereco !== -1 && cols[idxEndereco]) {
         const addr = cols[idxEndereco].trim();
         if (addr && !matchedOrder.entrega_endereco) {
-          updates.entrega_endereco = addr;
+          deliveryUpdates.entrega_endereco = addr;
         }
       }
 
-      if (Object.keys(updates).length > 0) {
+      let rowUpdated = false;
+
+      if (Object.keys(deliveryUpdates).length > 0) {
         const { error: updErr } = await (supabase.from("orders") as any)
-          .update(updates)
+          .update(deliveryUpdates)
           .eq("id", matchedOrder.id);
 
-        if (!updErr) updatedCount++;
+        if (!updErr) rowUpdated = true;
       }
+
+      if (Object.keys(extraUpdates).length > 0) {
+        const { error: extraErr } = await (supabase.from("orders") as any)
+          .update(extraUpdates)
+          .eq("id", matchedOrder.id);
+
+        if (!extraErr) rowUpdated = true;
+      }
+
+      if (rowUpdated) updatedCount++;
     }
 
     if (typeof window !== "undefined") {
