@@ -5,17 +5,19 @@ import {
   resolveSharePointSiteAndDrive,
   SHAREPOINT_EXPEDICAO_FOLDER,
 } from "@/lib/sharepointService";
+import { savePosicaoCache, type PosicaoCacheEntry } from "@/lib/csvPosicaoImporter";
 
 export interface ExpedicaoCsvSyncResult {
   success: boolean;
   fileName?: string;
   totalRows: number;
+  matchedCount?: number;
   updatedCount: number;
   skippedNoSession?: boolean;
   error?: string;
 }
 
-const LAST_SYNC_KEY = "kaban_expedicao_csv_last_modified_v1";
+const LAST_SYNC_KEY = "kaban_expedicao_csv_last_modified_v2";
 
 /**
  * Faz o parse de uma linha CSV respeitando aspas e separador ';' ou ','.
@@ -46,7 +48,7 @@ function parseCsvLine(line: string, sep: string): string[] {
 }
 
 /**
- * Tenta converter string de data DD/MM/YYYY ou YYYY-MM-DD para ISO.
+ * Converte string de data DD/MM/YYYY ou YYYY-MM-DD para ISO.
  */
 function parseDateToIso(raw?: string | null): string | null {
   const s = (raw || "").trim();
@@ -71,8 +73,50 @@ function parseDateToIso(raw?: string | null): string | null {
 }
 
 /**
+ * Busca todas as ordens não arquivadas paginando de 1000 em 1000 para nunca sofrer
+ * truncamento pelo limite padrão de 1000 linhas do PostgREST/Supabase.
+ */
+async function fetchAllActiveOrdersPaginated(): Promise<{ data: any[]; error: string | null }> {
+  const allRows: any[] = [];
+  const pageSize = 1000;
+  let from = 0;
+
+  while (true) {
+    const { data, error } = await (supabase.from("orders") as any)
+      .select("id, titulo, setor, entrega_endereco, entrega_data_limite, posicao_atual, data_posicao, previsao_cliente")
+      .eq("arquivado", false)
+      .order("created_at", { ascending: false })
+      .range(from, from + pageSize - 1);
+
+    if (error) {
+      // Fallback caso colunas opcionais (posicao_atual / data_posicao / previsao_cliente) não existam no banco
+      if (error.message?.includes("column") || error.code === "42703" || error.code === "PGRST204") {
+        const fb = await (supabase.from("orders") as any)
+          .select("id, titulo, setor, entrega_endereco, entrega_data_limite")
+          .eq("arquivado", false)
+          .order("created_at", { ascending: false })
+          .range(from, from + pageSize - 1);
+
+        if (fb.error) return { data: allRows, error: fb.error.message };
+        if (fb.data) allRows.push(...fb.data);
+        if (!fb.data || fb.data.length < pageSize) break;
+        from += pageSize;
+        continue;
+      }
+      return { data: allRows, error: error.message };
+    }
+
+    if (data) allRows.push(...data);
+    if (!data || data.length < pageSize) break;
+    from += pageSize;
+  }
+
+  return { data: allRows, error: null };
+}
+
+/**
  * Lê automaticamente o arquivo CSV (ex.: "OS Ge-kanban.csv") da pasta EXPEDICAO no SharePoint
- * e atualiza as O.S. correspondentes no Supabase.
+ * e atualiza as O.S. correspondentes no Supabase e no cache do Kanban.
  */
 export async function syncExpedicaoCsvFromSharePoint(
   interactiveFallback = false
@@ -157,7 +201,7 @@ export async function syncExpedicaoCsvFromSharePoint(
       }
     }
 
-    // Baixa o conteúdo do CSV
+    // Baixa o conteúdo do CSV (decodifica Windows-1252 / UTF-8)
     const downloadUrl =
       targetFile["@microsoft.graph.downloadUrl"] ||
       `https://graph.microsoft.com/v1.0/drives/${driveId}/items/${targetFile.id}/content`;
@@ -179,7 +223,16 @@ export async function syncExpedicaoCsvFromSharePoint(
       };
     }
 
-    const rawText = (await fileRes.text()).replace(/^\uFEFF/, "");
+    const buffer = await fileRes.arrayBuffer();
+    let rawText = "";
+    try {
+      const utf8 = new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+      rawText = utf8;
+    } catch {
+      rawText = new TextDecoder("windows-1252", { fatal: false }).decode(buffer);
+    }
+    rawText = rawText.replace(/^\uFEFF/, "");
+
     const lines = rawText.split(/\r?\n/).filter((l) => l.trim().length > 0);
     if (lines.length < 2) {
       return {
@@ -200,11 +253,16 @@ export async function syncExpedicaoCsvFromSharePoint(
         .trim()
     );
 
-    const findCol = (candidates: string[]) =>
-      headers.findIndex((h) => candidates.some((c) => h === c || h.includes(c)));
+    const findCol = (candidates: string[], exclude?: string[]) =>
+      headers.findIndex(
+        (h) =>
+          candidates.some((c) => h === c || h.includes(c)) &&
+          (!exclude || !exclude.some((ex) => h.includes(ex)))
+      );
 
     const idxOs = findCol(["nro os", "numero os", "os", "pedido", "nro"]);
-    const idxPosicao = findCol(["posicao", "etapa", "status"]);
+    const idxDataPosicao = findCol(["dt.posicao", "dt posicao", "data posicao"]);
+    const idxPosicao = findCol(["posicao", "etapa", "status"], ["dt", "data"]);
     const idxPrevisao = findCol(["previsao", "data entrega", "entrega"]);
     const idxEndereco = findCol(["endereco", "logradouro"]);
 
@@ -214,34 +272,38 @@ export async function syncExpedicaoCsvFromSharePoint(
         fileName: targetFile.name,
         totalRows: lines.length - 1,
         updatedCount: 0,
-        error: `Coluna de OS não encontrada no arquivo ${targetFile.name}.`,
+        error: `Coluna de OS não encontrada no arquivo ${targetFile.name}. Cabeçalhos lidos: ${headers.join(" | ")}`,
       };
     }
 
-    // Busca ordens ativas no Supabase para cruzar pelo número da OS
-    const { data: activeOrders, error: ordersErr } = await supabase
-      .from("orders")
-      .select("id, titulo, entrega_endereco, entrega_data_limite, posicao_atual, previsao_cliente")
-      .eq("arquivado", false);
+    // Busca TODAS as ordens ativas no Supabase (paginado de 1000 em 1000)
+    const { data: activeOrders, error: ordersErr } = await fetchAllActiveOrdersPaginated();
 
-    if (ordersErr || !activeOrders) {
+    if (ordersErr) {
       return {
         success: false,
         fileName: targetFile.name,
         totalRows: lines.length - 1,
         updatedCount: 0,
-        error: ordersErr?.message || "Erro ao consultar ordens no Supabase.",
+        error: ordersErr || "Erro ao consultar ordens no Supabase.",
       };
     }
 
-    const orderByCleanOs = new Map<string, any>();
+    // Agrupa TODAS as linhas do Supabase por número de OS limpo (evita atualizar apenas cópia de faturamento)
+    const ordersByCleanOs = new Map<string, any[]>();
     for (const o of activeOrders) {
       const clean = cleanOsNumber(o.titulo);
-      if (clean) orderByCleanOs.set(clean, o);
+      if (!clean) continue;
+      const list = ordersByCleanOs.get(clean) || [];
+      list.push(o);
+      ordersByCleanOs.set(clean, list);
     }
 
+    let matchedCount = 0;
     let updatedCount = 0;
     let firstError: string | undefined;
+    const cacheEntries: Record<string, PosicaoCacheEntry> = {};
+    const nowIso = new Date().toISOString();
 
     for (let i = 1; i < lines.length; i++) {
       const cols = parseCsvLine(lines[i], sep);
@@ -249,61 +311,83 @@ export async function syncExpedicaoCsvFromSharePoint(
       const cleanOs = cleanOsNumber(rawOs);
       if (!cleanOs) continue;
 
-      const matchedOrder = orderByCleanOs.get(cleanOs);
-      if (!matchedOrder) continue;
+      const matchedList = ordersByCleanOs.get(cleanOs);
+      if (!matchedList || matchedList.length === 0) continue;
 
-      const deliveryUpdates: Record<string, any> = {};
-      const extraUpdates: Record<string, any> = {};
+      matchedCount++;
 
-      if (idxPosicao !== -1 && cols[idxPosicao]) {
-        const pos = cols[idxPosicao].trim();
-        if (pos && pos !== matchedOrder.posicao_atual) {
+      const pos = idxPosicao !== -1 ? (cols[idxPosicao] || "").trim() : "";
+      const dtPos = idxDataPosicao !== -1 ? (cols[idxDataPosicao] || "").trim() : "";
+      const prevStr = idxPrevisao !== -1 ? (cols[idxPrevisao] || "").trim() : "";
+      const addr = idxEndereco !== -1 ? (cols[idxEndereco] || "").trim() : "";
+      const isoDate = parseDateToIso(prevStr);
+
+      for (const matchedOrder of matchedList) {
+        cacheEntries[matchedOrder.id] = {
+          posicaoAtual: pos || null,
+          dataPosicao: dtPos || null,
+          previsaoCliente: prevStr || null,
+          updatedAt: nowIso,
+        };
+        cacheEntries[cleanOs] = cacheEntries[matchedOrder.id];
+
+        const deliveryUpdates: Record<string, any> = {};
+        const extraUpdates: Record<string, any> = {};
+
+        if (pos && pos !== (matchedOrder.posicao_atual || "")) {
           extraUpdates.posicao_atual = pos;
         }
-      }
-
-      if (idxPrevisao !== -1 && cols[idxPrevisao]) {
-        const prevStr = cols[idxPrevisao].trim();
-        if (prevStr && prevStr !== matchedOrder.previsao_cliente) {
+        if (dtPos && dtPos !== (matchedOrder.data_posicao || "")) {
+          extraUpdates.data_posicao = dtPos;
+        }
+        if (prevStr && prevStr !== (matchedOrder.previsao_cliente || "")) {
           extraUpdates.previsao_cliente = prevStr;
         }
-        const isoDate = parseDateToIso(prevStr);
-        if (isoDate && !matchedOrder.entrega_data_limite) {
+
+        // Atualiza entrega_data_limite se estiver vazia OU se a previsão no CSV mudou
+        if (
+          isoDate &&
+          (!matchedOrder.entrega_data_limite ||
+            (prevStr && prevStr !== (matchedOrder.previsao_cliente || "")))
+        ) {
           deliveryUpdates.entrega_data_limite = isoDate;
         }
-      }
 
-      if (idxEndereco !== -1 && cols[idxEndereco]) {
-        const addr = cols[idxEndereco].trim();
         if (addr && !matchedOrder.entrega_endereco) {
           deliveryUpdates.entrega_endereco = addr;
         }
-      }
 
-      let rowUpdated = false;
+        let orderWasUpdated = false;
 
-      if (Object.keys(deliveryUpdates).length > 0) {
-        const { error: updErr } = await (supabase.from("orders") as any)
-          .update(deliveryUpdates)
-          .eq("id", matchedOrder.id);
+        if (Object.keys(deliveryUpdates).length > 0) {
+          const { error: updErr } = await (supabase.from("orders") as any)
+            .update(deliveryUpdates)
+            .eq("id", matchedOrder.id);
 
-        if (!updErr) {
-          rowUpdated = true;
-        } else {
-          console.warn(`[expedicaoCsvSync] Erro ao atualizar OS ${cleanOs}:`, updErr);
-          if (!firstError) firstError = updErr.message;
+          if (!updErr) {
+            orderWasUpdated = true;
+          } else {
+            console.warn(`[expedicaoCsvSync] Erro ao atualizar entrega OS ${cleanOs}:`, updErr);
+            if (!firstError) firstError = updErr.message;
+          }
+        }
+
+        if (Object.keys(extraUpdates).length > 0) {
+          const { error: extraErr } = await (supabase.from("orders") as any)
+            .update(extraUpdates)
+            .eq("id", matchedOrder.id);
+
+          if (!extraErr) orderWasUpdated = true;
+        }
+
+        if (orderWasUpdated && matchedOrder.setor !== "faturamento") {
+          updatedCount++;
         }
       }
+    }
 
-      if (Object.keys(extraUpdates).length > 0) {
-        const { error: extraErr } = await (supabase.from("orders") as any)
-          .update(extraUpdates)
-          .eq("id", matchedOrder.id);
-
-        if (!extraErr) rowUpdated = true;
-      }
-
-      if (rowUpdated) updatedCount++;
+    if (Object.keys(cacheEntries).length > 0) {
+      savePosicaoCache(cacheEntries);
     }
 
     if (typeof window !== "undefined") {
@@ -317,6 +401,7 @@ export async function syncExpedicaoCsvFromSharePoint(
       success: true,
       fileName: targetFile.name,
       totalRows: lines.length - 1,
+      matchedCount,
       updatedCount,
       error: updatedCount === 0 && firstError ? `Erro ao gravar no banco: ${firstError}` : undefined,
     };

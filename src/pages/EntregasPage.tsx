@@ -276,7 +276,7 @@ export default function EntregasPage() {
         toast.warning(`Aviso CSV Expedição: ${csvRes.error}`);
       } else if (csvRes.success && interactive && csvRes.fileName) {
         toast.info(
-          `CSV "${csvRes.fileName}" verificado (${csvRes.totalRows} linhas, nenhuma nova alteração pendente).`
+          `CSV "${csvRes.fileName}" verificado (${csvRes.totalRows} linhas, ${csvRes.matchedCount ?? 0} O.S. encontradas no Kanban, nenhuma nova alteração pendente).`
         );
       }
 
@@ -1188,9 +1188,10 @@ export default function EntregasPage() {
                           {/* 8. Data Entrega */}
                           <TableCell className="whitespace-nowrap">
                             <Input
+                              key={`${order.id}-${order.entrega_data_limite || "empty"}`}
                               type="datetime-local"
                               className={cn(
-                                "h-7 px-1 text-xs w-[170px] border-none bg-transparent shadow-none",
+                                "h-7 px-1 text-[11px] w-full min-w-[122px] border-none bg-transparent shadow-none",
                                 getDateColorClass(order.entrega_data_limite),
                                 !order.entrega_data_limite && "text-muted-foreground"
                               )}
