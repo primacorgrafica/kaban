@@ -34,6 +34,10 @@ import { hasSpecialSuppliesForCompras } from "@/lib/processos";
 import { syncOrderToCompras } from "@/lib/comprasSync";
 import { sanitizeVendedorNome } from "@/lib/vendedores";
 import { getPosicaoFromCache } from "@/lib/csvPosicaoImporter";
+import {
+  ensureDigitalProofDelivery,
+  ensureProductionOrderDelivery,
+} from "@/lib/deliveryService";
 
 
 export function useOrders() {
@@ -954,16 +958,32 @@ export function useOrders() {
       });
     }
 
-    if (newStatus === "aguardando_aprovacao" && oldStatus !== "aguardando_aprovacao") {
-      triggerSellerApprovalNotification(id).then((res) => {
-        if (res.success && res.sent) {
-          toast.success("Notificação enviada por e-mail ao vendedor! Cópia salva em 'Itens Enviados'.");
-        } else if (!res.success) {
-          toast.warning(`O.S. movida para Aguardando Aprovação, mas falha no envio ao vendedor: ${res.error || "verifique login Microsoft 365"}`);
-        }
-      }).catch((err) => {
-        console.error("Erro ao disparar notificação ao vendedor:", err);
-      });
+    if (newStatus === "aguardando_aprovacao") {
+      // Inclusão Automática da Prova Digital ("P") na Expedição com Veículo Moto
+      if (currentOrder.prova_digital) {
+        ensureDigitalProofDelivery(currentOrder, user?.id)
+          .then((res) => {
+            if (res.success && res.proofOrderId) {
+              const cleanTitle = (currentOrder.titulo || "").replace(/^[Pp]/, "");
+              toast.info(`Demanda da Prova Digital gerada automaticamente na Expedição (P${cleanTitle} - Moto)!`);
+            }
+          })
+          .catch((err) => {
+            console.error("Erro ao gerar entrega da prova digital:", err);
+          });
+      }
+
+      if (oldStatus !== "aguardando_aprovacao") {
+        triggerSellerApprovalNotification(id).then((res) => {
+          if (res.success && res.sent) {
+            toast.success("Notificação enviada por e-mail ao vendedor! Cópia salva em 'Itens Enviados'.");
+          } else if (!res.success) {
+            toast.warning(`O.S. movida para Aguardando Aprovação, mas falha no envio ao vendedor: ${res.error || "verifique login Microsoft 365"}`);
+          }
+        }).catch((err) => {
+          console.error("Erro ao disparar notificação ao vendedor:", err);
+        });
+      }
     }
 
     if (newStatus === "arquivo_liberado") {
@@ -1102,6 +1122,9 @@ export function useOrders() {
     } else {
       setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...payload } : o));
       toast.success("OS. enviada para produção!");
+      if (originalOrder) {
+        void ensureProductionOrderDelivery(originalOrder, user?.id);
+      }
     }
   }, [user, orders]);
 
@@ -1369,6 +1392,10 @@ export function useOrders() {
       }
       return next;
     });
+
+    if (originalOrder) {
+      void ensureProductionOrderDelivery(originalOrder, user?.id);
+    }
 
     toast.success(`OS. enviada para ${created} setor(es)!`);
   }, [user, orders, sendToProduction]);

@@ -7,7 +7,10 @@ import {
   type EntregadorPosicao,
   type RotaId,
   type MotivoPausaRota,
+  type MergeOrdersPayload,
+  validateSameClientForMerge,
 } from "@/types/delivery";
+import type { Order } from "@/types/order";
 
 export interface DeliveryRpcResponse {
   success: boolean;
@@ -609,4 +612,269 @@ export async function updateDeliveryVehicleType(
     return { success: false, error: err?.message || "Erro ao atualizar tipo de veículo." };
   }
 }
+
+// =====================================================================================
+// FASE 3: FUSÃO DE O.S. DO MESMO CLIENTE & INCLUSÃO AUTOMÁTICA
+// =====================================================================================
+
+/**
+ * Funde múltiplas O.S. do MESMO cliente em uma única entrega física (parada).
+ * Aplica os dados unificados (endereço escolhido, data limite escolhida, tipo de veículo).
+ */
+export async function mergeOrdersForDelivery(
+  payload: MergeOrdersPayload
+): Promise<{ success: boolean; paradaId?: string; error?: string }> {
+  try {
+    if (!payload.orderIds || payload.orderIds.length < 2) {
+      return { success: false, error: "Selecione ao menos 2 Ordens de Serviço para fundir." };
+    }
+
+    // 1. Tenta executar via RPC atômica no banco de dados
+    const paradaId = payload.paradaId || crypto.randomUUID();
+    const { data: rpcData, error: rpcError } = await (supabase.rpc as any)(
+      "merge_orders_for_delivery",
+      {
+        p_order_ids: payload.orderIds,
+        p_chosen_address: payload.chosenAddress,
+        p_chosen_date: payload.chosenDate ? new Date(payload.chosenDate).toISOString() : null,
+        p_chosen_vehicle: payload.chosenVehicle || "moto",
+        p_parada_id: paradaId,
+      }
+    );
+
+    if (!rpcError && rpcData && (rpcData as any)?.success) {
+      return { success: true, paradaId: (rpcData as any).parada_id || paradaId };
+    }
+
+    // 2. Fallback transacional direto no cliente (caso a RPC ainda não tenha sido aplicada no Supabase)
+    const updatePayload: Record<string, any> = {
+      parada_agrupada_id: paradaId,
+      entrega_endereco: payload.chosenAddress || null,
+      tipo_veiculo_entrega: payload.chosenVehicle || "moto",
+      updated_at: new Date().toISOString(),
+    };
+
+    if (payload.chosenDate) {
+      updatePayload.entrega_data_limite = new Date(payload.chosenDate).toISOString();
+    }
+    if (payload.regionalId) {
+      updatePayload.regional_id = payload.regionalId;
+    }
+    if (payload.localidadeId) {
+      updatePayload.localidade_id = payload.localidadeId;
+    }
+    if (payload.regionalNome) {
+      updatePayload.regiao = payload.regionalNome;
+    }
+
+    const { error: updateError } = await (supabase.from("orders") as any)
+      .update(updatePayload)
+      .in("id", payload.orderIds);
+
+    if (updateError) {
+      return { success: false, error: updateError.message };
+    }
+
+    return { success: true, paradaId };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Erro inesperado ao fundir ordens de serviço." };
+  }
+}
+
+/**
+ * Desfaz a fusão de ordens de serviço de uma parada agrupada.
+ * Regra obrigatória: Apenas permitido enquanto a entrega NÃO estiver atribuída a uma rota.
+ */
+export async function unmergeOrdersFromDelivery(
+  paradaId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!paradaId) {
+      return { success: false, error: "Identificador de parada inválido." };
+    }
+
+    // 1. Tenta executar via RPC segura
+    const { data: rpcData, error: rpcError } = await (supabase.rpc as any)(
+      "unmerge_orders_from_delivery",
+      { p_parada_id: paradaId }
+    );
+
+    if (!rpcError && rpcData && (rpcData as any)?.success) {
+      return { success: true };
+    }
+
+    if (rpcError && rpcError.message?.includes("já está atribuída a uma rota")) {
+      return { success: false, error: rpcError.message };
+    }
+
+    // 2. Fallback client-side com verificação de rota ativa
+    const { data: ordersInGroup, error: fetchErr } = await (supabase.from("orders") as any)
+      .select("id, rota_numero")
+      .eq("parada_agrupada_id", paradaId);
+
+    if (fetchErr) {
+      return { success: false, error: fetchErr.message };
+    }
+
+    const hasActiveRoute = (ordersInGroup || []).some(
+      (o: any) => Boolean(o.rota_numero && o.rota_numero.trim())
+    );
+
+    if (hasActiveRoute) {
+      return {
+        success: false,
+        error: "Não é possível desfazer a fusão de uma entrega já atribuída a uma rota. Remova a entrega da rota antes de desfazer.",
+      };
+    }
+
+    const { error: clearError } = await (supabase.from("orders") as any)
+      .update({
+        parada_agrupada_id: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("parada_agrupada_id", paradaId);
+
+    if (clearError) {
+      return { success: false, error: clearError.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Erro ao desfazer fusão." };
+  }
+}
+
+/**
+ * Garante a criação ou sincronização automática da entrega de Prova Digital quando a O.S. vai para 'Aguardando aprovação'.
+ * - Prefixo 'P' no número da O.S. (ex.: P73736)
+ * - Veículo AUTOMATICAMENTE Moto
+ * - Idempotente: nunca duplica entregas para a mesma O.S.
+ */
+export async function ensureDigitalProofDelivery(
+  parentOrder: {
+    id: string;
+    titulo: string;
+    cliente: string;
+    descricao?: string | null;
+    vendedor?: string | null;
+    endereco_entrega?: string | null;
+    entrega_endereco?: string | null;
+    destinatario?: string | null;
+    prova_digital?: boolean;
+    criado_por?: string | null;
+  },
+  userId?: string | null
+): Promise<{ success: boolean; proofOrderId?: string; error?: string }> {
+  try {
+    if (!parentOrder.prova_digital) return { success: true };
+
+    const cleanTitle = (parentOrder.titulo || "").replace(/^[Pp]/, "").trim();
+    const proofTitle = `P${cleanTitle}`;
+    const proofAddress =
+      (parentOrder.endereco_entrega || "").trim() ||
+      (parentOrder.entrega_endereco || "").trim() ||
+      (parentOrder.destinatario || "").trim() ||
+      null;
+
+    // 1. Verifica se já existe entrega ativa para esta prova vinculada a esta OS pai
+    const { data: existing, error: checkError } = await (supabase.from("orders") as any)
+      .select("id, titulo, entrega_endereco")
+      .eq("parent_order_id", parentOrder.id)
+      .eq("arquivado", false)
+      .limit(1);
+
+    if (!checkError && existing && existing.length > 0) {
+      const existingProof = existing[0];
+      // Já existe: atualiza endereço se mudou, garantindo idempotência absoluta
+      if (proofAddress && existingProof.entrega_endereco !== proofAddress) {
+        await (supabase.from("orders") as any)
+          .update({
+            entrega_endereco: proofAddress,
+            atualizado_por: userId || null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingProof.id);
+      }
+      return { success: true, proofOrderId: existingProof.id };
+    }
+
+    // 2. Insere nova demanda de entrega da Prova Digital
+    const payload = {
+      titulo: proofTitle,
+      cliente: parentOrder.cliente,
+      descricao: parentOrder.descricao
+        ? `Prova Digital - ${parentOrder.descricao}`
+        : "Prova Digital",
+      vendedor: parentOrder.vendedor || null,
+      entrega_endereco: proofAddress,
+      destinatario: parentOrder.destinatario || null,
+      tipo_veiculo_entrega: "moto", // Obrigatoriamente Moto
+      status_entrega: "pendente", // Aguardando atribuição
+      tipo_entrega: ["prova_digital", "moto"],
+      parent_order_id: parentOrder.id,
+      is_prova_entrega: true,
+      prova_digital: true,
+      setor: "expedicao",
+      setor_status: "entrada",
+      status: "arquivo_liberado",
+      arquivado: false,
+      posicao: 9999,
+      criado_por: parentOrder.criado_por || userId || null,
+      atualizado_por: userId || null,
+    };
+
+    const { data: inserted, error: insertError } = await (supabase.from("orders") as any)
+      .insert(payload)
+      .select("id")
+      .single();
+
+    if (insertError) {
+      console.warn("[deliveryService] Aviso ao criar entrega de prova digital:", insertError.message);
+      return { success: false, error: insertError.message };
+    }
+
+    return { success: true, proofOrderId: inserted?.id };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Erro ao gerar entrega de prova digital." };
+  }
+}
+
+/**
+ * Garante que uma O.S. que acabou de ir para a PRODUÇÃO possua os atributos iniciais de entrega
+ * configurados na Expedição (status_entrega: 'pendente', tipo de veículo), sem criar duplicatas.
+ */
+export async function ensureProductionOrderDelivery(
+  order: {
+    id: string;
+    titulo: string;
+    status_entrega?: string | null;
+    tipo_veiculo_entrega?: string | null;
+  },
+  userId?: string | null
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const updates: Record<string, any> = {};
+
+    if (!order.status_entrega) {
+      updates.status_entrega = "pendente";
+    }
+    if (!order.tipo_veiculo_entrega) {
+      updates.tipo_veiculo_entrega = "moto";
+    }
+
+    if (Object.keys(updates).length > 0) {
+      updates.atualizado_por = userId || null;
+      updates.updated_at = new Date().toISOString();
+
+      await (supabase.from("orders") as any)
+        .update(updates)
+        .eq("id", order.id);
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err?.message || "Erro ao inicializar entrega de produção." };
+  }
+}
+
 

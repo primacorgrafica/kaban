@@ -44,6 +44,7 @@ import {
   Layers,
   Star,
   Filter,
+  Unlink,
 } from "lucide-react";
 import {
   AlertDialog,
@@ -73,11 +74,14 @@ import { SharePointDiagnosticsModal } from "@/components/sharepoint/SharePointDi
 import { CreateDeliveryDemandModal } from "@/components/delivery/CreateDeliveryDemandModal";
 import { DeliveryRoutesBoard } from "@/components/delivery/routes/DeliveryRoutesBoard";
 import { DriverManagementModal } from "@/components/delivery/routes/DriverManagementModal";
+import { MergeOrdersModal } from "@/components/delivery/MergeOrdersModal";
 import {
   getEntregadoresList,
   assignOrderToRoute,
   toggleDeliveryPriority,
   updateDeliveryRegion,
+  updateDeliveryVehicleType,
+  unmergeOrdersFromDelivery,
 } from "@/lib/deliveryService";
 import { syncPendingProtocolsToSharePoint } from "@/lib/sharepointService";
 import type { Entregador, DeliveryStatus, LocalidadeComRegional } from "@/types/delivery";
@@ -86,6 +90,7 @@ import {
   DELIVERY_STATUS_ORDER,
   ROTAS_DISPONIVEIS,
   SEM_REGIAO_LABEL,
+  validateSameClientForMerge,
 } from "@/types/delivery";
 import {
   fetchAllActiveLocalidadesForMatching,
@@ -119,6 +124,13 @@ export default function EntregasPage() {
   const [viewMode, setViewMode] = useState<"tabela" | "rotas" | "monitoramento">("tabela");
   const [createDemandOpen, setCreateDemandOpen] = useState(false);
   const [driverManagementOpen, setDriverManagementOpen] = useState(false);
+
+  // Estados da Fase 3: Seleção e Fusão de Ordens de Serviço
+  const [selectedRowIds, setSelectedRowIds] = useState<Set<string>>(new Set());
+  const [mergeModalOpen, setMergeModalOpen] = useState(false);
+  const [mergeBaseOrder, setMergeBaseOrder] = useState<Order | null>(null);
+  const [mergePreselectedIds, setMergePreselectedIds] = useState<string[]>([]);
+
   const [orderToDelete, setOrderToDelete] = useState<Order | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [entregadores, setEntregadores] = useState<Entregador[]>([]);
@@ -170,7 +182,15 @@ export default function EntregasPage() {
         if (o.nc_numero) return false;
         if (order.setor === "faturamento") return false;
         if (order.setor === "qualidade" || order.setor === "ctp" || order.setor === "digital") return false;
-        if (order.parent_order_id && order.setor === "expedicao") return false;
+
+        // Provas Digitais ("P") são entregas legítimas vinculadas à O.S. de pré-impressão
+        const isProof =
+          order.titulo?.toUpperCase().startsWith("P") ||
+          order.tipo_entrega?.includes("prova_digital") ||
+          Boolean(o.is_prova_entrega);
+
+        // Se for cópia interna de expedição que não seja prova, não exibe duplicada
+        if (order.parent_order_id && order.setor === "expedicao" && !isProof) return false;
         return true;
       });
 
@@ -383,13 +403,80 @@ export default function EntregasPage() {
     prioridadesPrimeiro,
   ]);
 
+  // Estrutura para exibição unificada de Paradas Fundidas (Fase 3)
+  const displayStops = useMemo(() => {
+    const stops: Array<{
+      key: string;
+      isMerged: boolean;
+      paradaAgrupadaId?: string | null;
+      orders: Order[];
+      mainOrder: Order;
+      displayTitle: string;
+      displayDescricao: string;
+      allOrderIds: string[];
+    }> = [];
+    const groupedMap = new Map<string, Order[]>();
+    const seenParadas = new Set<string>();
+
+    filteredAndSorted.forEach((o) => {
+      if (o.parada_agrupada_id) {
+        const list = groupedMap.get(o.parada_agrupada_id) || [];
+        list.push(o);
+        groupedMap.set(o.parada_agrupada_id, list);
+      }
+    });
+
+    filteredAndSorted.forEach((o) => {
+      if (o.parada_agrupada_id) {
+        if (seenParadas.has(o.parada_agrupada_id)) return;
+        seenParadas.add(o.parada_agrupada_id);
+
+        const group = groupedMap.get(o.parada_agrupada_id) || [o];
+        group.sort((a, b) => a.titulo.localeCompare(b.titulo, undefined, { numeric: true }));
+
+        const displayTitle = group.map((item) => item.titulo).join(" + ");
+        const displayDescricao = group
+          .map((item) => (item.descricao ? `[${item.titulo}] ${item.descricao}` : `OS #${item.titulo}`))
+          .join(" • ");
+
+        stops.push({
+          key: `group_${o.parada_agrupada_id}`,
+          isMerged: group.length > 1,
+          paradaAgrupadaId: o.parada_agrupada_id,
+          orders: group,
+          mainOrder: group[0],
+          displayTitle,
+          displayDescricao,
+          allOrderIds: group.map((item) => item.id),
+        });
+      } else {
+        stops.push({
+          key: `single_${o.id}`,
+          isMerged: false,
+          paradaAgrupadaId: null,
+          orders: [o],
+          mainOrder: o,
+          displayTitle: o.titulo,
+          displayDescricao: o.descricao,
+          allOrderIds: [o.id],
+        });
+      }
+    });
+
+    return stops;
+  }, [filteredAndSorted]);
+
   // Linhas com separadores visuais caso 2+ datas específicas estejam marcadas
   const rowsWithSeparators = useMemo(() => {
-    const rows: Array<{ type: "order"; order: Order } | { type: "separator"; dateLabel: string }> = [];
+    const rows: Array<{
+      type: "stop";
+      stop: (typeof displayStops)[0];
+    } | { type: "separator"; dateLabel: string }> = [];
     const showSeparators = selectedDates.size >= 2;
     let lastDateKey = "";
 
-    filteredAndSorted.forEach((order) => {
+    displayStops.forEach((stop) => {
+      const order = stop.mainOrder;
       if (showSeparators) {
         const dateKey = order.entrega_data_limite
           ? format(parseISO(order.entrega_data_limite), "yyyy-MM-dd")
@@ -403,11 +490,35 @@ export default function EntregasPage() {
         }
         lastDateKey = dateKey;
       }
-      rows.push({ type: "order", order });
+      rows.push({ type: "stop", stop });
     });
 
     return rows;
-  }, [filteredAndSorted, selectedDates]);
+  }, [displayStops, selectedDates]);
+
+  // Validação das O.S. selecionadas via checkbox para Fusão
+  const { selectedSameClient, selectedClientName } = useMemo(() => {
+    if (selectedRowIds.size === 0) return { selectedSameClient: false, selectedClientName: "" };
+    const selectedOrders = allOrders.filter((o) => selectedRowIds.has(o.id));
+    const val = validateSameClientForMerge(selectedOrders);
+    return { selectedSameClient: val.valid, selectedClientName: val.clientName || "" };
+  }, [selectedRowIds, allOrders]);
+
+  const handleOpenMerge = (base?: Order, preselectedIds?: string[]) => {
+    setMergeBaseOrder(base || null);
+    setMergePreselectedIds(preselectedIds || (base ? [base.id] : []));
+    setMergeModalOpen(true);
+  };
+
+  const handleUnmerge = async (paradaId: string) => {
+    const res = await unmergeOrdersFromDelivery(paradaId);
+    if (!res.success) {
+      toast.error(res.error || "Erro ao desfazer fusão.");
+      return;
+    }
+    toast.success("Fusão desfeita com sucesso! As O.S. voltaram a ser entregas individuais.");
+    void fetchOrders();
+  };
 
   const getDateColorClass = (dateStr: string | null) => {
     if (!dateStr) return "";
@@ -421,18 +532,20 @@ export default function EntregasPage() {
     return "";
   };
 
-  const handleDateChange = async (orderId: string, newDate: Date | undefined) => {
+  const handleDateChange = async (orderId: string, newDate: Date | undefined, affectedIds?: string[]) => {
     const value = newDate ? newDate.toISOString() : null;
+    const targetIds = affectedIds && affectedIds.length > 0 ? affectedIds : [orderId];
     const { error } = await supabase
       .from("orders")
       .update({ entrega_data_limite: value })
-      .eq("id", orderId);
+      .in("id", targetIds);
     if (error) {
       toast.error("Erro ao atualizar data de entrega");
     } else {
       toast.success("Data de entrega atualizada com sucesso!");
+      const idSet = new Set(targetIds);
       setAllOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? { ...o, entrega_data_limite: value } : o))
+        prev.map((o) => (idSet.has(o.id) ? { ...o, entrega_data_limite: value } : o))
       );
     }
   };
@@ -779,391 +892,568 @@ export default function EntregasPage() {
             Carregando entregas...
           </div>
         ) : (
-          <div className="border rounded-lg overflow-x-auto overflow-y-auto flex-1 scrollbar-light">
-            <Table className="table-fixed min-w-[1580px]">
-              <TableHeader>
-                <TableRow className="bg-muted/50 [&>th]:px-2 [&>th]:py-2 [&>th]:h-9">
-                  <TableHead className="whitespace-nowrap w-[85px]">Flags</TableHead>
-                  <TableHead className="whitespace-nowrap w-[75px]">OS</TableHead>
-                  <TableHead className="whitespace-nowrap w-[135px]">Cliente</TableHead>
-                  <TableHead className="whitespace-nowrap w-[155px]">Descrição</TableHead>
-                  <TableHead className="whitespace-nowrap w-[145px] bg-blue-100 dark:bg-blue-900/30">
-                    Status Produção
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap w-[105px] bg-blue-100 dark:bg-blue-900/30">
-                    Atualização
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap w-[90px]">Vendedor</TableHead>
-                  <TableHead className="whitespace-nowrap w-[175px]">Data Entrega</TableHead>
-                  <TableHead className="whitespace-nowrap w-[200px]">Endereço</TableHead>
-                  <TableHead className="whitespace-nowrap w-[135px]">Região</TableHead>
-                  <TableHead className="whitespace-nowrap w-[95px]">Tipo</TableHead>
-                  <TableHead className="whitespace-nowrap w-[160px]">Status Entrega</TableHead>
-                  <TableHead className="whitespace-nowrap w-[115px]">Atribuir</TableHead>
-                  <TableHead className="whitespace-nowrap w-[45px] text-center">Excluir</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rowsWithSeparators.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={14} className="text-center text-muted-foreground py-10">
-                      Nenhuma entrega encontrada para os filtros aplicados.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  rowsWithSeparators.map((row, idx) => {
-                    if (row.type === "separator") {
-                      return (
-                        <TableRow key={`sep-${idx}`} className="hover:bg-transparent">
-                          <TableCell
-                            colSpan={14}
-                            className="h-6 bg-muted/40 border-t border-b text-xs text-muted-foreground font-semibold px-3"
-                          >
-                            {row.dateLabel}
-                          </TableCell>
-                        </TableRow>
-                      );
+          <div className="flex flex-col flex-1 overflow-hidden gap-2">
+            {/* Barra de ações para seleção múltipla de O.S. (Fase 3 - Fusão) */}
+            {selectedRowIds.size > 0 && (
+              <div className="flex items-center justify-between p-2 px-3 bg-primary/10 border border-primary/30 rounded-lg text-xs animate-in fade-in shrink-0">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-foreground">
+                    {selectedRowIds.size} entrega(s) selecionada(s)
+                  </span>
+                  <span className="text-muted-foreground">•</span>
+                  <span className="text-muted-foreground">
+                    {selectedSameClient
+                      ? `Cliente: ${selectedClientName}`
+                      : "Clientes diferentes selecionados (fusão permitida apenas para o mesmo cliente)"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-xs"
+                    onClick={() => setSelectedRowIds(new Set())}
+                  >
+                    Limpar Seleção
+                  </Button>
+                  <Button
+                    size="sm"
+                    disabled={!selectedSameClient || selectedRowIds.size < 2}
+                    className="h-7 text-xs bg-primary hover:bg-primary/90 text-primary-foreground font-semibold gap-1.5"
+                    onClick={() => {
+                      const selectedList = allOrders.filter((o) => selectedRowIds.has(o.id));
+                      handleOpenMerge(selectedList[0], Array.from(selectedRowIds));
+                    }}
+                    title={
+                      !selectedSameClient
+                        ? "Fusão permitida apenas para o MESMO cliente"
+                        : "Fundir O.S. selecionadas em uma única parada física"
                     }
-                    const order = row.order;
-                    const statusEntregaKey = (order.status_entrega || "pendente") as DeliveryStatus;
-                    const statusConfig =
-                      DELIVERY_STATUS_CONFIG[statusEntregaKey] || DELIVERY_STATUS_CONFIG.pendente;
-                    const isPriority = Boolean(order.rota_prioridade || order.urgente);
+                  >
+                    <Layers className="h-3.5 w-3.5" />
+                    Fundir Selecionadas ({selectedRowIds.size})
+                  </Button>
+                </div>
+              </div>
+            )}
 
-                    return (
-                      <TableRow
-                        key={order.id}
-                        className={cn(
-                          "[&>td]:px-2 [&>td]:py-1.5 transition-colors",
-                          isPriority && "bg-amber-500/10 dark:bg-amber-950/20 border-l-2 border-l-amber-500"
-                        )}
-                      >
-                        {/* 1. Flags (Prioridade marca/desmarca, Coleta, Urgente) */}
-                        <TableCell className="whitespace-nowrap">
-                          <div className="flex items-center gap-1">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-5 w-5 p-0 text-muted-foreground hover:text-amber-500"
-                              onClick={async () => {
-                                const nextPriority = !isPriority;
-                                await toggleDeliveryPriority(order.id, nextPriority);
-                                toast.info(
-                                  nextPriority
-                                    ? `O.S. #${order.titulo} marcada como prioritária!`
-                                    : "Prioridade removida."
-                                );
-                                setAllOrders((prev) =>
-                                  prev.map((o) =>
-                                    o.id === order.id ? { ...o, rota_prioridade: nextPriority } : o
-                                  )
-                                );
-                              }}
-                              title={isPriority ? "Prioridade marcada. Clique para remover." : "Marcar como prioridade"}
+            <div className="border rounded-lg overflow-x-auto overflow-y-auto flex-1 scrollbar-light">
+              <Table className="table-fixed min-w-[1620px]">
+                <TableHeader>
+                  <TableRow className="bg-muted/50 [&>th]:px-2 [&>th]:py-2 [&>th]:h-9">
+                    <TableHead className="whitespace-nowrap w-[35px] text-center">
+                      <Checkbox
+                        checked={
+                          displayStops.length > 0 &&
+                          displayStops.every((s) => s.allOrderIds.every((id) => selectedRowIds.has(id)))
+                        }
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            const allIds = new Set<string>();
+                            displayStops.forEach((s) => s.allOrderIds.forEach((id) => allIds.add(id)));
+                            setSelectedRowIds(allIds);
+                          } else {
+                            setSelectedRowIds(new Set());
+                          }
+                        }}
+                        title="Selecionar todas as entregas"
+                      />
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap w-[80px]">Flags</TableHead>
+                    <TableHead className="whitespace-nowrap w-[115px]">OS</TableHead>
+                    <TableHead className="whitespace-nowrap w-[135px]">Cliente</TableHead>
+                    <TableHead className="whitespace-nowrap w-[170px]">Descrição</TableHead>
+                    <TableHead className="whitespace-nowrap w-[145px] bg-blue-100 dark:bg-blue-900/30">
+                      Status Produção
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap w-[105px] bg-blue-100 dark:bg-blue-900/30">
+                      Atualização
+                    </TableHead>
+                    <TableHead className="whitespace-nowrap w-[90px]">Vendedor</TableHead>
+                    <TableHead className="whitespace-nowrap w-[175px]">Data Entrega</TableHead>
+                    <TableHead className="whitespace-nowrap w-[200px]">Endereço</TableHead>
+                    <TableHead className="whitespace-nowrap w-[135px]">Região</TableHead>
+                    <TableHead className="whitespace-nowrap w-[95px]">Tipo</TableHead>
+                    <TableHead className="whitespace-nowrap w-[160px]">Status Entrega</TableHead>
+                    <TableHead className="whitespace-nowrap w-[115px]">Atribuir</TableHead>
+                    <TableHead className="whitespace-nowrap w-[75px] text-center">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {rowsWithSeparators.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={15} className="text-center text-muted-foreground py-10">
+                        Nenhuma entrega encontrada para os filtros aplicados.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    rowsWithSeparators.map((row, idx) => {
+                      if (row.type === "separator") {
+                        return (
+                          <TableRow key={`sep-${idx}`} className="hover:bg-transparent">
+                            <TableCell
+                              colSpan={15}
+                              className="h-6 bg-muted/40 border-t border-b text-xs text-muted-foreground font-semibold px-3"
                             >
-                              <Star
-                                className={cn(
-                                  "h-3.5 w-3.5",
-                                  isPriority && "fill-amber-500 text-amber-500"
-                                )}
-                              />
-                            </Button>
+                              {row.dateLabel}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      }
+                      const stop = row.stop;
+                      const order = stop.mainOrder;
+                      const statusEntregaKey = (order.status_entrega || "pendente") as DeliveryStatus;
+                      const statusConfig =
+                        DELIVERY_STATUS_CONFIG[statusEntregaKey] || DELIVERY_STATUS_CONFIG.pendente;
+                      const isPriority = Boolean(order.rota_prioridade || order.urgente);
+                      const isStopChecked = stop.allOrderIds.every((id) => selectedRowIds.has(id));
 
-                            {order.tipo_entrega?.includes("coleta") ? (
-                              <span
-                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-500 dark:text-amber-400 border border-amber-500/30"
-                                title="Demanda de Coleta / Buscar"
-                              >
-                                <PackagePlus className="h-3 w-3" /> Coleta
-                              </span>
-                            ) : order.tipo_entrega?.includes("demanda_manual") ? (
-                              <span
-                                className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-500 dark:text-blue-400 border border-blue-500/30"
-                                title="Demanda Manual de Entrega"
-                              >
-                                <Truck className="h-3 w-3" /> Entrega
-                              </span>
-                            ) : null}
-
-                            {order.urgente && (
-                              <span
-                                className="inline-flex items-center px-1 py-0.5 rounded text-[10px] font-bold bg-red-500/15 text-red-500 border border-red-500/30"
-                                title="Demanda Marcada como Urgente"
-                              >
-                                <AlertTriangle className="h-3 w-3" />
-                              </span>
-                            )}
-                          </div>
-                        </TableCell>
-
-                        {/* 2. OS */}
-                        <TableCell
+                      return (
+                        <TableRow
+                          key={stop.key}
                           className={cn(
-                            "font-bold whitespace-nowrap text-xs",
-                            !order.entrega_data_limite && ["digital", "ctp", "offset"].includes(order.setor || "") && "text-yellow-600",
-                            !order.entrega_data_limite && ["acabamento", "terceiros", "expedicao"].includes(order.setor || "") && "text-red-600"
+                            "[&>td]:px-2 [&>td]:py-1.5 transition-colors",
+                            isPriority && "bg-amber-500/10 dark:bg-amber-950/20 border-l-2 border-l-amber-500",
+                            stop.isMerged && "bg-primary/[0.03]"
                           )}
                         >
-                          {order.titulo}
-                        </TableCell>
+                          {/* 0. Checkbox de seleção */}
+                          <TableCell className="text-center whitespace-nowrap px-1">
+                            <Checkbox
+                              checked={isStopChecked}
+                              onCheckedChange={(checked) => {
+                                setSelectedRowIds((prev) => {
+                                  const next = new Set(prev);
+                                  if (checked) {
+                                    stop.allOrderIds.forEach((id) => next.add(id));
+                                  } else {
+                                    stop.allOrderIds.forEach((id) => next.delete(id));
+                                  }
+                                  return next;
+                                });
+                              }}
+                              title="Selecionar esta entrega para fusão"
+                            />
+                          </TableCell>
 
-                        {/* 3. Cliente */}
-                        <TableCell className="whitespace-nowrap text-xs truncate" title={order.cliente}>
-                          {order.cliente}
-                        </TableCell>
+                          {/* 1. Flags (Prioridade marca/desmarca, Coleta, Urgente) */}
+                          <TableCell className="whitespace-nowrap">
+                            <div className="flex items-center gap-1">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-5 w-5 p-0 text-muted-foreground hover:text-amber-500"
+                                onClick={async () => {
+                                  const nextPriority = !isPriority;
+                                  for (const id of stop.allOrderIds) {
+                                    await toggleDeliveryPriority(id, nextPriority);
+                                  }
+                                  toast.info(
+                                    nextPriority
+                                      ? `Demanda #${stop.displayTitle} marcada como prioritária!`
+                                      : "Prioridade removida."
+                                  );
+                                  const idSet = new Set(stop.allOrderIds);
+                                  setAllOrders((prev) =>
+                                    prev.map((o) =>
+                                      idSet.has(o.id) ? { ...o, rota_prioridade: nextPriority } : o
+                                    )
+                                  );
+                                }}
+                                title={
+                                  isPriority
+                                    ? "Prioridade marcada. Clique para remover."
+                                    : "Marcar como prioridade"
+                                }
+                              >
+                                <Star
+                                  className={cn(
+                                    "h-3.5 w-3.5",
+                                    isPriority && "fill-amber-500 text-amber-500"
+                                  )}
+                                />
+                              </Button>
 
-                        {/* 4. Descrição */}
-                        <TableCell className="truncate text-xs" title={order.descricao}>
-                          {order.descricao}
-                        </TableCell>
+                              {order.tipo_entrega?.includes("coleta") ? (
+                                <span
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/15 text-amber-500 dark:text-amber-400 border border-amber-500/30"
+                                  title="Demanda de Coleta / Buscar"
+                                >
+                                  <PackagePlus className="h-3 w-3" /> Coleta
+                                </span>
+                              ) : order.tipo_entrega?.includes("demanda_manual") ? (
+                                <span
+                                  className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-500 dark:text-blue-400 border border-blue-500/30"
+                                  title="Demanda Manual de Entrega"
+                                >
+                                  <Truck className="h-3 w-3" /> Entrega
+                                </span>
+                              ) : null}
 
-                        {/* 5. Status Produção (Etapa atual no Kanban) */}
-                        <TableCell className="whitespace-nowrap text-xs bg-blue-50/50 dark:bg-blue-950/20">
-                          <span className="font-semibold text-foreground">
-                            {getSectorLabel(order.setor)}
-                          </span>
-                          <span className="text-[11px] text-muted-foreground ml-1">
-                            ({getStatusLabel(order.setor, order.setor_status)})
-                          </span>
-                        </TableCell>
+                              {order.urgente && (
+                                <span
+                                  className="inline-flex items-center px-1 py-0.5 rounded text-[10px] font-bold bg-red-500/15 text-red-500 border border-red-500/30"
+                                  title="Demanda Marcada como Urgente"
+                                >
+                                  <AlertTriangle className="h-3 w-3" />
+                                </span>
+                              )}
+                            </div>
+                          </TableCell>
 
-                        {/* 6. Atualização (data/hora da última atualização da OS) */}
-                        <TableCell className="whitespace-nowrap text-xs bg-blue-50/50 dark:bg-blue-950/20 font-mono text-[11px]">
-                          {format(parseISO(order.updated_at), "dd/MM/yy HH:mm", { locale: ptBR })}
-                        </TableCell>
-
-                        {/* 7. Vendedor */}
-                        <TableCell className="whitespace-nowrap text-xs truncate">
-                          {order.vendedor || "—"}
-                        </TableCell>
-
-                        {/* 8. Data Entrega */}
-                        <TableCell className="whitespace-nowrap">
-                          <Input
-                            type="datetime-local"
+                          {/* 2. OS */}
+                          <TableCell
                             className={cn(
-                              "h-7 px-1 text-xs w-[170px] border-none bg-transparent shadow-none",
-                              getDateColorClass(order.entrega_data_limite),
-                              !order.entrega_data_limite && "text-muted-foreground"
+                              "font-bold whitespace-nowrap text-xs",
+                              !order.entrega_data_limite && ["digital", "ctp", "offset"].includes(order.setor || "") && "text-yellow-600",
+                              !order.entrega_data_limite && ["acabamento", "terceiros", "expedicao"].includes(order.setor || "") && "text-red-600"
                             )}
-                            defaultValue={
-                              order.entrega_data_limite
-                                ? format(parseISO(order.entrega_data_limite), "yyyy-MM-dd'T'HH:mm")
-                                : ""
-                            }
-                            onBlur={(e) => {
-                              if (e.target.value) {
-                                void handleDateChange(order.id, new Date(e.target.value));
-                              } else {
-                                void handleDateChange(order.id, undefined);
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-mono">{stop.displayTitle}</span>
+                              {stop.isMerged && (
+                                <Badge className="bg-primary/20 text-primary border-primary/40 text-[9px] px-1 py-0 font-bold gap-1 mt-0.5 w-fit">
+                                  <Layers className="h-2.5 w-2.5" />
+                                  {stop.orders.length} OS Fundidas
+                                </Badge>
+                              )}
+                              {!stop.isMerged && (order.titulo.toUpperCase().startsWith("P") || order.tipo_entrega?.includes("prova_digital")) && (
+                                <Badge className="bg-purple-900/40 text-purple-300 border-purple-600/40 text-[9px] px-1 py-0 font-bold w-fit mt-0.5">
+                                  Prova Digital
+                                </Badge>
+                              )}
+                            </div>
+                          </TableCell>
+
+                          {/* 3. Cliente */}
+                          <TableCell className="whitespace-nowrap text-xs truncate" title={order.cliente}>
+                            {order.cliente}
+                          </TableCell>
+
+                          {/* 4. Descrição */}
+                          <TableCell className="truncate text-xs" title={stop.displayDescricao}>
+                            {stop.displayDescricao}
+                          </TableCell>
+
+                          {/* 5. Status Produção (Etapa atual no Kanban) */}
+                          <TableCell className="whitespace-nowrap text-xs bg-blue-50/50 dark:bg-blue-950/20">
+                            <span className="font-semibold text-foreground">
+                              {getSectorLabel(order.setor)}
+                            </span>
+                            <span className="text-[11px] text-muted-foreground ml-1">
+                              ({getStatusLabel(order.setor, order.setor_status)})
+                            </span>
+                          </TableCell>
+
+                          {/* 6. Atualização (data/hora da última atualização da OS) */}
+                          <TableCell className="whitespace-nowrap text-xs bg-blue-50/50 dark:bg-blue-950/20 font-mono text-[11px]">
+                            {format(parseISO(order.updated_at), "dd/MM/yy HH:mm", { locale: ptBR })}
+                          </TableCell>
+
+                          {/* 7. Vendedor */}
+                          <TableCell className="whitespace-nowrap text-xs truncate">
+                            {order.vendedor || "—"}
+                          </TableCell>
+
+                          {/* 8. Data Entrega */}
+                          <TableCell className="whitespace-nowrap">
+                            <Input
+                              type="datetime-local"
+                              className={cn(
+                                "h-7 px-1 text-xs w-[170px] border-none bg-transparent shadow-none",
+                                getDateColorClass(order.entrega_data_limite),
+                                !order.entrega_data_limite && "text-muted-foreground"
+                              )}
+                              defaultValue={
+                                order.entrega_data_limite
+                                  ? format(parseISO(order.entrega_data_limite), "yyyy-MM-dd'T'HH:mm")
+                                  : ""
                               }
-                            }}
-                          />
-                        </TableCell>
-
-                        {/* 9. Endereço */}
-                        <TableCell className="py-1 px-2 text-xs">
-                          <DeliveryAddressCell
-                            address={order.entrega_endereco}
-                            fallbackAddress={order.endereco_entrega}
-                          />
-                        </TableCell>
-
-                        {/* 10. Região (com ajuste manual em Popover e fallback 'Sem região') */}
-                        <TableCell className="whitespace-nowrap text-xs">
-                          <DeliveryRegionCell
-                            orderId={order.id}
-                            regiao={order.regiao}
-                            regionalId={order.regional_id}
-                            localidadeId={order.localidade_id}
-                            regionaisCache={regionaisCache}
-                            onRegionUpdated={(selection) => {
-                              setAllOrders((prev) =>
-                                prev.map((o) =>
-                                  o.id === order.id
-                                    ? {
-                                        ...o,
-                                        regiao: selection.regionalNome,
-                                        regional_id: selection.regionalId,
-                                        localidade_id: selection.localidadeId,
-                                      }
-                                    : o
-                                )
-                              );
-                            }}
-                          />
-                        </TableCell>
-
-                        {/* 11. Tipo (Carro ou Moto) */}
-                        <TableCell className="whitespace-nowrap text-xs">
-                          <DeliveryVehicleTypeCell
-                            orderId={order.id}
-                            tipo={order.tipo_veiculo_entrega}
-                            onTypeUpdated={(newType) => {
-                              setAllOrders((prev) =>
-                                prev.map((o) =>
-                                  o.id === order.id ? { ...o, tipo_veiculo_entrega: newType } : o
-                                )
-                              );
-                            }}
-                          />
-                        </TableCell>
-
-                        {/* 12. Status Entrega (Aguardando atribuição como inicial, Atribuído, Em Rota...) */}
-                        <TableCell className="whitespace-nowrap text-xs">
-                          {order.entregador_id ? (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (order.status_entrega === "entregue") {
-                                  setSelectedDeliveredOrder(order);
+                              onBlur={(e) => {
+                                if (e.target.value) {
+                                  void handleDateChange(order.id, new Date(e.target.value), stop.allOrderIds);
                                 } else {
-                                  setSelectedOrderForDriver(order);
+                                  void handleDateChange(order.id, undefined, stop.allOrderIds);
                                 }
                               }}
-                              className="flex items-center gap-1.5 hover:opacity-80 transition-opacity text-left max-w-[155px]"
-                              title={
-                                order.status_entrega === "entregue"
-                                  ? "Clique para ver comprovante, recebedor e protocolo"
-                                  : "Clique para gerenciar atribuição do motoboy"
-                              }
-                            >
-                              <Badge
-                                variant="outline"
-                                className={cn(
-                                  "text-[10px] px-1.5 py-0 font-normal shrink-0",
-                                  statusConfig.badgeClass
-                                )}
-                              >
-                                {statusConfig.label}
-                              </Badge>
-                              <span className="truncate font-medium text-foreground">
-                                {driverMap.get(order.entregador_id) || "Atribuído"}
-                              </span>
-                            </button>
-                          ) : (
-                            <div className="flex items-center gap-1.5">
-                              <Badge
-                                variant="outline"
-                                className={cn("text-[10px] px-1.5 py-0 font-normal", statusConfig.badgeClass)}
-                              >
-                                {statusConfig.label}
-                              </Badge>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setSelectedOrderForDriver(order)}
-                                className="h-6 px-1.5 text-[11px] text-muted-foreground hover:text-primary gap-1"
-                                title="Atribuir motoboy a esta O.S."
-                              >
-                                <UserPlus className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          )}
-                        </TableCell>
+                            />
+                          </TableCell>
 
-                        {/* 13. Atribuir (Rota 1 a 6 ou Retira) */}
-                        <TableCell className="whitespace-nowrap text-xs">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
+                          {/* 9. Endereço */}
+                          <TableCell className="py-1 px-2 text-xs">
+                            <DeliveryAddressCell
+                              address={order.entrega_endereco}
+                              fallbackAddress={order.endereco_entrega}
+                            />
+                          </TableCell>
+
+                          {/* 10. Região (com ajuste manual em Popover e fallback 'Sem região') */}
+                          <TableCell className="whitespace-nowrap text-xs">
+                            <DeliveryRegionCell
+                              orderId={order.id}
+                              regiao={order.regiao}
+                              regionalId={order.regional_id}
+                              localidadeId={order.localidade_id}
+                              regionaisCache={regionaisCache}
+                              onRegionUpdated={(selection) => {
+                                const idSet = new Set(stop.allOrderIds);
+                                setAllOrders((prev) =>
+                                  prev.map((o) =>
+                                    idSet.has(o.id)
+                                      ? {
+                                          ...o,
+                                          regiao: selection.regionalNome,
+                                          regional_id: selection.regionalId,
+                                          localidade_id: selection.localidadeId,
+                                        }
+                                      : o
+                                  )
+                                );
+                                // Atualiza todas as ordens vinculadas à mesma parada agrupada
+                                for (const id of stop.allOrderIds) {
+                                  void updateDeliveryRegion(id, {
+                                    regional_id: selection.regionalId,
+                                    localidade_id: selection.localidadeId,
+                                    regiao: selection.regionalNome,
+                                  });
+                                }
+                              }}
+                            />
+                          </TableCell>
+
+                          {/* 11. Tipo (Carro ou Moto) */}
+                          <TableCell className="whitespace-nowrap text-xs">
+                            <DeliveryVehicleTypeCell
+                              orderId={order.id}
+                              tipo={order.tipo_veiculo_entrega}
+                              onTypeUpdated={(newType) => {
+                                const idSet = new Set(stop.allOrderIds);
+                                setAllOrders((prev) =>
+                                  prev.map((o) =>
+                                    idSet.has(o.id) ? { ...o, tipo_veiculo_entrega: newType } : o
+                                  )
+                                );
+                                for (const id of stop.allOrderIds) {
+                                  void updateDeliveryVehicleType(id, newType);
+                                }
+                              }}
+                            />
+                          </TableCell>
+
+                          {/* 12. Status Entrega (Aguardando atribuição como inicial, Atribuído, Em Rota...) */}
+                          <TableCell className="whitespace-nowrap text-xs">
+                            {order.entregador_id ? (
                               <button
                                 type="button"
-                                className="flex items-center gap-1 px-2 py-0.5 rounded border border-border bg-card hover:bg-muted text-xs font-medium cursor-pointer"
-                                title="Atribuir entrega a uma rota"
+                                onClick={() => {
+                                  if (order.status_entrega === "entregue") {
+                                    setSelectedDeliveredOrder(order);
+                                  } else {
+                                    setSelectedOrderForDriver(order);
+                                  }
+                                }}
+                                className="flex items-center gap-1.5 hover:opacity-80 transition-opacity text-left max-w-[155px]"
+                                title={
+                                  order.status_entrega === "entregue"
+                                    ? "Clique para ver comprovante, recebedor e protocolo"
+                                    : "Clique para gerenciar atribuição do motoboy"
+                                }
                               >
-                                {order.rota_numero ? (
-                                  <>
-                                    <span
-                                      className={
-                                        order.rota_numero === "RETIRA"
-                                          ? "text-purple-400 font-bold"
-                                          : "text-primary font-bold"
-                                      }
-                                    >
-                                      {order.rota_numero === "RETIRA"
-                                        ? "RETIRA"
-                                        : `Rota ${order.rota_numero}`}
-                                    </span>
-                                    {order.rota_sequencia && (
-                                      <span className="text-[10px] text-muted-foreground font-mono">
-                                        #{order.rota_sequencia}
-                                      </span>
-                                    )}
-                                  </>
-                                ) : (
-                                  <span className="text-muted-foreground text-[11px]">+ Rota</span>
-                                )}
-                              </button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="start" className="text-xs w-36">
-                              <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground">
-                                Definir Rota:
-                              </DropdownMenuLabel>
-                              <DropdownMenuSeparator />
-                              {ROTAS_DISPONIVEIS.map((r) => (
-                                <DropdownMenuItem
-                                  key={r.id}
-                                  onClick={async () => {
-                                    await assignOrderToRoute(order.id, r.id);
-                                    toast.success(`O.S. alocada na ${r.label}`);
-                                    setAllOrders((prev) =>
-                                      prev.map((o) =>
-                                        o.id === order.id ? { ...o, rota_numero: r.id } : o
-                                      )
-                                    );
-                                  }}
-                                  className="text-xs cursor-pointer"
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    "text-[10px] px-1.5 py-0 font-normal shrink-0",
+                                    statusConfig.badgeClass
+                                  )}
                                 >
-                                  {r.isRetira ? "🏬 " : "🚚 "}
-                                  {r.label}
-                                </DropdownMenuItem>
-                              ))}
-                              {order.rota_numero && (
-                                <>
-                                  <DropdownMenuSeparator />
+                                  {statusConfig.label}
+                                </Badge>
+                                <span className="truncate font-medium text-foreground">
+                                  {driverMap.get(order.entregador_id) || "Atribuído"}
+                                </span>
+                              </button>
+                            ) : (
+                              <div className="flex items-center gap-1.5">
+                                <Badge
+                                  variant="outline"
+                                  className={cn("text-[10px] px-1.5 py-0 font-normal", statusConfig.badgeClass)}
+                                >
+                                  {statusConfig.label}
+                                </Badge>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => setSelectedOrderForDriver(order)}
+                                  className="h-6 px-1.5 text-[11px] text-muted-foreground hover:text-primary gap-1"
+                                  title="Atribuir motoboy a esta O.S."
+                                >
+                                  <UserPlus className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            )}
+                          </TableCell>
+
+                          {/* 13. Atribuir (Rota 1 a 6 ou Retira) */}
+                          <TableCell className="whitespace-nowrap text-xs">
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <button
+                                  type="button"
+                                  className="flex items-center gap-1 px-2 py-0.5 rounded border border-border bg-card hover:bg-muted text-xs font-medium cursor-pointer"
+                                  title="Atribuir entrega a uma rota"
+                                >
+                                  {order.rota_numero ? (
+                                    <>
+                                      <span
+                                        className={
+                                          order.rota_numero === "RETIRA"
+                                            ? "text-purple-400 font-bold"
+                                            : "text-primary font-bold"
+                                        }
+                                      >
+                                        {order.rota_numero === "RETIRA"
+                                          ? "RETIRA"
+                                          : `Rota ${order.rota_numero}`}
+                                      </span>
+                                      {order.rota_sequencia && (
+                                        <span className="text-[10px] text-muted-foreground font-mono">
+                                          #{order.rota_sequencia}
+                                        </span>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <span className="text-muted-foreground text-[11px]">+ Rota</span>
+                                  )}
+                                </button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="start" className="text-xs w-36">
+                                <DropdownMenuLabel className="text-[10px] uppercase text-muted-foreground">
+                                  Definir Rota:
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                {ROTAS_DISPONIVEIS.map((r) => (
                                   <DropdownMenuItem
+                                    key={r.id}
                                     onClick={async () => {
-                                      await assignOrderToRoute(order.id, null);
-                                      toast.info("O.S. removida da rota.");
+                                      for (const id of stop.allOrderIds) {
+                                        await assignOrderToRoute(id, r.id);
+                                      }
+                                      toast.success(`Demanda alocada na ${r.label}`);
+                                      const idSet = new Set(stop.allOrderIds);
                                       setAllOrders((prev) =>
                                         prev.map((o) =>
-                                          o.id === order.id
-                                            ? { ...o, rota_numero: null, rota_sequencia: null }
-                                            : o
+                                          idSet.has(o.id) ? { ...o, rota_numero: r.id } : o
                                         )
                                       );
                                     }}
-                                    className="text-xs text-red-500 cursor-pointer"
+                                    className="text-xs cursor-pointer"
                                   >
-                                    Remover da Rota
+                                    {r.isRetira ? "🏬 " : "🚚 "}
+                                    {r.label}
                                   </DropdownMenuItem>
-                                </>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </TableCell>
+                                ))}
+                                {order.rota_numero && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      onClick={async () => {
+                                        for (const id of stop.allOrderIds) {
+                                          await assignOrderToRoute(id, null);
+                                        }
+                                        toast.info("Demanda removida da rota.");
+                                        const idSet = new Set(stop.allOrderIds);
+                                        setAllOrders((prev) =>
+                                          prev.map((o) =>
+                                            idSet.has(o.id)
+                                              ? { ...o, rota_numero: null, rota_sequencia: null }
+                                              : o
+                                          )
+                                        );
+                                      }}
+                                      className="text-xs text-red-500 cursor-pointer"
+                                    >
+                                      Remover da Rota
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </TableCell>
 
-                        {/* 14. Excluir */}
-                        <TableCell className="text-center whitespace-nowrap py-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setOrderToDelete(order)}
-                            className="h-7 w-7 text-muted-foreground hover:text-red-500 hover:bg-red-500/15 transition-colors"
-                            title="Excluir da lista"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
+                          {/* 14. Ações: Desfazer Fusão / Fundir / Excluir */}
+                          <TableCell className="text-center whitespace-nowrap py-1">
+                            <div className="flex items-center justify-center gap-1">
+                              {stop.isMerged ? (
+                                order.rota_numero ? (
+                                  <span title="Não é possível desfazer a fusão enquanto a entrega estiver atribuída a uma rota. Remova a rota antes de desfazer.">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      disabled
+                                      className="h-7 w-7 text-muted-foreground/30 cursor-not-allowed"
+                                    >
+                                      <Unlink className="h-3.5 w-3.5" />
+                                    </Button>
+                                  </span>
+                                ) : (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleUnmerge(stop.paradaAgrupadaId!)}
+                                    className="h-7 w-7 text-amber-500 hover:text-amber-400 hover:bg-amber-500/10 transition-colors"
+                                    title="Desfazer fusão (separar em entregas individuais)"
+                                  >
+                                    <Unlink className="h-3.5 w-3.5" />
+                                  </Button>
+                                )
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleOpenMerge(order)}
+                                  className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                                  title="Fundir com outra O.S. deste cliente"
+                                >
+                                  <Layers className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+
+                              {(order.tipo_entrega?.includes("demanda_manual") ||
+                                order.tipo_entrega?.includes("coleta")) && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setOrderToDelete(order)}
+                                  className="h-7 w-7 text-muted-foreground hover:text-red-500 hover:bg-red-500/15 transition-colors"
+                                  title="Excluir demanda da lista"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
         )}
       </div>
+
+      <MergeOrdersModal
+        open={mergeModalOpen}
+        onOpenChange={setMergeModalOpen}
+        baseOrder={mergeBaseOrder}
+        allOrders={allOrders}
+        initialSelectedOrderIds={mergePreselectedIds}
+        onSuccess={() => {
+          setSelectedRowIds(new Set());
+          void fetchOrders();
+        }}
+      />
 
       <AssignDriverModal
         order={selectedOrderForDriver}

@@ -238,3 +238,156 @@ export const DELIVERY_STATUS_CONFIG: Record<
     borderClass: "border-red-700",
   },
 };
+
+// =====================================================================================
+// FASE 3: FUSÃO DE ORDENS DE SERVIÇO (MESMO CLIENTE)
+// =====================================================================================
+
+export interface MergeOrdersPayload {
+  orderIds: string[];
+  chosenAddress: string;
+  chosenDate?: string | null;
+  chosenVehicle?: VeiculoCategoria;
+  paradaId?: string;
+  regionalId?: string | null;
+  localidadeId?: string | null;
+  regionalNome?: string | null;
+}
+
+export interface DistinctAddressItem {
+  address: string;
+  orderIds: string[];
+  orderTitles: string[];
+}
+
+export interface DistinctDateItem {
+  rawDate: string;
+  formatted: string;
+  orderIds: string[];
+  orderTitles: string[];
+}
+
+export interface MergeConflicts {
+  hasAddressConflict: boolean;
+  distinctAddresses: DistinctAddressItem[];
+  hasDateConflict: boolean;
+  distinctDates: DistinctDateItem[];
+  clientName: string;
+}
+
+/**
+ * Valida se todas as O.S. selecionadas para fusão pertencem rigorosamente ao mesmo cliente.
+ */
+export function validateSameClientForMerge(
+  orders: Array<{ id: string; cliente: string; titulo: string }>
+): { valid: boolean; clientName?: string; error?: string } {
+  if (!orders || orders.length < 2) {
+    return {
+      valid: false,
+      error: "Selecione ao menos 2 Ordens de Serviço para realizar a fusão.",
+    };
+  }
+
+  const distinctClients = Array.from(
+    new Set(orders.map((o) => (o.cliente || "").trim().toLowerCase()))
+  ).filter(Boolean);
+
+  if (distinctClients.length === 0) {
+    return {
+      valid: false,
+      error: "As Ordens de Serviço selecionadas não possuem identificação de cliente.",
+    };
+  }
+
+  if (distinctClients.length > 1) {
+    const originalNames = Array.from(
+      new Set(orders.map((o) => (o.cliente || "").trim()))
+    ).join(", ");
+    return {
+      valid: false,
+      error: `Fusão permitida apenas para o MESMO cliente. Clientes selecionados: ${originalNames}`,
+    };
+  }
+
+  const clientName = orders[0].cliente.trim();
+  return { valid: true, clientName };
+}
+
+/**
+ * Detecta conflitos de endereço ou data de entrega entre as O.S. que serão fundidas.
+ */
+export function detectMergeConflicts(
+  orders: Array<{
+    id: string;
+    titulo: string;
+    cliente: string;
+    entrega_endereco?: string | null;
+    endereco_entrega?: string | null;
+    entrega_data_limite?: string | null;
+  }>
+): MergeConflicts {
+  const clientName = orders[0]?.cliente?.trim() || "";
+
+  // 1. Mapeia endereços distintos
+  const addressMap = new Map<string, { orderIds: string[]; orderTitles: string[] }>();
+  orders.forEach((o) => {
+    const addr = (o.entrega_endereco || o.endereco_entrega || "").trim();
+    if (!addr) return;
+    const existing = addressMap.get(addr) || { orderIds: [], orderTitles: [] };
+    existing.orderIds.push(o.id);
+    existing.orderTitles.push(o.titulo);
+    addressMap.set(addr, existing);
+  });
+
+  const distinctAddresses: DistinctAddressItem[] = Array.from(addressMap.entries()).map(
+    ([address, data]) => ({
+      address,
+      orderIds: data.orderIds,
+      orderTitles: data.orderTitles,
+    })
+  );
+
+  // 2. Mapeia datas de entrega distintas
+  const dateMap = new Map<string, { orderIds: string[]; orderTitles: string[] }>();
+  orders.forEach((o) => {
+    const dt = (o.entrega_data_limite || "").trim();
+    if (!dt) return;
+    const existing = dateMap.get(dt) || { orderIds: [], orderTitles: [] };
+    existing.orderIds.push(o.id);
+    existing.orderTitles.push(o.titulo);
+    dateMap.set(dt, existing);
+  });
+
+  const distinctDates: DistinctDateItem[] = Array.from(dateMap.entries()).map(
+    ([rawDate, data]) => {
+      let formatted = rawDate;
+      try {
+        const d = new Date(rawDate);
+        if (!isNaN(d.getTime())) {
+          formatted = d.toLocaleDateString("pt-BR", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+        }
+      } catch {}
+      return {
+        rawDate,
+        formatted,
+        orderIds: data.orderIds,
+        orderTitles: data.orderTitles,
+      };
+    }
+  );
+
+  return {
+    hasAddressConflict: distinctAddresses.length > 1,
+    distinctAddresses,
+    hasDateConflict: distinctDates.length > 1,
+    distinctDates,
+    clientName,
+  };
+}
+

@@ -1,4 +1,4 @@
-import { Bike, Car } from "lucide-react";
+import { Bike, Car, Lock } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -6,6 +6,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
+import { usePermissions } from "@/hooks/usePermissions";
 import { updateDeliveryVehicleType } from "@/lib/deliveryService";
 import type { VeiculoCategoria } from "@/types/delivery";
 
@@ -13,17 +14,29 @@ interface DeliveryVehicleTypeCellProps {
   orderId: string;
   tipo?: "carro" | "moto" | string | null;
   onTypeUpdated?: (newType: "carro" | "moto") => void;
+  canManage?: boolean;
 }
 
 export function DeliveryVehicleTypeCell({
   orderId,
   tipo,
   onTypeUpdated,
+  canManage,
 }: DeliveryVehicleTypeCellProps) {
+  const permissions = usePermissions();
+  const allowedToEdit =
+    canManage !== undefined
+      ? canManage
+      : Boolean(permissions.canManageExpedicao || permissions.isAdmin);
+
   const currentType: "carro" | "moto" =
     tipo === "carro" ? "carro" : "moto";
 
   const handleSelect = async (newType: "carro" | "moto") => {
+    if (!allowedToEdit) {
+      toast.error("Apenas o responsável pela Expedição e administradores podem alterar o tipo de veículo.");
+      return;
+    }
     if (newType === currentType) return;
     const res = await updateDeliveryVehicleType(orderId, newType);
     if (!res.success) {
@@ -33,6 +46,28 @@ export function DeliveryVehicleTypeCell({
     toast.success(`Veículo alterado para ${newType === "carro" ? "Carro" : "Moto"}`);
     onTypeUpdated?.(newType);
   };
+
+  // Se não tiver permissão para editar, renderiza como indicador fixo e protegido
+  if (!allowedToEdit) {
+    return (
+      <span
+        className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded border border-border/60 bg-muted/40 text-xs font-medium opacity-80 cursor-not-allowed"
+        title="Tipo de veículo definido. Apenas gestores da Expedição ou administradores podem alterar."
+      >
+        {currentType === "carro" ? (
+          <>
+            <Car className="h-3.5 w-3.5 text-blue-400" />
+            <span className="text-foreground">Carro</span>
+          </>
+        ) : (
+          <>
+            <Bike className="h-3.5 w-3.5 text-emerald-400" />
+            <span className="text-foreground">Moto</span>
+          </>
+        )}
+      </span>
+    );
+  }
 
   return (
     <DropdownMenu>
