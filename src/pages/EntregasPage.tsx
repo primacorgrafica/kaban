@@ -269,11 +269,15 @@ export default function EntregasPage() {
 
       if (csvRes.success && csvRes.updatedCount > 0) {
         toast.success(
-          `CSV "${csvRes.fileName}" importado: ${csvRes.updatedCount} O.S. atualizada(s)!`
+          `CSV "${csvRes.fileName}" importado: ${csvRes.updatedCount} O.S. atualizada(s) de ${csvRes.totalRows} linhas!`
         );
         void fetchOrders();
-      } else if (csvRes.error && interactive && !csvRes.skippedNoSession) {
+      } else if (csvRes.error && interactive) {
         toast.warning(`Aviso CSV Expedição: ${csvRes.error}`);
+      } else if (csvRes.success && interactive && csvRes.fileName) {
+        toast.info(
+          `CSV "${csvRes.fileName}" verificado (${csvRes.totalRows} linhas, nenhuma nova alteração pendente).`
+        );
       }
 
       if (res.synced > 0) {
