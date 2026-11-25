@@ -391,3 +391,16 @@ export function detectMergeConflicts(
   };
 }
 
+// =====================================================================================
+// FASE 4: ROTAS, SEQUENCIAMENTO E BLOQUEIO PÓS-CHEGADA
+// =====================================================================================
+
+/**
+ * Verifica se uma entrega/parada ainda pode ter sua rota ou sequência alterada.
+ * Regra: Alteração permitida apenas até o entregador chegar ao local ('no_local') ou concluir ('entregue').
+ */
+export function canAlterRouteStop(statusEntrega?: string | null): boolean {
+  return statusEntrega !== "no_local" && statusEntrega !== "entregue";
+}
+
+

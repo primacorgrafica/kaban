@@ -42,7 +42,11 @@ export default function RotasPage() {
         if (o.om_numero || o.oc_numero || o.nc_numero) return false;
         if (order.setor === "faturamento") return false;
         if (order.setor === "qualidade" || order.setor === "ctp" || order.setor === "digital") return false;
-        if (order.parent_order_id && order.setor === "expedicao") return false;
+        const isProof =
+          order.titulo?.toUpperCase().startsWith("P") ||
+          order.tipo_entrega?.includes("prova_digital") ||
+          Boolean(o.is_prova_entrega);
+        if (order.parent_order_id && order.setor === "expedicao" && !isProof) return false;
         return true;
       });
       setAllOrders(filtered);

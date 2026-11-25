@@ -28,6 +28,7 @@ import type { Order } from "@/types/order";
 import {
   ROTAS_DISPONIVEIS,
   DELIVERY_STATUS_CONFIG,
+  canAlterRouteStop,
   type RotaId,
   type DeliveryStatus,
 } from "@/types/delivery";
@@ -80,6 +81,7 @@ export function DeliveryStopCard({
   // Status representativo da parada (se todas entregues, entregue; se alguma em rota, em_rota, etc.)
   const primaryOrder = stop.orders[0];
   const allDelivered = stop.orders.every((o) => o.status_entrega === "entregue");
+  const isLockedByArrival = stop.orders.some((o) => !canAlterRouteStop(o.status_entrega));
   const anyPaused = stop.orders.some((o) => o.rota_pausada);
   const isPriority = stop.prioridade || stop.orders.some((o) => o.urgente || o.rota_prioridade);
 
@@ -255,20 +257,28 @@ export function DeliveryStopCard({
           <Button
             size="icon"
             variant="ghost"
-            disabled={isFirst || allDelivered}
+            disabled={isFirst || isLockedByArrival}
             className="h-6 w-6 text-muted-foreground hover:text-foreground disabled:opacity-30"
             onClick={() => onMoveUp(stop)}
-            title="Mover parada para cima na sequência"
+            title={
+              isLockedByArrival
+                ? "Alteração bloqueada: entregador já chegou ao local ou finalizou a entrega."
+                : "Mover parada para cima na sequência"
+            }
           >
             <ChevronUp className="h-3.5 w-3.5" />
           </Button>
           <Button
             size="icon"
             variant="ghost"
-            disabled={isLast || allDelivered}
+            disabled={isLast || isLockedByArrival}
             className="h-6 w-6 text-muted-foreground hover:text-foreground disabled:opacity-30"
             onClick={() => onMoveDown(stop)}
-            title="Mover parada para baixo na sequência"
+            title={
+              isLockedByArrival
+                ? "Alteração bloqueada: entregador já chegou ao local ou finalizou a entrega."
+                : "Mover parada para baixo na sequência"
+            }
           >
             <ChevronDown className="h-3.5 w-3.5" />
           </Button>
@@ -276,7 +286,7 @@ export function DeliveryStopCard({
 
         <div className="flex items-center gap-1">
           {/* Botão de Agrupar (se for O.S. individual) */}
-          {!isGrouped && !allDelivered && (
+          {!isGrouped && !isLockedByArrival && (
             <Button
               size="sm"
               variant="ghost"
@@ -295,8 +305,13 @@ export function DeliveryStopCard({
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-6 px-1.5 text-[10px] text-muted-foreground hover:text-foreground gap-1"
-                title="Transferir parada para outra rota"
+                disabled={isLockedByArrival}
+                className="h-6 px-1.5 text-[10px] text-muted-foreground hover:text-foreground gap-1 disabled:opacity-30"
+                title={
+                  isLockedByArrival
+                    ? "Alteração bloqueada: entregador já chegou ao local ou finalizou a entrega."
+                    : "Transferir parada para outra rota"
+                }
               >
                 <ArrowRightLeft className="h-3 w-3" />
                 Mover
