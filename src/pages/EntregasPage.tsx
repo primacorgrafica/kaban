@@ -938,10 +938,10 @@ export default function EntregasPage() {
             )}
 
             <div className="border rounded-lg overflow-x-auto overflow-y-auto flex-1 scrollbar-light">
-              <Table className="w-full min-w-[1480px]">
+              <Table className="table-fixed w-full min-w-[1260px]">
                 <TableHeader>
-                  <TableRow className="bg-muted/50 [&>th]:px-2 [&>th]:py-2 [&>th]:h-9">
-                    <TableHead className="whitespace-nowrap w-[36px] text-center">
+                  <TableRow className="bg-muted/50 [&>th]:px-1.5 [&>th]:py-2 [&>th]:h-9 [&>th]:text-[11px]">
+                    <TableHead className="whitespace-nowrap w-[28px] text-center">
                       <Checkbox
                         checked={
                           displayStops.length > 0 &&
@@ -959,24 +959,24 @@ export default function EntregasPage() {
                         title="Selecionar todas as entregas"
                       />
                     </TableHead>
-                    <TableHead className="whitespace-nowrap w-[56px]">Flags</TableHead>
-                    <TableHead className="whitespace-nowrap w-[95px]">OS</TableHead>
-                    <TableHead className="whitespace-nowrap w-[130px]">Cliente</TableHead>
-                    <TableHead className="whitespace-nowrap w-[160px]">Descrição</TableHead>
-                    <TableHead className="whitespace-nowrap w-[185px] bg-blue-100 dark:bg-blue-900/30">
-                      Status Produção
+                    <TableHead className="whitespace-nowrap w-[44px]">Flags</TableHead>
+                    <TableHead className="whitespace-nowrap w-[64px]">OS</TableHead>
+                    <TableHead className="whitespace-nowrap w-[110px]">Cliente</TableHead>
+                    <TableHead className="whitespace-nowrap w-[125px]">Descrição</TableHead>
+                    <TableHead className="whitespace-nowrap w-[120px] bg-blue-100 dark:bg-blue-900/30">
+                      Status Prod.
                     </TableHead>
-                    <TableHead className="whitespace-nowrap w-[105px] bg-blue-100 dark:bg-blue-900/30">
+                    <TableHead className="whitespace-nowrap w-[88px] bg-blue-100 dark:bg-blue-900/30">
                       Atualização
                     </TableHead>
-                    <TableHead className="whitespace-nowrap w-[85px]">Vendedor</TableHead>
-                    <TableHead className="whitespace-nowrap w-[155px]">Data Entrega</TableHead>
-                    <TableHead className="whitespace-nowrap w-[180px]">Endereço</TableHead>
-                    <TableHead className="whitespace-nowrap w-[120px]">Região</TableHead>
-                    <TableHead className="whitespace-nowrap w-[85px]">Tipo</TableHead>
-                    <TableHead className="whitespace-nowrap w-[175px]">Status Entrega</TableHead>
-                    <TableHead className="whitespace-nowrap w-[100px]">Atribuir</TableHead>
-                    <TableHead className="whitespace-nowrap w-[70px] text-center">Ações</TableHead>
+                    <TableHead className="whitespace-nowrap w-[68px]">Vendedor</TableHead>
+                    <TableHead className="whitespace-nowrap w-[132px]">Data Entrega</TableHead>
+                    <TableHead className="whitespace-nowrap w-[115px]">Endereço</TableHead>
+                    <TableHead className="whitespace-nowrap w-[92px]">Região</TableHead>
+                    <TableHead className="whitespace-nowrap w-[68px]">Tipo</TableHead>
+                    <TableHead className="whitespace-nowrap w-[115px]">Status Entrega</TableHead>
+                    <TableHead className="whitespace-nowrap w-[72px]">Atribuir</TableHead>
+                    <TableHead className="whitespace-nowrap w-[56px] text-center">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1012,7 +1012,7 @@ export default function EntregasPage() {
                         <TableRow
                           key={stop.key}
                           className={cn(
-                            "[&>td]:px-2 [&>td]:py-1.5 transition-colors",
+                            "[&>td]:px-1.5 [&>td]:py-1.5 transition-colors",
                             isPriority && "bg-amber-500/10 dark:bg-amber-950/20 border-l-2 border-l-amber-500",
                             stop.isMerged && "bg-primary/[0.03]"
                           )}
