@@ -938,10 +938,10 @@ export default function EntregasPage() {
             )}
 
             <div className="border rounded-lg overflow-x-auto overflow-y-auto flex-1 scrollbar-light">
-              <Table className="table-fixed min-w-[1620px]">
+              <Table className="w-full min-w-[1480px]">
                 <TableHeader>
                   <TableRow className="bg-muted/50 [&>th]:px-2 [&>th]:py-2 [&>th]:h-9">
-                    <TableHead className="whitespace-nowrap w-[35px] text-center">
+                    <TableHead className="whitespace-nowrap w-[36px] text-center">
                       <Checkbox
                         checked={
                           displayStops.length > 0 &&
@@ -959,24 +959,24 @@ export default function EntregasPage() {
                         title="Selecionar todas as entregas"
                       />
                     </TableHead>
-                    <TableHead className="whitespace-nowrap w-[80px]">Flags</TableHead>
-                    <TableHead className="whitespace-nowrap w-[115px]">OS</TableHead>
-                    <TableHead className="whitespace-nowrap w-[135px]">Cliente</TableHead>
-                    <TableHead className="whitespace-nowrap w-[170px]">Descrição</TableHead>
-                    <TableHead className="whitespace-nowrap w-[145px] bg-blue-100 dark:bg-blue-900/30">
+                    <TableHead className="whitespace-nowrap w-[56px]">Flags</TableHead>
+                    <TableHead className="whitespace-nowrap w-[95px]">OS</TableHead>
+                    <TableHead className="whitespace-nowrap w-[130px]">Cliente</TableHead>
+                    <TableHead className="whitespace-nowrap w-[160px]">Descrição</TableHead>
+                    <TableHead className="whitespace-nowrap w-[185px] bg-blue-100 dark:bg-blue-900/30">
                       Status Produção
                     </TableHead>
                     <TableHead className="whitespace-nowrap w-[105px] bg-blue-100 dark:bg-blue-900/30">
                       Atualização
                     </TableHead>
-                    <TableHead className="whitespace-nowrap w-[90px]">Vendedor</TableHead>
-                    <TableHead className="whitespace-nowrap w-[175px]">Data Entrega</TableHead>
-                    <TableHead className="whitespace-nowrap w-[200px]">Endereço</TableHead>
-                    <TableHead className="whitespace-nowrap w-[135px]">Região</TableHead>
-                    <TableHead className="whitespace-nowrap w-[95px]">Tipo</TableHead>
-                    <TableHead className="whitespace-nowrap w-[160px]">Status Entrega</TableHead>
-                    <TableHead className="whitespace-nowrap w-[115px]">Atribuir</TableHead>
-                    <TableHead className="whitespace-nowrap w-[75px] text-center">Ações</TableHead>
+                    <TableHead className="whitespace-nowrap w-[85px]">Vendedor</TableHead>
+                    <TableHead className="whitespace-nowrap w-[155px]">Data Entrega</TableHead>
+                    <TableHead className="whitespace-nowrap w-[180px]">Endereço</TableHead>
+                    <TableHead className="whitespace-nowrap w-[120px]">Região</TableHead>
+                    <TableHead className="whitespace-nowrap w-[85px]">Tipo</TableHead>
+                    <TableHead className="whitespace-nowrap w-[175px]">Status Entrega</TableHead>
+                    <TableHead className="whitespace-nowrap w-[100px]">Atribuir</TableHead>
+                    <TableHead className="whitespace-nowrap w-[70px] text-center">Ações</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -1136,13 +1136,15 @@ export default function EntregasPage() {
                           </TableCell>
 
                           {/* 5. Status Produção (Etapa atual no Kanban) */}
-                          <TableCell className="whitespace-nowrap text-xs bg-blue-50/50 dark:bg-blue-950/20">
-                            <span className="font-semibold text-foreground">
-                              {getSectorLabel(order.setor)}
-                            </span>
-                            <span className="text-[11px] text-muted-foreground ml-1">
-                              ({getStatusLabel(order.setor, order.setor_status)})
-                            </span>
+                          <TableCell className="whitespace-nowrap text-xs bg-blue-50/50 dark:bg-blue-950/20 max-w-[185px] overflow-hidden">
+                            <div className="truncate" title={`${getSectorLabel(order.setor)} (${getStatusLabel(order.setor, order.setor_status)})`}>
+                              <span className="font-semibold text-foreground">
+                                {getSectorLabel(order.setor)}
+                              </span>
+                              <span className="text-[11px] text-muted-foreground ml-1">
+                                ({getStatusLabel(order.setor, order.setor_status)})
+                              </span>
+                            </div>
                           </TableCell>
 
                           {/* 6. Atualização (data/hora da última atualização da OS) */}
