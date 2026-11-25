@@ -84,6 +84,7 @@ import {
   unmergeOrdersFromDelivery,
 } from "@/lib/deliveryService";
 import { syncPendingProtocolsToSharePoint } from "@/lib/sharepointService";
+import { syncExpedicaoCsvFromSharePoint } from "@/lib/expedicaoCsvSync";
 import type { Entregador, DeliveryStatus, LocalidadeComRegional } from "@/types/delivery";
 import {
   DELIVERY_STATUS_CONFIG,
@@ -226,6 +227,16 @@ export default function EntregasPage() {
     if (!authReady || !user) return;
     void fetchOrders();
 
+    // Leitura automática silenciosa do CSV da pasta EXPEDICAO no SharePoint
+    void syncExpedicaoCsvFromSharePoint(false).then((csvRes) => {
+      if (csvRes.success && csvRes.updatedCount > 0) {
+        toast.success(
+          `CSV "${csvRes.fileName}" sincronizado: ${csvRes.updatedCount} O.S. atualizada(s).`
+        );
+        void fetchOrders();
+      }
+    });
+
     const channel = supabase
       .channel("entregas-realtime")
       .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, () => {
@@ -251,12 +262,25 @@ export default function EntregasPage() {
     if (isSyncingSharepoint) return;
     setIsSyncingSharepoint(true);
     try {
-      const res = await syncPendingProtocolsToSharePoint(interactive);
+      const [res, csvRes] = await Promise.all([
+        syncPendingProtocolsToSharePoint(interactive),
+        syncExpedicaoCsvFromSharePoint(interactive),
+      ]);
+
+      if (csvRes.success && csvRes.updatedCount > 0) {
+        toast.success(
+          `CSV "${csvRes.fileName}" importado: ${csvRes.updatedCount} O.S. atualizada(s)!`
+        );
+        void fetchOrders();
+      } else if (csvRes.error && interactive && !csvRes.skippedNoSession) {
+        toast.warning(`Aviso CSV Expedição: ${csvRes.error}`);
+      }
+
       if (res.synced > 0) {
         toast.success(`${res.synced} protocolo(s) de entrega sincronizado(s) com sucesso no SharePoint!`);
         void fetchOrders();
-      } else if (res.total === 0) {
-        if (interactive) toast.info("Todos os protocolos já estão sincronizados com o SharePoint.");
+      } else if (res.total === 0 && (!csvRes.success || csvRes.updatedCount === 0)) {
+        if (interactive) toast.info("Todos os protocolos e dados do CSV já estão sincronizados com o SharePoint.");
       }
 
       if (res.errors.length > 0 && interactive) {
