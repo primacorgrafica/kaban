@@ -241,6 +241,7 @@ export async function syncExpedicaoCsvFromSharePoint(
     }
 
     let updatedCount = 0;
+    let firstError: string | undefined;
 
     for (let i = 1; i < lines.length; i++) {
       const cols = parseCsvLine(lines[i], sep);
@@ -286,7 +287,12 @@ export async function syncExpedicaoCsvFromSharePoint(
           .update(deliveryUpdates)
           .eq("id", matchedOrder.id);
 
-        if (!updErr) rowUpdated = true;
+        if (!updErr) {
+          rowUpdated = true;
+        } else {
+          console.warn(`[expedicaoCsvSync] Erro ao atualizar OS ${cleanOs}:`, updErr);
+          if (!firstError) firstError = updErr.message;
+        }
       }
 
       if (Object.keys(extraUpdates).length > 0) {
@@ -312,6 +318,7 @@ export async function syncExpedicaoCsvFromSharePoint(
       fileName: targetFile.name,
       totalRows: lines.length - 1,
       updatedCount,
+      error: updatedCount === 0 && firstError ? `Erro ao gravar no banco: ${firstError}` : undefined,
     };
   } catch (err: any) {
     return {
