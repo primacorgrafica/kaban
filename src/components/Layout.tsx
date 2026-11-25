@@ -1,6 +1,6 @@
 import { ReactNode, useEffect, useState, useCallback, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Monitor, Archive, Search, Menu, X, LogOut, BarChart3, Users, Maximize, Minimize, Truck, Megaphone, Lightbulb, Handshake, Square, PrinterCheck, Layers, ChevronDown, ShoppingCart, CircleDollarSign, AlertTriangle, Wrench, Briefcase, ShieldCheck, LucideIcon, Factory, ClipboardList, Settings, Package, KeyRound, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Monitor, Archive, Search, Menu, X, LogOut, BarChart3, Users, Maximize, Minimize, Truck, Megaphone, Lightbulb, Handshake, Square, PrinterCheck, Layers, ChevronDown, ShoppingCart, CircleDollarSign, AlertTriangle, Wrench, Briefcase, ShieldCheck, LucideIcon, Factory, ClipboardList, Settings, Package, KeyRound, PanelLeftClose, PanelLeftOpen, Bike } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChangePasswordDialog } from "./ChangePasswordDialog";
 import logoImg from "@/assets/logo-sidebar.png";
@@ -53,6 +53,7 @@ interface LayoutProps {
     canAccessComercial?: boolean;
     canArchive: boolean;
     canManageUsers: boolean;
+    canManageEntregadores?: boolean;
     isViewOnly: boolean;
   };
 }
@@ -83,6 +84,7 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
   const [deptCounts, setDeptCounts] = useState<Record<string, number>>(() => cachedDeptCounts || {});
   const [deptCountsLoaded, setDeptCountsLoaded] = useState(() => !!cachedDeptCounts);
   const [cadastrosOpen, setCadastrosOpen] = useState(false);
+  const [expedicaoOpen, setExpedicaoOpen] = useState(false);
   const [utilidadesOpen, setUtilidadesOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [inspectOrder, setInspectOrder] = useState<Order | null>(null);
@@ -294,17 +296,44 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
     ...(canAccessSector("producao") ? [{ to: "/producao", label: "Produção", icon: Factory, count: deptCountsLoaded ? (deptCounts["producao_entrada"] ?? 0) : undefined }] : []),
     // 8. INSPEÇÃO (Posicionada ANTES de Expedição)
     ...(hasModule("inspecao") || canAccessSector("inspecao") ? [{ to: "/inspecao", label: "Inspeção", icon: ShieldCheck, count: deptCountsLoaded ? (deptCounts["inspecao"] ?? 0) : undefined }] : []),
-    // 9. EXPEDIÇÃO
-    ...(hasModule("expedicao") ? [{ to: "/expedicao", label: "Expedição", icon: Truck, count: deptCountsLoaded ? (deptCounts["expedicao"] ?? 0) : undefined }] : []),
-    // 9. GESTÃO DE ENTREGAS
-    ...(hasModule("entregas") ? [{ to: "/entregas", label: "Gestão de Entregas", icon: Package }] : []),
-    // 10. COMPRAS
+    // 9. COMPRAS
     ...(hasModule("compras") ? [{ to: "/compras", label: "Compras", icon: ShoppingCart, count: deptCountsLoaded ? (deptCounts["compras"] ?? 0) : undefined }] : []),
-    // 11. QUALIDADE
+    // 10. QUALIDADE
     ...(canAccessSector("qualidade") ? [{ to: "/qualidade", label: "Qualidade", icon: Search, count: deptCountsLoaded ? (deptCounts["qualidade"] ?? 0) : undefined }] : []),
-    // 12. MANUTENÇÃO
+    // 11. MANUTENÇÃO
     ...(hasModule("manutencao") ? [{ to: "/manutencao", label: "Manutenção", icon: Wrench, count: deptCountsLoaded ? (deptCounts["manutencao"] ?? 0) : undefined }] : []),
   ];
+
+  // Áreas da Expedição (Fase 1): 1. Gestão de Entregas | 2. Rotas | 3. Cadastro de Entregadores
+  const canManageExpedicaoArea =
+    isAdmin ||
+    role === "coordenador" ||
+    permissions.canManageEntregadores ||
+    hasModule("expedicao") ||
+    hasModule("entregas") ||
+    hasModule("gestao_entregas") ||
+    setorVinculado?.toLowerCase() === "expedicao";
+
+  const expedicaoItems = [
+    { to: "/entregas", label: "Gestão de Entregas", icon: Package },
+    { to: "/expedicao/rotas", label: "Rotas", icon: Layers },
+    ...(canManageExpedicaoArea
+      ? [{ to: "/expedicao/entregadores", label: "Cadastro de Entregadores", icon: Bike }]
+      : []),
+  ];
+
+  const isExpedicaoActive =
+    expedicaoItems.some((i) => location.pathname === i.to) || location.pathname === "/expedicao";
+
+  const handleExpedicaoClick = () => {
+    if (sidebarCollapsed) {
+      setSidebarCollapsed(false);
+      localStorage.setItem("primacor_sidebar_collapsed", "false");
+      setExpedicaoOpen(true);
+    } else {
+      setExpedicaoOpen(!expedicaoOpen);
+    }
+  };
 
   // Menus após Utilidades:
   // 14. O.S. CONCLUÍDAS
@@ -400,6 +429,10 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
     if (isCadastrosActive) setCadastrosOpen(true);
   }, [isCadastrosActive]);
 
+  useEffect(() => {
+    if (isExpedicaoActive) setExpedicaoOpen(true);
+  }, [isExpedicaoActive]);
+
   return (
     <div className="flex h-[100dvh] lg:h-screen overflow-hidden">
       {sidebarOpen && (
@@ -467,6 +500,46 @@ export function Layout({ children, searchQuery, onSearchChange, onAddOrder, acti
 
         <nav className={`flex-1 ${sidebarCollapsed ? "px-2" : "px-3"} py-2 space-y-1 overflow-y-auto scrollbar-none`}>
           {navItemsPrimary.map(renderNavLink)}
+
+          {/* Expedição — 3 Áreas: Gestão de Entregas, Rotas e Cadastro de Entregadores */}
+          {(isAdmin || hasModule("expedicao") || hasModule("entregas")) && (
+            <div>
+              <button
+                onClick={handleExpedicaoClick}
+                title={sidebarCollapsed ? "Expedição" : undefined}
+                className={`relative flex items-center ${
+                  sidebarCollapsed ? "justify-center px-2" : "gap-2.5 px-3"
+                } py-2 rounded-xl text-sm transition-all duration-150 w-full ${
+                  isExpedicaoActive && !expedicaoOpen
+                    ? "bg-sidebar-primary/15 text-sidebar-primary font-medium"
+                    : "text-sidebar-foreground/75 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                }`}
+              >
+                <Truck className="h-4 w-4 shrink-0" />
+                {!sidebarCollapsed && (
+                  <>
+                    <span className="truncate flex-1 text-left font-medium">Expedição</span>
+                    {deptCountsLoaded && deptCounts["expedicao"] !== undefined && (
+                      <span className="text-xs px-2 py-0.5 rounded-full font-bold tracking-tight bg-[#253745]/70 text-[#9BA8AB]">
+                        {deptCounts["expedicao"]}
+                      </span>
+                    )}
+                    <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${expedicaoOpen ? "rotate-180" : ""}`} />
+                  </>
+                )}
+              </button>
+              {expedicaoOpen && !sidebarCollapsed && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="pl-3 space-y-1 mt-1"
+                >
+                  {expedicaoItems.map(renderNavLink)}
+                </motion.div>
+              )}
+            </div>
+          )}
 
           {/* 13. Utilidades - Menu com sub-menus e botões para links externos */}
           {(isAdmin || hasModule("utilidades")) && (

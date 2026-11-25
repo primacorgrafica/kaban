@@ -28,9 +28,19 @@ const ROLE_LEVEL: Record<AppRole, number> = {
 };
 
 export function usePermissions() {
-  const { role, user, hasModule } = useAuth();
+  const { role, user, hasModule, setorVinculado } = useAuth();
   const currentRole = (role as AppRole) || "user";
   const level = ROLE_LEVEL[currentRole] ?? 0;
+
+  const isExpedicaoResponsible =
+    currentRole !== "entregador" &&
+    (level >= 3 ||
+      currentRole === "admin" ||
+      currentRole === "coordenador" ||
+      hasModule("expedicao") ||
+      hasModule("entregas") ||
+      hasModule("gestao_entregas") ||
+      setorVinculado?.toLowerCase() === "expedicao");
 
   return {
     role: currentRole,
@@ -42,6 +52,11 @@ export function usePermissions() {
     canAccessComercial: currentRole === "admin" || currentRole === "coordenador" || currentRole === "vendedor" || currentRole === "orcamentista",
     canManageUsers: level >= 4,
     canManageProcesses: level >= 4,
+
+    // Gestão da Expedição (Responsável pela Expedição + Administradores/Coordenadores)
+    canManageExpedicao: isExpedicaoResponsible,
+    canManageEntregadores: isExpedicaoResponsible,
+    canViewDriverDocuments: isExpedicaoResponsible,
 
     // Criar/Editar: admin, coordenador, orcamentista
     canCreateOS: level >= 3 || currentRole === "orcamentista",

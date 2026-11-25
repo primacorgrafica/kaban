@@ -36,13 +36,11 @@ export function AssignDriverModal({ order, open, onOpenChange, onSuccess }: Assi
       setLoading(true);
       const res = await getEntregadoresList();
       if (res.data) {
-        // Exibe ativos primeiro
-        const sorted = [...res.data].sort((a, b) => {
-          if (a.ativo && !b.ativo) return -1;
-          if (!a.ativo && b.ativo) return 1;
-          return a.nome_completo.localeCompare(b.nome_completo);
-        });
-        setEntregadores(sorted);
+        // Entregadores inativos somem das listas de seleção (histórico preserva o nome)
+        const activeOnly = res.data
+          .filter((d) => d.ativo && d.user_id)
+          .sort((a, b) => a.nome_completo.localeCompare(b.nome_completo));
+        setEntregadores(activeOnly);
       }
       setLoading(false);
     };
@@ -162,12 +160,10 @@ export function AssignDriverModal({ order, open, onOpenChange, onSuccess }: Assi
                 </SelectItem>
                 {entregadores.map((d) => (
                   <SelectItem
-                    key={d.user_id}
-                    value={d.user_id}
-                    disabled={!d.ativo}
-                    className={!d.ativo ? "opacity-50" : ""}
+                    key={d.id}
+                    value={d.user_id || d.id}
                   >
-                    {d.nome_completo} {!d.ativo && "(Inativo)"} {d.placa_veiculo ? `• ${d.placa_veiculo}` : ""}
+                    {d.nome_completo}{d.sobrenome ? ` ${d.sobrenome}` : ""} {d.placa_veiculo ? `• ${d.placa_veiculo}` : ""}
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -1,10 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
-import type {
-  DeliveryStatus,
-  Entregador,
-  EntregadorPosicao,
-  RotaId,
-  MotivoPausaRota,
+import {
+  isValidBrazilianPlate,
+  normalizeBrazilianPlate,
+  type DeliveryStatus,
+  type Entregador,
+  type EntregadorPosicao,
+  type RotaId,
+  type MotivoPausaRota,
 } from "@/types/delivery";
 
 export interface DeliveryRpcResponse {
@@ -31,6 +33,18 @@ export async function getEntregadoresList(): Promise<{ data: Entregador[]; error
         console.warn("[deliveryService] Tabela 'entregadores' ainda não aplicada no Supabase.");
         return { data: [], error: "Tabela 'entregadores' não implantada." };
       }
+
+      // Se a RLS restringir documento_identificacao a gestores da Expedição, tenta a view pública segura
+      if (error.code === "42501" || error.message?.toLowerCase().includes("permission denied")) {
+        const pubRes = await supabase
+          .from("entregadores_public" as any)
+          .select("*")
+          .order("nome_completo", { ascending: true });
+        if (!pubRes.error && pubRes.data) {
+          return { data: (pubRes.data as unknown as Entregador[]) || [], error: null };
+        }
+      }
+
       return { data: [], error: error.message };
     }
 
@@ -397,17 +411,28 @@ export async function ungroupOrderFromStop(
 
 /**
  * Salva ou atualiza cadastro completo de um entregador (Carro/Moto, CNH/Doc, etc.)
+ * Suporta cadastro avulso (user_id = null) antes da criação do login do app (Fase 5).
  */
 export async function saveEntregador(
-  entregador: Partial<Entregador> & { user_id: string; nome_completo: string }
+  entregador: Partial<Entregador> & { user_id?: string | null; nome_completo: string }
 ): Promise<{ success: boolean; data?: Entregador; error?: string }> {
   try {
+    const rawPlate = entregador.placa_veiculo?.trim() || "";
+    if (rawPlate && !isValidBrazilianPlate(rawPlate)) {
+      return {
+        success: false,
+        error: "Placa inválida. Use o formato brasileiro antigo (ABC-1234) ou Mercosul (ABC1D23).",
+      };
+    }
+
+    const normalizedPlate = rawPlate ? normalizeBrazilianPlate(rawPlate) : null;
+
     const payload: Record<string, any> = {
-      user_id: entregador.user_id,
+      user_id: entregador.user_id || null,
       nome_completo: entregador.nome_completo.trim(),
       sobrenome: entregador.sobrenome?.trim() || null,
       telefone: entregador.telefone?.trim() || null,
-      placa_veiculo: entregador.placa_veiculo?.trim()?.toUpperCase() || null,
+      placa_veiculo: normalizedPlate,
       modelo_veiculo: entregador.modelo_veiculo?.trim() || null,
       documento_identificacao: entregador.documento_identificacao?.trim() || null,
       categoria_veiculo: entregador.categoria_veiculo || "moto",
@@ -420,11 +445,29 @@ export async function saveEntregador(
       payload.rota_atribuida = entregador.rota_atribuida;
     }
 
-    const { data, error } = await supabase
-      .from("entregadores" as any)
-      .upsert(payload, { onConflict: "user_id" })
-      .select()
-      .single();
+    let query: any;
+    if (entregador.id) {
+      query = supabase
+        .from("entregadores" as any)
+        .update(payload)
+        .eq("id", entregador.id)
+        .select()
+        .single();
+    } else if (payload.user_id) {
+      query = supabase
+        .from("entregadores" as any)
+        .upsert(payload, { onConflict: "user_id" })
+        .select()
+        .single();
+    } else {
+      query = supabase
+        .from("entregadores" as any)
+        .insert(payload)
+        .select()
+        .single();
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       return { success: false, error: error.message };
@@ -433,6 +476,34 @@ export async function saveEntregador(
     return { success: true, data: data as unknown as Entregador };
   } catch (err: any) {
     return { success: false, error: err.message || "Erro ao salvar cadastro do entregador." };
+  }
+}
+
+/**
+ * Inativa logicamente um entregador (exclusão lógica):
+ * Remove das seleções de novas rotas e libera sua rota atual,
+ * preservando integralmente o nome no histórico de rotas/entregas.
+ */
+export async function inactivateEntregador(
+  entregadorId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await supabase
+      .from("entregadores" as any)
+      .update({
+        ativo: false,
+        rota_atribuida: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", entregadorId);
+
+    if (error) {
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message || "Erro ao inativar entregador." };
   }
 }
 
@@ -460,7 +531,8 @@ export async function toggleEntregadorAtivo(
 }
 
 /**
- * Exclui permanentemente o cadastro de um entregador (apenas admin e coordenadores)
+ * @deprecated Preferir inactivateEntregador() para preservar histórico de rotas.
+ * Mantido apenas para compatibilidade legada/administrativa.
  */
 export async function deleteEntregador(
   entregadorId: string

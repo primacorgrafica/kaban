@@ -330,13 +330,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (["pre_impressao", "ctp", "digital", "qualidade", "producao", "inspecao"].includes(mod)) {
         return setorVinculado.toLowerCase() === mod.toLowerCase();
       }
+      if (setorVinculado.toLowerCase() === "expedicao" && ["expedicao", "entregas", "gestao_entregas"].includes(mod.toLowerCase())) {
+        return true;
+      }
     }
 
     if (modulosAcesso && modulosAcesso.length > 0) {
       const normalizedMods = modulosAcesso.map((m) => m.toLowerCase());
       if (normalizedMods.includes(mod.toLowerCase())) return true;
-      // Compatibilidade retroativa com aliases legados
-      if ((mod === "entregas" || mod === "gestao_entregas") && (normalizedMods.includes("entregas") || normalizedMods.includes("gestao_entregas"))) return true;
+      // Compatibilidade retroativa com aliases legados e unificação das 3 áreas de Expedição
+      if (
+        (mod === "entregas" || mod === "gestao_entregas" || mod === "expedicao") &&
+        (normalizedMods.includes("entregas") || normalizedMods.includes("gestao_entregas") || normalizedMods.includes("expedicao"))
+      ) {
+        return true;
+      }
       if (mod === "entregador" && (normalizedMods.includes("entregador") || normalizedMods.includes("entregas") || normalizedMods.includes("gestao_entregas"))) return true;
       if ((mod === "cadastros" || mod === "cadastro") && (normalizedMods.includes("cadastros") || normalizedMods.includes("cadastro"))) return true;
       if ((mod === "mural" || mod === "mural_alertas") && (normalizedMods.includes("mural") || normalizedMods.includes("mural_alertas"))) return true;

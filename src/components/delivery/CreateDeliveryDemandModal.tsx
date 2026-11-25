@@ -356,14 +356,15 @@ export function CreateDeliveryDemandModal({
                   <SelectItem value="none">
                     <span className="text-muted-foreground">Nenhum (Deixar na fila pendente)</span>
                   </SelectItem>
-                  {entregadores.map((d) => (
-                    <SelectItem key={d.user_id} value={d.user_id}>
-                      <span className="flex items-center gap-2">
-                        {d.nome_completo}
-                        {!d.ativo && <span className="text-[10px] text-amber-500">(Inativo)</span>}
-                      </span>
-                    </SelectItem>
-                  ))}
+                  {entregadores
+                    .filter((d) => d.ativo && d.user_id)
+                    .map((d) => (
+                      <SelectItem key={d.id} value={d.user_id || d.id}>
+                        <span className="flex items-center gap-2">
+                          {d.nome_completo}{d.sobrenome ? ` ${d.sobrenome}` : ""}
+                        </span>
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>

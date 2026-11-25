@@ -350,6 +350,81 @@ export type Database = {
           },
         ]
       }
+      entregadores: {
+        Row: {
+          ativo: boolean
+          bateria_percentual: number | null
+          categoria_veiculo: string
+          created_at: string
+          criado_por: string | null
+          documento_identificacao: string | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          modelo_veiculo: string | null
+          nome_completo: string
+          observacoes: string | null
+          placa_veiculo: string | null
+          precisao_metros: number | null
+          rota_atribuida: string | null
+          sobrenome: string | null
+          status: string | null
+          telefone: string | null
+          ultima_atividade: string | null
+          updated_at: string
+          user_id: string | null
+          velocidade_kmh: number | null
+        }
+        Insert: {
+          ativo?: boolean
+          bateria_percentual?: number | null
+          categoria_veiculo?: string
+          created_at?: string
+          criado_por?: string | null
+          documento_identificacao?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          modelo_veiculo?: string | null
+          nome_completo: string
+          observacoes?: string | null
+          placa_veiculo?: string | null
+          precisao_metros?: number | null
+          rota_atribuida?: string | null
+          sobrenome?: string | null
+          status?: string | null
+          telefone?: string | null
+          ultima_atividade?: string | null
+          updated_at?: string
+          user_id?: string | null
+          velocidade_kmh?: number | null
+        }
+        Update: {
+          ativo?: boolean
+          bateria_percentual?: number | null
+          categoria_veiculo?: string
+          created_at?: string
+          criado_por?: string | null
+          documento_identificacao?: string | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          modelo_veiculo?: string | null
+          nome_completo?: string
+          observacoes?: string | null
+          placa_veiculo?: string | null
+          precisao_metros?: number | null
+          rota_atribuida?: string | null
+          sobrenome?: string | null
+          status?: string | null
+          telefone?: string | null
+          ultima_atividade?: string | null
+          updated_at?: string
+          user_id?: string | null
+          velocidade_kmh?: number | null
+        }
+        Relationships: []
+      }
       order_email_events: {
         Row: {
           id: string
@@ -514,6 +589,7 @@ export type Database = {
           om_numero: number | null
           os_ref_nc: string | null
           parent_order_id: string | null
+          parada_agrupada_id?: string | null
           pausado: boolean
           pausado_em: string | null
           posicao: number
@@ -529,6 +605,13 @@ export type Database = {
           reclamante_nc: string | null
           responsavel_compra: string | null
           responsavel_manut: string | null
+          rota_numero?: string | null
+          rota_pausa_em?: string | null
+          rota_pausa_motivo?: string | null
+          rota_pausa_obs?: string | null
+          rota_pausada?: boolean | null
+          rota_prioridade?: boolean | null
+          rota_sequencia?: number | null
           saida_direta: boolean
           setor: string | null
           setor_manut: string | null

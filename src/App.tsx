@@ -19,6 +19,8 @@ const ApresentacaoPage = lazy(() => import("./pages/ApresentacaoPage"));
 const InstitucionalPage = lazy(() => import("./pages/InstitucionalPage"));
 const EmConstrucaoPage = lazy(() => import("./pages/EmConstrucaoPage"));
 const EntregasPage = lazy(() => import("./pages/EntregasPage"));
+const RotasPage = lazy(() => import("./pages/RotasPage"));
+const EntregadoresPage = lazy(() => import("./pages/EntregadoresPage"));
 const EntregadorPage = lazy(() => import("./pages/EntregadorPage"));
 const ComercialPage = lazy(() => import("./pages/ComercialPage"));
 const PcpPage = lazy(() => import("./pages/PcpPage"));
@@ -163,6 +165,8 @@ const App = () => (
                 <Route path="/compras" element={<ProtectedRoute module="compras"><ProductionPage /></ProtectedRoute>} />
                 <Route path="/manutencao" element={<ProtectedRoute module="manutencao"><ProductionPage /></ProtectedRoute>} />
                 <Route path="/entregas" element={<ProtectedRoute module="entregas"><EntregasPage /></ProtectedRoute>} />
+                <Route path="/expedicao/rotas" element={<ProtectedRoute module="entregas"><RotasPage /></ProtectedRoute>} />
+                <Route path="/expedicao/entregadores" element={<ProtectedRoute module="entregas"><EntregadoresPage /></ProtectedRoute>} />
                 <Route path="/entregador" element={<ProtectedRoute module="entregador"><EntregadorPage /></ProtectedRoute>} />
                 <Route path="/chat" element={<Navigate to="/" replace />} />
                 <Route path="/mural" element={<ProtectedRoute module="mural"><MuralAlertasPage /></ProtectedRoute>} />

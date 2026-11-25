@@ -76,8 +76,8 @@ export function DeliveryRouteColumn({
   // Motorista responsável atual da rota
   const currentDriverId = useMemo(() => {
     // 1. Procura motorista explicitamente com rota_atribuida === rotaId
-    const dedicated = entregadores.find((e) => e.rota_atribuida === rotaId);
-    if (dedicated) return dedicated.user_id;
+    const dedicated = entregadores.find((e) => e.ativo && e.rota_atribuida === rotaId);
+    if (dedicated) return dedicated.user_id || dedicated.id;
 
     // 2. Ou pega o mais frequente entre as ordens da rota
     const freq: Record<string, number> = {};
@@ -216,18 +216,21 @@ export function DeliveryRouteColumn({
                 </SelectItem>
                 {entregadores
                   .filter((e) => e.ativo)
-                  .map((e) => (
-                    <SelectItem key={e.user_id} value={e.user_id}>
-                      <span className="flex items-center gap-1.5 text-xs">
-                        {e.categoria_veiculo === "carro" ? (
-                          <Truck className="h-3 w-3 text-blue-400" />
-                        ) : (
-                          <Bike className="h-3 w-3 text-emerald-400" />
-                        )}
-                        {e.nome_completo}
-                      </span>
-                    </SelectItem>
-                  ))}
+                  .map((e) => {
+                    const driverKey = e.user_id || e.id;
+                    return (
+                      <SelectItem key={e.id} value={driverKey}>
+                        <span className="flex items-center gap-1.5 text-xs">
+                          {e.categoria_veiculo === "carro" ? (
+                            <Truck className="h-3 w-3 text-blue-400" />
+                          ) : (
+                            <Bike className="h-3 w-3 text-emerald-400" />
+                          )}
+                          {e.nome_completo}{e.sobrenome ? ` ${e.sobrenome}` : ""}
+                        </span>
+                      </SelectItem>
+                    );
+                  })}
               </SelectContent>
             </Select>
           </div>

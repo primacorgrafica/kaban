@@ -12,6 +12,38 @@ export type RotaId = "1" | "2" | "3" | "4" | "5" | "6" | "RETIRA";
 
 export type VeiculoCategoria = "moto" | "carro";
 
+export const VEICULO_CATEGORIAS: { id: VeiculoCategoria; label: string }[] = [
+  { id: "moto", label: "Moto" },
+  { id: "carro", label: "Carro" },
+];
+
+export const EXPEDICAO_AREAS = [
+  { id: "gestao_entregas", label: "Gestão de Entregas", path: "/entregas" },
+  { id: "rotas", label: "Rotas", path: "/expedicao/rotas" },
+  { id: "entregadores", label: "Cadastro de Entregadores", path: "/expedicao/entregadores" },
+] as const;
+
+/**
+ * Normaliza uma placa brasileira removendo espaços/traços e convertendo para maiúsculas.
+ * Formato antigo (7 chars com 4 dígitos finais) recebe hífen opcional na exibição: AAA-0000.
+ * Formato Mercosul mantém 7 caracteres contínuos: AAA0A00.
+ */
+export function normalizeBrazilianPlate(raw: string): string {
+  const clean = (raw || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 7);
+  if (/^[A-Z]{3}[0-9]{4}$/.test(clean)) {
+    return `${clean.slice(0, 3)}-${clean.slice(3)}`;
+  }
+  return clean;
+}
+
+/**
+ * Valida placa brasileira no padrão antigo (AAA-0000 / AAA0000) ou Mercosul (AAA0A00).
+ */
+export function isValidBrazilianPlate(plate: string): boolean {
+  const clean = (plate || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return /^[A-Z]{3}([0-9]{4}|[0-9][A-Z][0-9]{2})$/.test(clean);
+}
+
 export type MotivoPausaRota =
   | "sinistro"
   | "pneu_furado"
@@ -80,7 +112,7 @@ export const ROTAS_DISPONIVEIS: { id: RotaId; label: string; isRetira?: boolean 
 
 export interface Entregador {
   id: string;
-  user_id: string;
+  user_id: string | null;
   nome_completo: string;
   sobrenome?: string | null;
   telefone: string | null;
