@@ -258,12 +258,22 @@ export async function importPosicaoCsv(
     const chunk = updatesToApply.slice(i, i + CHUNK_SIZE);
     await Promise.all(
       chunk.map(async (item) => {
-        const payload = {
+        const payload: Record<string, any> = {
           posicao_atual: item.posicaoAtual,
           data_posicao: item.dataPosicao,
           previsao_cliente: item.previsaoCliente,
           updated_at: new Date().toISOString(),
         };
+
+        if (item.previsaoCliente && !item.order.entrega_data_limite) {
+          const brMatch = item.previsaoCliente.trim().match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+          if (brMatch) {
+            const iso = new Date(`${brMatch[3]}-${brMatch[2]}-${brMatch[1]}T18:00:00`);
+            if (!isNaN(iso.getTime())) {
+              payload.entrega_data_limite = iso.toISOString();
+            }
+          }
+        }
 
         const { error } = await (supabase.from("orders") as any)
           .update(payload)

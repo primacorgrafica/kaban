@@ -17,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import logoSidebar from "@/assets/logo-sidebar.png";
 import logoLight from "@/assets/logo.png";
 import { getEffectiveOsAnterior } from "@/lib/orderAnterior";
+import { getPosicaoFromCache } from "@/lib/csvPosicaoImporter";
+import { cleanOsNumber } from "@/lib/orderRelationsService";
 
 interface LiberadaEntry {
   order_id: string;
@@ -47,12 +49,53 @@ interface ExpedicaoEntry {
   descricao: string;
   vendedor: string | null;
   chegou_em: string;
+  display_time?: string;
   urgente?: boolean;
   os_anterior?: string | null;
   status_entrega?: string | null;
   entregue_para?: string | null;
   setor_status?: string | null;
   entrega_data_limite?: string | null;
+  previsao_cliente?: string | null;
+}
+
+function parseFlexiblePcpDate(raw?: string | null): { date: Date; hasExplicitTime: boolean } | null {
+  const s = (raw || "").trim();
+  if (!s) return null;
+
+  // Formato brasileiro DD/MM/YYYY (com ou sem hora)
+  const brMatch = s.match(/^(\d{2})\/(\d{2})\/(\d{4})(?:\s+(\d{2}):(\d{2}))?/);
+  if (brMatch) {
+    const [, dd, mm, yyyy, hh, min] = brMatch;
+    const d = new Date(
+      Number(yyyy),
+      Number(mm) - 1,
+      Number(dd),
+      hh ? Number(hh) : 12,
+      min ? Number(min) : 0,
+      0
+    );
+    if (!isNaN(d.getTime())) return { date: d, hasExplicitTime: Boolean(hh && min) };
+  }
+
+  // Formato ISO YYYY-MM-DD...
+  const isoDateOnly = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoDateOnly) {
+    const [, yyyy, mm, dd] = isoDateOnly;
+    const d = new Date(Number(yyyy), Number(mm) - 1, Number(dd), 12, 0, 0);
+    if (!isNaN(d.getTime())) return { date: d, hasExplicitTime: false };
+  }
+
+  try {
+    const d = parseISO(s);
+    if (!isNaN(d.getTime())) {
+      const hasExplicitTime = !(d.getHours() === 18 && d.getMinutes() === 0 && d.getSeconds() === 0);
+      return { date: d, hasExplicitTime };
+    }
+  } catch {
+    // ignore
+  }
+  return null;
 }
 
 function isSameDay(a: Date, b: Date): boolean {
@@ -484,108 +527,105 @@ export default function PcpPage() {
   };
 
   const fetchExpedicao = async () => {
-    const since = new Date();
-    since.setDate(since.getDate() - 14);
-    since.setHours(0, 0, 0, 0);
-    const sinceISO = since.toISOString();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayISO = today.toISOString();
 
-    const [sectorRes, expOrdersRes, archivedExpRes, deliveredRes, deliveredStatusRes] = await Promise.all([
-      // 1. Histórico de setores para 'expedicao'
-      supabase
-        .from("sector_history")
-        .select("order_id, setor_novo, created_at")
-        .eq("setor_novo", "expedicao")
-        .gte("created_at", sinceISO),
-      // 2. Ordens ativas no setor 'expedicao'
-      supabase
-        .from("orders")
-        .select("id, titulo, cliente, descricao, vendedor, created_at, updated_at, setor, setor_status, arquivado, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao, status_entrega, entregue_em, data_chegada_entrega, data_saida_entrega, entregue_para, entregue_por, tipo_entrega")
-        .eq("setor", "expedicao")
-        .eq("arquivado", false),
-      // 3. Ordens da expedição arquivadas/finalizadas recentemente (nos últimos 14 dias)
-      supabase
-        .from("orders")
-        .select("id, titulo, cliente, descricao, vendedor, created_at, updated_at, setor, setor_status, arquivado, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao, status_entrega, entregue_em, data_chegada_entrega, data_saida_entrega, entregue_para, entregue_por, tipo_entrega")
-        .eq("setor", "expedicao")
-        .eq("arquivado", true)
-        .gte("updated_at", sinceISO)
-        .order("updated_at", { ascending: false }),
-      // 4. Ordens com entrega realizada (entregue_em recente nos últimos 14 dias)
-      supabase
-        .from("orders")
-        .select("id, titulo, cliente, descricao, vendedor, created_at, updated_at, setor, setor_status, arquivado, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao, status_entrega, entregue_em, data_chegada_entrega, data_saida_entrega, entregue_para, entregue_por, tipo_entrega")
-        .gte("entregue_em", sinceISO)
-        .order("entregue_em", { ascending: false }),
-      // 5. Ordens com status_entrega = 'entregue' atualizadas recentemente
-      supabase
-        .from("orders")
-        .select("id, titulo, cliente, descricao, vendedor, created_at, updated_at, setor, setor_status, arquivado, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao, status_entrega, entregue_em, data_chegada_entrega, data_saida_entrega, entregue_para, entregue_por, tipo_entrega")
-        .eq("status_entrega", "entregue")
-        .gte("updated_at", sinceISO)
-        .order("updated_at", { ascending: false }),
-    ]);
+    // Busca TODAS as ordens ativas (paginado de 1000 em 1000) + entregues hoje (mesmo arquivadas)
+    // para que nenhuma O.S. com data de entrega / Previsão Cliente de HOJE fique de fora.
+    const activeRows: any[] = [];
+    const pageSize = 1000;
+    let from = 0;
+
+    while (true) {
+      const { data, error } = await (supabase.from("orders") as any)
+        .select(
+          "id, titulo, cliente, descricao, vendedor, created_at, updated_at, setor, setor_status, arquivado, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao, status_entrega, entregue_em, data_chegada_entrega, data_saida_entrega, entregue_para, entregue_por, tipo_entrega, entrega_data_limite, previsao_cliente, om_numero, oc_numero, nc_numero, parent_order_id"
+        )
+        .eq("arquivado", false)
+        .order("created_at", { ascending: false })
+        .range(from, from + pageSize - 1);
+
+      if (error) {
+        if (error.message?.includes("column") || error.code === "42703" || error.code === "PGRST204") {
+          const fb = await (supabase.from("orders") as any)
+            .select(
+              "id, titulo, cliente, descricao, vendedor, created_at, updated_at, setor, setor_status, arquivado, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao, status_entrega, entregue_em, data_chegada_entrega, data_saida_entrega, entregue_para, entregue_por, tipo_entrega, entrega_data_limite, om_numero, oc_numero, nc_numero, parent_order_id"
+            )
+            .eq("arquivado", false)
+            .order("created_at", { ascending: false })
+            .range(from, from + pageSize - 1);
+          if (fb.data) activeRows.push(...fb.data);
+          if (!fb.data || fb.data.length < pageSize) break;
+          from += pageSize;
+          continue;
+        }
+        break;
+      }
+
+      if (data) activeRows.push(...data);
+      if (!data || data.length < pageSize) break;
+      from += pageSize;
+    }
+
+    // Inclui também ordens arquivadas cuja entrega ocorreu HOJE
+    const { data: deliveredTodayData } = await (supabase.from("orders") as any)
+      .select(
+        "id, titulo, cliente, descricao, vendedor, created_at, updated_at, setor, setor_status, arquivado, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao, status_entrega, entregue_em, data_chegada_entrega, data_saida_entrega, entregue_para, entregue_por, tipo_entrega, entrega_data_limite, om_numero, oc_numero, nc_numero, parent_order_id"
+      )
+      .eq("arquivado", true)
+      .gte("entregue_em", todayISO);
 
     const orderMap = new Map<string, any>();
-    (expOrdersRes.data || []).forEach((o: any) => orderMap.set(o.id, o));
-    (archivedExpRes.data || []).forEach((o: any) => orderMap.set(o.id, o));
-    (deliveredRes.data || []).forEach((o: any) => orderMap.set(o.id, o));
-    (deliveredStatusRes.data || []).forEach((o: any) => orderMap.set(o.id, o));
-
-    // Carrega dados de ordens do histórico que não vieram nas outras queries
-    const missingIds = (sectorRes.data || [])
-      .map((r: any) => r.order_id)
-      .filter((id: string) => !orderMap.has(id));
-
-    if (missingIds.length > 0) {
-      const { data: missingData } = await supabase
-        .from("orders")
-        .select("id, titulo, cliente, descricao, vendedor, created_at, updated_at, setor, setor_status, arquivado, urgente, urgente_impressao, urgente_acabamento, urgente_expedicao, tipo_trabalho, os_anterior, observacao, status_entrega, entregue_em, data_chegada_entrega, data_saida_entrega, entregue_para, entregue_por, tipo_entrega")
-        .in("id", missingIds);
-      (missingData || []).forEach((o: any) => orderMap.set(o.id, o));
-    }
-
-    if (orderMap.size === 0) {
-      setExpedicao([]);
-      return;
-    }
-
-    // Histórico de transição mais recente para expedição
-    const sectorDateMap = new Map<string, string>();
-    (sectorRes.data || []).forEach((r: any) => {
-      const prev = sectorDateMap.get(r.order_id);
-      if (!prev || r.created_at > prev) {
-        sectorDateMap.set(r.order_id, r.created_at);
-      }
-    });
+    activeRows.forEach((o: any) => orderMap.set(o.id, o));
+    (deliveredTodayData || []).forEach((o: any) => orderMap.set(o.id, o));
 
     const entries: ExpedicaoEntry[] = [];
     orderMap.forEach((o: any) => {
+      // Exclui sub-ordens e setores internos que não representam entrega
+      if (o.om_numero || o.oc_numero || o.nc_numero) return;
+      if (o.setor === "faturamento" || o.setor === "qualidade" || o.setor === "ctp" || o.setor === "digital") return;
+      if (o.parent_order_id && !o.titulo?.toUpperCase().startsWith("P")) return;
+
       const isUrg = !!(o.urgente || o.urgente_impressao || o.urgente_acabamento || o.urgente_expedicao);
       const isDelivered =
         o.status_entrega === "entregue" ||
         !!o.entregue_em ||
         (o.setor === "expedicao" && (o.setor_status === "saida" || o.arquivado));
 
-      // Determinação da data representativa para Expedição (Fase 6):
-      // Prioriza a Data de Entrega (entrega_data_limite) para contagem no box do Painel
-      let targetDate: string = o.entrega_data_limite || o.created_at;
-      if (o.entrega_data_limite) {
-        targetDate = o.entrega_data_limite;
-      } else if (o.entregue_em) {
-        targetDate = o.entregue_em;
-      } else if (o.data_chegada_entrega) {
-        targetDate = o.data_chegada_entrega;
-      } else if (isDelivered && o.updated_at) {
-        targetDate = o.updated_at;
-      } else {
-        const histDate = sectorDateMap.get(o.id);
-        if (histDate) {
-          targetDate = histDate;
-        } else if (o.data_saida_entrega) {
-          targetDate = o.data_saida_entrega;
-        } else {
-          targetDate = o.updated_at || o.created_at;
-        }
+      const cleanNum = cleanOsNumber(o.titulo);
+      const cachedPos = getPosicaoFromCache(o.id, cleanNum);
+      const rawPrevisao = o.previsao_cliente || cachedPos?.previsaoCliente || null;
+
+      const parsedEntrega = parseFlexiblePcpDate(o.entrega_data_limite);
+      const parsedPrevisao = parseFlexiblePcpDate(rawPrevisao);
+      const parsedEntregueEm = o.entregue_em ? parseFlexiblePcpDate(o.entregue_em) : null;
+
+      // Verifica se a O.S. pertence ao dia de HOJE:
+      // 1) Data de Entrega (entrega_data_limite) é HOJE, OU
+      // 2) Previsão Cliente (previsao_cliente / cache CSV) é HOJE, OU
+      // 3) Foi entregue HOJE (entregue_em)
+      const isDeliveryToday = Boolean(parsedEntrega && isSameDay(parsedEntrega.date, today));
+      const isPrevisaoToday = Boolean(parsedPrevisao && isSameDay(parsedPrevisao.date, today));
+      const isDeliveredToday = Boolean(parsedEntregueEm && isSameDay(parsedEntregueEm.date, today));
+
+      if (!isDeliveryToday && !isPrevisaoToday && !isDeliveredToday) {
+        return;
+      }
+
+      const bestDate =
+        parsedEntregueEm?.date ||
+        parsedEntrega?.date ||
+        parsedPrevisao?.date ||
+        today;
+
+      let displayTime = format(today, "dd/MM");
+      if (isDeliveredToday && parsedEntregueEm) {
+        displayTime = format(parsedEntregueEm.date, "HH:mm");
+      } else if (isDeliveryToday && parsedEntrega?.hasExplicitTime) {
+        displayTime = format(parsedEntrega.date, "HH:mm");
+      } else if (isPrevisaoToday && parsedPrevisao?.hasExplicitTime) {
+        displayTime = format(parsedPrevisao.date, "HH:mm");
       }
 
       entries.push({
@@ -594,27 +634,34 @@ export default function PcpPage() {
         cliente: o.cliente,
         descricao: o.descricao,
         vendedor: o.vendedor,
-        chegou_em: targetDate,
+        chegou_em: bestDate.toISOString(),
+        display_time: displayTime,
         urgente: isUrg,
         os_anterior: getEffectiveOsAnterior(o) || null,
         status_entrega: isDelivered ? "entregue" : (o.status_entrega || null),
         entregue_para: o.entregue_para || null,
         setor_status: o.setor_status || null,
         entrega_data_limite: o.entrega_data_limite || null,
+        previsao_cliente: rawPrevisao,
       });
     });
 
     const latestByKey = new Map<string, ExpedicaoEntry>();
     for (const e of entries) {
-      const key = (e.titulo || "").trim().toUpperCase() || e.order_id;
+      const key = cleanOsNumber(e.titulo) || (e.titulo || "").trim().toUpperCase() || e.order_id;
       const prev = latestByKey.get(key);
-      if (!prev || e.chegou_em > prev.chegou_em) {
+      if (!prev || (e.status_entrega === "entregue" && prev.status_entrega !== "entregue")) {
         latestByKey.set(key, e);
       }
     }
 
     const deduped = Array.from(latestByKey.values());
-    deduped.sort((a, b) => b.chegou_em.localeCompare(a.chegou_em));
+    // Ordena: pendentes no topo (urgentes primeiro), depois por número de OS decrescente
+    deduped.sort((a, b) => {
+      if (a.urgente && !b.urgente) return -1;
+      if (!a.urgente && b.urgente) return 1;
+      return b.titulo.localeCompare(a.titulo, undefined, { numeric: true });
+    });
     setExpedicao(deduped);
   };
 
@@ -685,7 +732,9 @@ export default function PcpPage() {
           newRow.setor !== oldRow?.setor ||
           newRow.arquivado !== oldRow?.arquivado ||
           newRow.status_entrega !== oldRow?.status_entrega ||
-          newRow.entregue_em !== oldRow?.entregue_em
+          newRow.entregue_em !== oldRow?.entregue_em ||
+          newRow.entrega_data_limite !== oldRow?.entrega_data_limite ||
+          newRow.previsao_cliente !== oldRow?.previsao_cliente
         ) {
           fetchLiberadasRef.current?.();
           fetchEmitidas();
@@ -694,6 +743,7 @@ export default function PcpPage() {
         }
       } else if (payload.eventType === "INSERT") {
         fetchEmitidas();
+        fetchExpedicaoRef.current?.();
         fetchSectorCountsRef.current?.();
       } else if (payload.eventType === "DELETE") {
         fetchLiberadasRef.current?.();
@@ -772,24 +822,16 @@ export default function PcpPage() {
   }, [emitidas, searchQuery, dayKey]);
 
   const expedicaoGrouped = useMemo(() => {
-    const today = new Date(); today.setHours(0, 0, 0, 0);
     const q = searchQuery.trim().toLowerCase();
     const filterFn = (e: ExpedicaoEntry) =>
-      !q || e.titulo.toLowerCase().includes(q) || e.cliente.toLowerCase().includes(q) || e.descricao.toLowerCase().includes(q) || (e.vendedor || "").toLowerCase().includes(q);
+      !q ||
+      e.titulo.toLowerCase().includes(q) ||
+      e.cliente.toLowerCase().includes(q) ||
+      e.descricao.toLowerCase().includes(q) ||
+      (e.vendedor || "").toLowerCase().includes(q);
 
-    const hoje: ExpedicaoEntry[] = [];
-    const anteriores: ExpedicaoEntry[] = [];
-    expedicao.filter(filterFn).forEach(e => {
-      const d = new Date(e.entrega_data_limite || e.chegou_em);
-      if (isSameDay(d, today)) {
-        hoje.push(e);
-      } else if (d < today) {
-        // Se a ordem já foi concluída/entregue em dia anterior, não polui as pendências de dias anteriores
-        if (e.status_entrega === "entregue") return;
-        anteriores.push(e);
-      }
-    });
-    return { hoje, anteriores };
+    const hoje = expedicao.filter(filterFn);
+    return { hoje, anteriores: [] as ExpedicaoEntry[] };
   }, [expedicao, searchQuery, dayKey]);
 
   // Contadores
@@ -1432,8 +1474,8 @@ export default function PcpPage() {
             </h2>
           </div>
 
-          {/* SEÇÃO 1: HOJE */}
-          <div className="flex flex-col shrink-0 border-b border-violet-500/20">
+          {/* SEÇÃO ÚNICA: HOJE (todas as O.S. com data de entrega / previsão para hoje) */}
+          <div className="flex flex-col flex-1 min-h-0">
             <div className="py-1 px-3 bg-violet-100/80 dark:bg-violet-950/40 border-b border-violet-500/20 flex items-center justify-center gap-2 shrink-0">
               <span className="text-[11px] font-bold text-violet-900 dark:text-violet-300">
                 Hoje
@@ -1443,7 +1485,7 @@ export default function PcpPage() {
               </span>
             </div>
 
-            <div className="overflow-x-hidden max-h-[190px] sm:max-h-[210px] overflow-y-auto">
+            <div ref={listRefThird} className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth">
               <table className="w-full text-left text-[11px] table-fixed select-none">
                 <colgroup>
                   <col className="w-[16%]" />
@@ -1458,21 +1500,21 @@ export default function PcpPage() {
                     <th className="py-1.5 px-1 text-left truncate">CLIENTE</th>
                     <th className="py-1.5 px-1 text-left truncate">DESCRIÇÃO</th>
                     <th className="py-1.5 px-1 text-left truncate text-white dark:text-white">VENDEDOR</th>
-                    <th className="py-1.5 pr-2 text-right truncate text-white dark:text-white">HORA</th>
+                    <th className="py-1.5 pr-2 text-right truncate text-white dark:text-white">ENTREGA</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border/20">
                   {loading ? (
                     <tr>
-                      <td colSpan={5} className="py-4 text-center text-xs text-muted-foreground">
+                      <td colSpan={5} className="py-6 text-center text-xs text-muted-foreground">
                         <RefreshCw className="h-4 w-4 animate-spin inline mr-1.5 text-violet-500" />
                         Carregando...
                       </td>
                     </tr>
                   ) : expedicaoGrouped.hoje.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="py-4 text-center text-xs text-muted-foreground italic font-medium">
-                        Nenhuma OS
+                      <td colSpan={5} className="py-6 text-center text-xs text-muted-foreground italic font-medium">
+                        Nenhuma OS para hoje
                       </td>
                     </tr>
                   ) : (
@@ -1532,108 +1574,11 @@ export default function PcpPage() {
                             {e.vendedor || "—"}
                           </td>
                           <td className="py-1.5 pr-2 text-right text-white dark:text-white font-mono text-[10px] whitespace-nowrap truncate">
-                            {formatPcpDate(e.chegou_em, true)}
+                            {e.display_time || formatPcpDate(e.chegou_em, true)}
                           </td>
                         </tr>
                       );
                     })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* SEÇÃO 2: ANTERIORES */}
-          <div className="flex flex-col flex-1 min-h-0">
-            <div className="py-1 px-3 bg-violet-100/80 dark:bg-violet-950/40 border-b border-violet-500/20 flex items-center justify-center gap-2 shrink-0">
-              <span className="text-[11px] font-bold text-violet-900 dark:text-violet-300">
-                Anteriores
-              </span>
-              <span className="text-[10px] font-black px-1.5 py-0.2 rounded-full bg-violet-600 text-white shadow-xs">
-                {expedicaoGrouped.anteriores.length}
-              </span>
-            </div>
-
-            <div ref={listRefThird} className="flex-1 overflow-y-auto overflow-x-hidden scroll-smooth">
-              <table className="w-full text-left text-[11px] table-fixed select-none">
-                <colgroup>
-                  <col className="w-[16%]" />
-                  <col className="w-[30%]" />
-                  <col className="w-[28%]" />
-                  <col className="w-[13%]" />
-                  <col className="w-[13%]" />
-                </colgroup>
-                <thead className="sticky top-0 bg-muted/95 dark:bg-[#0c1822]/98 backdrop-blur-xs text-[9px] font-extrabold uppercase tracking-wider text-muted-foreground border-b border-border/40 select-none z-10">
-                  <tr>
-                    <th className="py-1.5 pl-2 text-left truncate">OS</th>
-                    <th className="py-1.5 px-1 text-left truncate">CLIENTE</th>
-                    <th className="py-1.5 px-1 text-left truncate">DESCRIÇÃO</th>
-                    <th className="py-1.5 px-1 text-left truncate text-white dark:text-white">VENDEDOR</th>
-                    <th className="py-1.5 pr-2 text-right truncate text-white dark:text-white">DATA</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/20">
-                  {loading ? (
-                    <tr>
-                      <td colSpan={5} className="py-6 text-center text-xs text-muted-foreground">
-                        <RefreshCw className="h-4 w-4 animate-spin inline mr-1.5 text-violet-500" />
-                        Carregando anteriores...
-                      </td>
-                    </tr>
-                  ) : expedicaoGrouped.anteriores.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="py-6 text-center text-xs text-muted-foreground italic font-medium">
-                        Nenhuma OS anterior
-                      </td>
-                    </tr>
-                  ) : (
-                    expedicaoGrouped.anteriores.map((e) => (
-                      <tr
-                        key={`${e.order_id}-${e.chegou_em}`}
-                        className={`hover:bg-violet-500/10 transition-colors ${
-                          e.urgente ? "bg-rose-500/10 text-rose-600 dark:text-rose-300 font-semibold" : ""
-                        }`}
-                      >
-                        <td className="py-1.5 pl-2 font-bold text-violet-600 dark:text-violet-400 truncate">
-                          <div className="flex items-center gap-1 min-w-0 truncate">
-                            <span className="truncate">{cleanOsTitle(e.titulo)}</span>
-                            {e.status_entrega === "entregue" ? (
-                              <span
-                                className="shrink-0 px-1 py-0.2 rounded text-[8px] bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border border-emerald-500/40 font-bold tracking-tight inline-flex items-center"
-                                title={e.entregue_para ? `Entregue para: ${e.entregue_para}` : "Entregue"}
-                              >
-                                ENTREGUE
-                              </span>
-                            ) : null}
-                            {e.os_anterior && (
-                              <span
-                                className="shrink-0 px-1 py-0.2 rounded text-[8px] bg-amber-500/20 text-amber-600 dark:text-amber-300 border border-amber-500/40 font-mono font-bold tracking-tight inline-flex items-center"
-                                title={`Repetição da O.S. Anterior: #${e.os_anterior}`}
-                              >
-                                REP
-                              </span>
-                            )}
-                            {e.urgente && (
-                              <span className="shrink-0 text-[8.5px] text-rose-500 font-extrabold" title="Urgente">
-                                🚨
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-1.5 px-1 font-semibold text-foreground truncate" title={e.cliente}>
-                          {e.cliente}
-                        </td>
-                        <td className="py-1.5 px-1 text-muted-foreground dark:text-slate-300 truncate" title={e.descricao}>
-                          {e.descricao || "—"}
-                        </td>
-                        <td className="py-1.5 px-1 text-white dark:text-white font-medium truncate" title={e.vendedor || ""}>
-                          {e.vendedor || "—"}
-                        </td>
-                        <td className="py-1.5 pr-2 text-right text-white dark:text-white font-mono text-[10px] whitespace-nowrap truncate">
-                          {formatPcpDate(e.chegou_em, false)}
-                        </td>
-                      </tr>
-                    ))
                   )}
                 </tbody>
               </table>
