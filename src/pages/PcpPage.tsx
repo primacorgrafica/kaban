@@ -938,34 +938,8 @@ export default function PcpPage() {
           </div>
         </div>
 
-        {/* Indicadores de Fluxo em Tempo Real: Digital, Pré-Impressão, Produção e Expedição */}
+        {/* Indicadores de Fluxo em Tempo Real: Pré-Impressão, Digital, Produção e Expedição */}
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-center my-1 xl:my-0">
-          {/* Card: Digital (<=5 verde, 6-10 amarelo, >=11 vermelho) */}
-          <div
-            onClick={() => !isTvMode && navigate("/digital")}
-            className={`flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl transition-all border shadow-xs ${
-              !isTvMode ? `cursor-pointer ${digitalTheme.hover} active:scale-95` : ""
-            } bg-card/60 dark:bg-[#11212D]/80 border-border dark:border-[#4A5C6A]/60 text-foreground dark:text-white`}
-            title="Digital (Clique para abrir Digital)"
-          >
-            <div className={`p-1.5 rounded-lg border shrink-0 ${digitalTheme.iconBg}`}>
-              <Zap className="h-4 w-4" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wider leading-none whitespace-nowrap">
-                Digital
-              </span>
-              <div className="flex items-baseline gap-1 mt-1">
-                <span className={`text-lg sm:text-xl font-black font-pcp leading-none ${digitalTheme.text}`}>
-                  {sectorCounts.loading ? "—" : sectorCounts.digital}
-                </span>
-                <span className="text-[10px] font-medium text-muted-foreground dark:text-slate-400 uppercase">
-                  O.S.
-                </span>
-              </div>
-            </div>
-          </div>
-
           {/* Card: Pré-impressão (Entrada: <=5 verde, 6-15 amarelo, >=16 vermelho) */}
           <div
             onClick={() => !isTvMode && navigate("/")}
@@ -984,6 +958,32 @@ export default function PcpPage() {
               <div className="flex items-baseline gap-1 mt-1">
                 <span className={`text-lg sm:text-xl font-black font-pcp leading-none ${preTheme.text}`}>
                   {sectorCounts.loading ? "—" : sectorCounts.preImpressao}
+                </span>
+                <span className="text-[10px] font-medium text-muted-foreground dark:text-slate-400 uppercase">
+                  O.S.
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card: Digital (<=5 verde, 6-10 amarelo, >=11 vermelho) */}
+          <div
+            onClick={() => !isTvMode && navigate("/digital")}
+            className={`flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl transition-all border shadow-xs ${
+              !isTvMode ? `cursor-pointer ${digitalTheme.hover} active:scale-95` : ""
+            } bg-card/60 dark:bg-[#11212D]/80 border-border dark:border-[#4A5C6A]/60 text-foreground dark:text-white`}
+            title="Digital (Clique para abrir Digital)"
+          >
+            <div className={`p-1.5 rounded-lg border shrink-0 ${digitalTheme.iconBg}`}>
+              <Zap className="h-4 w-4" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wider leading-none whitespace-nowrap">
+                Digital
+              </span>
+              <div className="flex items-baseline gap-1 mt-1">
+                <span className={`text-lg sm:text-xl font-black font-pcp leading-none ${digitalTheme.text}`}>
+                  {sectorCounts.loading ? "—" : sectorCounts.digital}
                 </span>
                 <span className="text-[10px] font-medium text-muted-foreground dark:text-slate-400 uppercase">
                   O.S.
