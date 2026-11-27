@@ -119,6 +119,7 @@ function formatPcpDate(dateStr: string | null | undefined, onlyTime = false): st
 }
 
 export interface SectorFlowCounts {
+  digital: number;
   preImpressao: number;
   producao: number;
   expedicao: number;
@@ -134,6 +135,7 @@ export function computePcpSectorCounts(orders: Array<{
 }>): SectorFlowCounts {
   const NON_PRODUCTION_SECTORS = ["faturamento", "compras", "manutencao"];
 
+  const digitalTitulos = new Set<string>();
   const preTitulos = new Set<string>();
   const prodTitulos = new Set<string>();
   const expTitulos = new Set<string>();
@@ -147,28 +149,34 @@ export function computePcpSectorCounts(orders: Array<{
     const setorStatus = row.setor_status;
     const status = row.status;
 
-    // 1. Pré-Impressão: ordem ativa no fluxo inicial de arte/prova/aprovação
+    // 0. Digital: ordens ativas no setor digital (não finalizadas na saída)
+    const isDigital = setor === "digital" && setorStatus !== "saida";
+
+    // 1. Pré-Impressão (Entrada): apenas ordens na coluna de Entrada
     const isPre =
-      (!setor || setor === "desenvolvimento" || setor === "pre_impressao") &&
-      status !== "arquivo_liberado";
+      (!setor && status === "fila_de_entrada") ||
+      ((setor === "desenvolvimento" || setor === "pre_impressao") && setorStatus === "entrada");
 
     // 2. Expedição: ordem ativa na expedição (não finalizada na saída)
     const isExp = setor === "expedicao" && setorStatus !== "saida";
 
-    // 3. Produção: ordem liberada ou em setores produtivos (CTP, Digital, Produção, Qualidade)
+    // 3. Produção: ordem liberada ou em setores produtivos (CTP, Produção, Qualidade)
     const isProd =
       !isExp &&
       !isPre &&
+      !isDigital &&
       (!setor || !NON_PRODUCTION_SECTORS.includes(setor)) &&
       (status === "arquivo_liberado" || (setor && setor !== "desenvolvimento" && setor !== "pre_impressao")) &&
       setorStatus !== "saida";
 
+    if (isDigital) digitalTitulos.add(titulo);
     if (isPre) preTitulos.add(titulo);
     if (isProd) prodTitulos.add(titulo);
     if (isExp) expTitulos.add(titulo);
   });
 
   return {
+    digital: digitalTitulos.size,
     preImpressao: preTitulos.size,
     producao: prodTitulos.size,
     expedicao: expTitulos.size,
@@ -291,6 +299,7 @@ export default function PcpPage() {
   const [emitidas, setEmitidas] = useState<EmitidaEntry[]>([]);
   const [expedicao, setExpedicao] = useState<ExpedicaoEntry[]>([]);
   const [sectorCounts, setSectorCounts] = useState<SectorFlowCounts & { loading: boolean }>({
+    digital: 0,
     preImpressao: 0,
     producao: 0,
     expedicao: 0,
@@ -866,6 +875,7 @@ export default function PcpPage() {
     };
   };
 
+  const digitalTheme = getBoxColorTheme(sectorCounts.digital, 11);
   const preTheme = getBoxColorTheme(sectorCounts.preImpressao, 16);
   const prodTheme = getBoxColorTheme(sectorCounts.producao, 11);
   const expTheme = getBoxColorTheme(sectorCounts.expedicao, 11);
@@ -904,9 +914,35 @@ export default function PcpPage() {
           </div>
         </div>
 
-        {/* Indicadores de Fluxo em Tempo Real: Pré-Impressão, Produção e Expedição */}
+        {/* Indicadores de Fluxo em Tempo Real: Digital, Pré-Impressão, Produção e Expedição */}
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-center my-1 xl:my-0">
-          {/* Card: Pré-impressão (<=5 verde, 6-15 amarelo, >=16 vermelho) */}
+          {/* Card: Digital (<=5 verde, 6-10 amarelo, >=11 vermelho) */}
+          <div
+            onClick={() => !isTvMode && navigate("/digital")}
+            className={`flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl transition-all border shadow-xs ${
+              !isTvMode ? `cursor-pointer ${digitalTheme.hover} active:scale-95` : ""
+            } bg-card/60 dark:bg-[#11212D]/80 border-border dark:border-[#4A5C6A]/60 text-foreground dark:text-white`}
+            title="Digital (Clique para abrir Digital)"
+          >
+            <div className={`p-1.5 rounded-lg border shrink-0 ${digitalTheme.iconBg}`}>
+              <Zap className="h-4 w-4" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-semibold text-muted-foreground dark:text-slate-300 uppercase tracking-wider leading-none whitespace-nowrap">
+                Digital
+              </span>
+              <div className="flex items-baseline gap-1 mt-1">
+                <span className={`text-lg sm:text-xl font-black font-pcp leading-none ${digitalTheme.text}`}>
+                  {sectorCounts.loading ? "—" : sectorCounts.digital}
+                </span>
+                <span className="text-[10px] font-medium text-muted-foreground dark:text-slate-400 uppercase">
+                  O.S.
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card: Pré-impressão (Entrada: <=5 verde, 6-15 amarelo, >=16 vermelho) */}
           <div
             onClick={() => !isTvMode && navigate("/")}
             className={`flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl transition-all border shadow-xs ${
