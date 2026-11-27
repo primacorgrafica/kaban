@@ -906,8 +906,8 @@ export default function PcpPage() {
   const listRefRight = useRef<HTMLDivElement>(null);
   const listRefThird = useRef<HTMLDivElement>(null);
 
-  // Regra dinâmica de cores por faixa de quantidade de O.S. nos 3 boxes do cabeçalho
-  const getBoxColorTheme = (count: number, redThreshold: number) => {
+  // Regra dinâmica de cores por faixa de quantidade de O.S. nos boxes do cabeçalho
+  const getBoxColorTheme = (count: number, redThreshold: number, yellowThreshold = 6) => {
     if (count >= redThreshold) {
       return {
         text: "text-rose-500",
@@ -915,7 +915,7 @@ export default function PcpPage() {
         hover: "hover:border-rose-500/60 hover:bg-rose-500/10",
       };
     }
-    if (count >= 6) {
+    if (count >= yellowThreshold) {
       return {
         text: "text-amber-400",
         iconBg: "bg-amber-500/15 border-amber-500/30 text-amber-400",
@@ -932,7 +932,7 @@ export default function PcpPage() {
   const digitalTheme = getBoxColorTheme(sectorCounts.digital, 11);
   const preTheme = getBoxColorTheme(sectorCounts.preImpressao, 16);
   const prodTheme = getBoxColorTheme(sectorCounts.producao, 11);
-  const expTheme = getBoxColorTheme(sectorCounts.expedicao, 11);
+  const expTheme = getBoxColorTheme(totalExpedicaoHoje, 21, 11);
 
   // Conteúdo principal
   const mainContent = (
@@ -1048,7 +1048,7 @@ export default function PcpPage() {
             </div>
           </div>
 
-          {/* Card: Expedição (<=5 verde, 6-10 amarelo, >=11 vermelho) */}
+          {/* Card: Expedição (<=10 verde, 11-20 amarelo, >=21 vermelho — sincronizado com coluna O.S EXPEDIÇÃO) */}
           <div
             onClick={() => !isTvMode && navigate("/expedicao")}
             className={`flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl transition-all border shadow-xs ${
@@ -1065,7 +1065,7 @@ export default function PcpPage() {
               </span>
               <div className="flex items-baseline gap-1 mt-1">
                 <span className={`text-lg sm:text-xl font-black font-pcp leading-none ${expTheme.text}`}>
-                  {sectorCounts.loading ? "—" : sectorCounts.expedicao}
+                  {loading ? "—" : totalExpedicaoHoje}
                 </span>
                 <span className="text-[10px] font-medium text-muted-foreground dark:text-slate-400 uppercase">
                   O.S.
