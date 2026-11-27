@@ -1719,7 +1719,7 @@ export default function PcpPage() {
           {urgentMaintenance.length > 0 ? (
             <span className="inline-block animate-marquee font-bold text-white dark:text-white">
               {urgentMaintenance
-                .map((m) => `🚨 MANUTENÇÃO URGENTE: ${m.equipamento.toUpperCase()} • COLUNA: ${m.coluna.toUpperCase()}`)
+                .map((m) => `🚨 MANUTENÇÃO URGENTE: ${m.equipamento.toUpperCase()} • ${m.coluna.toUpperCase()}`)
                 .join("   |   ")}
             </span>
           ) : (
