@@ -153,10 +153,11 @@ export function computePcpSectorCounts(orders: Array<{
     // 0. Digital: ordens ativas no setor digital (não finalizadas na saída)
     const isDigital = setor === "digital" && setorStatus !== "saida";
 
-    // 1. Pré-Impressão (Entrada): apenas ordens na coluna de Entrada
+    // 1. Pré-Impressão (Entrada + Preparação)
     const isPre =
-      (!setor && status === "fila_de_entrada") ||
-      ((setor === "desenvolvimento" || setor === "pre_impressao") && setorStatus === "entrada");
+      (!setor && (status === "fila_de_entrada" || status === "preparando_arquivo")) ||
+      ((setor === "desenvolvimento" || setor === "pre_impressao") &&
+        (setorStatus === "entrada" || setorStatus === "preparacao"));
 
     // 2. Expedição: ordem ativa na expedição (não finalizada na saída)
     const isExp = setor === "expedicao" && setorStatus !== "saida";
