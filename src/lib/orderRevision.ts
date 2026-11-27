@@ -18,15 +18,7 @@ export function getOrderRevision(order?: { revisao?: number | null; observacao?:
   }
   if (typeof order.revisao === "number") {
     const rev = Math.floor(order.revisao);
-    if (rev > 1) return rev;
-    if (rev === 1) {
-      // Se observacao foi fornecida (inclusive null) mas não possui a tag [REV],
-      // trata-se de um registro legado onde o banco definia DEFAULT 1 antes de qualquer revisão.
-      if (order.observacao !== undefined && (!order.observacao || !order.observacao.match(/\[REV/i))) {
-        return 0;
-      }
-      return 1;
-    }
+    if (rev >= 1) return rev;
   }
   return 0;
 }

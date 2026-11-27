@@ -276,7 +276,8 @@ export function KanbanBoard({ orders, onUpdate, onMove, onArchive, onDelete, onD
       }
 
       if (pendingMove.toStatus === "aguardando_novo_arquivo" || pendingMove.toStatus === "paralisado") {
-        onUpdate(pendingMove.id, { observacao: motivoParada.trim() || null });
+        const preservedObs = setObservationRevision(motivoParada.trim() || null, currentRev);
+        onUpdate(pendingMove.id, { observacao: preservedObs || null });
       }
       onMove(pendingMove.id, pendingMove.toStatus, pendingMove.newIndex, targetRev);
       if (sendToExpedicao && pendingMove.toStatus === "aguardando_prova" && onSendToExpedicao) {
