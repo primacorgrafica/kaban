@@ -814,7 +814,6 @@ export default function PcpPage() {
       }
     });
 
-    const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const scheduleRefresh = () => {
       if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
       refreshTimerRef.current = setTimeout(() => {
@@ -910,6 +909,7 @@ export default function PcpPage() {
   const listRefLeft = useRef<HTMLDivElement>(null);
   const listRefRight = useRef<HTMLDivElement>(null);
   const listRefThird = useRef<HTMLDivElement>(null);
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Regra dinâmica de cores por faixa de quantidade de O.S. nos boxes do cabeçalho
   const getBoxColorTheme = (count: number, redThreshold: number, yellowThreshold = 6) => {
