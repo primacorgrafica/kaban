@@ -843,6 +843,33 @@ export default function PcpPage() {
   const listRefRight = useRef<HTMLDivElement>(null);
   const listRefThird = useRef<HTMLDivElement>(null);
 
+  // Regra dinâmica de cores por faixa de quantidade de O.S. nos 3 boxes do cabeçalho
+  const getBoxColorTheme = (count: number, redThreshold: number) => {
+    if (count >= redThreshold) {
+      return {
+        text: "text-rose-500",
+        iconBg: "bg-rose-500/15 border-rose-500/30 text-rose-500",
+        hover: "hover:border-rose-500/60 hover:bg-rose-500/10",
+      };
+    }
+    if (count >= 6) {
+      return {
+        text: "text-amber-400",
+        iconBg: "bg-amber-500/15 border-amber-500/30 text-amber-400",
+        hover: "hover:border-amber-500/60 hover:bg-amber-500/10",
+      };
+    }
+    return {
+      text: "text-emerald-400",
+      iconBg: "bg-emerald-500/15 border-emerald-500/30 text-emerald-400",
+      hover: "hover:border-emerald-500/60 hover:bg-emerald-500/10",
+    };
+  };
+
+  const preTheme = getBoxColorTheme(sectorCounts.preImpressao, 16);
+  const prodTheme = getBoxColorTheme(sectorCounts.producao, 11);
+  const expTheme = getBoxColorTheme(sectorCounts.expedicao, 11);
+
   // Conteúdo principal
   const mainContent = (
     <div className={`flex flex-col h-full font-pcp ${isTvMode ? "bg-[#050811] text-slate-100 p-3 sm:p-4 select-none" : "space-y-3 text-foreground"}`}>
@@ -879,15 +906,15 @@ export default function PcpPage() {
 
         {/* Indicadores de Fluxo em Tempo Real: Pré-Impressão, Produção e Expedição */}
         <div className="flex items-center gap-2 sm:gap-3 flex-wrap justify-center my-1 xl:my-0">
-          {/* Card: Pré-impressão */}
+          {/* Card: Pré-impressão (<=5 verde, 6-15 amarelo, >=16 vermelho) */}
           <div
             onClick={() => !isTvMode && navigate("/")}
             className={`flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl transition-all border shadow-xs ${
-              !isTvMode ? "cursor-pointer hover:border-sky-500/60 hover:bg-sky-500/10 active:scale-95" : ""
+              !isTvMode ? `cursor-pointer ${preTheme.hover} active:scale-95` : ""
             } bg-card/60 dark:bg-[#11212D]/80 border-border dark:border-[#4A5C6A]/60 text-foreground dark:text-white`}
             title="Pré-Impressão (Clique para abrir Pré-Impressão)"
           >
-            <div className="p-1.5 rounded-lg bg-sky-500/15 border border-sky-500/30 text-sky-400 shrink-0">
+            <div className={`p-1.5 rounded-lg border shrink-0 ${preTheme.iconBg}`}>
               <Monitor className="h-4 w-4" />
             </div>
             <div className="flex flex-col">
@@ -895,7 +922,7 @@ export default function PcpPage() {
                 Pré-Impressão
               </span>
               <div className="flex items-baseline gap-1 mt-1">
-                <span className="text-lg sm:text-xl font-black font-pcp text-sky-400 leading-none">
+                <span className={`text-lg sm:text-xl font-black font-pcp leading-none ${preTheme.text}`}>
                   {sectorCounts.loading ? "—" : sectorCounts.preImpressao}
                 </span>
                 <span className="text-[10px] font-medium text-muted-foreground dark:text-slate-400 uppercase">
@@ -905,15 +932,15 @@ export default function PcpPage() {
             </div>
           </div>
 
-          {/* Card: Produção */}
+          {/* Card: Produção (<=5 verde, 6-10 amarelo, >=11 vermelho) */}
           <div
             onClick={() => !isTvMode && navigate("/producao")}
             className={`flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl transition-all border shadow-xs ${
-              !isTvMode ? "cursor-pointer hover:border-amber-500/60 hover:bg-amber-500/10 active:scale-95" : ""
+              !isTvMode ? `cursor-pointer ${prodTheme.hover} active:scale-95` : ""
             } bg-card/60 dark:bg-[#11212D]/80 border-border dark:border-[#4A5C6A]/60 text-foreground dark:text-white`}
             title="Produção (Clique para abrir Produção)"
           >
-            <div className="p-1.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-400 shrink-0">
+            <div className={`p-1.5 rounded-lg border shrink-0 ${prodTheme.iconBg}`}>
               <Factory className="h-4 w-4" />
             </div>
             <div className="flex flex-col">
@@ -921,7 +948,7 @@ export default function PcpPage() {
                 Produção
               </span>
               <div className="flex items-baseline gap-1 mt-1">
-                <span className="text-lg sm:text-xl font-black font-pcp text-amber-400 leading-none">
+                <span className={`text-lg sm:text-xl font-black font-pcp leading-none ${prodTheme.text}`}>
                   {sectorCounts.loading ? "—" : sectorCounts.producao}
                 </span>
                 <span className="text-[10px] font-medium text-muted-foreground dark:text-slate-400 uppercase">
@@ -931,15 +958,15 @@ export default function PcpPage() {
             </div>
           </div>
 
-          {/* Card: Expedição */}
+          {/* Card: Expedição (<=5 verde, 6-10 amarelo, >=11 vermelho) */}
           <div
             onClick={() => !isTvMode && navigate("/expedicao")}
             className={`flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl transition-all border shadow-xs ${
-              !isTvMode ? "cursor-pointer hover:border-emerald-500/60 hover:bg-emerald-500/10 active:scale-95" : ""
+              !isTvMode ? `cursor-pointer ${expTheme.hover} active:scale-95` : ""
             } bg-card/60 dark:bg-[#11212D]/80 border-border dark:border-[#4A5C6A]/60 text-foreground dark:text-white`}
             title="Expedição (Clique para abrir Expedição)"
           >
-            <div className="p-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 shrink-0">
+            <div className={`p-1.5 rounded-lg border shrink-0 ${expTheme.iconBg}`}>
               <Truck className="h-4 w-4" />
             </div>
             <div className="flex flex-col">
@@ -947,7 +974,7 @@ export default function PcpPage() {
                 Expedição
               </span>
               <div className="flex items-baseline gap-1 mt-1">
-                <span className="text-lg sm:text-xl font-black font-pcp text-emerald-400 leading-none">
+                <span className={`text-lg sm:text-xl font-black font-pcp leading-none ${expTheme.text}`}>
                   {sectorCounts.loading ? "—" : sectorCounts.expedicao}
                 </span>
                 <span className="text-[10px] font-medium text-muted-foreground dark:text-slate-400 uppercase">
