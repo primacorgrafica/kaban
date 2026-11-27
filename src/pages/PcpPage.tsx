@@ -704,6 +704,28 @@ export default function PcpPage() {
   const fetchSectorCountsRef = useRef<() => Promise<void>>();
   fetchSectorCountsRef.current = fetchSectorCounts;
 
+  const fetchUrgentMaintenance = async () => {
+    const { data } = await supabase
+      .from("orders")
+      .select("id, titulo, cliente, setor_status")
+      .eq("setor", "manutencao")
+      .eq("urgente", true)
+      .eq("arquivado", false)
+      .neq("setor_status", "saida");
+
+    if (data) {
+      const mapped = (data as any[]).map((o) => {
+        const statusCfg = MANUTENCAO_DEPARTMENT.statuses.find((s) => s.id === o.setor_status);
+        return {
+          id: o.id,
+          equipamento: (o.cliente || o.titulo || "Equipamento").trim(),
+          coluna: statusCfg?.label || o.setor_status || "Entrada",
+        };
+      });
+      setUrgentMaintenance(mapped);
+    }
+  };
+
   useEffect(() => {
     if (!authReady || !user) return;
     fetchLiberadas();
