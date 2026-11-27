@@ -19,6 +19,7 @@ import logoLight from "@/assets/logo.png";
 import { getEffectiveOsAnterior } from "@/lib/orderAnterior";
 import { getPosicaoFromCache } from "@/lib/csvPosicaoImporter";
 import { cleanOsNumber } from "@/lib/orderRelationsService";
+import { MANUTENCAO_DEPARTMENT } from "@/types/production";
 
 interface LiberadaEntry {
   order_id: string;
@@ -305,6 +306,10 @@ export default function PcpPage() {
     expedicao: 0,
     loading: true,
   });
+
+  const [urgentMaintenance, setUrgentMaintenance] = useState<
+    Array<{ id: string; equipamento: string; coluna: string }>
+  >([]);
 
   // TV Mode States
   const [isTvMode, setIsTvMode] = useState(() => {
@@ -705,6 +710,7 @@ export default function PcpPage() {
     fetchEmitidas();
     fetchExpedicao();
     fetchSectorCounts();
+    fetchUrgentMaintenance();
 
     const unsubInc = subscribeOrdersIncremental((payload) => {
       if (!payload) return;
@@ -778,6 +784,7 @@ export default function PcpPage() {
         fetchEmitidas();
         fetchExpedicaoRef.current?.();
         fetchSectorCountsRef.current?.();
+        fetchUrgentMaintenance();
       } else if (payload.eventType === "DELETE") {
         fetchLiberadasRef.current?.();
         fetchEmitidas();
@@ -791,6 +798,7 @@ export default function PcpPage() {
       fetchEmitidas();
       fetchExpedicaoRef.current?.();
       fetchSectorCountsRef.current?.();
+      fetchUrgentMaintenance();
     });
 
     const interval = setInterval(() => {
@@ -798,6 +806,7 @@ export default function PcpPage() {
       fetchEmitidas();
       fetchExpedicaoRef.current?.();
       fetchSectorCountsRef.current?.();
+      fetchUrgentMaintenance();
     }, 15000);
 
     return () => {
@@ -1676,15 +1685,27 @@ export default function PcpPage() {
 
       {/* RODAPÉ TELEMETRY TICKER */}
       <div className="p-2 rounded-xl glass-bento flex items-center justify-between gap-3 overflow-hidden shrink-0 text-xs">
-        <div className="flex items-center gap-2 text-[#CCD0CF] font-bold uppercase tracking-wider shrink-0 bg-muted/60 dark:bg-[#253745]/60 px-2.5 py-0.5 rounded-lg border border-border/80 dark:border-[#4A5C6A]/40 text-[10px]">
-          <span className="w-2 h-2 rounded-full bg-[#CCD0CF] animate-ping" />
+        <div className={`flex items-center gap-2 font-bold uppercase tracking-wider shrink-0 px-2.5 py-0.5 rounded-lg border text-[10px] ${
+          urgentMaintenance.length > 0
+            ? "bg-rose-500/20 text-rose-400 border-rose-500/40"
+            : "bg-muted/60 dark:bg-[#253745]/60 text-[#CCD0CF] border-border/80 dark:border-[#4A5C6A]/40"
+        }`}>
+          <span className={`w-2 h-2 rounded-full animate-ping ${urgentMaintenance.length > 0 ? "bg-rose-500" : "bg-[#CCD0CF]"}`} />
           RADAR PCP
         </div>
 
         <div className="flex-1 overflow-hidden whitespace-nowrap text-foreground dark:text-slate-300 text-[11px]">
-          <span className="inline-block animate-marquee">
-            📢 <strong>PRIMACOR GRÁFICA</strong> • HOJE: {totalEmitidasHoje} EMITIDAS / {totalLiberadasHoje} LIBERADAS / {totalExpedicaoHoje} EXPEDIÇÃO • {lastLiberada ? `ÚLTIMA LIBERAÇÃO: ${cleanOsTitle(lastLiberada.titulo)} (${lastLiberada.cliente}) • ` : ""}RITMO: {totalEmitidasHoje > 0 ? `${Math.round((totalLiberadasHoje / totalEmitidasHoje) * 100)}%` : "100%"}
-          </span>
+          {urgentMaintenance.length > 0 ? (
+            <span className="inline-block animate-marquee font-bold text-rose-400">
+              {urgentMaintenance
+                .map((m) => `🚨 MANUTENÇÃO URGENTE: ${m.equipamento.toUpperCase()} • COLUNA: ${m.coluna.toUpperCase()}`)
+                .join("   |   ")}
+            </span>
+          ) : (
+            <span className="text-muted-foreground dark:text-slate-400 italic">
+              Nenhuma manutenção urgente no momento.
+            </span>
+          )}
         </div>
 
         <div className="hidden sm:flex items-center gap-3 text-muted-foreground dark:text-slate-500 text-[10px] shrink-0 font-medium">
