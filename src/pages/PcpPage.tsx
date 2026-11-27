@@ -814,23 +814,28 @@ export default function PcpPage() {
       }
     });
 
+    const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const scheduleRefresh = () => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+      refreshTimerRef.current = setTimeout(() => {
+        fetchLiberadasRef.current?.();
+        fetchEmitidas();
+        fetchExpedicaoRef.current?.();
+        fetchSectorCountsRef.current?.();
+        fetchUrgentMaintenance();
+      }, 400);
+    };
+
     const unsubOrders = subscribeOrders(() => {
-      fetchLiberadasRef.current?.();
-      fetchEmitidas();
-      fetchExpedicaoRef.current?.();
-      fetchSectorCountsRef.current?.();
-      fetchUrgentMaintenance();
+      scheduleRefresh();
     });
 
     const interval = setInterval(() => {
-      fetchLiberadasRef.current?.();
-      fetchEmitidas();
-      fetchExpedicaoRef.current?.();
-      fetchSectorCountsRef.current?.();
-      fetchUrgentMaintenance();
+      scheduleRefresh();
     }, 15000);
 
     return () => {
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
       unsubInc();
       unsubOrders();
       clearInterval(interval);
@@ -1624,7 +1629,7 @@ export default function PcpPage() {
                       const isRecent = isToday(parseISO(e.chegou_em)) && (Date.now() - new Date(e.chegou_em).getTime()) < 1800000;
                       return (
                         <tr
-                          key={`${e.order_id}-${e.chegou_em}`}
+                          key={e.order_id}
                           className={`hover:bg-violet-500/10 transition-colors ${
                             e.urgente
                               ? "bg-rose-500/10 text-rose-600 dark:text-rose-300 font-semibold"
