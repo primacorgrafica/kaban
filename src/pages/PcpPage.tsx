@@ -705,9 +705,8 @@ export default function PcpPage() {
   fetchSectorCountsRef.current = fetchSectorCounts;
 
   const fetchUrgentMaintenance = async () => {
-    const { data } = await supabase
-      .from("orders")
-      .select("id, titulo, cliente, setor_status")
+    const { data } = await (supabase.from("orders") as any)
+      .select("id, titulo, cliente, setor_status, equipamento_manut")
       .eq("setor", "manutencao")
       .eq("urgente", true)
       .eq("arquivado", false)
@@ -718,7 +717,7 @@ export default function PcpPage() {
         const statusCfg = MANUTENCAO_DEPARTMENT.statuses.find((s) => s.id === o.setor_status);
         return {
           id: o.id,
-          equipamento: (o.titulo || o.cliente || "Equipamento").trim(),
+          equipamento: (o.equipamento_manut || o.titulo || o.cliente || "Equipamento").trim(),
           coluna: statusCfg?.label || o.setor_status || "Entrada",
         };
       });
@@ -1718,7 +1717,7 @@ export default function PcpPage() {
 
         <div className="flex-1 overflow-hidden whitespace-nowrap text-foreground dark:text-slate-300 text-[11px]">
           {urgentMaintenance.length > 0 ? (
-            <span className="inline-block animate-marquee font-bold text-rose-400">
+            <span className="inline-block animate-marquee font-bold text-white dark:text-white">
               {urgentMaintenance
                 .map((m) => `🚨 MANUTENÇÃO URGENTE: ${m.equipamento.toUpperCase()} • COLUNA: ${m.coluna.toUpperCase()}`)
                 .join("   |   ")}
