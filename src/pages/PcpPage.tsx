@@ -1116,21 +1116,6 @@ export default function PcpPage() {
         </div>
       </div>
 
-      {/* BANNER DE ALERTA DE EVENTO RECENTE */}
-      {lastEventAlert && (
-        <div className="p-2.5 rounded-xl bg-[#253745]/40 border border-[#4A5C6A]/50 text-[#CCD0CF] flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-300 shrink-0 shadow-[0_0_20px_rgba(6,20,27,0.4)]">
-          <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-[#CCD0CF] animate-bounce" />
-            <span className="text-xs sm:text-sm font-bold tracking-wide">
-              {lastEventAlert.text}
-            </span>
-          </div>
-          <span className="text-[10px] bg-card/85 dark:bg-[#11212D]/85 px-2 py-0.5 rounded-lg border border-border/80 dark:border-[#4A5C6A]/35 text-muted-foreground dark:text-[#CCD0CF]">
-            {lastEventAlert.time}
-          </span>
-        </div>
-      )}
-
       {/* SELETOR DE COLUNAS EM TELAS MENORES / MOBILE (< lg) */}
       <div className="flex lg:hidden items-center justify-between gap-1 p-1 bg-muted/60 dark:bg-[#11212D]/80 rounded-xl border border-border/70 shrink-0 text-xs font-bold">
         <button
