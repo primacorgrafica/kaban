@@ -718,7 +718,7 @@ export default function PcpPage() {
         const statusCfg = MANUTENCAO_DEPARTMENT.statuses.find((s) => s.id === o.setor_status);
         return {
           id: o.id,
-          equipamento: (o.cliente || o.titulo || "Equipamento").trim(),
+          equipamento: (o.titulo || o.cliente || "Equipamento").trim(),
           coluna: statusCfg?.label || o.setor_status || "Entrada",
         };
       });
