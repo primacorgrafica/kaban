@@ -102,7 +102,7 @@ export default function EquipamentosPage() {
   const [filterSetor, setFilterSetor] = useState("");
   const [filterFabricante, setFilterFabricante] = useState("");
 
-  const SETORES_PRODUCAO = ["Pré-Impressão", "Qualidade", "Expedição", "Manutenção"];
+  const SETORES_PRODUCAO = ["Pré-Impressão", "Digital", "Off-set", "Acabamento", "Qualidade", "Expedição", "Manutenção"];
   const uniqueSetores = SETORES_PRODUCAO;
   const uniqueFabricantes = [...new Set(equipamentos.map((e) => e.fabricante).filter(Boolean))].sort() as string[];
 
@@ -434,28 +434,6 @@ export default function EquipamentosPage() {
         </div>
       </div>
       <div className="space-y-1.5">
-        <Label>Operadores</Label>
-        {readOnly ? (
-          <p className="text-sm text-muted-foreground">{data.operadores.length > 0 ? data.operadores.join(", ") : "—"}</p>
-        ) : (
-          <div className="border border-input rounded-md p-3 space-y-2 max-h-32 overflow-auto">
-            {operadorNames.length === 0 ? (
-              <p className="text-xs text-muted-foreground">Nenhum operador cadastrado</p>
-            ) : (
-              operadorNames.map((nome) => (
-                <label key={nome} className="flex items-center gap-2 cursor-pointer text-sm">
-                  <Checkbox
-                    checked={data.operadores.includes(nome)}
-                    onCheckedChange={() => onToggleOp?.(nome)}
-                  />
-                  {nome}
-                </label>
-              ))
-            )}
-          </div>
-        )}
-      </div>
-      <div className="space-y-1.5">
         <Label>Especificações</Label>
         <Textarea value={data.especificacoes} onChange={(e) => onChange("especificacoes", e.target.value)} readOnly={readOnly} rows={3} />
       </div>
@@ -495,10 +473,6 @@ export default function EquipamentosPage() {
         {showOmHistory && omHistory.length === 0 && (
           <p className="text-xs text-muted-foreground mt-1">Nenhuma OM arquivada para este equipamento.</p>
         )}
-      </div>
-      <div className="space-y-1.5">
-        <Label>Apontamentos</Label>
-        <Textarea value={data.apontamentos} onChange={(e) => onChange("apontamentos", e.target.value)} readOnly={readOnly} rows={3} />
       </div>
     </div>
   );
