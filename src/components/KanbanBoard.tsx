@@ -1,4 +1,4 @@
-import { getOrderRevision, isReturnToPreparation } from "@/lib/orderRevision";
+import { getOrderRevision, isReturnToPreparation, setObservationRevision } from "@/lib/orderRevision";
 import { Order, OrderStatus, STATUS_ORDER, STATUS_CONFIG } from "@/types/order";
 import { Department } from "@/types/production";
 import { KanbanColumn } from "./KanbanColumn";
