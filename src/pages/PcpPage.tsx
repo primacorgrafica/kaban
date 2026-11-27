@@ -725,8 +725,32 @@ export default function PcpPage() {
             type: "liberada",
           });
 
-          if (soundEnabledRef.current && !announcedOrderIdsRef.current.has(newRow.id)) {
+          const announceKey = cleanOsNumber(newRow.titulo) || newRow.id;
+          const storageKey = "pcp_announced_liberadas_v1";
+          let alreadyAnnounced = announcedOrderIdsRef.current.has(announceKey) || announcedOrderIdsRef.current.has(newRow.id);
+          if (!alreadyAnnounced && typeof window !== "undefined") {
+            try {
+              const saved = JSON.parse(localStorage.getItem(storageKey) || "[]") as string[];
+              if (saved.includes(announceKey) || saved.includes(newRow.id)) {
+                alreadyAnnounced = true;
+              }
+            } catch {
+              // ignore
+            }
+          }
+
+          if (soundEnabledRef.current && !alreadyAnnounced) {
+            announcedOrderIdsRef.current.add(announceKey);
             announcedOrderIdsRef.current.add(newRow.id);
+            if (typeof window !== "undefined") {
+              try {
+                const saved = JSON.parse(localStorage.getItem(storageKey) || "[]") as string[];
+                const next = Array.from(new Set([announceKey, newRow.id, ...saved])).slice(0, 300);
+                localStorage.setItem(storageKey, JSON.stringify(next));
+              } catch {
+                // ignore
+              }
+            }
             speakOsLiberada(newRow.titulo);
           }
 
