@@ -1120,6 +1120,36 @@ export default function PcpPage() {
         </div>
       </div>
 
+      {/* RADAR PCP (abaixo do topo) */}
+      <div className="p-2 rounded-xl glass-bento flex items-center justify-between gap-3 overflow-hidden shrink-0 text-xs">
+        <div className={`flex items-center gap-2 font-bold uppercase tracking-wider shrink-0 px-2.5 py-0.5 rounded-lg border text-[10px] ${
+          urgentMaintenance.length > 0
+            ? "bg-rose-500/20 text-rose-400 border-rose-500/40"
+            : "bg-muted/60 dark:bg-[#253745]/60 text-[#CCD0CF] border-border/80 dark:border-[#4A5C6A]/40"
+        }`}>
+          <span className={`w-2 h-2 rounded-full animate-ping ${urgentMaintenance.length > 0 ? "bg-rose-500" : "bg-[#CCD0CF]"}`} />
+          RADAR PCP
+        </div>
+
+        <div className="flex-1 overflow-hidden whitespace-nowrap text-foreground dark:text-slate-300 text-[11px]">
+          {urgentMaintenance.length > 0 ? (
+            <span className="inline-block animate-marquee font-bold text-white dark:text-white">
+              {urgentMaintenance
+                .map((m) => `🚨 MANUTENÇÃO URGENTE: ${m.equipamento.toUpperCase()} • ${m.coluna.toUpperCase()}`)
+                .join("   |   ")}
+            </span>
+          ) : (
+            <span className="text-muted-foreground dark:text-slate-400 italic">
+              Nenhuma manutenção urgente no momento.
+            </span>
+          )}
+        </div>
+
+        <div className="hidden sm:flex items-center gap-3 text-muted-foreground dark:text-slate-500 text-[10px] shrink-0 font-medium">
+          <span>Pressione <strong>F11</strong> para Tela Cheia</span>
+        </div>
+      </div>
+
       {/* SELETOR DE COLUNAS EM TELAS MENORES / MOBILE (< lg) */}
       <div className="flex lg:hidden items-center justify-between gap-1 p-1 bg-muted/60 dark:bg-[#11212D]/80 rounded-xl border border-border/70 shrink-0 text-xs font-bold">
         <button
@@ -1690,36 +1720,6 @@ export default function PcpPage() {
               </table>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* RODAPÉ TELEMETRY TICKER */}
-      <div className="p-2 rounded-xl glass-bento flex items-center justify-between gap-3 overflow-hidden shrink-0 text-xs">
-        <div className={`flex items-center gap-2 font-bold uppercase tracking-wider shrink-0 px-2.5 py-0.5 rounded-lg border text-[10px] ${
-          urgentMaintenance.length > 0
-            ? "bg-rose-500/20 text-rose-400 border-rose-500/40"
-            : "bg-muted/60 dark:bg-[#253745]/60 text-[#CCD0CF] border-border/80 dark:border-[#4A5C6A]/40"
-        }`}>
-          <span className={`w-2 h-2 rounded-full animate-ping ${urgentMaintenance.length > 0 ? "bg-rose-500" : "bg-[#CCD0CF]"}`} />
-          RADAR PCP
-        </div>
-
-        <div className="flex-1 overflow-hidden whitespace-nowrap text-foreground dark:text-slate-300 text-[11px]">
-          {urgentMaintenance.length > 0 ? (
-            <span className="inline-block animate-marquee font-bold text-white dark:text-white">
-              {urgentMaintenance
-                .map((m) => `🚨 MANUTENÇÃO URGENTE: ${m.equipamento.toUpperCase()} • ${m.coluna.toUpperCase()}`)
-                .join("   |   ")}
-            </span>
-          ) : (
-            <span className="text-muted-foreground dark:text-slate-400 italic">
-              Nenhuma manutenção urgente no momento.
-            </span>
-          )}
-        </div>
-
-        <div className="hidden sm:flex items-center gap-3 text-muted-foreground dark:text-slate-500 text-[10px] shrink-0 font-medium">
-          <span>Pressione <strong>F11</strong> para Tela Cheia</span>
         </div>
       </div>
     </div>
