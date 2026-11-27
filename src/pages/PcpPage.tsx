@@ -161,11 +161,10 @@ export function computePcpSectorCounts(orders: Array<{
     // 2. Expedição: ordem ativa na expedição (não finalizada na saída)
     const isExp = setor === "expedicao" && setorStatus !== "saida";
 
-    // 3. Produção: ordem liberada ou em setores produtivos (CTP, Produção, Qualidade)
+    // 3. Produção: ordem liberada ou em setores produtivos (CTP, Digital, Produção, Qualidade)
     const isProd =
       !isExp &&
       !isPre &&
-      !isDigital &&
       (!setor || !NON_PRODUCTION_SECTORS.includes(setor)) &&
       (status === "arquivo_liberado" || (setor && setor !== "desenvolvimento" && setor !== "pre_impressao")) &&
       setorStatus !== "saida";
